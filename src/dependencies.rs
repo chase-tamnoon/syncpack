@@ -2,37 +2,29 @@ use super::package_json;
 use serde_json::Value as JsonValue;
 
 pub fn get_dependencies(prop_name: &str, package: &JsonValue) -> Vec<(String, String)> {
-  let mut entries: Vec<(String, String)> = vec![];
-  let option = package[prop_name].as_object();
-  match option {
-    None => {}
-    Some(versions_by_name) => {
-      for key in versions_by_name.iter() {
-        let name: &str = key.0;
-        let version: &str = key.1.as_str().unwrap();
-        let entry: (String, String) = (String::from(name), String::from(version));
-        entries.push(entry);
-      }
-    }
-  }
-  entries
+  package
+    .get(prop_name)
+    .and_then(JsonValue::as_object)
+    .map(|versions_by_name| {
+      versions_by_name
+        .iter()
+        .map(|(name, version)| (name.to_string(), version.as_str().unwrap().to_string()))
+        .collect()
+    })
+    .unwrap_or_else(Vec::new)
 }
 
 pub fn list_dependencies(package: &package_json::Package) {
-  let deps = get_dependencies("dependencies", &package.data);
-  let dev_deps = get_dependencies("devDependencies", &package.data);
-  let peer_deps = get_dependencies("peerDependencies", &package.data);
+  let dependencies = ["dependencies", "devDependencies", "peerDependencies"];
+
   println!("PACKAGE: {}", package.path);
-  println!("  DEPENDENCIES");
-  for dep in deps {
-    println!("    {}: {}", dep.0, dep.1);
-  }
-  println!("  DEV_DEPENDENCIES");
-  for dep in dev_deps {
-    println!("    {}: {}", dep.0, dep.1);
-  }
-  println!("  PEER_DEPENDENCIES");
-  for dep in peer_deps {
-    println!("    {}: {}", dep.0, dep.1);
-  }
+
+  dependencies.iter().for_each(|prop_name| {
+    println!("  {}", prop_name);
+    get_dependencies(prop_name, &package.data)
+      .iter()
+      .for_each(|dep| {
+        println!("    {}: {}", dep.0, dep.1);
+      });
+  });
 }
