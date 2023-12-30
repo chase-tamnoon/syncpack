@@ -5,6 +5,6 @@ authors = ["Jamie Mason <jamie@foldleft.io>"]
 edition = "2018"
 
 [dependencies]
-glob = "0.3.0"
-serde = "1.0.92"
-serde_json = "1.0.39"
+glob = "0.3.1"
+serde = "1.0.193"
+serde_json = "1.0.108"
