@@ -33,7 +33,7 @@ impl Package {
   }
 }
 
-/// Read and parse a package.json file, returning a Package which can be freely mutated
+/// Read and parse a package.json file
 pub fn read_file<P: AsRef<Path>>(file_path: &P) -> io::Result<Package> {
   let file_contents = fs::read_to_string(file_path)?;
   let parsed_json: Value = serde_json::from_str(&file_contents)?;
