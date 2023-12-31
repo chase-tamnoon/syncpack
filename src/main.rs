@@ -29,34 +29,33 @@ fn main() -> io::Result<()> {
       let file_path: &Path = package.file_path();
       println!("file_path: {:?}", file_path);
 
-      if let Some(name) = package.contents.pointer_mut("/name") {
-        *name = json!("new value");
-      }
-
-      package.contents = sort_json(package.contents);
-
+      package.set_prop("/name", json!("new name"));
+      package.set_prop("/c8/cache-dir", json!("new cache-dir"));
+      sort_json(&mut package.contents);
       pretty_print(package);
     });
 
   Ok(())
 }
 
-fn sort_json(value: serde_json::Value) -> serde_json::Value {
+fn sort_json(value: &mut serde_json::Value) {
   match value {
-    serde_json::Value::Object(mut obj) => {
-      let sorted_obj: BTreeMap<_, _> = obj.into_iter().collect();
-      json!(sorted_obj)
+    serde_json::Value::Object(obj) => {
+      let sorted_obj: BTreeMap<String, serde_json::Value> = obj
+        .into_iter()
+        .map(|(k, v)| (k.clone(), v.clone()))
+        .collect();
+      obj.extend(sorted_obj);
     }
-    serde_json::Value::Array(mut arr) => {
+    serde_json::Value::Array(arr) => {
       arr.sort_by(|a, b| {
         a.as_str()
           .unwrap_or("")
           .partial_cmp(b.as_str().unwrap_or(""))
           .unwrap_or(std::cmp::Ordering::Equal)
       });
-      serde_json::Value::Array(arr)
     }
-    other => other,
+    _ => {}
   }
 }
 
@@ -64,7 +63,21 @@ fn pretty_print(package: package_json::Package) {
   println!("Updated JSON: {:#?}", package.contents);
 }
 
-// if let Some(contents) = package.contents.as_object_mut() {
-//   let sorted_contents: BTreeMap<_, _> = contents.into_iter().collect();
-//   package.contents = json!(sorted_contents);
+// fn sort_json(value: serde_json::Value) -> serde_json::Value {
+//   match value {
+//     serde_json::Value::Object(obj) => {
+//       let sorted_obj: BTreeMap<_, _> = obj.into_iter().collect();
+//       json!(sorted_obj)
+//     }
+//     serde_json::Value::Array(mut arr) => {
+//       arr.sort_by(|a, b| {
+//         a.as_str()
+//           .unwrap_or("")
+//           .partial_cmp(b.as_str().unwrap_or(""))
+//           .unwrap_or(std::cmp::Ordering::Equal)
+//       });
+//       serde_json::Value::Array(arr)
+//     }
+//     other => other,
+//   }
 // }

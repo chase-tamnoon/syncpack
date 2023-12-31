@@ -15,8 +15,16 @@ pub struct Package {
 }
 
 impl Package {
+  /// Get the absolute path to the package.json file
   pub fn file_path(&self) -> &Path {
     &self.file_path
+  }
+
+  /// Deeply set a property in the parsed package.json
+  pub fn set_prop(&mut self, pointer: &str, next_value: serde_json::Value) {
+    if let Some(value) = self.contents.pointer_mut(pointer) {
+      *value = next_value;
+    }
   }
 }
 
