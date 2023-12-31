@@ -29,7 +29,7 @@ impl Package {
 
   /// Log the file path and parsed package.json
   pub fn pretty_print(&self) -> () {
-    println!("{}: {:#?}", &self.file_path.display(), &self.contents);
+    println!("{}: {:#?}", &self.file_path().display(), &self.contents);
   }
 }
 
