@@ -16,8 +16,10 @@ mod package_json;
 use serde_json::json;
 
 fn main() -> io::Result<()> {
-  let pattern = "/Users/foldleft/Dev/tightrope/package.json";
-  let paths = file_paths::get_file_paths(pattern);
+  let cwd = std::env::current_dir()?;
+  let pattern = cwd.join("fixtures/**/package.json");
+  let pattern_str = pattern.to_str().unwrap();
+  let paths = file_paths::get_file_paths(pattern_str);
   let sort_first = &vec![
     "private".to_string(),
     "homepage".to_string(),
