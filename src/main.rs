@@ -13,6 +13,7 @@ mod package_json;
 
 // Imports from external crates
 use serde_json::json;
+use std::collections::BTreeMap;
 
 fn main() -> io::Result<()> {
   let pattern = "/Users/foldleft/Dev/FluidFramework/package.json";
@@ -31,6 +32,13 @@ fn main() -> io::Result<()> {
       if let Some(name) = package.contents.pointer_mut("/name") {
         *name = json!("new value");
       }
+
+      // Sort the package.contents object alphabetically by keys
+      if let Some(contents) = package.contents.as_object_mut() {
+        let sorted_contents: BTreeMap<_, _> = contents.into_iter().collect();
+        package.contents = json!(sorted_contents);
+      }
+
       println!("Updated JSON: {:#?}", package.contents);
     });
 
