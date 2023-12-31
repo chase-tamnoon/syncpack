@@ -7,6 +7,7 @@ extern crate serde;
 extern crate serde_json;
 
 // Local modules
+mod config;
 mod dependencies;
 mod file_paths;
 mod format;
@@ -20,13 +21,7 @@ fn main() -> io::Result<()> {
   let pattern = cwd.join("fixtures/**/package.json");
   let pattern_str = pattern.to_str().unwrap();
   let paths = file_paths::get_file_paths(pattern_str);
-  let sort_first = &vec![
-    "private".to_string(),
-    "homepage".to_string(),
-    "name".to_string(),
-    "version".to_string(),
-    "description".to_string(),
-  ];
+  let rcfile = config::get();
 
   paths
     .into_iter()
@@ -34,9 +29,9 @@ fn main() -> io::Result<()> {
     .filter_map(Result::ok)
     .for_each(|mut package| {
       package.set_prop("/name", json!("new name"));
-      package.set_prop("/c8/cache-dir", json!("new cache-dir"));
+      package.set_prop("/engines/node", json!(">=1"));
       format::sort_alphabetically(&mut package.contents);
-      format::sort_first(&mut package.contents, sort_first);
+      format::sort_first(&mut package.contents, &rcfile.sort_first);
       package.pretty_print();
     });
 
