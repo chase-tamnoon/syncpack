@@ -30,7 +30,14 @@ fn main() -> io::Result<()> {
     .for_each(|mut package| {
       package.set_prop("/name", json!("new name"));
       package.set_prop("/engines/node", json!(">=1"));
-      format::sort_alphabetically(&mut package.contents);
+
+      rcfile.sort_az.iter().for_each(|key| {
+        let prop = package.contents.pointer_mut(format!("/{}", key).as_str());
+        if let Some(pointer) = prop {
+          format::sort_alphabetically(pointer);
+        }
+      });
+
       format::sort_first(&mut package.contents, &rcfile.sort_first);
       package.pretty_print();
     });
