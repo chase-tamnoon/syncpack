@@ -7,6 +7,7 @@ mod file_paths;
 mod package_json;
 
 use std::io;
+use serde_json::json;
 
 fn main() -> io::Result<()> {
   // let pattern = "/Users/foldleft/Dev/FluidFramework/packages/*/*/package.json";
@@ -15,12 +16,15 @@ fn main() -> io::Result<()> {
 
   println!("PATHS: {:?}", paths);
 
-  paths.into_iter().try_for_each(|path| {
-    match package_json::read_and_parse_json(path) {
-      Ok(mut json) => {
+  paths.into_iter().try_for_each(|file_path| {
+    match package_json::read_file(file_path) {
+      Ok(mut package) => {
         // Example of mutating the JSON object
-        json["name"] = serde_json::Value::from("NewName");
-        println!("Updated JSON: {:?}", json);
+        let mut contents = package.contents;
+        if let Some(name) = contents.pointer_mut("/name") {
+          *name = json!("new value");
+        }
+        println!("Updated JSON: {:?}", package);
       }
       Err(e) => println!("Error reading file: {}", e),
     }

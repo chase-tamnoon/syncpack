@@ -22,11 +22,11 @@ pub fn get_dependencies(
 pub fn list_dependencies(package: &package_json::Package) {
   let dependencies = ["dependencies", "devDependencies", "peerDependencies"];
 
-  println!("PACKAGE: {}", package.path);
+  println!("PACKAGE: {}", package.file_path);
 
   dependencies.iter().for_each(|prop_name| {
     println!("  {}", prop_name);
-    get_dependencies(prop_name, &package.data)
+    get_dependencies(prop_name, &package.contents)
       .iter()
       .for_each(|dep| {
         println!("    {}: {}", dep.0, dep.1);
