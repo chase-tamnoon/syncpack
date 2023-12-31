@@ -26,6 +26,11 @@ impl Package {
       *value = next_value;
     }
   }
+
+  /// Log the file path and parsed package.json
+  pub fn pretty_print(&self) -> () {
+    println!("{}: {:#?}", &self.file_path.display(), &self.contents);
+  }
 }
 
 /// Read and parse a package.json file, returning a Package which can be freely mutated

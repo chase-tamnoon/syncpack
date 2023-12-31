@@ -32,7 +32,7 @@ fn main() -> io::Result<()> {
       package.set_prop("/name", json!("new name"));
       package.set_prop("/c8/cache-dir", json!("new cache-dir"));
       sort_json(&mut package.contents);
-      pretty_print(package);
+      package.pretty_print();
     });
 
   Ok(())
@@ -57,10 +57,6 @@ fn sort_json(value: &mut serde_json::Value) {
     }
     _ => {}
   }
-}
-
-fn pretty_print(package: package_json::Package) {
-  println!("Updated JSON: {:#?}", package.contents);
 }
 
 // fn sort_json(value: serde_json::Value) -> serde_json::Value {
