@@ -25,6 +25,48 @@ pub fn format_package(
   if rcfile.sort_first.len() > 0 {
     sort_first(rcfile, package);
   }
+
+  if rcfile.sort_exports.len() > 0 {
+    sort_exports(rcfile, package);
+  }
+}
+
+fn sort_exports(rcfile: &config::RcFile, package: &mut package_json::Package) {
+  let sort_exports = &rcfile.sort_exports;
+  if let Some(exports) = package.get_prop_mut("exports") {
+    sort_exports2(sort_exports, exports);
+  }
+}
+
+fn sort_exports2(sort_exports: &Vec<String>, value: &mut serde_json::Value) {
+  if let serde_json::Value::Object(obj) = value {
+    let other_keys: Vec<String> = obj.keys().cloned().collect();
+    let mut sorted_keys: collections::HashSet<String> =
+      sort_exports.iter().cloned().collect();
+    sorted_keys.extend(other_keys.iter().cloned());
+
+    sort_object(&sorted_keys, obj);
+
+    for next_value in obj.values_mut() {
+      sort_exports2(sort_exports, next_value);
+    }
+  }
+}
+
+fn sort_object(
+  sorted_keys: &collections::HashSet<String>,
+  obj: &mut serde_json::Map<String, serde_json::Value>,
+) {
+  let mut sorted_obj: serde_json::Map<String, serde_json::Value> =
+    serde_json::Map::new();
+
+  for key in sorted_keys {
+    if let Some(value) = obj.remove(key) {
+      sorted_obj.insert(key.clone(), value);
+    }
+  }
+
+  *obj = sorted_obj;
 }
 
 /// Sort the values of the given keys alphabetically
