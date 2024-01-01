@@ -22,39 +22,49 @@ fn main() -> io::Result<()> {
   let pattern_str = pattern.to_str().unwrap();
   let paths = file_paths::get_file_paths(pattern_str);
   let rcfile = config::get();
-
-  paths
+  let packages = paths
     .into_iter()
     .map(|file_path| package_json::read_file(&file_path))
-    .filter_map(Result::ok)
-    .for_each(|mut package| {
-      package.set_prop("/name", json!("new name"));
-      package.set_prop("/engines/node", json!(">=1"));
+    .filter_map(Result::ok);
 
-      if rcfile.format_bugs {
-        let bugs_url = package.get_prop("/bugs/url");
-        if let Some(pointer) = bugs_url {
-          package.set_prop("/bugs", pointer.clone());
+  packages.for_each(|mut package| {
+    package.set_prop("/name", json!("new name"));
+    package.set_prop("/engines/node", json!(">=1"));
+
+    if rcfile.format_bugs {
+      let bugs_url = package.get_prop("/bugs/url");
+      if let Some(bugs_url) = bugs_url {
+        package.set_prop("/bugs", bugs_url.clone());
+      }
+    }
+
+    if rcfile.format_repository
+      && package.get_prop("/repository/directory").is_none()
+    {
+      if let Some(repository_url) = package.get_prop("/repository/url") {
+        if let Some(url) = repository_url.as_str() {
+          package.set_prop(
+            "/repository",
+            json!(if url.contains("github.com") {
+              url.replace(".+github\\.com/", "")
+            } else {
+              url.to_string()
+            }),
+          );
         }
       }
+    }
 
-      if rcfile.format_repository {
-        let repository_url = package.get_prop("/repository/url");
-        if let Some(pointer) = repository_url {
-          package.set_prop("/repository", pointer.clone());
-        }
-      }
-
-      rcfile.sort_az.iter().for_each(|key| {
-        let prop = package.contents.pointer_mut(format!("/{}", key).as_str());
-        if let Some(pointer) = prop {
-          format::sort_alphabetically(pointer);
-        }
-      });
-
-      format::sort_first(&mut package.contents, &rcfile.sort_first);
-      package.pretty_print();
+    rcfile.sort_az.iter().for_each(|key| {
+      package
+        .contents
+        .pointer_mut(format!("/{}", key).as_str())
+        .map(format::sort_alphabetically);
     });
+
+    format::sort_first(&mut package.contents, &rcfile.sort_first);
+    package.pretty_print();
+  });
 
   Ok(())
 }

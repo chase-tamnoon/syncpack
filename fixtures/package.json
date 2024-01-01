@@ -1,7 +1,10 @@
 {
   "author": "Jamie Mason <jamie@foldleft.io> (https://github.com/JamieMason)",
   "private": true,
-  "repository": { "url": "JamieMason/foopkg" },
+  "repository": {
+    "url": "git://github.com/User/repo",
+    "type": "git"
+  },
   "devDependencies": {
     "@types/node": "20.10.4",
     "eslint": "8.56.0",
