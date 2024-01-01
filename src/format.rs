@@ -86,8 +86,7 @@ fn sort_keys_with_priority(
   sort_remaining_keys: bool,
 ) {
   let order_set: collections::HashSet<_> = order.into_iter().collect();
-  let mut sorted_obj: serde_json::Map<String, serde_json::Value> =
-    serde_json::Map::new();
+  let mut sorted_obj: serde_json::Map<String, serde_json::Value> = serde_json::Map::new();
   let mut remaining_keys: Vec<_> = obj
     .keys()
     .filter(|k| !order_set.contains(*k))
@@ -117,11 +116,9 @@ fn sort_keys_with_priority(
 fn sort_alphabetically(value: &mut serde_json::Value) {
   match value {
     serde_json::Value::Object(obj) => {
-      let mut entries: Vec<_> =
-        obj.iter().map(|(k, v)| (k.clone(), v.clone())).collect();
+      let mut entries: Vec<_> = obj.iter().map(|(k, v)| (k.clone(), v.clone())).collect();
       entries.sort_by(|a, b| a.0.cmp(&b.0));
-      let sorted_obj: serde_json::Map<String, serde_json::Value> =
-        entries.into_iter().collect();
+      let sorted_obj: serde_json::Map<String, serde_json::Value> = entries.into_iter().collect();
 
       *value = serde_json::Value::Object(sorted_obj);
     }

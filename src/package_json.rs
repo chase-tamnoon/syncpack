@@ -22,10 +22,7 @@ impl Package {
   }
 
   /// Deeply get a property in the parsed package.json as mutable
-  pub fn get_prop_mut(
-    &mut self,
-    pointer: &str,
-  ) -> Option<&mut serde_json::Value> {
+  pub fn get_prop_mut(&mut self, pointer: &str) -> Option<&mut serde_json::Value> {
     self.contents.pointer_mut(pointer)
   }
 
