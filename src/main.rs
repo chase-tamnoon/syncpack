@@ -1,8 +1,8 @@
 #![allow(dead_code)]
 #![allow(unused_variables)]
 
-use std::io;
 use colored::*;
+use std::io;
 
 mod cli;
 mod config;
@@ -17,6 +17,8 @@ mod versions;
 fn main() -> io::Result<()> {
   let cwd = std::env::current_dir()?;
   let mut ctx = context::Ctx::new(&cwd)?;
+
+  ctx.rcfile.pretty_print();
 
   match cli::create().get_matches().subcommand() {
     Some(("lint", matches)) => {
