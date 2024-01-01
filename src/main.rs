@@ -1,4 +1,4 @@
-use clap::{arg, Command};
+use clap::{arg, Arg, ArgMatches, Command};
 use std::io;
 
 extern crate glob;
@@ -19,41 +19,69 @@ fn main() -> io::Result<()> {
     .subcommand(
       Command::new("lint")
         .about("Lint command")
-        .arg(arg!(--format))
-        .arg(arg!(--versions))
-        .arg(arg!(--ranges)),
+        .arg(
+          Arg::new("format")
+            .long("format")
+            .action(clap::ArgAction::SetTrue),
+        )
+        .arg(
+          Arg::new("versions")
+            .long("versions")
+            .action(clap::ArgAction::SetTrue),
+        )
+        .arg(
+          Arg::new("ranges")
+            .long("ranges")
+            .action(clap::ArgAction::SetTrue),
+        ),
     )
     .subcommand(
       Command::new("fix")
         .about("Fix command")
-        .arg(arg!(--format))
-        .arg(arg!(--versions))
-        .arg(arg!(--ranges)),
+        .arg(
+          Arg::new("format")
+            .long("format")
+            .action(clap::ArgAction::SetTrue),
+        )
+        .arg(
+          Arg::new("versions")
+            .long("versions")
+            .action(clap::ArgAction::SetTrue),
+        )
+        .arg(
+          Arg::new("ranges")
+            .long("ranges")
+            .action(clap::ArgAction::SetTrue),
+        ),
     )
     .get_matches();
 
   // You can then check which subcommand was used and which flags were set
   match matches.subcommand() {
     Some(("lint", lint_matches)) => {
-      let format_is_set = lint_matches.get_one::<bool>("format");
-      let versions_is_set = lint_matches.get_one::<bool>("versions");
-      let ranges_is_set = lint_matches.get_one::<bool>("ranges");
-      println!("lint format: {:?}", format_is_set);
-      println!("lint versions: {:?}", versions_is_set);
-      println!("lint ranges: {:?}", ranges_is_set);
+      println!("lint enabled: {:?}", get_enabled_steps(lint_matches));
       Ok(())
     }
     Some(("fix", fix_matches)) => {
-      let format_is_set = fix_matches.get_one::<bool>("format");
-      let versions_is_set = fix_matches.get_one::<bool>("versions");
-      let ranges_is_set = fix_matches.get_one::<bool>("ranges");
-      println!("fix format: {:?}", format_is_set);
-      println!("fix versions: {:?}", versions_is_set);
-      println!("fix ranges: {:?}", ranges_is_set);
+      println!("fix enabled: {:?}", get_enabled_steps(fix_matches));
       Ok(())
     }
     _ => Err(create_error("unrecognized subcommand")),
   }
+}
+
+/// returns which steps to run from "format", "versions", "ranges". if none are true, then all of them are returned as true.
+/// if any of them are true, then only those are returned as true.
+fn get_enabled_steps(matches: &ArgMatches) -> (bool, bool, bool) {
+  let format_is_set = matches.get_flag("format");
+  let versions_is_set = matches.get_flag("versions");
+  let ranges_is_set = matches.get_flag("ranges");
+
+  if !format_is_set && !versions_is_set && !ranges_is_set {
+    return (true, true, true);
+  }
+
+  (format_is_set, versions_is_set, ranges_is_set)
 }
 
 fn create_error(message: &str) -> io::Error {
