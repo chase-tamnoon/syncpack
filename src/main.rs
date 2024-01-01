@@ -14,6 +14,8 @@ mod dependencies;
 mod file_paths;
 mod format;
 mod package_json;
+mod semver_ranges;
+mod versions;
 
 fn main() -> io::Result<()> {
   let cwd = std::env::current_dir()?;
@@ -27,11 +29,11 @@ fn main() -> io::Result<()> {
         println!("@TODO: log whether formatting is valid or not");
       }
       if enabled_steps.ranges {
-        println!("@TODO: lint semver range mismatches");
+        semver_ranges::lint_all(&mut ctx);
         println!("@TODO: log whether semver ranges match or not");
       }
       if enabled_steps.versions {
-        println!("@TODO: lint version mismatches");
+        versions::lint_all(&mut ctx);
         println!("@TODO: log whether version mismatches are valid or not");
       }
       Ok(())
@@ -43,11 +45,11 @@ fn main() -> io::Result<()> {
         println!("@TODO: log whether formatting was fixed or not");
       }
       if enabled_steps.ranges {
-        println!("@TODO: fix semver range mismatches");
+        semver_ranges::fix_all(&mut ctx);
         println!("@TODO: log whether semver range mismatches were fixed or not");
       }
       if enabled_steps.versions {
-        println!("@TODO: fix version mismatches");
+        versions::fix_all(&mut ctx);
         println!("@TODO: log whether version mismatches were fixed or not");
       }
       Ok(())
