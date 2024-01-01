@@ -16,11 +16,6 @@ pub struct Package {
 }
 
 impl Package {
-  /// Get the absolute path to the package.json file
-  pub fn file_path(&self) -> &path::Path {
-    &self.file_path
-  }
-
   /// Deeply get a property in the parsed package.json
   pub fn get_prop(&self, pointer: &str) -> Option<&serde_json::Value> {
     self.contents.pointer(pointer)
@@ -53,6 +48,6 @@ impl Package {
 
   /// Log the file path and parsed package.json
   pub fn pretty_print(&self) -> () {
-    println!("{}: {:#?}", &self.file_path().display(), &self.contents);
+    println!("{}: {:#?}", &self.file_path.display(), &self.contents);
   }
 }
