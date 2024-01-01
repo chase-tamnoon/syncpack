@@ -6,10 +6,7 @@ use crate::config;
 use crate::package_json;
 
 /// Format a package.json file in memory
-pub fn fix(
-  package: &mut package_json::Package,
-  rcfile: &config::Rcfile,
-) {
+pub fn fix(package: &mut package_json::Package, rcfile: &config::Rcfile) {
   if rcfile.format_bugs {
     format_bugs(package);
   }
@@ -59,10 +56,7 @@ fn sort_az(rcfile: &config::Rcfile, package: &mut package_json::Package) {
 }
 
 /// Sort package.json with the given keys first
-fn sort_first(
-  rcfile: &config::Rcfile,
-  package: &mut package_json::Package,
-) {
+fn sort_first(rcfile: &config::Rcfile, package: &mut package_json::Package) {
   if let serde_json::Value::Object(obj) = &mut package.contents {
     sort_keys_with_priority(&rcfile.sort_first, obj, rcfile.sort_packages);
   }

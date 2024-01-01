@@ -50,25 +50,22 @@ fn create_error(message: &str) -> io::Error {
 
 fn format_lint() -> Result<(), io::Error> {
   let cwd = std::env::current_dir()?;
-  let mut ctx = context::Ctx::new(&cwd, config::get())?;
-  let pattern = cwd.join("fixtures/**/package.json");
-  let pattern_str = pattern.to_str().unwrap();
-  let paths = file_paths::get_file_paths(pattern_str);
-  let rcfile = config::get();
-  let packages = paths
-    .into_iter()
-    .filter_map(|file_path| package_json::read_file(&file_path).ok());
+  let mut ctx = context::Ctx::new(&cwd)?;
+  let rcfile = &ctx.rcfile;
 
-  packages.for_each(|mut package| {
+  ctx.packages.into_iter().for_each(|mut package| {
     format::fix(&mut package, &rcfile);
     if package.has_changed() {
       ctx.is_invalid = true;
+      println!("X {}", package.short_path);
+    } else {
+      println!("- {}", package.short_path);
     }
     package.pretty_print();
   });
 
   if ctx.is_invalid {
-    println!("Invalid package.json files found. Please run `syncpack fix --format` to fix them.")
+    println!("Invalid package.json files found. Please run `syncpack fix --format` to fix them.");
   }
 
   Ok(())

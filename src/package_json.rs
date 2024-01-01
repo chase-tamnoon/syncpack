@@ -7,6 +7,8 @@ use std::path;
 pub struct Package {
   /// The path to the package.json file
   pub file_path: path::PathBuf,
+  /// Relative path to the package.json file
+  pub short_path: String,
   /// The original, unedited raw JSON string
   pub json: String,
   /// The parsed JSON object
@@ -53,15 +55,4 @@ impl Package {
   pub fn pretty_print(&self) -> () {
     println!("{}: {:#?}", &self.file_path().display(), &self.contents);
   }
-}
-
-/// Read and parse a package.json file
-pub fn read_file<P: AsRef<path::Path>>(file_path: &P) -> io::Result<Package> {
-  let file_contents = fs::read_to_string(file_path)?;
-  let parsed_json: serde_json::Value = serde_json::from_str(&file_contents)?;
-  Ok(Package {
-    contents: parsed_json,
-    json: file_contents,
-    file_path: file_path.as_ref().to_path_buf(),
-  })
 }
