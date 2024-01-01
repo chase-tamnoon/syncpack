@@ -1,28 +1,74 @@
 use regex::Regex;
 use serde_json;
 use std::collections;
+use std::io;
 
 use crate::config;
+use crate::context;
 use crate::package_json;
 
+pub struct LintHandlers {
+  pub on_invalid_package: fn(&mut package_json::Package),
+  pub on_valid_package: fn(&mut package_json::Package),
+  pub on_invalid: fn(),
+  pub on_valid: fn(),
+}
+
+pub fn lint(ctx: &mut context::Ctx, handlers: LintHandlers) {
+  let mut format_is_invalid = false;
+
+  ctx.packages.iter_mut().for_each(|mut package| {
+    fix_package(&ctx.rcfile, &mut package);
+
+    if package.has_changed() {
+      format_is_invalid = true;
+      (handlers.on_invalid_package)(&mut package);
+    } else {
+      (handlers.on_valid_package)(&mut package);
+    }
+  });
+
+  if format_is_invalid {
+    ctx.is_invalid = true;
+    (handlers.on_invalid)();
+  } else {
+    (handlers.on_valid)();
+  }
+}
+
 /// Format a package.json file in memory
-pub fn fix(package: &mut package_json::Package, rcfile: &config::Rcfile) {
+pub fn fix(rcfile: &config::Rcfile, package: &mut package_json::Package) {
   if rcfile.format_bugs {
     format_bugs(package);
   }
-
   if rcfile.format_repository {
     format_repository(package);
   }
-
   if rcfile.sort_az.len() > 0 {
     sort_az(rcfile, package);
   }
-
   if rcfile.sort_first.len() > 0 {
     sort_first(rcfile, package);
   }
+  if rcfile.sort_exports.len() > 0 {
+    sort_exports(rcfile, package);
+  }
+}
 
+/// Format a package.json file in memory
+fn fix_package(rcfile: &config::Rcfile, package: &mut package_json::Package) {
+  if rcfile.format_bugs {
+    format_bugs(package);
+  }
+  if rcfile.format_repository {
+    format_repository(package);
+  }
+  if rcfile.sort_az.len() > 0 {
+    sort_az(rcfile, package);
+  }
+  if rcfile.sort_first.len() > 0 {
+    sort_first(rcfile, package);
+  }
   if rcfile.sort_exports.len() > 0 {
     sort_exports(rcfile, package);
   }

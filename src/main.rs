@@ -13,11 +13,28 @@ mod format;
 mod package_json;
 
 fn main() -> io::Result<()> {
+  let cwd = std::env::current_dir()?;
+  let mut ctx = context::Ctx::new(&cwd)?;
+
   match cli::create().get_matches().subcommand() {
     Some(("lint", matches)) => {
       let enabled_steps = cli::get_enabled_steps(matches);
       if enabled_steps.format {
-        format_lint()?;
+        format::lint(
+          &mut ctx,
+          format::LintHandlers {
+            on_invalid_package: |package| {
+              println!("X {}", package.short_path);
+            },
+            on_valid_package: |package| {
+              println!("- {}", package.short_path);
+            },
+            on_invalid: || {
+              println!("Invalid package.json files found. Please run `syncpack fix --format` to fix them.");
+            },
+            on_valid: || {},
+          },
+        )?;
       }
       if enabled_steps.ranges {
         println!("lint ranges");
@@ -48,25 +65,21 @@ fn create_error(message: &str) -> io::Error {
   io::Error::new(io::ErrorKind::Other, message)
 }
 
-fn format_lint() -> Result<(), io::Error> {
-  let cwd = std::env::current_dir()?;
-  let mut ctx = context::Ctx::new(&cwd)?;
-  let rcfile = &ctx.rcfile;
+// fn format_lint(ctx: &mut context::Ctx) -> Result<(), io::Error> {
+//   ctx.packages.iter_mut().for_each(|mut package| {
+//     format::fix(&mut package, &ctx.rcfile);
+//     if package.has_changed() {
+//       ctx.is_invalid = true;
+//       println!("X {}", package.short_path);
+//     } else {
+//       println!("- {}", package.short_path);
+//     }
+//     package.pretty_print();
+//   });
 
-  ctx.packages.into_iter().for_each(|mut package| {
-    format::fix(&mut package, &rcfile);
-    if package.has_changed() {
-      ctx.is_invalid = true;
-      println!("X {}", package.short_path);
-    } else {
-      println!("- {}", package.short_path);
-    }
-    package.pretty_print();
-  });
+//   if ctx.is_invalid {
+//     println!("Invalid package.json files found. Please run `syncpack fix --format` to fix them.");
+//   }
 
-  if ctx.is_invalid {
-    println!("Invalid package.json files found. Please run `syncpack fix --format` to fix them.");
-  }
-
-  Ok(())
-}
+//   Ok(())
+// }
