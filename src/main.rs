@@ -14,6 +14,7 @@ mod format;
 mod package_json;
 
 // Imports from external crates
+use regex::Regex;
 use serde_json::json;
 
 fn main() -> io::Result<()> {
@@ -46,7 +47,8 @@ fn main() -> io::Result<()> {
           package.set_prop(
             "/repository",
             json!(if url.contains("github.com") {
-              url.replace(".+github\\.com/", "")
+              let re = Regex::new(r#".+github\.com/"#).unwrap();
+              re.replace(&url, "").to_string()
             } else {
               url.to_string()
             }),
