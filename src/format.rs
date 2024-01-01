@@ -79,14 +79,48 @@ fn sort_az(rcfile: &config::RcFile, package: &mut package_json::Package) {
   });
 }
 
-/// Sort the keys in a JSON object, with the given keys first
+/// Sort package.json with the given keys first
 pub fn sort_first(
   rcfile: &config::RcFile,
   package: &mut package_json::Package,
 ) {
-  if let serde_json::Value::Object(obj) = &mut package.contents {
-    let order = &rcfile.sort_first;
-    let order_set: collections::HashSet<_> = order.into_iter().collect();
+  sort_object_first(&rcfile.sort_first, &mut package.contents);
+  // if let serde_json::Value::Object(obj) = &mut package.contents {
+  //   let order = &rcfile.sort_first;
+  //   let order_set: collections::HashSet<_> = order.into_iter().collect();
+  //   let mut sorted_obj: serde_json::Map<String, serde_json::Value> =
+  //     serde_json::Map::new();
+  //   let mut remaining_keys: Vec<_> = obj
+  //     .keys()
+  //     .filter(|k| !order_set.contains(*k))
+  //     .cloned()
+  //     .collect();
+
+  //   remaining_keys.sort();
+
+  //   for key in order.clone() {
+  //     if let Some(val) = obj.remove(&key) {
+  //       sorted_obj.insert(key, val);
+  //     }
+  //   }
+
+  //   for key in remaining_keys {
+  //     if let Some(val) = obj.remove(&key) {
+  //       sorted_obj.insert(key, val);
+  //     }
+  //   }
+
+  //   package.contents = serde_json::Value::Object(sorted_obj);
+  // }
+}
+
+/// Sort the keys in a JSON object, with the given keys first
+pub fn sort_object_first(
+  sort_first: &Vec<String>,
+  value: &mut serde_json::Value,
+) {
+  if let serde_json::Value::Object(obj) = value {
+    let order_set: collections::HashSet<_> = sort_first.into_iter().collect();
     let mut sorted_obj: serde_json::Map<String, serde_json::Value> =
       serde_json::Map::new();
     let mut remaining_keys: Vec<_> = obj
@@ -97,7 +131,7 @@ pub fn sort_first(
 
     remaining_keys.sort();
 
-    for key in order.clone() {
+    for key in sort_first.clone() {
       if let Some(val) = obj.remove(&key) {
         sorted_obj.insert(key, val);
       }
@@ -109,7 +143,7 @@ pub fn sort_first(
       }
     }
 
-    package.contents = serde_json::Value::Object(sorted_obj);
+    *value = serde_json::Value::Object(sorted_obj);
   }
 }
 
