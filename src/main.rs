@@ -14,7 +14,6 @@ mod format;
 mod package_json;
 
 // Imports from external crates
-use regex::Regex;
 use serde_json::json;
 
 fn main() -> io::Result<()> {
@@ -38,22 +37,8 @@ fn main() -> io::Result<()> {
       }
     }
 
-    if rcfile.format_repository
-      && package.get_prop("/repository/directory").is_none()
-    {
-      if let Some(repository_url) = package.get_prop("/repository/url") {
-        if let Some(url) = repository_url.as_str() {
-          package.set_prop(
-            "/repository",
-            json!(if url.contains("github.com") {
-              let re = Regex::new(r#".+github\.com/"#).unwrap();
-              re.replace(&url, "").to_string()
-            } else {
-              url.to_string()
-            }),
-          );
-        }
-      }
+    if rcfile.format_repository {
+      format::format_repository(&mut package);
     }
 
     rcfile.sort_az.iter().for_each(|key| {

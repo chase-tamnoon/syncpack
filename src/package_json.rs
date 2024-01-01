@@ -1,22 +1,21 @@
-use serde_json::Value;
+use serde_json;
 use std::fs;
 use std::io;
-use std::path::Path;
-use std::path::PathBuf;
+use std::path;
 
 #[derive(Debug)]
 pub struct Package {
-  /// The parsed JSON object
-  pub contents: Value,
+  /// The path to the package.json file
+  pub file_path: path::PathBuf,
   /// The original, unedited raw JSON string
   pub json: String,
-  /// The path to the package.json file
-  pub file_path: PathBuf,
+  /// The parsed JSON object
+  pub contents: serde_json::Value,
 }
 
 impl Package {
   /// Get the absolute path to the package.json file
-  pub fn file_path(&self) -> &Path {
+  pub fn file_path(&self) -> &path::Path {
     &self.file_path
   }
 
@@ -47,9 +46,9 @@ impl Package {
 }
 
 /// Read and parse a package.json file
-pub fn read_file<P: AsRef<Path>>(file_path: &P) -> io::Result<Package> {
+pub fn read_file<P: AsRef<path::Path>>(file_path: &P) -> io::Result<Package> {
   let file_contents = fs::read_to_string(file_path)?;
-  let parsed_json: Value = serde_json::from_str(&file_contents)?;
+  let parsed_json: serde_json::Value = serde_json::from_str(&file_contents)?;
   Ok(Package {
     contents: parsed_json,
     json: file_contents,
