@@ -21,25 +21,31 @@ fn main() -> io::Result<()> {
       let enabled_steps = cli::get_enabled_steps(matches);
       if enabled_steps.format {
         format::lint_all(&mut ctx);
+        println!("@TODO: log whether formatting is valid or not");
       }
       if enabled_steps.ranges {
-        println!("lint ranges");
+        println!("@TODO: lint semver range mismatches");
+        println!("@TODO: log whether semver ranges match or not");
       }
       if enabled_steps.versions {
-        println!("lint versions");
+        println!("@TODO: lint version mismatches");
+        println!("@TODO: log whether version mismatches are valid or not");
       }
       Ok(())
     }
     Some(("fix", matches)) => {
       let enabled_steps = cli::get_enabled_steps(matches);
       if enabled_steps.format {
-        println!("fix format");
+        format::fix_all(&mut ctx);
+        println!("@TODO: log whether formatting was fixed or not");
       }
       if enabled_steps.ranges {
-        println!("fix ranges");
+        println!("@TODO: fix semver range mismatches");
+        println!("@TODO: log whether semver range mismatches were fixed or not");
       }
       if enabled_steps.versions {
-        println!("fix versions");
+        println!("@TODO: fix version mismatches");
+        println!("@TODO: log whether version mismatches were fixed or not");
       }
       Ok(())
     }
