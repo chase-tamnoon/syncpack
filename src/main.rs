@@ -12,16 +12,31 @@ mod format;
 mod package_json;
 
 fn main() -> io::Result<()> {
-  let matches = cli::create().get_matches();
-
-  // You can then check which subcommand was used and which flags were set
-  match matches.subcommand() {
-    Some(("lint", lint_matches)) => {
-      println!("lint enabled: {:?}", cli::get_enabled_steps(lint_matches));
+  match cli::create().get_matches().subcommand() {
+    Some(("lint", matches)) => {
+      let enabled_steps = cli::get_enabled_steps(matches);
+      if enabled_steps.format {
+        format_lint()?;
+      }
+      if enabled_steps.ranges {
+        println!("lint ranges");
+      }
+      if enabled_steps.versions {
+        println!("lint versions");
+      }
       Ok(())
     }
-    Some(("fix", fix_matches)) => {
-      println!("fix enabled: {:?}", cli::get_enabled_steps(fix_matches));
+    Some(("fix", matches)) => {
+      let enabled_steps = cli::get_enabled_steps(matches);
+      if enabled_steps.format {
+        println!("fix format");
+      }
+      if enabled_steps.ranges {
+        println!("fix ranges");
+      }
+      if enabled_steps.versions {
+        println!("fix versions");
+      }
       Ok(())
     }
     _ => Err(create_error("unrecognized subcommand")),

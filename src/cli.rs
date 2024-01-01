@@ -51,9 +51,9 @@ pub fn create() -> Command {
 
 #[derive(Debug)]
 pub struct EnabledSteps {
-  format: bool,
-  ranges: bool,
-  versions: bool,
+  pub format: bool,
+  pub ranges: bool,
+  pub versions: bool,
 }
 
 /// returns which steps to run. if none are true, then all of them are returned
