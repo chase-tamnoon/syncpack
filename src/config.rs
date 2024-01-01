@@ -23,8 +23,8 @@ pub struct Rcfile {
 }
 
 impl Rcfile {
-  pub fn get_sources(&self, cwd: path::PathBuf) -> Vec<path::PathBuf> {
-    let pattern = cwd.join("fixtures/**/package.json");
+  pub fn get_sources(&self, cwd: &path::PathBuf) -> Vec<path::PathBuf> {
+    let pattern = &cwd.join("fixtures/**/package.json");
     let pattern_str = pattern.to_str().unwrap();
     file_paths::get_file_paths(pattern_str)
   }

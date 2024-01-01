@@ -6,6 +6,7 @@ extern crate serde_json;
 
 mod cli;
 mod config;
+mod context;
 mod dependencies;
 mod file_paths;
 mod format;
@@ -48,8 +49,8 @@ fn create_error(message: &str) -> io::Error {
 }
 
 fn format_lint() -> Result<(), io::Error> {
-  let mut is_invalid = false;
   let cwd = std::env::current_dir()?;
+  let mut ctx = context::Ctx::new(&cwd, config::get())?;
   let pattern = cwd.join("fixtures/**/package.json");
   let pattern_str = pattern.to_str().unwrap();
   let paths = file_paths::get_file_paths(pattern_str);
@@ -61,12 +62,12 @@ fn format_lint() -> Result<(), io::Error> {
   packages.for_each(|mut package| {
     format::fix(&mut package, &rcfile);
     if package.has_changed() {
-      is_invalid = true;
+      ctx.is_invalid = true;
     }
     package.pretty_print();
   });
 
-  if is_invalid {
+  if ctx.is_invalid {
     println!("Invalid package.json files found. Please run `syncpack fix --format` to fix them.")
   }
 
