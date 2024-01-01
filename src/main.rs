@@ -11,6 +11,7 @@ mod format;
 mod package_json;
 
 fn main() -> io::Result<()> {
+  let mut is_invalid = false;
   let cwd = std::env::current_dir()?;
   let pattern = cwd.join("fixtures/**/package.json");
   let pattern_str = pattern.to_str().unwrap();
@@ -21,9 +22,16 @@ fn main() -> io::Result<()> {
     .filter_map(|file_path| package_json::read_file(&file_path).ok());
 
   packages.for_each(|mut package| {
-    format::format_package(&mut package, &rcfile);
+    format::fix(&mut package, &rcfile);
+    if package.has_changed() {
+      is_invalid = true;
+    }
     package.pretty_print();
   });
+
+  if is_invalid {
+    println!("Invalid package.json files found. Please run `syncpack fix --format` to fix them.")
+  }
 
   Ok(())
 }

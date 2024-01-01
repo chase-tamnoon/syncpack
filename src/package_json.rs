@@ -39,6 +39,16 @@ impl Package {
     }
   }
 
+  /// Report whether the package in memory has changed from what's on disk
+  pub fn has_changed(&self) -> bool {
+    self.json != self.contents.to_string()
+  }
+
+  /// Write the parsed package.json to disk
+  pub fn write_to_disk(&self) -> io::Result<()> {
+    fs::write(&self.file_path, self.contents.to_string())
+  }
+
   /// Log the file path and parsed package.json
   pub fn pretty_print(&self) -> () {
     println!("{}: {:#?}", &self.file_path().display(), &self.contents);

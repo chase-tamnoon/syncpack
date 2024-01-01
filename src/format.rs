@@ -5,8 +5,8 @@ use std::collections;
 use crate::config;
 use crate::package_json;
 
-/// Format a package.json file
-pub fn format_package(
+/// Format a package.json file in memory
+pub fn fix(
   package: &mut package_json::Package,
   rcfile: &config::RcFile,
 ) {
