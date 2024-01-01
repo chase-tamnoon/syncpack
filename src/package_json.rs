@@ -1,3 +1,4 @@
+use colored::Colorize;
 use serde_json;
 use std::fs;
 use std::io;
@@ -46,5 +47,13 @@ impl Package {
   /// Log the file path and parsed package.json
   pub fn pretty_print(&self) -> () {
     println!("{}: {:#?}", &self.file_path.display(), &self.contents);
+  }
+
+  pub fn log_as_valid(&self) -> () {
+    println!("{} {}", "✓".green(), &self.short_path);
+  }
+
+  pub fn log_as_invalid(&self) -> () {
+    println!("{} {}", "✘".red(), &self.short_path);
   }
 }

@@ -11,6 +11,9 @@ pub fn lint_all(ctx: &mut context::Ctx) {
     fix(&ctx.rcfile, &mut package);
     if package.has_changed() {
       ctx.is_invalid = true;
+      package.log_as_invalid();
+    } else {
+      package.log_as_valid();
     }
   });
 }
