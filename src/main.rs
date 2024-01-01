@@ -25,8 +25,7 @@ fn main() -> io::Result<()> {
   let rcfile = config::get();
   let packages = paths
     .into_iter()
-    .map(|file_path| package_json::read_file(&file_path))
-    .filter_map(Result::ok);
+    .filter_map(|file_path| package_json::read_file(&file_path).ok());
 
   packages.for_each(|mut package| {
     package.set_prop("/name", json!("new name"));
