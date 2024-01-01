@@ -40,7 +40,7 @@ fn sort_exports(rcfile: &config::RcFile, package: &mut package_json::Package) {
   /// Recursively visit and sort nested objects of the exports object
   fn visit_node(sort_exports: &Vec<String>, value: &mut serde_json::Value) {
     if let serde_json::Value::Object(obj) = value {
-      sort_object_first(sort_exports, obj, false);
+      sort_keys_with_priority(sort_exports, obj, false);
       for next_value in obj.values_mut() {
         visit_node(sort_exports, next_value);
       }
@@ -59,12 +59,12 @@ fn sort_az(rcfile: &config::RcFile, package: &mut package_json::Package) {
 }
 
 /// Sort package.json with the given keys first
-pub fn sort_first(
+fn sort_first(
   rcfile: &config::RcFile,
   package: &mut package_json::Package,
 ) {
   if let serde_json::Value::Object(obj) = &mut package.contents {
-    sort_object_first(&rcfile.sort_first, obj, rcfile.sort_packages);
+    sort_keys_with_priority(&rcfile.sort_first, obj, rcfile.sort_packages);
   }
 }
 
@@ -75,7 +75,7 @@ pub fn sort_first(
 /// * `order`: The keys to sort first, in order.
 /// * `obj`: The JSON object to sort.
 /// * `sort_remaining_keys`: Whether to sort the remaining keys alphabetically.
-pub fn sort_object_first(
+fn sort_keys_with_priority(
   order: &Vec<String>,
   obj: &mut serde_json::Map<String, serde_json::Value>,
   sort_remaining_keys: bool,
@@ -93,11 +93,6 @@ pub fn sort_object_first(
     remaining_keys.sort();
   }
 
-  // for key in order.clone() {
-  //   if let Some(val) = obj.remove(&key) {
-  //     sorted_obj.insert(key, val);
-  //   }
-  // }
   for key in order.iter() {
     if let Some(val) = obj.remove(key) {
       sorted_obj.insert(key.clone(), val);
@@ -114,7 +109,7 @@ pub fn sort_object_first(
 }
 
 /// Sort an array or object alphabetically
-pub fn sort_alphabetically(value: &mut serde_json::Value) {
+fn sort_alphabetically(value: &mut serde_json::Value) {
   match value {
     serde_json::Value::Object(obj) => {
       let mut entries: Vec<_> =
@@ -146,7 +141,7 @@ fn format_bugs(package: &mut package_json::Package) {
 }
 
 /// Use a shorthand format for the repository URL when possible
-pub fn format_repository(package: &mut package_json::Package) {
+fn format_repository(package: &mut package_json::Package) {
   if package.get_prop("/repository/directory").is_none() {
     if let Some(repository_url) = package.get_prop("/repository/url") {
       if let Some(url) = repository_url.as_str() {
