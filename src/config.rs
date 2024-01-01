@@ -1,8 +1,11 @@
 use serde::{Deserialize, Serialize};
+use std::path;
+
+use crate::file_paths;
 
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub struct RcFile {
+pub struct Rcfile {
   pub custom_types: CustomTypes,
   pub dependency_types: Vec<String>,
   pub filter: String,
@@ -17,6 +20,14 @@ pub struct RcFile {
   pub source: Vec<String>,
   pub specifier_types: Vec<String>,
   pub version_groups: Vec<String>,
+}
+
+impl Rcfile {
+  pub fn get_sources(&self, cwd: path::PathBuf) -> Vec<path::PathBuf> {
+    let pattern = cwd.join("fixtures/**/package.json");
+    let pattern_str = pattern.to_str().unwrap();
+    file_paths::get_file_paths(pattern_str)
+  }
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -46,7 +57,7 @@ pub struct LocalStrategy {
   pub path: String,
 }
 
-pub fn get() -> RcFile {
+pub fn get() -> Rcfile {
   let raw_json = r#"
     {
       "customTypes": {
@@ -117,7 +128,7 @@ pub fn get() -> RcFile {
     }
   "#;
 
-  let deserialized: RcFile = serde_json::from_str(raw_json).unwrap();
+  let deserialized: Rcfile = serde_json::from_str(raw_json).unwrap();
   deserialized
 }
 

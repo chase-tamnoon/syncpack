@@ -8,7 +8,7 @@ use crate::package_json;
 /// Format a package.json file in memory
 pub fn fix(
   package: &mut package_json::Package,
-  rcfile: &config::RcFile,
+  rcfile: &config::Rcfile,
 ) {
   if rcfile.format_bugs {
     format_bugs(package);
@@ -32,7 +32,7 @@ pub fn fix(
 }
 
 /// Sorts conditional exports and conditional exports subpaths
-fn sort_exports(rcfile: &config::RcFile, package: &mut package_json::Package) {
+fn sort_exports(rcfile: &config::Rcfile, package: &mut package_json::Package) {
   if let Some(exports) = package.get_prop_mut("/exports") {
     visit_node(&rcfile.sort_exports, exports);
   }
@@ -49,7 +49,7 @@ fn sort_exports(rcfile: &config::RcFile, package: &mut package_json::Package) {
 }
 
 /// Sort the values of the given keys alphabetically
-fn sort_az(rcfile: &config::RcFile, package: &mut package_json::Package) {
+fn sort_az(rcfile: &config::Rcfile, package: &mut package_json::Package) {
   rcfile.sort_az.iter().for_each(|key| {
     package
       .contents
@@ -60,7 +60,7 @@ fn sort_az(rcfile: &config::RcFile, package: &mut package_json::Package) {
 
 /// Sort package.json with the given keys first
 fn sort_first(
-  rcfile: &config::RcFile,
+  rcfile: &config::Rcfile,
   package: &mut package_json::Package,
 ) {
   if let serde_json::Value::Object(obj) = &mut package.contents {
