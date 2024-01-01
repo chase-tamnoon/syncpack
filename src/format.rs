@@ -1,8 +1,38 @@
+use regex::Regex;
 use serde_json;
 use std::collections;
-use regex::Regex;
 
+use crate::config;
 use crate::package_json;
+
+pub fn format_package(
+  package: &mut package_json::Package,
+  rcfile: &config::RcFile,
+) {
+  package.set_prop("/name", serde_json::json!("new name"));
+  package.set_prop("/engines/node", serde_json::json!(">=1"));
+
+  if rcfile.format_bugs {
+    let bugs_url = package.get_prop("/bugs/url");
+    if let Some(bugs_url) = bugs_url {
+      package.set_prop("/bugs", bugs_url.clone());
+    }
+  }
+
+  if rcfile.format_repository {
+    format_repository(package);
+  }
+
+  rcfile.sort_az.iter().for_each(|key| {
+    package
+      .contents
+      .pointer_mut(format!("/{}", key).as_str())
+      .map(sort_alphabetically);
+  });
+
+  sort_first(&mut package.contents, &rcfile.sort_first);
+  package.pretty_print();
+}
 
 /// Sort the keys in a JSON object, with the given keys first
 pub fn sort_first(value: &mut serde_json::Value, order: &Vec<String>) {
