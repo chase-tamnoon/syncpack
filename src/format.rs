@@ -93,9 +93,14 @@ pub fn sort_object_first(
     remaining_keys.sort();
   }
 
-  for key in order.clone() {
-    if let Some(val) = obj.remove(&key) {
-      sorted_obj.insert(key, val);
+  // for key in order.clone() {
+  //   if let Some(val) = obj.remove(&key) {
+  //     sorted_obj.insert(key, val);
+  //   }
+  // }
+  for key in order.iter() {
+    if let Some(val) = obj.remove(key) {
+      sorted_obj.insert(key.clone(), val);
     }
   }
 
