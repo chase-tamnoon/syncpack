@@ -31,36 +31,22 @@ pub fn format_package(
   }
 }
 
+/// Sorts conditional exports and conditional exports subpaths
 fn sort_exports(rcfile: &config::RcFile, package: &mut package_json::Package) {
   if let Some(exports) = package.get_prop_mut("/exports") {
-    sort_exports2(&rcfile.sort_exports, exports);
+    visit_node(&rcfile.sort_exports, exports);
   }
-}
 
-fn sort_exports2(sort_exports: &Vec<String>, value: &mut serde_json::Value) {
-  if let serde_json::Value::Object(obj) = value {
-    sort_object_first(sort_exports, obj);
-    for next_value in obj.values_mut() {
-      sort_exports2(sort_exports, next_value);
+  /// Recursively visit and sort nested objects of the exports object
+  fn visit_node(sort_exports: &Vec<String>, value: &mut serde_json::Value) {
+    if let serde_json::Value::Object(obj) = value {
+      sort_object_first(sort_exports, obj, false);
+      for next_value in obj.values_mut() {
+        visit_node(sort_exports, next_value);
+      }
     }
   }
 }
-
-// fn sort_object(
-//   sorted_keys: &collections::HashSet<String>,
-//   obj: &mut serde_json::Map<String, serde_json::Value>,
-// ) {
-//   let mut sorted_obj: serde_json::Map<String, serde_json::Value> =
-//     serde_json::Map::new();
-//
-//   for key in sorted_keys {
-//     if let Some(value) = obj.remove(key) {
-//       sorted_obj.insert(key.clone(), value);
-//     }
-//   }
-//
-//   *obj = sorted_obj;
-// }
 
 /// Sort the values of the given keys alphabetically
 fn sort_az(rcfile: &config::RcFile, package: &mut package_json::Package) {
@@ -78,16 +64,23 @@ pub fn sort_first(
   package: &mut package_json::Package,
 ) {
   if let serde_json::Value::Object(obj) = &mut package.contents {
-    sort_object_first(&rcfile.sort_first, obj);
+    sort_object_first(&rcfile.sort_first, obj, rcfile.sort_packages);
   }
 }
 
 /// Sort the keys in a JSON object, with the given keys first
+///
+/// # Parameters
+///
+/// * `order`: The keys to sort first, in order.
+/// * `obj`: The JSON object to sort.
+/// * `sort_remaining_keys`: Whether to sort the remaining keys alphabetically.
 pub fn sort_object_first(
-  sort_first: &Vec<String>,
+  order: &Vec<String>,
   obj: &mut serde_json::Map<String, serde_json::Value>,
+  sort_remaining_keys: bool,
 ) {
-  let order_set: collections::HashSet<_> = sort_first.into_iter().collect();
+  let order_set: collections::HashSet<_> = order.into_iter().collect();
   let mut sorted_obj: serde_json::Map<String, serde_json::Value> =
     serde_json::Map::new();
   let mut remaining_keys: Vec<_> = obj
@@ -96,9 +89,11 @@ pub fn sort_object_first(
     .cloned()
     .collect();
 
-  remaining_keys.sort();
+  if sort_remaining_keys {
+    remaining_keys.sort();
+  }
 
-  for key in sort_first.clone() {
+  for key in order.clone() {
     if let Some(val) = obj.remove(&key) {
       sorted_obj.insert(key, val);
     }
