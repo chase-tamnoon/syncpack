@@ -32,42 +32,35 @@ pub fn format_package(
 }
 
 fn sort_exports(rcfile: &config::RcFile, package: &mut package_json::Package) {
-  let sort_exports = &rcfile.sort_exports;
-  if let Some(exports) = package.get_prop_mut("exports") {
-    sort_exports2(sort_exports, exports);
+  if let Some(exports) = package.get_prop_mut("/exports") {
+    sort_exports2(&rcfile.sort_exports, exports);
   }
 }
 
 fn sort_exports2(sort_exports: &Vec<String>, value: &mut serde_json::Value) {
   if let serde_json::Value::Object(obj) = value {
-    let other_keys: Vec<String> = obj.keys().cloned().collect();
-    let mut sorted_keys: collections::HashSet<String> =
-      sort_exports.iter().cloned().collect();
-    sorted_keys.extend(other_keys.iter().cloned());
-
-    sort_object(&sorted_keys, obj);
-
+    sort_object_first(sort_exports, obj);
     for next_value in obj.values_mut() {
       sort_exports2(sort_exports, next_value);
     }
   }
 }
 
-fn sort_object(
-  sorted_keys: &collections::HashSet<String>,
-  obj: &mut serde_json::Map<String, serde_json::Value>,
-) {
-  let mut sorted_obj: serde_json::Map<String, serde_json::Value> =
-    serde_json::Map::new();
-
-  for key in sorted_keys {
-    if let Some(value) = obj.remove(key) {
-      sorted_obj.insert(key.clone(), value);
-    }
-  }
-
-  *obj = sorted_obj;
-}
+// fn sort_object(
+//   sorted_keys: &collections::HashSet<String>,
+//   obj: &mut serde_json::Map<String, serde_json::Value>,
+// ) {
+//   let mut sorted_obj: serde_json::Map<String, serde_json::Value> =
+//     serde_json::Map::new();
+//
+//   for key in sorted_keys {
+//     if let Some(value) = obj.remove(key) {
+//       sorted_obj.insert(key.clone(), value);
+//     }
+//   }
+//
+//   *obj = sorted_obj;
+// }
 
 /// Sort the values of the given keys alphabetically
 fn sort_az(rcfile: &config::RcFile, package: &mut package_json::Package) {
@@ -84,67 +77,40 @@ pub fn sort_first(
   rcfile: &config::RcFile,
   package: &mut package_json::Package,
 ) {
-  sort_object_first(&rcfile.sort_first, &mut package.contents);
-  // if let serde_json::Value::Object(obj) = &mut package.contents {
-  //   let order = &rcfile.sort_first;
-  //   let order_set: collections::HashSet<_> = order.into_iter().collect();
-  //   let mut sorted_obj: serde_json::Map<String, serde_json::Value> =
-  //     serde_json::Map::new();
-  //   let mut remaining_keys: Vec<_> = obj
-  //     .keys()
-  //     .filter(|k| !order_set.contains(*k))
-  //     .cloned()
-  //     .collect();
-
-  //   remaining_keys.sort();
-
-  //   for key in order.clone() {
-  //     if let Some(val) = obj.remove(&key) {
-  //       sorted_obj.insert(key, val);
-  //     }
-  //   }
-
-  //   for key in remaining_keys {
-  //     if let Some(val) = obj.remove(&key) {
-  //       sorted_obj.insert(key, val);
-  //     }
-  //   }
-
-  //   package.contents = serde_json::Value::Object(sorted_obj);
-  // }
+  if let serde_json::Value::Object(obj) = &mut package.contents {
+    sort_object_first(&rcfile.sort_first, obj);
+  }
 }
 
 /// Sort the keys in a JSON object, with the given keys first
 pub fn sort_object_first(
   sort_first: &Vec<String>,
-  value: &mut serde_json::Value,
+  obj: &mut serde_json::Map<String, serde_json::Value>,
 ) {
-  if let serde_json::Value::Object(obj) = value {
-    let order_set: collections::HashSet<_> = sort_first.into_iter().collect();
-    let mut sorted_obj: serde_json::Map<String, serde_json::Value> =
-      serde_json::Map::new();
-    let mut remaining_keys: Vec<_> = obj
-      .keys()
-      .filter(|k| !order_set.contains(*k))
-      .cloned()
-      .collect();
+  let order_set: collections::HashSet<_> = sort_first.into_iter().collect();
+  let mut sorted_obj: serde_json::Map<String, serde_json::Value> =
+    serde_json::Map::new();
+  let mut remaining_keys: Vec<_> = obj
+    .keys()
+    .filter(|k| !order_set.contains(*k))
+    .cloned()
+    .collect();
 
-    remaining_keys.sort();
+  remaining_keys.sort();
 
-    for key in sort_first.clone() {
-      if let Some(val) = obj.remove(&key) {
-        sorted_obj.insert(key, val);
-      }
+  for key in sort_first.clone() {
+    if let Some(val) = obj.remove(&key) {
+      sorted_obj.insert(key, val);
     }
-
-    for key in remaining_keys {
-      if let Some(val) = obj.remove(&key) {
-        sorted_obj.insert(key, val);
-      }
-    }
-
-    *value = serde_json::Value::Object(sorted_obj);
   }
+
+  for key in remaining_keys {
+    if let Some(val) = obj.remove(&key) {
+      sorted_obj.insert(key, val);
+    }
+  }
+
+  *obj = sorted_obj;
 }
 
 /// Sort an array or object alphabetically

@@ -101,10 +101,12 @@ pub fn get() -> RcFile {
         "node-addons",
         "node",
         "browser",
+        "module",
         "import",
         "require",
         "development",
         "production",
+        "script",
         "default"
       ],
       "sortFirst": ["name", "description", "version", "author"],

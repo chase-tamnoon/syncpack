@@ -53,14 +53,14 @@
   "homepage": "https://github.com/JamieMason/foopkg#readme",
   "exports": {
     "./slim": {
+      "development": "./dist-module/jquery.slim.module.js",
+      "default": "./dist-module/jquery.slim.module.min.js",
       "node": {
         "module": "./dist-module/jquery.slim.module.js",
         "foo": "./dist-module/jquery.slim.module.js",
         "import": "./dist-module/jquery.node-module-wrapper.slim.js",
         "require": "./dist/jquery.slim.js"
       },
-      "development": "./dist-module/jquery.slim.module.js",
-      "default": "./dist-module/jquery.slim.module.min.js",
       "production": "./dist-module/jquery.slim.module.min.js",
       "script": "./dist/jquery.slim.min.js"
     },
