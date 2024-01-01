@@ -1,7 +1,7 @@
 {
   "author": "Jamie Mason <jamie@foldleft.io> (https://github.com/JamieMason)",
   "private": true,
-  "repository": "JamieMason/foopkg",
+  "repository": { "url": "JamieMason/foopkg" },
   "devDependencies": {
     "@types/node": "20.10.4",
     "eslint": "8.56.0",
@@ -22,7 +22,7 @@
     "vitest": "1.0.4"
   },
   "description": "Some package",
-  "bugs": "https://github.com/JamieMason/foopkg/issues",
+  "bugs": { "url": "https://github.com/JamieMason/foopkg/issues" },
   "files": ["dist"],
   "engines": { "node": ">=20" },
   "scripts": {

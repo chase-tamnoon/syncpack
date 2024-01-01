@@ -31,6 +31,20 @@ fn main() -> io::Result<()> {
       package.set_prop("/name", json!("new name"));
       package.set_prop("/engines/node", json!(">=1"));
 
+      if rcfile.format_bugs {
+        let bugs_url = package.get_prop("/bugs/url");
+        if let Some(pointer) = bugs_url {
+          package.set_prop("/bugs", pointer.clone());
+        }
+      }
+
+      if rcfile.format_repository {
+        let repository_url = package.get_prop("/repository/url");
+        if let Some(pointer) = repository_url {
+          package.set_prop("/repository", pointer.clone());
+        }
+      }
+
       rcfile.sort_az.iter().for_each(|key| {
         let prop = package.contents.pointer_mut(format!("/{}", key).as_str());
         if let Some(pointer) = prop {

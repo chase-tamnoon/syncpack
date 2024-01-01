@@ -20,6 +20,19 @@ impl Package {
     &self.file_path
   }
 
+  /// Deeply get a property in the parsed package.json
+  pub fn get_prop(&self, pointer: &str) -> Option<&serde_json::Value> {
+    self.contents.pointer(pointer)
+  }
+
+  /// Deeply get a property in the parsed package.json as mutable
+  pub fn get_prop_mut(
+    &mut self,
+    pointer: &str,
+  ) -> Option<&mut serde_json::Value> {
+    self.contents.pointer_mut(pointer)
+  }
+
   /// Deeply set a property in the parsed package.json
   pub fn set_prop(&mut self, pointer: &str, next_value: serde_json::Value) {
     if let Some(value) = self.contents.pointer_mut(pointer) {
