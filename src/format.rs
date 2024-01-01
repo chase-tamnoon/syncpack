@@ -5,65 +5,69 @@ use std::collections;
 use crate::config;
 use crate::package_json;
 
+/// Format a package.json file
 pub fn format_package(
   package: &mut package_json::Package,
   rcfile: &config::RcFile,
 ) {
-  package.set_prop("/name", serde_json::json!("new name"));
-  package.set_prop("/engines/node", serde_json::json!(">=1"));
-
   if rcfile.format_bugs {
-    let bugs_url = package.get_prop("/bugs/url");
-    if let Some(bugs_url) = bugs_url {
-      package.set_prop("/bugs", bugs_url.clone());
-    }
+    format_bugs(package);
   }
 
   if rcfile.format_repository {
     format_repository(package);
   }
 
+  if rcfile.sort_az.len() > 0 {
+    sort_az(rcfile, package);
+  }
+
+  if rcfile.sort_first.len() > 0 {
+    sort_first(rcfile, package);
+  }
+}
+
+/// Sort the values of the given keys alphabetically
+fn sort_az(rcfile: &config::RcFile, package: &mut package_json::Package) {
   rcfile.sort_az.iter().for_each(|key| {
     package
       .contents
       .pointer_mut(format!("/{}", key).as_str())
       .map(sort_alphabetically);
   });
-
-  sort_first(&mut package.contents, &rcfile.sort_first);
-  package.pretty_print();
 }
 
 /// Sort the keys in a JSON object, with the given keys first
-pub fn sort_first(value: &mut serde_json::Value, order: &Vec<String>) {
-  match value {
-    serde_json::Value::Object(obj) => {
-      let order_set: collections::HashSet<_> = order.into_iter().collect();
-      let mut sorted_obj: serde_json::Map<String, serde_json::Value> =
-        serde_json::Map::new();
-      let mut remaining_keys: Vec<_> = obj
-        .keys()
-        .filter(|k| !order_set.contains(*k))
-        .cloned()
-        .collect();
+pub fn sort_first(
+  rcfile: &config::RcFile,
+  package: &mut package_json::Package,
+) {
+  if let serde_json::Value::Object(obj) = &mut package.contents {
+    let order = &rcfile.sort_first;
+    let order_set: collections::HashSet<_> = order.into_iter().collect();
+    let mut sorted_obj: serde_json::Map<String, serde_json::Value> =
+      serde_json::Map::new();
+    let mut remaining_keys: Vec<_> = obj
+      .keys()
+      .filter(|k| !order_set.contains(*k))
+      .cloned()
+      .collect();
 
-      remaining_keys.sort();
+    remaining_keys.sort();
 
-      for key in order.clone() {
-        if let Some(val) = obj.remove(&key) {
-          sorted_obj.insert(key, val);
-        }
+    for key in order.clone() {
+      if let Some(val) = obj.remove(&key) {
+        sorted_obj.insert(key, val);
       }
-
-      for key in remaining_keys {
-        if let Some(val) = obj.remove(&key) {
-          sorted_obj.insert(key, val);
-        }
-      }
-
-      *value = serde_json::Value::Object(sorted_obj);
     }
-    _ => {}
+
+    for key in remaining_keys {
+      if let Some(val) = obj.remove(&key) {
+        sorted_obj.insert(key, val);
+      }
+    }
+
+    package.contents = serde_json::Value::Object(sorted_obj);
   }
 }
 
@@ -88,6 +92,14 @@ pub fn sort_alphabetically(value: &mut serde_json::Value) {
       });
     }
     _ => {}
+  }
+}
+
+/// Use a shorthand format for the bugs URL when possible
+fn format_bugs(package: &mut package_json::Package) {
+  let bugs_url = package.get_prop("/bugs/url");
+  if let Some(bugs_url) = bugs_url {
+    package.set_prop("/bugs", bugs_url.clone());
   }
 }
 

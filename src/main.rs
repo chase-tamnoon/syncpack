@@ -20,8 +20,10 @@ fn main() -> io::Result<()> {
     .into_iter()
     .filter_map(|file_path| package_json::read_file(&file_path).ok());
 
-  packages
-    .for_each(|mut package| format::format_package(&mut package, &rcfile));
+  packages.for_each(|mut package| {
+    format::format_package(&mut package, &rcfile);
+    package.pretty_print();
+  });
 
   Ok(())
 }
