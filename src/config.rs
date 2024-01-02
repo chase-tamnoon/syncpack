@@ -34,16 +34,6 @@ impl Rcfile {
   }
 }
 
-// pub struct CustomTypes {
-//   pub dev: strategy::AnyStrategy,
-//   pub local: strategy::AnyStrategy,
-//   pub overrides: strategy::AnyStrategy,
-//   pub peer: strategy::AnyStrategy,
-//   pub pnpm_overrides: strategy::AnyStrategy,
-//   pub prod: strategy::AnyStrategy,
-//   pub resolutions: strategy::AnyStrategy,
-// }
-
 pub fn get() -> Rcfile {
   let raw_json = r#"
     {

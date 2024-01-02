@@ -22,14 +22,14 @@ fn main() -> io::Result<()> {
   let cwd = std::env::current_dir()?;
   let mut ctx = context::Ctx::new(&cwd)?;
 
-  let strategies = strategy::Strategy::from_rcfile(&ctx.rcfile);
+  let custom_strategies = strategy::Strategy::from_rcfile(&ctx.rcfile);
   let semver_groups = semver_group::SemverGroup::from_rcfile(&ctx.rcfile);
   let version_groups = version_group::VersionGroup::from_rcfile(&ctx.rcfile);
 
   println!("{}", "ctx.rcfile".yellow());
   println!("{:#?}", ctx.rcfile);
   println!("{}", "strategies".yellow());
-  println!("{:#?}", strategies);
+  println!("{:#?}", custom_strategies);
   println!("{}", "semver_groups".yellow());
   println!("{:#?}", semver_groups);
   println!("{}", "version_groups".yellow());
