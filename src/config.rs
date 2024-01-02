@@ -1,9 +1,9 @@
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
 use std::path;
 
 use crate::file_paths;
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Rcfile {
   pub custom_types: CustomTypes,
@@ -34,7 +34,7 @@ impl Rcfile {
   }
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct CustomTypes {
   pub dev: Strategy,
@@ -46,14 +46,14 @@ pub struct CustomTypes {
   pub resolutions: Strategy,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Strategy {
   pub strategy: String,
   pub path: String,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct LocalStrategy {
   pub strategy: String,
@@ -61,7 +61,7 @@ pub struct LocalStrategy {
   pub path: String,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct DisabledSemverGroup {
   #[serde(default)]
@@ -77,7 +77,7 @@ pub struct DisabledSemverGroup {
   pub is_disabled: bool,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct IgnoredSemverGroup {
   #[serde(default)]
@@ -93,7 +93,7 @@ pub struct IgnoredSemverGroup {
   pub is_ignored: bool,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct WithRangeSemverGroup {
   #[serde(default)]
@@ -109,7 +109,7 @@ pub struct WithRangeSemverGroup {
   pub range: String,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
 #[serde(untagged)]
 pub enum SemverGroup {
@@ -118,7 +118,7 @@ pub enum SemverGroup {
   WithRange(WithRangeSemverGroup),
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct BannedVersionGroup {
   #[serde(default)]
@@ -135,7 +135,7 @@ pub struct BannedVersionGroup {
   is_banned: bool,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct IgnoredVersionGroup {
   #[serde(default)]
@@ -152,7 +152,7 @@ pub struct IgnoredVersionGroup {
   is_ignored: bool,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct PinnedVersionGroup {
   #[serde(default)]
@@ -169,7 +169,7 @@ pub struct PinnedVersionGroup {
   pin_version: String,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct SameRangeVersionGroup {
   #[serde(default)]
@@ -186,7 +186,7 @@ pub struct SameRangeVersionGroup {
   policy: String,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct SnappedToVersionGroup {
   #[serde(default)]
@@ -203,7 +203,7 @@ pub struct SnappedToVersionGroup {
   snap_to: Vec<String>,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct StandardVersionGroup {
   #[serde(default)]
@@ -220,7 +220,7 @@ pub struct StandardVersionGroup {
   prefer_version: String,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
 #[serde(untagged)]
 pub enum VersionGroup {
