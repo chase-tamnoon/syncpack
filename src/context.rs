@@ -11,7 +11,7 @@ pub struct Ctx {
   /// Whether to exit with a non-zero exit code.
   pub is_invalid: bool,
   /// Every package.json file which matched the CLI options and rcfile.
-  pub packages: Vec<package_json::Package>,
+  pub packages: Vec<package_json::PackageJson>,
   /// The user's configuration file.
   pub rcfile: config::Rcfile,
 }
@@ -20,7 +20,7 @@ impl Ctx {
   pub fn new(cwd: &std::path::PathBuf) -> Result<Self, io::Error> {
     let rcfile = config::get();
     let sources = rcfile.get_sources(&cwd);
-    let packages: Vec<package_json::Package> = sources
+    let packages: Vec<package_json::PackageJson> = sources
       .into_iter()
       .filter_map(|file_path| read_file(&cwd, &file_path).ok())
       .collect();
@@ -38,11 +38,11 @@ impl Ctx {
 fn read_file<P: AsRef<path::Path>>(
   cwd: &std::path::PathBuf,
   file_path: &P,
-) -> io::Result<package_json::Package> {
+) -> io::Result<package_json::PackageJson> {
   let json = fs::read_to_string(file_path)?;
   let contents: serde_json::Value = serde_json::from_str(&json)?;
 
-  Ok(package_json::Package {
+  Ok(package_json::PackageJson {
     file_path: file_path.as_ref().to_path_buf(),
     json,
     contents,

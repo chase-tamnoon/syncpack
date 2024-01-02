@@ -5,7 +5,7 @@ use std::io;
 use std::path;
 
 #[derive(Debug)]
-pub struct Package {
+pub struct PackageJson {
   /// The path to the package.json file
   pub file_path: path::PathBuf,
   /// The original, unedited raw JSON string
@@ -14,7 +14,7 @@ pub struct Package {
   pub contents: serde_json::Value,
 }
 
-impl Package {
+impl PackageJson {
   pub fn get_short_path(&self, cwd: &std::path::PathBuf) -> String {
     self
       .file_path

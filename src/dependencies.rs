@@ -14,7 +14,7 @@ pub fn get_dependencies(prop_name: &str, package: &JsonValue) -> Vec<(String, St
     .unwrap_or_else(Vec::new)
 }
 
-pub fn list_dependencies(package: &package_json::Package) {
+pub fn list_dependencies(package: &package_json::PackageJson) {
   let dependencies = ["dependencies", "devDependencies", "peerDependencies"];
 
   println!("PACKAGE: {}", package.file_path.display());

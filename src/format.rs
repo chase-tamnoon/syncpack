@@ -24,7 +24,7 @@ pub fn fix_all(ctx: &mut context::Ctx) {
   });
 }
 
-fn fix(rcfile: &config::Rcfile, package: &mut package_json::Package) {
+fn fix(rcfile: &config::Rcfile, package: &mut package_json::PackageJson) {
   if rcfile.format_bugs {
     format_bugs(package);
   }
@@ -43,7 +43,7 @@ fn fix(rcfile: &config::Rcfile, package: &mut package_json::Package) {
 }
 
 /// Sorts conditional exports and conditional exports subpaths
-fn sort_exports(rcfile: &config::Rcfile, package: &mut package_json::Package) {
+fn sort_exports(rcfile: &config::Rcfile, package: &mut package_json::PackageJson) {
   if let Some(exports) = package.get_prop_mut("/exports") {
     visit_node(&rcfile.sort_exports, exports);
   }
@@ -60,7 +60,7 @@ fn sort_exports(rcfile: &config::Rcfile, package: &mut package_json::Package) {
 }
 
 /// Sort the values of the given keys alphabetically
-fn sort_az(rcfile: &config::Rcfile, package: &mut package_json::Package) {
+fn sort_az(rcfile: &config::Rcfile, package: &mut package_json::PackageJson) {
   rcfile.sort_az.iter().for_each(|key| {
     package
       .contents
@@ -70,7 +70,7 @@ fn sort_az(rcfile: &config::Rcfile, package: &mut package_json::Package) {
 }
 
 /// Sort package.json with the given keys first
-fn sort_first(rcfile: &config::Rcfile, package: &mut package_json::Package) {
+fn sort_first(rcfile: &config::Rcfile, package: &mut package_json::PackageJson) {
   if let serde_json::Value::Object(obj) = &mut package.contents {
     sort_keys_with_priority(&rcfile.sort_first, obj, rcfile.sort_packages);
   }
@@ -138,7 +138,7 @@ fn sort_alphabetically(value: &mut serde_json::Value) {
 }
 
 /// Use a shorthand format for the bugs URL when possible
-fn format_bugs(package: &mut package_json::Package) {
+fn format_bugs(package: &mut package_json::PackageJson) {
   let bugs_url = package.get_prop("/bugs/url");
   if let Some(bugs_url) = bugs_url {
     package.set_prop("/bugs", bugs_url.clone());
@@ -146,7 +146,7 @@ fn format_bugs(package: &mut package_json::Package) {
 }
 
 /// Use a shorthand format for the repository URL when possible
-fn format_repository(package: &mut package_json::Package) {
+fn format_repository(package: &mut package_json::PackageJson) {
   if package.get_prop("/repository/directory").is_none() {
     if let Some(repository_url) = package.get_prop("/repository/url") {
       if let Some(url) = repository_url.as_str() {
