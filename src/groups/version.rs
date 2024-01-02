@@ -1,4 +1,6 @@
-use crate::selector;
+use serde::Deserialize;
+
+use crate::groups::selector;
 
 pub struct BannedVersionGroup {
   pub selector: selector::GroupSelector,
@@ -37,4 +39,26 @@ pub enum VersionGroup {
   SameRange(SameRangeVersionGroup),
   SnappedTo(SnappedToVersionGroup),
   Standard(StandardVersionGroup),
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AnyVersionGroup {
+  #[serde(default)]
+  pub dependencies: Vec<String>,
+  #[serde(default)]
+  pub dependency_types: Vec<String>,
+  #[serde(default)]
+  pub label: String,
+  #[serde(default)]
+  pub packages: Vec<String>,
+  #[serde(default)]
+  pub specifier_types: Vec<String>,
+  //
+  pub is_banned: Option<bool>,
+  pub is_ignored: Option<bool>,
+  pub pin_version: Option<String>,
+  pub policy: Option<String>,
+  pub snap_to: Option<Vec<String>>,
+  pub prefer_version: Option<String>,
 }

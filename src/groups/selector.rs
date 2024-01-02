@@ -53,6 +53,6 @@ impl GroupSelector {
 
   pub fn can_add(&self) -> bool {
     println!("@TODO implement can_add");
-    false;
+    false
   }
 }

@@ -10,6 +10,11 @@ mod context;
 mod dependencies;
 mod file_paths;
 mod format;
+mod groups {
+  pub mod selector;
+  pub mod semver;
+  pub mod version;
+}
 mod package_json;
 mod semver_ranges;
 mod versions;

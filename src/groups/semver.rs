@@ -1,4 +1,6 @@
-use crate::selector;
+use serde::Deserialize;
+
+use crate::groups::selector;
 
 pub struct DisabledSemverGroup {
   pub selector: selector::GroupSelector,
@@ -19,4 +21,23 @@ pub enum SemverGroup {
   Disabled(DisabledSemverGroup),
   Ignored(IgnoredSemverGroup),
   WithRange(WithRangeSemverGroup),
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AnySemverGroup {
+  #[serde(default)]
+  pub dependencies: Vec<String>,
+  #[serde(default)]
+  pub dependency_types: Vec<String>,
+  #[serde(default)]
+  pub label: String,
+  #[serde(default)]
+  pub packages: Vec<String>,
+  #[serde(default)]
+  pub specifier_types: Vec<String>,
+  //
+  pub is_disabled: Option<bool>,
+  pub is_ignored: Option<bool>,
+  pub range: Option<String>,
 }

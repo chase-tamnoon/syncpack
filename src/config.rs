@@ -2,6 +2,8 @@ use serde::Deserialize;
 use std::path;
 
 use crate::file_paths;
+use crate::groups::semver;
+use crate::groups::version;
 
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -12,14 +14,14 @@ pub struct Rcfile {
   pub format_bugs: bool,
   pub format_repository: bool,
   pub indent: String,
-  pub semver_groups: Vec<AnySemverGroup>,
+  pub semver_groups: Vec<semver::AnySemverGroup>,
   pub sort_az: Vec<String>,
   pub sort_exports: Vec<String>,
   pub sort_first: Vec<String>,
   pub sort_packages: bool,
   pub source: Vec<String>,
   pub specifier_types: Vec<String>,
-  pub version_groups: Vec<AnyVersionGroup>,
+  pub version_groups: Vec<version::AnyVersionGroup>,
 }
 
 impl Rcfile {
@@ -60,49 +62,6 @@ pub struct LocalStrategy {
   pub name_path: String,
   pub path: String,
 }
-
-#[derive(Debug, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct AnySemverGroup {
-  #[serde(default)]
-  pub dependencies: Vec<String>,
-  #[serde(default)]
-  pub dependency_types: Vec<String>,
-  #[serde(default)]
-  pub label: String,
-  #[serde(default)]
-  pub packages: Vec<String>,
-  #[serde(default)]
-  pub specifier_types: Vec<String>,
-  //
-  pub is_disabled: Option<bool>,
-  pub is_ignored: Option<bool>,
-  pub range: Option<String>,
-}
-
-#[derive(Debug, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct AnyVersionGroup {
-  #[serde(default)]
-  pub dependencies: Vec<String>,
-  #[serde(default)]
-  pub dependency_types: Vec<String>,
-  #[serde(default)]
-  pub label: String,
-  #[serde(default)]
-  pub packages: Vec<String>,
-  #[serde(default)]
-  pub specifier_types: Vec<String>,
-  //
-  pub is_banned: Option<bool>,
-  pub is_ignored: Option<bool>,
-  pub pin_version: Option<String>,
-  pub policy: Option<String>,
-  pub snap_to: Option<Vec<String>>,
-  pub prefer_version: Option<String>,
-}
-
-// =============================================================================
 
 pub fn get() -> Rcfile {
   let raw_json = r#"
