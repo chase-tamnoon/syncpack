@@ -14,6 +14,7 @@ mod group_selector;
 mod package_json;
 mod semver_group;
 mod semver_ranges;
+mod strategy;
 mod version_group;
 mod versions;
 
@@ -21,10 +22,12 @@ fn main() -> io::Result<()> {
   let cwd = std::env::current_dir()?;
   let mut ctx = context::Ctx::new(&cwd)?;
 
+  let strategies = strategy::Strategy::from_rcfile(&ctx.rcfile);
   let semver_groups = semver_group::SemverGroup::from_rcfile(&ctx.rcfile);
   let version_groups = version_group::VersionGroup::from_rcfile(&ctx.rcfile);
 
   println!("{:#?}", ctx.rcfile);
+  println!("{:#?}", strategies);
   println!("{:#?}", semver_groups);
   println!("{:#?}", version_groups);
 
