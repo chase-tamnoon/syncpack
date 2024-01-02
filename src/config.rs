@@ -30,10 +30,6 @@ impl Rcfile {
     let pattern_str = pattern.to_str().unwrap();
     file_paths::get_file_paths(pattern_str)
   }
-
-  pub fn pretty_print(&self) -> () {
-    println!("{:#?}", &self);
-  }
 }
 
 #[derive(Debug, Deserialize)]

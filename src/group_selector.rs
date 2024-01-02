@@ -1,3 +1,4 @@
+#[derive(Debug)]
 pub struct GroupSelector {
   /// Glob patterns to match against the installed dependency name.
   ///
@@ -17,8 +18,6 @@ pub struct GroupSelector {
   pub dependency_types: Vec<String>,
   /// Optional label to describe the group.
   pub label: String,
-  /// Array index of the group in the config file.
-  pub index: usize,
   /// Glob patterns to match against the package name the dependency is located in.
   pub packages: Vec<String>,
   /// Types of version specifier the installed dependency should have.

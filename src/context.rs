@@ -4,12 +4,16 @@ use std::path;
 
 use crate::config;
 use crate::package_json;
+use crate::semver_group;
+use crate::version_group;
 
 pub struct Ctx {
   pub cwd: std::path::PathBuf,
   pub is_invalid: bool,
   pub packages: Vec<package_json::Package>,
   pub rcfile: config::Rcfile,
+  pub semver_groups: Vec<semver_group::SemverGroup>,
+  pub version_groups: Vec<version_group::VersionGroup>,
 }
 
 impl Ctx {
@@ -20,12 +24,24 @@ impl Ctx {
       .into_iter()
       .filter_map(|file_path| read_file(&cwd, &file_path).ok())
       .collect();
+    let semver_groups = rcfile
+      .semver_groups
+      .iter()
+      .map(|group| group.create())
+      .collect();
+    let version_groups = rcfile
+      .version_groups
+      .iter()
+      .map(|group| group.create())
+      .collect();
 
     Ok(Self {
       cwd: cwd.clone(),
       is_invalid: false,
       packages,
-      rcfile,
+      rcfile: rcfile,
+      semver_groups,
+      version_groups,
     })
   }
 }

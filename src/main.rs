@@ -21,7 +21,9 @@ fn main() -> io::Result<()> {
   let cwd = std::env::current_dir()?;
   let mut ctx = context::Ctx::new(&cwd)?;
 
-  ctx.rcfile.pretty_print();
+  println!("{:#?}", ctx.rcfile);
+  println!("{:#?}", ctx.semver_groups);
+  println!("{:#?}", ctx.version_groups);
 
   match cli::create().get_matches().subcommand() {
     Some(("lint", matches)) => {
