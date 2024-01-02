@@ -39,18 +39,6 @@ pub struct GroupSelector {
 }
 
 impl GroupSelector {
-  pub fn new() -> GroupSelector {
-    println!("@TODO implement GroupSelector::new");
-    GroupSelector {
-      dependencies: vec![],
-      dependency_types: vec![],
-      label: "".to_string(),
-      index: 0,
-      packages: vec![],
-      specifier_types: vec![],
-    }
-  }
-
   pub fn can_add(&self) -> bool {
     println!("@TODO implement can_add");
     false
