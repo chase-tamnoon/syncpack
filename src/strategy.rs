@@ -46,19 +46,29 @@ impl Strategy {
     let mut strategies: HashMap<String, Strategy> = HashMap::new();
     let len = dependency_types.len();
     let include_all = len == 0 || len == 1 && dependency_types[0] == "**";
-
-    // let mut strategies_by_name: HashMap<String, Strategy> = get_strategies_by_name();
-    // let mut starting_with_exclamation: Vec<&String> = Vec::new();
-    // let mut not_starting_with_exclamation: Vec<&String> = Vec::new();
+    let contains_explicitly_excluded = dependency_types
+      .iter()
+      .any(|dep_type| dep_type.starts_with('!'));
 
     let is_included = |dep_type: &String| -> bool {
+      // All are included by default
       if include_all {
         return true;
       }
+      // Is explicitly included
       if dependency_types.contains(dep_type) {
         return true;
       }
-      return dependency_types.contains(&get_negated(dep_type)) == false;
+      // Is explicitly excluded
+      if dependency_types.contains(&get_negated(dep_type)) {
+        return false;
+      }
+      // Is implicitly included when another type is explicitly excluded and
+      // this one is not named
+      if contains_explicitly_excluded {
+        return true;
+      }
+      false
     };
 
     default_types.iter().for_each(|(key, value)| {
@@ -74,19 +84,6 @@ impl Strategy {
     });
 
     strategies
-
-    // rcfile.custom_types.iter().for_each(|(name, config)| {
-    //   let strategy = from_config(name, config);
-    //   let name = match &strategy {
-    //     Strategy::NameAndVersionProps(s) => &s.name,
-    //     Strategy::NamedVersionString(s) => &s.name,
-    //     Strategy::UnnamedVersionString(s) => &s.name,
-    //     Strategy::VersionsByName(s) => &s.name,
-    //   };
-    //   strategies_by_name.insert(name.clone(), strategy);
-    // });
-
-    // strategies_by_name
   }
 }
 
@@ -162,61 +159,6 @@ fn get_default_types() -> HashMap<String, strategy::AnyStrategy> {
   )
   .unwrap()
 }
-
-// pub fn get_strategies_by_name() -> HashMap<String, Strategy> {
-//   let mut strategies_by_name: HashMap<String, Strategy> = HashMap::new();
-//   strategies_by_name.insert(
-//     String::from("local"),
-//     Strategy::NameAndVersionProps(NameAndVersionPropsStrategy {
-//       name: String::from("local"),
-//       path: String::from("/version"),
-//       name_path: String::from("name"),
-//     }),
-//   );
-//   strategies_by_name.insert(
-//     String::from("dev"),
-//     Strategy::VersionsByName(VersionsByNameStrategy {
-//       name: String::from("dev"),
-//       path: String::from("/devDependencies"),
-//     }),
-//   );
-//   strategies_by_name.insert(
-//     String::from("overrides"),
-//     Strategy::VersionsByName(VersionsByNameStrategy {
-//       name: String::from("overrides"),
-//       path: String::from("/overrides"),
-//     }),
-//   );
-//   strategies_by_name.insert(
-//     String::from("peer"),
-//     Strategy::VersionsByName(VersionsByNameStrategy {
-//       name: String::from("peer"),
-//       path: String::from("/peerDependencies"),
-//     }),
-//   );
-//   strategies_by_name.insert(
-//     String::from("pnpmOverrides"),
-//     Strategy::VersionsByName(VersionsByNameStrategy {
-//       name: String::from("pnpmOverrides"),
-//       path: String::from("/pnpm/overrides"),
-//     }),
-//   );
-//   strategies_by_name.insert(
-//     String::from("prod"),
-//     Strategy::VersionsByName(VersionsByNameStrategy {
-//       name: String::from("prod"),
-//       path: String::from("/dependencies"),
-//     }),
-//   );
-//   strategies_by_name.insert(
-//     String::from("resolutions"),
-//     Strategy::VersionsByName(VersionsByNameStrategy {
-//       name: String::from("resolutions"),
-//       path: String::from("/resolutions"),
-//     }),
-//   );
-//   strategies_by_name
-// }
 
 /// Adds a forward slash to the start of the String and replaces every "."
 /// inside the String with a "/"

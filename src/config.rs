@@ -118,7 +118,7 @@ pub fn get() -> Rcfile {
           "path": "engines"
         }
       },
-      "dependencyTypes": ["**"],
+      "dependencyTypes": ["!peer", "!prod"],
       "filter": ".",
       "formatBugs": true,
       "formatRepository": true,
