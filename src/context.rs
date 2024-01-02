@@ -6,9 +6,13 @@ use crate::config;
 use crate::package_json;
 
 pub struct Ctx {
+  /// Current working directory.
   pub cwd: std::path::PathBuf,
+  /// Whether to exit with a non-zero exit code.
   pub is_invalid: bool,
+  /// Every package.json file which matched the CLI options and rcfile.
   pub packages: Vec<package_json::Package>,
+  /// The user's configuration file.
   pub rcfile: config::Rcfile,
 }
 
@@ -35,19 +39,12 @@ fn read_file<P: AsRef<path::Path>>(
   cwd: &std::path::PathBuf,
   file_path: &P,
 ) -> io::Result<package_json::Package> {
-  let file_contents = fs::read_to_string(file_path)?;
-  let parsed_json: serde_json::Value = serde_json::from_str(&file_contents)?;
+  let json = fs::read_to_string(file_path)?;
+  let contents: serde_json::Value = serde_json::from_str(&json)?;
 
   Ok(package_json::Package {
-    contents: parsed_json,
-    json: file_contents,
     file_path: file_path.as_ref().to_path_buf(),
-    short_path: file_path
-      .as_ref()
-      .strip_prefix(&cwd)
-      .unwrap()
-      .to_str()
-      .unwrap()
-      .to_string(),
+    json,
+    contents,
   })
 }
