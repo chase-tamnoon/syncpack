@@ -12,14 +12,14 @@ pub struct Rcfile {
   pub format_bugs: bool,
   pub format_repository: bool,
   pub indent: String,
-  pub semver_groups: Vec<SemverGroup>,
+  pub semver_groups: Vec<AnySemverGroup>,
   pub sort_az: Vec<String>,
   pub sort_exports: Vec<String>,
   pub sort_first: Vec<String>,
   pub sort_packages: bool,
   pub source: Vec<String>,
   pub specifier_types: Vec<String>,
-  pub version_groups: Vec<VersionGroup>,
+  pub version_groups: Vec<AnyVersionGroup>,
 }
 
 impl Rcfile {
@@ -63,166 +63,100 @@ pub struct LocalStrategy {
 
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub struct DisabledSemverGroup {
-  #[serde(default)]
+pub struct AnySemverGroup {
+  pub dependencies: Option<Vec<String>>,
+  pub dependency_types: Option<Vec<String>>,
+  pub label: Option<String>,
+  pub packages: Option<Vec<String>>,
+  pub specifier_types: Option<Vec<String>>,
+  //
+  pub is_disabled: Option<bool>,
+  pub is_ignored: Option<bool>,
+  pub range: Option<String>,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AnyVersionGroup {
+  pub dependencies: Option<Vec<String>>,
+  pub dependency_types: Option<Vec<String>>,
+  pub label: Option<String>,
+  pub packages: Option<Vec<String>>,
+  pub specifier_types: Option<Vec<String>>,
+  //
+  pub is_banned: Option<bool>,
+  pub is_ignored: Option<bool>,
+  pub pin_version: Option<String>,
+  pub policy: Option<String>,
+  pub snap_to: Option<Vec<String>>,
+  pub prefer_version: Option<String>,
+}
+
+#[derive(Debug)]
+pub struct GroupSelector {
   pub dependencies: Vec<String>,
-  #[serde(default)]
   pub dependency_types: Vec<String>,
-  #[serde(default)]
   pub label: String,
-  #[serde(default)]
   pub packages: Vec<String>,
-  #[serde(default)]
   pub specifier_types: Vec<String>,
+}
+
+// =============================================================================
+
+#[derive(Debug)]
+pub struct DisabledSemverGroup {
+  pub selector: GroupSelector,
   pub is_disabled: bool,
 }
 
-#[derive(Debug, Deserialize)]
-#[serde(rename_all = "camelCase")]
+#[derive(Debug)]
 pub struct IgnoredSemverGroup {
-  #[serde(default)]
-  pub dependencies: Vec<String>,
-  #[serde(default)]
-  pub dependency_types: Vec<String>,
-  #[serde(default)]
-  pub label: String,
-  #[serde(default)]
-  pub packages: Vec<String>,
-  #[serde(default)]
-  pub specifier_types: Vec<String>,
+  pub selector: GroupSelector,
   pub is_ignored: bool,
 }
 
-#[derive(Debug, Deserialize)]
-#[serde(rename_all = "camelCase")]
+#[derive(Debug)]
 pub struct WithRangeSemverGroup {
-  #[serde(default)]
-  pub dependencies: Vec<String>,
-  #[serde(default)]
-  pub dependency_types: Vec<String>,
-  #[serde(default)]
-  pub label: String,
-  #[serde(default)]
-  pub packages: Vec<String>,
-  #[serde(default)]
-  pub specifier_types: Vec<String>,
+  pub selector: GroupSelector,
   pub range: String,
 }
 
-#[derive(Debug, Deserialize)]
-#[serde(rename_all = "camelCase")]
-#[serde(untagged)]
 pub enum SemverGroup {
   Disabled(DisabledSemverGroup),
   Ignored(IgnoredSemverGroup),
   WithRange(WithRangeSemverGroup),
 }
 
-#[derive(Debug, Deserialize)]
-#[serde(rename_all = "camelCase")]
 pub struct BannedVersionGroup {
-  #[serde(default)]
-  pub dependencies: Vec<String>,
-  #[serde(default)]
-  pub dependency_types: Vec<String>,
-  #[serde(default)]
-  pub label: String,
-  #[serde(default)]
-  pub packages: Vec<String>,
-  #[serde(default)]
-  pub specifier_types: Vec<String>,
-  //
-  is_banned: bool,
+  pub selector: GroupSelector,
+  pub is_banned: bool,
 }
 
-#[derive(Debug, Deserialize)]
-#[serde(rename_all = "camelCase")]
 pub struct IgnoredVersionGroup {
-  #[serde(default)]
-  pub dependencies: Vec<String>,
-  #[serde(default)]
-  pub dependency_types: Vec<String>,
-  #[serde(default)]
-  pub label: String,
-  #[serde(default)]
-  pub packages: Vec<String>,
-  #[serde(default)]
-  pub specifier_types: Vec<String>,
-  //
-  is_ignored: bool,
+  pub selector: GroupSelector,
+  pub is_ignored: bool,
 }
 
-#[derive(Debug, Deserialize)]
-#[serde(rename_all = "camelCase")]
 pub struct PinnedVersionGroup {
-  #[serde(default)]
-  pub dependencies: Vec<String>,
-  #[serde(default)]
-  pub dependency_types: Vec<String>,
-  #[serde(default)]
-  pub label: String,
-  #[serde(default)]
-  pub packages: Vec<String>,
-  #[serde(default)]
-  pub specifier_types: Vec<String>,
-  //
-  pin_version: String,
+  pub selector: GroupSelector,
+  pub pin_version: String,
 }
 
-#[derive(Debug, Deserialize)]
-#[serde(rename_all = "camelCase")]
 pub struct SameRangeVersionGroup {
-  #[serde(default)]
-  pub dependencies: Vec<String>,
-  #[serde(default)]
-  pub dependency_types: Vec<String>,
-  #[serde(default)]
-  pub label: String,
-  #[serde(default)]
-  pub packages: Vec<String>,
-  #[serde(default)]
-  pub specifier_types: Vec<String>,
-  //
-  policy: String,
+  pub selector: GroupSelector,
+  pub policy: String,
 }
 
-#[derive(Debug, Deserialize)]
-#[serde(rename_all = "camelCase")]
 pub struct SnappedToVersionGroup {
-  #[serde(default)]
-  pub dependencies: Vec<String>,
-  #[serde(default)]
-  pub dependency_types: Vec<String>,
-  #[serde(default)]
-  pub label: String,
-  #[serde(default)]
-  pub packages: Vec<String>,
-  #[serde(default)]
-  pub specifier_types: Vec<String>,
-  //
-  snap_to: Vec<String>,
+  pub selector: GroupSelector,
+  pub snap_to: Vec<String>,
 }
 
-#[derive(Debug, Deserialize)]
-#[serde(rename_all = "camelCase")]
 pub struct StandardVersionGroup {
-  #[serde(default)]
-  pub dependencies: Vec<String>,
-  #[serde(default)]
-  pub dependency_types: Vec<String>,
-  #[serde(default)]
-  pub label: String,
-  #[serde(default)]
-  pub packages: Vec<String>,
-  #[serde(default)]
-  pub specifier_types: Vec<String>,
-  //
-  prefer_version: String,
+  pub selector: GroupSelector,
+  pub prefer_version: String,
 }
 
-#[derive(Debug, Deserialize)]
-#[serde(rename_all = "camelCase")]
-#[serde(untagged)]
 pub enum VersionGroup {
   Banned(BannedVersionGroup),
   Ignored(IgnoredVersionGroup),
@@ -308,7 +242,12 @@ pub fn get() -> Rcfile {
       "source": ["package.json", "packages/*/package.json"],
       "specifierTypes": ["**"],
       "versionGroups": [
-
+        { "dependencies": ["string-width"], "pinVersion": "<5.0.0" },
+        { "dependencies": ["strip-ansi"], "pinVersion": "<7.0.0" },
+        { "dependencies": ["wrap-ansi"], "pinVersion": "<8.0.0" },
+        { "dependencies": ["chalk"], "pinVersion": "4.1.2" },
+        { "dependencies": ["globby"], "pinVersion": "11.1.0" },
+        { "dependencies": ["ora"], "pinVersion": "5.4.1" }
       ]
     }
   "#;
@@ -316,29 +255,3 @@ pub fn get() -> Rcfile {
   let deserialized: Rcfile = serde_json::from_str(raw_json).unwrap();
   deserialized
 }
-
-// { "dependencies": ["string-width"], "pinVersion": "<5.0.0" },
-// { "dependencies": ["strip-ansi"], "pinVersion": "<7.0.0" },
-// { "dependencies": ["wrap-ansi"], "pinVersion": "<8.0.0" },
-// { "dependencies": ["chalk"], "pinVersion": "4.1.2" },
-// { "dependencies": ["globby"], "pinVersion": "11.1.0" },
-// { "dependencies": ["ora"], "pinVersion": "5.4.1" }
-
-// pub fn get_sort_first() -> Vec<String> {
-//   let rcfile = get();
-//   rcfile.sort_first
-//   convert_to_vec_string(rcfile.pointer("sortFirst").unwrap().clone()).unwrap()
-// }
-
-// fn convert_to_vec_string(value: Value) -> Option<Vec<String>> {
-//   match value {
-//     Value::Array(arr) => {
-//       let string_vec: Vec<String> = arr
-//         .into_iter()
-//         .filter_map(|item| item.as_str().map(|s| s.to_string()))
-//         .collect();
-//       Some(string_vec)
-//     }
-//     _ => None,
-//   }
-// }
