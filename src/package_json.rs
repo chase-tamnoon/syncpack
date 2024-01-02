@@ -15,16 +15,6 @@ pub struct PackageJson {
 }
 
 impl PackageJson {
-  pub fn get_short_path(&self, cwd: &std::path::PathBuf) -> String {
-    self
-      .file_path
-      .strip_prefix(&cwd)
-      .unwrap()
-      .to_str()
-      .unwrap()
-      .to_string()
-  }
-
   /// Deeply get a property in the parsed package.json
   pub fn get_prop(&self, pointer: &str) -> Option<&serde_json::Value> {
     self.contents.pointer(pointer)
@@ -52,16 +42,21 @@ impl PackageJson {
     fs::write(&self.file_path, self.contents.to_string())
   }
 
-  /// Log the file path and parsed package.json
-  pub fn pretty_print(&self) -> () {
-    println!("{}: {:#?}", self.file_path.display(), self.contents);
-  }
-
   pub fn log_as_valid(&self, cwd: &std::path::PathBuf) -> () {
     println!("{} {}", "✓".green(), self.get_short_path(cwd));
   }
 
   pub fn log_as_invalid(&self, cwd: &std::path::PathBuf) -> () {
     println!("{} {}", "✘".red(), self.get_short_path(cwd));
+  }
+
+  fn get_short_path(&self, cwd: &std::path::PathBuf) -> String {
+    self
+      .file_path
+      .strip_prefix(&cwd)
+      .unwrap()
+      .to_str()
+      .unwrap()
+      .to_string()
   }
 }
