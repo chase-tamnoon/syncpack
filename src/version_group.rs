@@ -1,5 +1,6 @@
 use serde::Deserialize;
 
+use crate::config;
 use crate::group_selector;
 
 #[derive(Debug)]
@@ -49,6 +50,14 @@ pub enum VersionGroup {
 }
 
 impl VersionGroup {
+  pub fn from_rcfile(rcfile: &config::Rcfile) -> Vec<VersionGroup> {
+    rcfile
+      .version_groups
+      .iter()
+      .map(|group| VersionGroup::from_config(group))
+      .collect()
+  }
+
   pub fn from_config(group: &AnyVersionGroup) -> VersionGroup {
     let selector = group_selector::GroupSelector {
       dependencies: group.dependencies.clone(),

@@ -1,5 +1,6 @@
 use serde::Deserialize;
 
+use crate::config;
 use crate::group_selector;
 
 #[derive(Debug)]
@@ -28,6 +29,14 @@ pub enum SemverGroup {
 }
 
 impl SemverGroup {
+  pub fn from_rcfile(rcfile: &config::Rcfile) -> Vec<SemverGroup> {
+    rcfile
+      .semver_groups
+      .iter()
+      .map(|group| SemverGroup::from_config(group))
+      .collect()
+  }
+
   pub fn from_config(group: &AnySemverGroup) -> SemverGroup {
     let selector = group_selector::GroupSelector {
       dependencies: group.dependencies.clone(),

@@ -21,9 +21,12 @@ fn main() -> io::Result<()> {
   let cwd = std::env::current_dir()?;
   let mut ctx = context::Ctx::new(&cwd)?;
 
+  let semver_groups = semver_group::SemverGroup::from_rcfile(&ctx.rcfile);
+  let version_groups = version_group::VersionGroup::from_rcfile(&ctx.rcfile);
+
   println!("{:#?}", ctx.rcfile);
-  println!("{:#?}", ctx.semver_groups);
-  println!("{:#?}", ctx.version_groups);
+  println!("{:#?}", semver_groups);
+  println!("{:#?}", version_groups);
 
   match cli::create().get_matches().subcommand() {
     Some(("lint", matches)) => {
