@@ -92,79 +92,7 @@ pub struct AnyVersionGroup {
   pub prefer_version: Option<String>,
 }
 
-#[derive(Debug)]
-pub struct GroupSelector {
-  pub dependencies: Vec<String>,
-  pub dependency_types: Vec<String>,
-  pub label: String,
-  pub packages: Vec<String>,
-  pub specifier_types: Vec<String>,
-}
-
 // =============================================================================
-
-#[derive(Debug)]
-pub struct DisabledSemverGroup {
-  pub selector: GroupSelector,
-  pub is_disabled: bool,
-}
-
-#[derive(Debug)]
-pub struct IgnoredSemverGroup {
-  pub selector: GroupSelector,
-  pub is_ignored: bool,
-}
-
-#[derive(Debug)]
-pub struct WithRangeSemverGroup {
-  pub selector: GroupSelector,
-  pub range: String,
-}
-
-pub enum SemverGroup {
-  Disabled(DisabledSemverGroup),
-  Ignored(IgnoredSemverGroup),
-  WithRange(WithRangeSemverGroup),
-}
-
-pub struct BannedVersionGroup {
-  pub selector: GroupSelector,
-  pub is_banned: bool,
-}
-
-pub struct IgnoredVersionGroup {
-  pub selector: GroupSelector,
-  pub is_ignored: bool,
-}
-
-pub struct PinnedVersionGroup {
-  pub selector: GroupSelector,
-  pub pin_version: String,
-}
-
-pub struct SameRangeVersionGroup {
-  pub selector: GroupSelector,
-  pub policy: String,
-}
-
-pub struct SnappedToVersionGroup {
-  pub selector: GroupSelector,
-  pub snap_to: Vec<String>,
-}
-
-pub struct StandardVersionGroup {
-  pub selector: GroupSelector,
-  pub prefer_version: String,
-}
-
-pub enum VersionGroup {
-  Banned(BannedVersionGroup),
-  Ignored(IgnoredVersionGroup),
-  Pinned(PinnedVersionGroup),
-  SameRange(SameRangeVersionGroup),
-  SnappedTo(SnappedToVersionGroup),
-  Standard(StandardVersionGroup),
-}
 
 pub fn get() -> Rcfile {
   let raw_json = r#"
