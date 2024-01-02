@@ -64,11 +64,16 @@ pub struct LocalStrategy {
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct AnySemverGroup {
-  pub dependencies: Option<Vec<String>>,
-  pub dependency_types: Option<Vec<String>>,
-  pub label: Option<String>,
-  pub packages: Option<Vec<String>>,
-  pub specifier_types: Option<Vec<String>>,
+  #[serde(default)]
+  pub dependencies: Vec<String>,
+  #[serde(default)]
+  pub dependency_types: Vec<String>,
+  #[serde(default)]
+  pub label: String,
+  #[serde(default)]
+  pub packages: Vec<String>,
+  #[serde(default)]
+  pub specifier_types: Vec<String>,
   //
   pub is_disabled: Option<bool>,
   pub is_ignored: Option<bool>,
@@ -78,11 +83,16 @@ pub struct AnySemverGroup {
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct AnyVersionGroup {
-  pub dependencies: Option<Vec<String>>,
-  pub dependency_types: Option<Vec<String>>,
-  pub label: Option<String>,
-  pub packages: Option<Vec<String>>,
-  pub specifier_types: Option<Vec<String>>,
+  #[serde(default)]
+  pub dependencies: Vec<String>,
+  #[serde(default)]
+  pub dependency_types: Vec<String>,
+  #[serde(default)]
+  pub label: String,
+  #[serde(default)]
+  pub packages: Vec<String>,
+  #[serde(default)]
+  pub specifier_types: Vec<String>,
   //
   pub is_banned: Option<bool>,
   pub is_ignored: Option<bool>,

@@ -21,6 +21,8 @@ pub struct GroupSelector {
   pub index: usize,
   /// Glob patterns to match against the package name the dependency is located in.
   pub packages: Vec<String>,
+  /// Types of version specifier the installed dependency should have.
+  ///
   /// Possible values:
   /// - "alias" or "!alias"
   /// - "delete" or "!delete"
@@ -34,4 +36,23 @@ pub struct GroupSelector {
   /// - "url" or "!url"
   /// - "workspace-protocol" or -!workspace-protocol"
   pub specifier_types: Vec<String>,
+}
+
+impl GroupSelector {
+  pub fn new() -> GroupSelector {
+    println!("@TODO implement GroupSelector::new");
+    GroupSelector {
+      dependencies: vec![],
+      dependency_types: vec![],
+      label: "".to_string(),
+      index: 0,
+      packages: vec![],
+      specifier_types: vec![],
+    }
+  }
+
+  pub fn can_add(&self) -> bool {
+    println!("@TODO implement can_add");
+    false;
+  }
 }
