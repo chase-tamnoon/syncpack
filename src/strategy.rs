@@ -1,3 +1,7 @@
+use serde::Deserialize;
+
+use crate::config;
+
 #[derive(Debug)]
 pub struct NameAndVersionPropsStrategy {
   name: String,
@@ -36,7 +40,7 @@ impl Strategy {
     rcfile
       .custom_types
       .iter()
-      .map(|custom_type| Strategy::from_config(custom_type))
+      .map(|(name, config)| Strategy::from_config(name, config))
       .collect()
   }
 
@@ -45,20 +49,20 @@ impl Strategy {
       Some(strategy) => match strategy.as_str() {
         "name~version" => Strategy::NameAndVersionProps(NameAndVersionPropsStrategy {
           name: name.clone(),
-          path: config.path.clone(),
-          name_path: config.name_path.clone(),
+          path: config.path.clone().unwrap(),
+          name_path: config.name_path.clone().unwrap(),
         }),
         "name@version" => Strategy::NamedVersionString(NamedVersionStringStrategy {
           name: name.clone(),
-          path: config.path.clone(),
+          path: config.path.clone().unwrap(),
         }),
         "version" => Strategy::UnnamedVersionString(UnnamedVersionStringStrategy {
           name: name.clone(),
-          path: config.path.clone(),
+          path: config.path.clone().unwrap(),
         }),
         "versionsByName" => Strategy::VersionsByName(VersionsByNameStrategy {
           name: name.clone(),
-          path: config.path.clone(),
+          path: config.path.clone().unwrap(),
         }),
         _ => panic!("Unknown strategy: {}", strategy),
       },

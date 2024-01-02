@@ -26,9 +26,13 @@ fn main() -> io::Result<()> {
   let semver_groups = semver_group::SemverGroup::from_rcfile(&ctx.rcfile);
   let version_groups = version_group::VersionGroup::from_rcfile(&ctx.rcfile);
 
+  println!("{}", "ctx.rcfile".yellow());
   println!("{:#?}", ctx.rcfile);
+  println!("{}", "strategies".yellow());
   println!("{:#?}", strategies);
+  println!("{}", "semver_groups".yellow());
   println!("{:#?}", semver_groups);
+  println!("{}", "version_groups".yellow());
   println!("{:#?}", version_groups);
 
   match cli::create().get_matches().subcommand() {

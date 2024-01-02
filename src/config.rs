@@ -1,14 +1,16 @@
 use serde::Deserialize;
+use std::collections;
 use std::path;
 
 use crate::file_paths;
 use crate::semver_group;
+use crate::strategy;
 use crate::version_group;
 
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Rcfile {
-  pub custom_types: CustomTypes,
+  pub custom_types: collections::HashMap<String, strategy::AnyStrategy>,
   pub dependency_types: Vec<String>,
   pub filter: String,
   pub format_bugs: bool,
@@ -32,32 +34,15 @@ impl Rcfile {
   }
 }
 
-#[derive(Debug, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct CustomTypes {
-  pub dev: Strategy,
-  pub local: LocalStrategy,
-  pub overrides: Strategy,
-  pub peer: Strategy,
-  pub pnpm_overrides: Strategy,
-  pub prod: Strategy,
-  pub resolutions: Strategy,
-}
-
-#[derive(Debug, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct Strategy {
-  pub strategy: String,
-  pub path: String,
-}
-
-#[derive(Debug, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct LocalStrategy {
-  pub strategy: String,
-  pub name_path: String,
-  pub path: String,
-}
+// pub struct CustomTypes {
+//   pub dev: strategy::AnyStrategy,
+//   pub local: strategy::AnyStrategy,
+//   pub overrides: strategy::AnyStrategy,
+//   pub peer: strategy::AnyStrategy,
+//   pub pnpm_overrides: strategy::AnyStrategy,
+//   pub prod: strategy::AnyStrategy,
+//   pub resolutions: strategy::AnyStrategy,
+// }
 
 pub fn get() -> Rcfile {
   let raw_json = r#"
