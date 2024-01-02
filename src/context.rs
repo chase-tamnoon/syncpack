@@ -27,19 +27,19 @@ impl Ctx {
     let semver_groups = rcfile
       .semver_groups
       .iter()
-      .map(|group| group.create())
+      .map(|group| semver_group::SemverGroup::from_config(group))
       .collect();
     let version_groups = rcfile
       .version_groups
       .iter()
-      .map(|group| group.create())
+      .map(|group| version_group::VersionGroup::from_config(group))
       .collect();
 
     Ok(Self {
       cwd: cwd.clone(),
       is_invalid: false,
       packages,
-      rcfile: rcfile,
+      rcfile,
       semver_groups,
       version_groups,
     })

@@ -48,6 +48,56 @@ pub enum VersionGroup {
   Standard(StandardVersionGroup),
 }
 
+impl VersionGroup {
+  pub fn from_config(group: &AnyVersionGroup) -> VersionGroup {
+    let selector = group_selector::GroupSelector {
+      dependencies: group.dependencies.clone(),
+      dependency_types: group.dependency_types.clone(),
+      label: group.label.clone(),
+      packages: group.packages.clone(),
+      specifier_types: group.specifier_types.clone(),
+    };
+
+    if let Some(true) = group.is_banned {
+      return VersionGroup::Banned(BannedVersionGroup {
+        selector,
+        is_banned: true,
+      });
+    }
+    if let Some(true) = group.is_ignored {
+      return VersionGroup::Ignored(IgnoredVersionGroup {
+        selector,
+        is_ignored: true,
+      });
+    }
+    if let Some(pin_version) = &group.pin_version {
+      return VersionGroup::Pinned(PinnedVersionGroup {
+        selector,
+        pin_version: pin_version.clone(),
+      });
+    }
+    if let Some(policy) = &group.policy {
+      return VersionGroup::SameRange(SameRangeVersionGroup {
+        selector,
+        policy: policy.clone(),
+      });
+    }
+    if let Some(snap_to) = &group.snap_to {
+      return VersionGroup::SnappedTo(SnappedToVersionGroup {
+        selector,
+        snap_to: snap_to.clone(),
+      });
+    }
+    if let Some(prefer_version) = &group.prefer_version {
+      return VersionGroup::Standard(StandardVersionGroup {
+        selector,
+        prefer_version: prefer_version.clone(),
+      });
+    }
+    panic!("Invalid version group");
+  }
+}
+
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct AnyVersionGroup {
@@ -68,54 +118,4 @@ pub struct AnyVersionGroup {
   pub policy: Option<String>,
   pub snap_to: Option<Vec<String>>,
   pub prefer_version: Option<String>,
-}
-
-impl AnyVersionGroup {
-  pub fn create(&self) -> VersionGroup {
-    let selector = group_selector::GroupSelector {
-      dependencies: self.dependencies.clone(),
-      dependency_types: self.dependency_types.clone(),
-      label: self.label.clone(),
-      packages: self.packages.clone(),
-      specifier_types: self.specifier_types.clone(),
-    };
-
-    if let Some(true) = self.is_banned {
-      return VersionGroup::Banned(BannedVersionGroup {
-        selector,
-        is_banned: true,
-      });
-    }
-    if let Some(true) = self.is_ignored {
-      return VersionGroup::Ignored(IgnoredVersionGroup {
-        selector,
-        is_ignored: true,
-      });
-    }
-    if let Some(pin_version) = &self.pin_version {
-      return VersionGroup::Pinned(PinnedVersionGroup {
-        selector,
-        pin_version: pin_version.clone(),
-      });
-    }
-    if let Some(policy) = &self.policy {
-      return VersionGroup::SameRange(SameRangeVersionGroup {
-        selector,
-        policy: policy.clone(),
-      });
-    }
-    if let Some(snap_to) = &self.snap_to {
-      return VersionGroup::SnappedTo(SnappedToVersionGroup {
-        selector,
-        snap_to: snap_to.clone(),
-      });
-    }
-    if let Some(prefer_version) = &self.prefer_version {
-      return VersionGroup::Standard(StandardVersionGroup {
-        selector,
-        prefer_version: prefer_version.clone(),
-      });
-    }
-    panic!("Invalid version group");
-  }
 }
