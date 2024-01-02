@@ -10,13 +10,11 @@ mod context;
 mod dependencies;
 mod file_paths;
 mod format;
-mod groups {
-  pub mod selector;
-  pub mod semver;
-  pub mod version;
-}
+mod group_selector;
 mod package_json;
+mod semver_group;
 mod semver_ranges;
+mod version_group;
 mod versions;
 
 fn main() -> io::Result<()> {

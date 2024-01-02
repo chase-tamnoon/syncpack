@@ -2,8 +2,8 @@ use serde::Deserialize;
 use std::path;
 
 use crate::file_paths;
-use crate::groups::semver;
-use crate::groups::version;
+use crate::semver_group;
+use crate::version_group;
 
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -14,14 +14,14 @@ pub struct Rcfile {
   pub format_bugs: bool,
   pub format_repository: bool,
   pub indent: String,
-  pub semver_groups: Vec<semver::AnySemverGroup>,
+  pub semver_groups: Vec<semver_group::AnySemverGroup>,
   pub sort_az: Vec<String>,
   pub sort_exports: Vec<String>,
   pub sort_first: Vec<String>,
   pub sort_packages: bool,
   pub source: Vec<String>,
   pub specifier_types: Vec<String>,
-  pub version_groups: Vec<version::AnyVersionGroup>,
+  pub version_groups: Vec<version_group::AnyVersionGroup>,
 }
 
 impl Rcfile {

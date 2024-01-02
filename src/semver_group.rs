@@ -1,19 +1,19 @@
 use serde::Deserialize;
 
-use crate::groups::selector;
+use crate::group_selector;
 
 pub struct DisabledSemverGroup {
-  pub selector: selector::GroupSelector,
+  pub selector: group_selector::GroupSelector,
   pub is_disabled: bool,
 }
 
 pub struct IgnoredSemverGroup {
-  pub selector: selector::GroupSelector,
+  pub selector: group_selector::GroupSelector,
   pub is_ignored: bool,
 }
 
 pub struct WithRangeSemverGroup {
-  pub selector: selector::GroupSelector,
+  pub selector: group_selector::GroupSelector,
   pub range: String,
 }
 
