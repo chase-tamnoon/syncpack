@@ -23,6 +23,17 @@ fn main() -> io::Result<()> {
   let cwd = std::env::current_dir()?;
   let mut ctx = context::Ctx::new(&cwd)?;
 
+  // - [x] find all package.json files
+  // - [x] get enabled dependency types
+  // - [x] create semver groups
+  // - [x] create version groups
+  // - [x] get all instances
+  //   - [ ] parse version specifiers
+  //   - [ ] set read only initial specifier on instance
+  //   - [ ] set latest specifier on instance
+  // - [ ] assign instances to semver groups
+  // - [ ] assign instances to version groups
+
   let enabled_dependency_types = config::Rcfile::get_enabled_dependency_types(&ctx.rcfile);
   let semver_groups = semver_group::SemverGroup::from_rcfile(&ctx.rcfile);
   let version_groups = version_group::VersionGroup::from_rcfile(&ctx.rcfile);
