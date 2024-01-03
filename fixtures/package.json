@@ -47,6 +47,8 @@
     "test:watch": "vitest run --no-coverage --watch"
   },
   "version": "0.1.0",
+  "packageManager": "npm@7.0.0",
+  "someVersion": "1.2.3",
   "license": "MIT",
   "type": "module",
   "name": "foopkg",

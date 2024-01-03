@@ -30,8 +30,6 @@ impl Strategy {
     } else if self.strategy == "name~version" {
       let name = file.get_prop(&self.name_path);
       let version = file.get_prop(&self.path);
-      println!("name: {:?}", name);
-      println!("version: {:?}", version);
       if let Some(name) = name {
         if let Some(version) = version {
           if let serde_json::Value::String(name) = name {
@@ -41,6 +39,27 @@ impl Strategy {
               return vec![instance];
             }
           }
+        }
+      }
+    } else if self.strategy == "name@version" {
+      let specifier = file.get_prop(&self.path);
+      println!("specifier: {:?}", specifier);
+      if let Some(specifier) = specifier {
+        if let serde_json::Value::String(specifier) = specifier {
+          let parts: Vec<&str> = specifier.split("@").collect();
+          let name = parts[0].to_string();
+          let version = parts[1].to_string();
+          let instance = instance::Instance::new(name, version, self.clone());
+          return vec![instance];
+        }
+      }
+    } else if self.strategy == "version" {
+      let version = file.get_prop(&self.path);
+      if let Some(version) = version {
+        if let serde_json::Value::String(version) = version {
+          let instance =
+            instance::Instance::new(self.name.clone(), version.to_string(), self.clone());
+          return vec![instance];
         }
       }
     }

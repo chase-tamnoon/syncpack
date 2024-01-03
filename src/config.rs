@@ -239,6 +239,14 @@ pub fn get() -> Rcfile {
         "engines": {
           "strategy": "versionsByName",
           "path": "engines"
+        },
+        "packageManager": {
+          "strategy": "name@version",
+          "path": "packageManager"
+        },
+        "someVersion": {
+          "strategy": "version",
+          "path": "someVersion"
         }
       },
       "dependencyTypes": ["!pnpmOverrides"],
