@@ -1,10 +1,25 @@
 use crate::config;
 
+pub trait StrategyTrait {
+  fn read(&self);
+  fn write(&self);
+}
+
 #[derive(Debug)]
 pub struct NameAndVersionPropsStrategy {
   pub name: String,
   pub path: String,
   pub name_path: String,
+}
+
+impl StrategyTrait for NameAndVersionPropsStrategy {
+  fn read(&self) {
+    println!("Reading NameAndVersionPropsStrategy...");
+  }
+
+  fn write(&self) {
+    println!("Writing NameAndVersionPropsStrategy...");
+  }
 }
 
 #[derive(Debug)]
@@ -13,16 +28,46 @@ pub struct NamedVersionStringStrategy {
   pub path: String,
 }
 
+impl StrategyTrait for NamedVersionStringStrategy {
+  fn read(&self) {
+    println!("Reading NamedVersionStringStrategy...");
+  }
+
+  fn write(&self) {
+    println!("Writing NamedVersionStringStrategy...");
+  }
+}
+
 #[derive(Debug)]
 pub struct UnnamedVersionStringStrategy {
   pub name: String,
   pub path: String,
 }
 
+impl StrategyTrait for UnnamedVersionStringStrategy {
+  fn read(&self) {
+    println!("Reading UnnamedVersionStringStrategy...");
+  }
+
+  fn write(&self) {
+    println!("Writing UnnamedVersionStringStrategy...");
+  }
+}
+
 #[derive(Debug)]
 pub struct VersionsByNameStrategy {
   pub name: String,
   pub path: String,
+}
+
+impl StrategyTrait for VersionsByNameStrategy {
+  fn read(&self) {
+    println!("Reading VersionsByNameStrategy...");
+  }
+
+  fn write(&self) {
+    println!("Writing VersionsByNameStrategy...");
+  }
 }
 
 #[derive(Debug)]
