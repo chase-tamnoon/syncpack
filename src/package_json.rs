@@ -7,8 +7,7 @@ use std::path;
 use std::vec;
 
 use crate::instance;
-use crate::strategy;
-use crate::strategy::StrategyTrait;
+use crate::strategy::Strategy;
 
 #[derive(Debug)]
 pub struct PackageJson {
@@ -20,36 +19,20 @@ pub struct PackageJson {
   pub contents: serde_json::Value,
 }
 
-impl PackageJson {
+impl<'a> PackageJson {
   /// Create an instance for every enabled dependency type
   pub fn get_instances(
-    &self,
-    enabled_dependency_types: &collections::HashMap<String, strategy::Strategy>,
+    &'a self,
+    enabled_dependency_types: &collections::HashMap<String, Strategy>,
   ) -> Vec<instance::Instance> {
     let mut instances: Vec<instance::Instance> = vec![];
 
     for (type_name, type_strategy) in enabled_dependency_types {
-      match type_strategy {
-        strategy::Strategy::NameAndVersionProps(ref strategy) => {
-          let instances_for_dependency_type = strategy.read(&self);
-          instances.extend(instances_for_dependency_type);
-        }
-        strategy::Strategy::NamedVersionString(ref strategy) => {
-          let instances_for_dependency_type = strategy.read(&self);
-          instances.extend(instances_for_dependency_type);
-        }
-        strategy::Strategy::UnnamedVersionString(ref strategy) => {
-          let instances_for_dependency_type = strategy.read(&self);
-          instances.extend(instances_for_dependency_type);
-        }
-        strategy::Strategy::VersionsByName(ref strategy) => {
-          let instances_for_dependency_type = strategy.read(&self);
-          instances.extend(instances_for_dependency_type);
-        }
-      };
+      let instances_for_dependency_type = type_strategy.read(&self);
+      instances.extend(instances_for_dependency_type);
     }
 
-    instances
+   instances
   }
 
   /// Deeply get a property in the parsed package.json
