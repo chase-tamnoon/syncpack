@@ -39,6 +39,8 @@ pub struct StandardVersionGroup {
   pub prefer_version: String,
 }
 
+// @TODO: refactor to not be an enum?
+
 #[derive(Debug)]
 pub enum VersionGroup {
   Banned(BannedVersionGroup),

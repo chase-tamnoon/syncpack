@@ -32,8 +32,6 @@ fn main() -> io::Result<()> {
     .flat_map(|package| package.get_instances(&enabled_dependency_types))
     .collect();
 
-  //
-
   println!("{}", "ctx.rcfile".yellow());
   println!("{:#?}", ctx.rcfile);
   println!("{}", "strategies".yellow());

@@ -4,12 +4,17 @@ use crate::package_json;
 
 #[derive(Clone, Debug)]
 pub struct Strategy {
+  /// The path to the property that contains the dependency name
   pub name_path: String,
+  /// The dependency type name this strategy is referred to as
   pub name: String,
+  /// The path to the property that contains the version string
   pub path: String,
+  /// The strategy to use when reading/writing the version string
   pub strategy: String,
 }
 
+// @TODO: Rename to DependencyType
 impl Strategy {
   pub fn read(&self, file: &package_json::PackageJson) -> Vec<instance::Instance> {
     if self.strategy == "versionsByName" {
