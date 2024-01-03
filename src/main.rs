@@ -11,6 +11,7 @@ mod dependencies;
 mod file_paths;
 mod format;
 mod group_selector;
+mod instance;
 mod package_json;
 mod semver_group;
 mod semver_ranges;
