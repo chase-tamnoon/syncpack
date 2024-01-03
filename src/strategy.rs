@@ -3,8 +3,8 @@ use crate::instance;
 use crate::package_json;
 
 pub trait StrategyTrait {
-  fn read(&self, file: package_json::PackageJson) -> Vec<instance::Instance>;
-  fn write(&self, file: package_json::PackageJson);
+  fn read(&self, file: &package_json::PackageJson) -> Vec<instance::Instance>;
+  fn write(&self, file: &package_json::PackageJson);
 }
 
 #[derive(Debug)]
@@ -15,7 +15,7 @@ pub struct NameAndVersionPropsStrategy {
 }
 
 impl StrategyTrait for NameAndVersionPropsStrategy {
-  fn read(&self, file: package_json::PackageJson) -> Vec<instance::Instance> {
+  fn read(&self, file: &package_json::PackageJson) -> Vec<instance::Instance> {
     println!("Reading NameAndVersionPropsStrategy...");
     vec![instance::Instance::new(
       self.name.clone(),
@@ -24,7 +24,7 @@ impl StrategyTrait for NameAndVersionPropsStrategy {
     )]
   }
 
-  fn write(&self, file: package_json::PackageJson) {
+  fn write(&self, file: &package_json::PackageJson) {
     println!("Writing NameAndVersionPropsStrategy...");
   }
 }
@@ -36,7 +36,7 @@ pub struct NamedVersionStringStrategy {
 }
 
 impl StrategyTrait for NamedVersionStringStrategy {
-  fn read(&self, file: package_json::PackageJson) -> Vec<instance::Instance> {
+  fn read(&self, file: &package_json::PackageJson) -> Vec<instance::Instance> {
     println!("Reading NamedVersionStringStrategy...");
     vec![instance::Instance::new(
       self.name.clone(),
@@ -45,7 +45,7 @@ impl StrategyTrait for NamedVersionStringStrategy {
     )]
   }
 
-  fn write(&self, file: package_json::PackageJson) {
+  fn write(&self, file: &package_json::PackageJson) {
     println!("Writing NamedVersionStringStrategy...");
   }
 }
@@ -57,7 +57,7 @@ pub struct UnnamedVersionStringStrategy {
 }
 
 impl StrategyTrait for UnnamedVersionStringStrategy {
-  fn read(&self, file: package_json::PackageJson) -> Vec<instance::Instance> {
+  fn read(&self, file: &package_json::PackageJson) -> Vec<instance::Instance> {
     println!("Reading UnnamedVersionStringStrategy...");
     vec![instance::Instance::new(
       self.name.clone(),
@@ -66,7 +66,7 @@ impl StrategyTrait for UnnamedVersionStringStrategy {
     )]
   }
 
-  fn write(&self, file: package_json::PackageJson) {
+  fn write(&self, file: &package_json::PackageJson) {
     println!("Writing UnnamedVersionStringStrategy...");
   }
 }
@@ -78,7 +78,7 @@ pub struct VersionsByNameStrategy {
 }
 
 impl StrategyTrait for VersionsByNameStrategy {
-  fn read(&self, file: package_json::PackageJson) -> Vec<instance::Instance> {
+  fn read(&self, file: &package_json::PackageJson) -> Vec<instance::Instance> {
     println!("Reading VersionsByNameStrategy...");
     vec![instance::Instance::new(
       self.name.clone(),
@@ -87,7 +87,7 @@ impl StrategyTrait for VersionsByNameStrategy {
     )]
   }
 
-  fn write(&self, file: package_json::PackageJson) {
+  fn write(&self, file: &package_json::PackageJson) {
     println!("Writing VersionsByNameStrategy...");
   }
 }

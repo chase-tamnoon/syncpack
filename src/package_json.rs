@@ -8,6 +8,7 @@ use std::vec;
 
 use crate::instance;
 use crate::strategy;
+use crate::strategy::StrategyTrait;
 
 #[derive(Debug)]
 pub struct PackageJson {
@@ -24,7 +25,29 @@ impl PackageJson {
     &self,
     enabled_dependency_types: &collections::HashMap<String, strategy::Strategy>,
   ) -> Vec<instance::Instance> {
-    let instances: Vec<instance::Instance> = vec![];
+    let mut instances: Vec<instance::Instance> = vec![];
+
+    for (type_name, type_strategy) in enabled_dependency_types {
+      match type_strategy {
+        strategy::Strategy::NameAndVersionProps(ref strategy) => {
+          let instances_for_dependency_type = strategy.read(&self);
+          instances.extend(instances_for_dependency_type);
+        }
+        strategy::Strategy::NamedVersionString(ref strategy) => {
+          let instances_for_dependency_type = strategy.read(&self);
+          instances.extend(instances_for_dependency_type);
+        }
+        strategy::Strategy::UnnamedVersionString(ref strategy) => {
+          let instances_for_dependency_type = strategy.read(&self);
+          instances.extend(instances_for_dependency_type);
+        }
+        strategy::Strategy::VersionsByName(ref strategy) => {
+          let instances_for_dependency_type = strategy.read(&self);
+          instances.extend(instances_for_dependency_type);
+        }
+      };
+    }
+
     instances
   }
 
