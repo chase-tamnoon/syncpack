@@ -22,14 +22,14 @@ fn main() -> io::Result<()> {
   let cwd = std::env::current_dir()?;
   let mut ctx = context::Ctx::new(&cwd)?;
 
-  let custom_strategies = strategy::Strategy::from_rcfile(&ctx.rcfile);
+  let enabled_dependency_types = config::Rcfile::get_enabled_dependency_types(&ctx.rcfile);
   let semver_groups = semver_group::SemverGroup::from_rcfile(&ctx.rcfile);
   let version_groups = version_group::VersionGroup::from_rcfile(&ctx.rcfile);
 
   println!("{}", "ctx.rcfile".yellow());
   println!("{:#?}", ctx.rcfile);
   println!("{}", "strategies".yellow());
-  println!("{:#?}", custom_strategies);
+  println!("{:#?}", enabled_dependency_types);
   println!("{}", "semver_groups".yellow());
   println!("{:#?}", semver_groups);
   println!("{}", "version_groups".yellow());

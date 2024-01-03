@@ -7,7 +7,7 @@ use crate::semver_group;
 use crate::strategy;
 use crate::version_group;
 
-fn empty_custom_types() -> HashMap<String, strategy::AnyStrategy> {
+fn empty_custom_types() -> HashMap<String, AnyStrategy> {
   HashMap::new()
 }
 
@@ -70,9 +70,17 @@ fn default_source() -> Vec<String> {
 
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
+pub struct AnyStrategy {
+  pub strategy: String,
+  pub name_path: Option<String>,
+  pub path: String,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct Rcfile {
   #[serde(default = "empty_custom_types")]
-  pub custom_types: HashMap<String, strategy::AnyStrategy>,
+  pub custom_types: HashMap<String, AnyStrategy>,
   #[serde(default)]
   pub dependency_types: Vec<String>,
   #[serde(default = "default_filter")]
@@ -107,6 +115,121 @@ impl Rcfile {
     let pattern_str = pattern.to_str().unwrap();
     file_paths::get_file_paths(pattern_str)
   }
+
+  pub fn get_enabled_dependency_types(rcfile: &Rcfile) -> HashMap<String, strategy::Strategy> {
+    let dependency_types = &rcfile.dependency_types;
+    let custom_types = &rcfile.custom_types;
+    let default_types = get_default_dependency_types();
+    let mut strategies: HashMap<String, strategy::Strategy> = HashMap::new();
+    let len = dependency_types.len();
+    let include_all = len == 0 || len == 1 && dependency_types[0] == "**";
+    let contains_explicitly_excluded = dependency_types
+      .iter()
+      .any(|dep_type| dep_type.starts_with('!'));
+
+    let is_included = |dep_type: &String| -> bool {
+      // All are included by default
+      if include_all {
+        return true;
+      }
+      // Is explicitly included
+      if dependency_types.contains(dep_type) {
+        return true;
+      }
+      // Is explicitly excluded
+      if dependency_types.contains(&get_negated(dep_type)) {
+        return false;
+      }
+      // Is implicitly included when another type is explicitly excluded and
+      // this one is not named
+      if contains_explicitly_excluded {
+        return true;
+      }
+      false
+    };
+
+    default_types.iter().for_each(|(key, value)| {
+      if is_included(key) {
+        strategies.insert(key.clone(), strategy::Strategy::new(key, value));
+      }
+    });
+
+    custom_types.iter().for_each(|(key, value)| {
+      if is_included(key) {
+        strategies.insert(key.clone(), strategy::Strategy::new(key, value));
+      }
+    });
+
+    strategies
+  }
+}
+
+/// Adds "!" to the start of the String
+fn get_negated(str: &String) -> String {
+  let mut negated_str = String::from("!");
+  negated_str.push_str(&str);
+  negated_str
+}
+
+fn get_default_dependency_types() -> HashMap<String, AnyStrategy> {
+  HashMap::from([
+    (
+      String::from("dev"),
+      AnyStrategy {
+        strategy: String::from("versionsByName"),
+        name_path: None,
+        path: String::from("devDependencies"),
+      },
+    ),
+    (
+      String::from("local"),
+      AnyStrategy {
+        strategy: String::from("name~version"),
+        name_path: Some(String::from("name")),
+        path: String::from("version"),
+      },
+    ),
+    (
+      String::from("overrides"),
+      AnyStrategy {
+        strategy: String::from("versionsByName"),
+        name_path: None,
+        path: String::from("overrides"),
+      },
+    ),
+    (
+      String::from("peer"),
+      AnyStrategy {
+        strategy: String::from("versionsByName"),
+        name_path: None,
+        path: String::from("peerDependencies"),
+      },
+    ),
+    (
+      String::from("pnpmOverrides"),
+      AnyStrategy {
+        strategy: String::from("versionsByName"),
+        name_path: None,
+        path: String::from("pnpm.overrides"),
+      },
+    ),
+    (
+      String::from("prod"),
+      AnyStrategy {
+        strategy: String::from("versionsByName"),
+        name_path: None,
+        path: String::from("dependencies"),
+      },
+    ),
+    (
+      String::from("resolutions"),
+      AnyStrategy {
+        strategy: String::from("versionsByName"),
+        name_path: None,
+        path: String::from("resolutions"),
+      },
+    ),
+  ])
 }
 
 pub fn get() -> Rcfile {
