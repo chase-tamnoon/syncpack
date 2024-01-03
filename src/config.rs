@@ -123,39 +123,39 @@ impl Rcfile {
     let mut strategies: HashMap<String, strategy::Strategy> = HashMap::new();
     let len = dependency_types.len();
     let include_all = len == 0 || len == 1 && dependency_types[0] == "**";
-    let contains_explicitly_excluded = dependency_types
+    let contains_explicitly_disabled = dependency_types
       .iter()
       .any(|dep_type| dep_type.starts_with('!'));
 
-    let is_included = |dep_type: &String| -> bool {
-      // All are included by default
+    let is_enabled = |dep_type: &String| -> bool {
+      // All are enabled by default
       if include_all {
         return true;
       }
-      // Is explicitly included
+      // Is explicitly enabled
       if dependency_types.contains(dep_type) {
         return true;
       }
-      // Is explicitly excluded
+      // Is explicitly disabled
       if dependency_types.contains(&get_negated(dep_type)) {
         return false;
       }
-      // Is implicitly included when another type is explicitly excluded and
+      // Is implicitly enabled when another type is explicitly disabled and
       // this one is not named
-      if contains_explicitly_excluded {
+      if contains_explicitly_disabled {
         return true;
       }
       false
     };
 
     default_types.iter().for_each(|(key, value)| {
-      if is_included(key) {
+      if is_enabled(key) {
         strategies.insert(key.clone(), strategy::Strategy::new(key, value));
       }
     });
 
     custom_types.iter().for_each(|(key, value)| {
-      if is_included(key) {
+      if is_enabled(key) {
         strategies.insert(key.clone(), strategy::Strategy::new(key, value));
       }
     });
