@@ -1,8 +1,13 @@
 use colored::Colorize;
 use serde_json;
+use std::collections;
 use std::fs;
 use std::io;
 use std::path;
+use std::vec;
+
+use crate::instance;
+use crate::strategy;
 
 #[derive(Debug)]
 pub struct PackageJson {
@@ -15,6 +20,14 @@ pub struct PackageJson {
 }
 
 impl PackageJson {
+  pub fn get_instances(
+    &self,
+    enabled_dependency_types: &collections::HashMap<String, strategy::Strategy>,
+  ) -> Vec<instance::Instance> {
+    let instances: Vec<instance::Instance> = vec![];
+    instances
+  }
+
   /// Deeply get a property in the parsed package.json
   pub fn get_prop(&self, pointer: &str) -> Option<&serde_json::Value> {
     self.contents.pointer(pointer)
