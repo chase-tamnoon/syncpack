@@ -21,6 +21,7 @@ pub struct PackageJson {
 }
 
 impl PackageJson {
+  /// Create an instance for every enabled dependency type
   pub fn get_instances(
     &self,
     enabled_dependency_types: &collections::HashMap<String, strategy::Strategy>,

@@ -21,6 +21,8 @@ impl StrategyTrait for NameAndVersionPropsStrategy {
       self.name.clone(),
       "foo".to_string(),
       "0.0.0".to_string(),
+      &self,
+      &file,
     )]
   }
 
@@ -42,6 +44,8 @@ impl StrategyTrait for NamedVersionStringStrategy {
       self.name.clone(),
       "foo".to_string(),
       "0.0.0".to_string(),
+      &self,
+      &file,
     )]
   }
 
@@ -63,6 +67,8 @@ impl StrategyTrait for UnnamedVersionStringStrategy {
       self.name.clone(),
       "foo".to_string(),
       "0.0.0".to_string(),
+      &self,
+      &file,
     )]
   }
 
@@ -84,6 +90,8 @@ impl StrategyTrait for VersionsByNameStrategy {
       self.name.clone(),
       "foo".to_string(),
       "0.0.0".to_string(),
+      &self,
+      &file,
     )]
   }
 
