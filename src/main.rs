@@ -7,8 +7,6 @@ use std::io;
 mod cli;
 mod config;
 mod context;
-mod dependencies;
-mod file_paths;
 mod format;
 mod group_selector;
 mod instance;

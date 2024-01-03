@@ -2,9 +2,8 @@ use serde::Deserialize;
 use std::collections::HashMap;
 use std::path;
 
-use crate::file_paths;
-use crate::semver_group;
 use crate::dependency_type;
+use crate::semver_group;
 use crate::version_group;
 
 fn empty_custom_types() -> HashMap<String, CustomType> {
@@ -113,7 +112,7 @@ impl Rcfile {
   pub fn get_sources(&self, cwd: &path::PathBuf) -> Vec<path::PathBuf> {
     let pattern = &cwd.join("fixtures/**/package.json");
     let pattern_str = pattern.to_str().unwrap();
-    file_paths::get_file_paths(pattern_str)
+    get_file_paths(pattern_str)
   }
 
   pub fn get_enabled_dependency_types(
@@ -126,7 +125,8 @@ impl Rcfile {
     // Internal dependency types are also defined as custom types
     let default_types = get_default_dependency_types();
     // Collect which dependency types are enabled
-    let mut enabled_dependency_types: HashMap<String, dependency_type::DependencyType> = HashMap::new();
+    let mut enabled_dependency_types: HashMap<String, dependency_type::DependencyType> =
+      HashMap::new();
     let len = named_types.len();
     // When no dependency types are referenced in the rcfile, all are enabled
     let include_all = len == 0 || len == 1 && named_types[0] == "**";
@@ -176,6 +176,14 @@ impl Rcfile {
 
     enabled_dependency_types
   }
+}
+
+/// Return all matching file paths for a given glob pattern
+fn get_file_paths(pattern: &str) -> Vec<path::PathBuf> {
+  glob::glob(pattern)
+    .expect("Failed to read glob pattern")
+    .filter_map(Result::ok)
+    .collect()
 }
 
 /// Adds "!" to the start of the String
