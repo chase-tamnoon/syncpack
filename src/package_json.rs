@@ -4,7 +4,6 @@ use std::collections;
 use std::fs;
 use std::io;
 use std::path;
-use std::vec;
 
 use crate::instance;
 use crate::strategy::Strategy;
@@ -25,14 +24,10 @@ impl<'a> PackageJson {
     &'a self,
     enabled_dependency_types: &collections::HashMap<String, Strategy>,
   ) -> Vec<instance::Instance> {
-    let mut instances: Vec<instance::Instance> = vec![];
-
-    for (type_name, type_strategy) in enabled_dependency_types {
-      let instances_for_dependency_type = type_strategy.read(&self);
-      instances.extend(instances_for_dependency_type);
-    }
-
-   instances
+    enabled_dependency_types
+      .iter()
+      .flat_map(|(type_name, type_strategy)| type_strategy.read(&self))
+      .collect()
   }
 
   /// Deeply get a property in the parsed package.json
