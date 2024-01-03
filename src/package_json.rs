@@ -6,7 +6,7 @@ use std::io;
 use std::path;
 
 use crate::instance;
-use crate::strategy::Strategy;
+use crate::dependency_type::DependencyType;
 
 #[derive(Debug)]
 pub struct PackageJson {
@@ -22,7 +22,7 @@ impl<'a> PackageJson {
   /// Create an instance for every enabled dependency type
   pub fn get_instances(
     &'a self,
-    enabled_dependency_types: &collections::HashMap<String, Strategy>,
+    enabled_dependency_types: &collections::HashMap<String, DependencyType>,
   ) -> Vec<instance::Instance> {
     enabled_dependency_types
       .iter()

@@ -4,10 +4,10 @@ use std::path;
 
 use crate::file_paths;
 use crate::semver_group;
-use crate::strategy;
+use crate::dependency_type;
 use crate::version_group;
 
-fn empty_custom_types() -> HashMap<String, AnyStrategy> {
+fn empty_custom_types() -> HashMap<String, CustomType> {
   HashMap::new()
 }
 
@@ -70,7 +70,7 @@ fn default_source() -> Vec<String> {
 
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub struct AnyStrategy {
+pub struct CustomType {
   pub strategy: String,
   pub name_path: Option<String>,
   pub path: String,
@@ -80,7 +80,7 @@ pub struct AnyStrategy {
 #[serde(rename_all = "camelCase")]
 pub struct Rcfile {
   #[serde(default = "empty_custom_types")]
-  pub custom_types: HashMap<String, AnyStrategy>,
+  pub custom_types: HashMap<String, CustomType>,
   #[serde(default)]
   pub dependency_types: Vec<String>,
   #[serde(default = "default_filter")]
@@ -116,28 +116,36 @@ impl Rcfile {
     file_paths::get_file_paths(pattern_str)
   }
 
-  pub fn get_enabled_dependency_types(rcfile: &Rcfile) -> HashMap<String, strategy::Strategy> {
-    let dependency_types = &rcfile.dependency_types;
+  pub fn get_enabled_dependency_types(
+    rcfile: &Rcfile,
+  ) -> HashMap<String, dependency_type::DependencyType> {
+    // Dependency type names referenced in the rcfile
+    let named_types = &rcfile.dependency_types;
+    // Custom dependency types defined in the rcfile
     let custom_types = &rcfile.custom_types;
+    // Internal dependency types are also defined as custom types
     let default_types = get_default_dependency_types();
-    let mut strategies: HashMap<String, strategy::Strategy> = HashMap::new();
-    let len = dependency_types.len();
-    let include_all = len == 0 || len == 1 && dependency_types[0] == "**";
-    let contains_explicitly_disabled = dependency_types
+    // Collect which dependency types are enabled
+    let mut enabled_dependency_types: HashMap<String, dependency_type::DependencyType> = HashMap::new();
+    let len = named_types.len();
+    // When no dependency types are referenced in the rcfile, all are enabled
+    let include_all = len == 0 || len == 1 && named_types[0] == "**";
+    // When any dependency types are explicitly disabled, all others are enabled
+    let contains_explicitly_disabled = named_types
       .iter()
-      .any(|dep_type| dep_type.starts_with('!'));
+      .any(|named_type| named_type.starts_with('!'));
 
-    let is_enabled = |dep_type: &String| -> bool {
+    let is_enabled = |type_name: &String| -> bool {
       // All are enabled by default
       if include_all {
         return true;
       }
       // Is explicitly enabled
-      if dependency_types.contains(dep_type) {
+      if named_types.contains(type_name) {
         return true;
       }
       // Is explicitly disabled
-      if dependency_types.contains(&get_negated(dep_type)) {
+      if named_types.contains(&get_negated(type_name)) {
         return false;
       }
       // Is implicitly enabled when another type is explicitly disabled and
@@ -148,19 +156,25 @@ impl Rcfile {
       false
     };
 
-    default_types.iter().for_each(|(key, value)| {
-      if is_enabled(key) {
-        strategies.insert(key.clone(), strategy::Strategy::new(key, value));
+    default_types.iter().for_each(|(name, custom_type)| {
+      if is_enabled(name) {
+        enabled_dependency_types.insert(
+          name.clone(),
+          dependency_type::DependencyType::new(name, custom_type),
+        );
       }
     });
 
-    custom_types.iter().for_each(|(key, value)| {
-      if is_enabled(key) {
-        strategies.insert(key.clone(), strategy::Strategy::new(key, value));
+    custom_types.iter().for_each(|(name, custom_type)| {
+      if is_enabled(name) {
+        enabled_dependency_types.insert(
+          name.clone(),
+          dependency_type::DependencyType::new(name, custom_type),
+        );
       }
     });
 
-    strategies
+    enabled_dependency_types
   }
 }
 
@@ -171,11 +185,11 @@ fn get_negated(str: &String) -> String {
   negated_str
 }
 
-fn get_default_dependency_types() -> HashMap<String, AnyStrategy> {
+fn get_default_dependency_types() -> HashMap<String, CustomType> {
   HashMap::from([
     (
       String::from("dev"),
-      AnyStrategy {
+      CustomType {
         strategy: String::from("versionsByName"),
         name_path: None,
         path: String::from("devDependencies"),
@@ -183,7 +197,7 @@ fn get_default_dependency_types() -> HashMap<String, AnyStrategy> {
     ),
     (
       String::from("local"),
-      AnyStrategy {
+      CustomType {
         strategy: String::from("name~version"),
         name_path: Some(String::from("name")),
         path: String::from("version"),
@@ -191,7 +205,7 @@ fn get_default_dependency_types() -> HashMap<String, AnyStrategy> {
     ),
     (
       String::from("overrides"),
-      AnyStrategy {
+      CustomType {
         strategy: String::from("versionsByName"),
         name_path: None,
         path: String::from("overrides"),
@@ -199,7 +213,7 @@ fn get_default_dependency_types() -> HashMap<String, AnyStrategy> {
     ),
     (
       String::from("peer"),
-      AnyStrategy {
+      CustomType {
         strategy: String::from("versionsByName"),
         name_path: None,
         path: String::from("peerDependencies"),
@@ -207,7 +221,7 @@ fn get_default_dependency_types() -> HashMap<String, AnyStrategy> {
     ),
     (
       String::from("pnpmOverrides"),
-      AnyStrategy {
+      CustomType {
         strategy: String::from("versionsByName"),
         name_path: None,
         path: String::from("pnpm.overrides"),
@@ -215,7 +229,7 @@ fn get_default_dependency_types() -> HashMap<String, AnyStrategy> {
     ),
     (
       String::from("prod"),
-      AnyStrategy {
+      CustomType {
         strategy: String::from("versionsByName"),
         name_path: None,
         path: String::from("dependencies"),
@@ -223,7 +237,7 @@ fn get_default_dependency_types() -> HashMap<String, AnyStrategy> {
     ),
     (
       String::from("resolutions"),
-      AnyStrategy {
+      CustomType {
         strategy: String::from("versionsByName"),
         name_path: None,
         path: String::from("resolutions"),

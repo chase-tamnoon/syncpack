@@ -1,4 +1,4 @@
-use crate::strategy;
+use crate::dependency_type;
 
 #[derive(Debug)]
 pub struct Instance {
@@ -7,11 +7,11 @@ pub struct Instance {
   /// The raw dependency specifier eg. "16.8.0", "^16.8.0"
   specifier: String,
   /// The strategy to use for this instance
-  strategy: strategy::Strategy,
+  strategy: dependency_type::DependencyType,
 }
 
 impl Instance {
-  pub fn new(name: String, specifier: String, strategy: strategy::Strategy) -> Instance {
+  pub fn new(name: String, specifier: String, strategy: dependency_type::DependencyType) -> Instance {
     Instance {
       name,
       specifier,

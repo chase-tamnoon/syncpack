@@ -3,7 +3,7 @@ use crate::instance;
 use crate::package_json;
 
 #[derive(Clone, Debug)]
-pub struct Strategy {
+pub struct DependencyType {
   /// The path to the property that contains the dependency name
   pub name_path: String,
   /// The dependency type name this strategy is referred to as
@@ -14,8 +14,7 @@ pub struct Strategy {
   pub strategy: String,
 }
 
-// @TODO: Rename to DependencyType
-impl Strategy {
+impl DependencyType {
   pub fn read(&self, file: &package_json::PackageJson) -> Vec<instance::Instance> {
     if self.strategy == "versionsByName" {
       let versions_by_name = file.get_prop(&self.path);
@@ -75,8 +74,8 @@ impl Strategy {
     println!("Writing NameAndVersionPropsStrategy...");
   }
 
-  pub fn new(name: &String, config: &config::AnyStrategy) -> Strategy {
-    Strategy {
+  pub fn new(name: &String, config: &config::CustomType) -> DependencyType {
+    DependencyType {
       name_path: if config.name_path.is_some() {
         normalize_path(config.name_path.clone().unwrap())
       } else {

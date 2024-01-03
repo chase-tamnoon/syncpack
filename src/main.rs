@@ -15,7 +15,7 @@ mod instance;
 mod package_json;
 mod semver_group;
 mod semver_ranges;
-mod strategy;
+mod dependency_type;
 mod version_group;
 mod versions;
 
