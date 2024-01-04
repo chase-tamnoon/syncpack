@@ -146,58 +146,36 @@ fn is_tag(specifier: &str) -> bool {
 }
 
 fn resolve(name: &str, specifier: &str) -> Specifier {
-  if is_exact(specifier) {
-    Specifier {
-      type_name: "exact".to_string(),
-    }
+  let type_name = if is_exact(specifier) {
+    "exact"
   } else if is_range(specifier) {
-    Specifier {
-      type_name: "range".to_string(),
-    }
-  } else if is_range_minor(specifier) {
-    Specifier {
-      type_name: "range-minor".to_string(),
-    }
-  } else if is_major(specifier) {
-    Specifier {
-      type_name: "major".to_string(),
-    }
-  } else if is_minor(specifier) {
-    Specifier {
-      type_name: "minor".to_string(),
-    }
+    "range"
   } else if is_latest(specifier) {
-    Specifier {
-      type_name: "latest".to_string(),
-    }
-  } else if is_file(specifier) {
-    Specifier {
-      type_name: "file".to_string(),
-    }
+    "latest"
   } else if is_workspace_protocol(specifier) {
-    Specifier {
-      type_name: "workspace-protocol".to_string(),
-    }
+    "workspace-protocol"
   } else if is_alias(specifier) {
-    Specifier {
-      type_name: "alias".to_string(),
-    }
-  } else if is_url(specifier) {
-    Specifier {
-      type_name: "url".to_string(),
-    }
-  } else if is_git(specifier) {
-    Specifier {
-      type_name: "git".to_string(),
-    }
+    "alias"
+  } else if is_major(specifier) {
+    "major"
+  } else if is_minor(specifier) {
+    "minor"
   } else if is_tag(specifier) {
-    Specifier {
-      type_name: "tag".to_string(),
-    }
+    "tag"
+  } else if is_git(specifier) {
+    "git"
+  } else if is_url(specifier) {
+    "url"
+  } else if is_range_minor(specifier) {
+    "range-minor"
+  } else if is_file(specifier) {
+    "file"
   } else {
-    Specifier {
-      type_name: "unsupported".to_string(),
-    }
+    "unsupported"
+  };
+
+  Specifier {
+    type_name: type_name.to_string(),
   }
 }
 
