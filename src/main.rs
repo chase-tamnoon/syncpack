@@ -7,13 +7,14 @@ use std::io;
 mod cli;
 mod config;
 mod context;
+mod dependency_type;
 mod format;
 mod group_selector;
 mod instance;
 mod package_json;
 mod semver_group;
 mod semver_ranges;
-mod dependency_type;
+mod specifier;
 mod version_group;
 mod versions;
 
