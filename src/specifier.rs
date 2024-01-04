@@ -46,151 +46,71 @@ lazy_static! {
   static ref TAG: Regex = Regex::new(r"^[a-zA-Z0-9-]+$").unwrap();
 }
 
-#[derive(Debug)]
-pub struct Specifier {
-  pub type_name: String,
+#[derive(Debug, PartialEq)]
+pub enum SpecifierType {
+  Exact,
+  Range,
+  Latest,
+  WorkspaceProtocol,
+  Alias,
+  Major,
+  Minor,
+  Tag,
+  Git,
+  Url,
+  RangeMinor,
+  File,
+  Unsupported,
 }
 
-impl Specifier {
-  pub fn new(specifier: &str) -> Specifier {
-    let type_name = if EXACT.is_match(specifier) {
-      "exact"
+impl SpecifierType {
+  pub fn new(specifier: &str) -> SpecifierType {
+    if EXACT.is_match(specifier) {
+      SpecifierType::Exact
     } else if is_range(specifier) {
-      "range"
+      SpecifierType::Range
     } else if specifier == "*" || specifier == "latest" {
-      "latest"
+      SpecifierType::Latest
     } else if WORKSPACE_PROTOCOL.is_match(specifier) {
-      "workspace-protocol"
+      SpecifierType::WorkspaceProtocol
     } else if ALIAS.is_match(specifier) {
-      "alias"
+      SpecifierType::Alias
     } else if MAJOR.is_match(specifier) {
-      "major"
+      SpecifierType::Major
     } else if MINOR.is_match(specifier) {
-      "minor"
+      SpecifierType::Minor
     } else if TAG.is_match(specifier) {
-      "tag"
+      SpecifierType::Tag
     } else if GIT.is_match(specifier) {
-      "git"
+      SpecifierType::Git
     } else if URL.is_match(specifier) {
-      "url"
+      SpecifierType::Url
     } else if is_range_minor(specifier) {
-      "range-minor"
+      SpecifierType::RangeMinor
     } else if FILE.is_match(specifier) {
-      "file"
+      SpecifierType::File
     } else {
-      "unsupported"
-    };
-
-    Specifier {
-      type_name: type_name.to_string(),
+      SpecifierType::Unsupported
     }
   }
 }
 
-fn is_exact(specifier: &str) -> bool {
-  EXACT.is_match(specifier)
-}
-
-fn is_caret(specifier: &str) -> bool {
-  CARET.is_match(specifier)
-}
-
-fn is_tilde(specifier: &str) -> bool {
-  TILDE.is_match(specifier)
-}
-
-fn is_gt(specifier: &str) -> bool {
-  GT.is_match(specifier)
-}
-
-fn is_gte(specifier: &str) -> bool {
-  GTE.is_match(specifier)
-}
-
-fn is_lt(specifier: &str) -> bool {
-  LT.is_match(specifier)
-}
-
-fn is_lte(specifier: &str) -> bool {
-  LTE.is_match(specifier)
-}
-
 fn is_range(specifier: &str) -> bool {
-  is_caret(specifier)
-    || is_tilde(specifier)
-    || is_gt(specifier)
-    || is_gte(specifier)
-    || is_lt(specifier)
-    || is_lte(specifier)
-}
-
-fn is_caret_minor(specifier: &str) -> bool {
-  CARET_MINOR.is_match(specifier)
-}
-
-fn is_tilde_minor(specifier: &str) -> bool {
-  TILDE_MINOR.is_match(specifier)
-}
-
-fn is_gt_minor(specifier: &str) -> bool {
-  GT_MINOR.is_match(specifier)
-}
-
-fn is_gte_minor(specifier: &str) -> bool {
-  GTE_MINOR.is_match(specifier)
-}
-
-fn is_lt_minor(specifier: &str) -> bool {
-  LT_MINOR.is_match(specifier)
-}
-
-fn is_lte_minor(specifier: &str) -> bool {
-  LTE_MINOR.is_match(specifier)
+  CARET.is_match(specifier)
+    || TILDE.is_match(specifier)
+    || GT.is_match(specifier)
+    || GTE.is_match(specifier)
+    || LT.is_match(specifier)
+    || LTE.is_match(specifier)
 }
 
 fn is_range_minor(specifier: &str) -> bool {
-  is_caret_minor(specifier)
-    || is_tilde_minor(specifier)
-    || is_gt_minor(specifier)
-    || is_gte_minor(specifier)
-    || is_lt_minor(specifier)
-    || is_lte_minor(specifier)
-}
-
-fn is_latest(specifier: &str) -> bool {
-  specifier == "*" || specifier == "latest"
-}
-
-fn is_major(specifier: &str) -> bool {
-  MAJOR.is_match(specifier)
-}
-
-fn is_minor(specifier: &str) -> bool {
-  MINOR.is_match(specifier)
-}
-
-fn is_alias(specifier: &str) -> bool {
-  ALIAS.is_match(specifier)
-}
-
-fn is_file(specifier: &str) -> bool {
-  FILE.is_match(specifier)
-}
-
-fn is_workspace_protocol(specifier: &str) -> bool {
-  WORKSPACE_PROTOCOL.is_match(specifier)
-}
-
-fn is_url(specifier: &str) -> bool {
-  URL.is_match(specifier)
-}
-
-fn is_git(specifier: &str) -> bool {
-  GIT.is_match(specifier)
-}
-
-fn is_tag(specifier: &str) -> bool {
-  TAG.is_match(specifier)
+  CARET_MINOR.is_match(specifier)
+    || TILDE_MINOR.is_match(specifier)
+    || GT_MINOR.is_match(specifier)
+    || GTE_MINOR.is_match(specifier)
+    || LT_MINOR.is_match(specifier)
+    || LTE_MINOR.is_match(specifier)
 }
 
 #[cfg(test)]
@@ -205,8 +125,8 @@ mod tests {
       "npm:foo@1.2.3",
     ];
     for case in cases {
-      let parsed = Specifier::new(case);
-      assert_eq!(parsed.type_name, "alias", "{} should be alias", case);
+      let parsed = SpecifierType::new(case);
+      assert_eq!(parsed, SpecifierType::Alias, "{} should be alias", case);
     }
   }
 
@@ -220,8 +140,8 @@ mod tests {
       // "1.2.3+build.123",
     ];
     for case in cases {
-      let parsed = Specifier::new(case);
-      assert_eq!(parsed.type_name, "exact", "{} should be exact", case);
+      let parsed = SpecifierType::new(case);
+      assert_eq!(parsed, SpecifierType::Exact, "{} should be exact", case);
     }
   }
 
@@ -247,8 +167,8 @@ mod tests {
       "file:path/to/foo",
     ];
     for case in cases {
-      let parsed = Specifier::new(case);
-      assert_eq!(parsed.type_name, "file", "{} should be file", case);
+      let parsed = SpecifierType::new(case);
+      assert_eq!(parsed, SpecifierType::File, "{} should be file", case);
     }
   }
 
@@ -289,8 +209,8 @@ mod tests {
       "git+ssh://git@notgithub.com/user/foo#1.2.3",
     ];
     for case in cases {
-      let parsed = Specifier::new(case);
-      assert_eq!(parsed.type_name, "git", "{} should be git", case);
+      let parsed = SpecifierType::new(case);
+      assert_eq!(parsed, SpecifierType::Git, "{} should be git", case);
     }
   }
 
@@ -298,8 +218,8 @@ mod tests {
   fn latest() {
     let cases: Vec<&str> = vec!["latest", "*"];
     for case in cases {
-      let parsed = Specifier::new(case);
-      assert_eq!(parsed.type_name, "latest", "{} should be latest", case);
+      let parsed = SpecifierType::new(case);
+      assert_eq!(parsed, SpecifierType::Latest, "{} should be latest", case);
     }
   }
 
@@ -307,8 +227,8 @@ mod tests {
   fn major() {
     let cases: Vec<&str> = vec!["1"];
     for case in cases {
-      let parsed = Specifier::new(case);
-      assert_eq!(parsed.type_name, "major", "{} should be major", case);
+      let parsed = SpecifierType::new(case);
+      assert_eq!(parsed, SpecifierType::Major, "{} should be major", case);
     }
   }
 
@@ -316,8 +236,8 @@ mod tests {
   fn minor() {
     let cases: Vec<&str> = vec!["1.2"];
     for case in cases {
-      let parsed = Specifier::new(case);
-      assert_eq!(parsed.type_name, "minor", "{} should be minor", case);
+      let parsed = SpecifierType::new(case);
+      assert_eq!(parsed, SpecifierType::Minor, "{} should be minor", case);
     }
   }
 
@@ -334,8 +254,8 @@ mod tests {
       // ">5.0.0 <6.0.0",
     ];
     for case in cases {
-      let parsed = Specifier::new(case);
-      assert_eq!(parsed.type_name, "range", "{} should be range", case);
+      let parsed = SpecifierType::new(case);
+      assert_eq!(parsed, SpecifierType::Range, "{} should be range", case);
     }
   }
 
@@ -343,9 +263,10 @@ mod tests {
   fn range_minor() {
     let cases: Vec<&str> = vec!["^4.1", "~1.2", ">=5.0", "<=5.0", ">5.0", "<5.0"];
     for case in cases {
-      let parsed = Specifier::new(case);
+      let parsed = SpecifierType::new(case);
       assert_eq!(
-        parsed.type_name, "range-minor",
+        parsed,
+        SpecifierType::RangeMinor,
         "{} should be range-minor",
         case
       );
@@ -356,8 +277,8 @@ mod tests {
   fn tag() {
     let cases: Vec<&str> = vec!["alpha", "canary", "foo"];
     for case in cases {
-      let parsed = Specifier::new(case);
-      assert_eq!(parsed.type_name, "tag", "{} should be tag", case);
+      let parsed = SpecifierType::new(case);
+      assert_eq!(parsed, SpecifierType::Tag, "{} should be tag", case);
     }
   }
 
@@ -383,9 +304,10 @@ mod tests {
       "git+file://path/to/repo#1.2.3",
     ];
     for case in cases {
-      let parsed = Specifier::new(case);
+      let parsed = SpecifierType::new(case);
       assert_eq!(
-        parsed.type_name, "unsupported",
+        parsed,
+        SpecifierType::Unsupported,
         "{} should be unsupported",
         case
       );
@@ -400,8 +322,8 @@ mod tests {
       "https://server.com/foo.tgz",
     ];
     for case in cases {
-      let parsed = Specifier::new(case);
-      assert_eq!(parsed.type_name, "url", "{} should be url", case);
+      let parsed = SpecifierType::new(case);
+      assert_eq!(parsed, SpecifierType::Url, "{} should be url", case);
     }
   }
 
@@ -409,9 +331,10 @@ mod tests {
   fn workspace_protocol() {
     let cases: Vec<&str> = vec!["workspace:*", "workspace:^", "workspace:~"];
     for case in cases {
-      let parsed = Specifier::new(case);
+      let parsed = SpecifierType::new(case);
       assert_eq!(
-        parsed.type_name, "workspace-protocol",
+        parsed,
+        SpecifierType::WorkspaceProtocol,
         "{} should be workspace-protocol",
         case
       );
