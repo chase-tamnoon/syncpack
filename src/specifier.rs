@@ -47,7 +47,7 @@ lazy_static! {
 }
 
 #[derive(Debug)]
-struct Specifier {
+pub struct Specifier {
   pub type_name: String,
 }
 

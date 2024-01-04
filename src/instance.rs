@@ -1,28 +1,23 @@
-use std::str::FromStr;
-
 use crate::dependency_type::DependencyType;
-use oro_package_spec::{PackageSpec, PackageSpecError};
+use crate::specifier::Specifier;
 
 #[derive(Debug)]
 pub struct Instance {
   /// The dependency name eg. "react", "react-dom"
-  name: String,
+  pub name: String,
   /// The raw dependency specifier eg. "16.8.0", "^16.8.0"
-  specifier: String,
+  pub specifier: String,
   /// The parsed dependency specifier
-  package_spec: Result<PackageSpec, PackageSpecError>,
+  pub package_spec: Specifier,
   /// The strategy to use for this instance
-  strategy: DependencyType,
+  pub strategy: DependencyType,
 }
 
 impl Instance {
   pub fn new(name: String, specifier: String, strategy: DependencyType) -> Instance {
-    // eg. "mypackage@1.0.0"
-    let name_and_version: &str = &format!("{}@{}", name, specifier);
-
     Instance {
       name,
-      package_spec: PackageSpec::from_str(name_and_version),
+      package_spec: Specifier::new(specifier.as_str()),
       specifier,
       strategy,
     }
