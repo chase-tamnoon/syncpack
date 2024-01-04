@@ -306,6 +306,7 @@ dependencies = [
  "clap",
  "colored",
  "glob",
+ "lazy_static",
  "oro-package-spec",
  "regex",
  "serde",

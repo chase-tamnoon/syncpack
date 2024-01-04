@@ -1,48 +1,118 @@
+use lazy_static::lazy_static;
+use regex::Regex;
+
+lazy_static! {
+  /// "1.2.3"
+  static ref EXACT: Regex = Regex::new(r"^\d+\.\d+\.\d+$").unwrap();
+  /// "^1.2.3"
+  static ref CARET: Regex = Regex::new(r"^\^(\d+\.\d+\.\d+)$").unwrap();
+  /// "~1.2.3"
+  static ref TILDE: Regex = Regex::new(r"^~(\d+\.\d+\.\d+)$").unwrap();
+  /// ">1.2.3"
+  static ref GT: Regex = Regex::new(r"^>(\d+\.\d+\.\d+)$").unwrap();
+  /// ">=1.2.3"
+  static ref GTE: Regex = Regex::new(r"^>=(\d+\.\d+\.\d+)$").unwrap();
+  /// "<1.2.3"
+  static ref LT: Regex = Regex::new(r"^<(\d+\.\d+\.\d+)$").unwrap();
+  /// "<=1.2.3"
+  static ref LTE: Regex = Regex::new(r"^<=(\d+\.\d+\.\d+)$").unwrap();
+  /// "^1.2"
+  static ref CARET_MINOR: Regex = Regex::new(r"^\^(\d+\.\d+)$").unwrap();
+  /// "~1.2"
+  static ref TILDE_MINOR: Regex = Regex::new(r"^~(\d+\.\d+)$").unwrap();
+  /// ">1.2"
+  static ref GT_MINOR: Regex = Regex::new(r"^>(\d+\.\d+)$").unwrap();
+  /// ">=1.2"
+  static ref GTE_MINOR: Regex = Regex::new(r"^>=(\d+\.\d+)$").unwrap();
+  /// "<1.2"
+  static ref LT_MINOR: Regex = Regex::new(r"^<(\d+\.\d+)$").unwrap();
+  /// "<=1.2"
+  static ref LTE_MINOR: Regex = Regex::new(r"^<=(\d+\.\d+)$").unwrap();
+  /// "1"
+  static ref MAJOR: Regex = Regex::new(r"^(\d+)$").unwrap();
+  /// "1.2"
+  static ref MINOR: Regex = Regex::new(r"^(\d+\.\d+)$").unwrap();
+  /// "npm:"
+  static ref ALIAS: Regex = Regex::new(r"^npm:").unwrap();
+  /// "file:"
+  static ref FILE: Regex = Regex::new(r"^file:").unwrap();
+  /// "workspace:"
+  static ref WORKSPACE_PROTOCOL: Regex = Regex::new(r"^workspace:").unwrap();
+  /// "https://"
+  static ref URL: Regex = Regex::new(r"^https?://").unwrap();
+  /// "git://"
+  static ref GIT: Regex = Regex::new(r"^git(\+(ssh|https?))?://").unwrap();
+  /// "alpha"
+  static ref TAG: Regex = Regex::new(r"^[a-zA-Z0-9-]+$").unwrap();
+}
+
 #[derive(Debug)]
 struct Specifier {
   pub type_name: String,
 }
 
+impl Specifier {
+  pub fn new(specifier: &str) -> Specifier {
+    let type_name = if EXACT.is_match(specifier) {
+      "exact"
+    } else if is_range(specifier) {
+      "range"
+    } else if specifier == "*" || specifier == "latest" {
+      "latest"
+    } else if WORKSPACE_PROTOCOL.is_match(specifier) {
+      "workspace-protocol"
+    } else if ALIAS.is_match(specifier) {
+      "alias"
+    } else if MAJOR.is_match(specifier) {
+      "major"
+    } else if MINOR.is_match(specifier) {
+      "minor"
+    } else if TAG.is_match(specifier) {
+      "tag"
+    } else if GIT.is_match(specifier) {
+      "git"
+    } else if URL.is_match(specifier) {
+      "url"
+    } else if is_range_minor(specifier) {
+      "range-minor"
+    } else if FILE.is_match(specifier) {
+      "file"
+    } else {
+      "unsupported"
+    };
+
+    Specifier {
+      type_name: type_name.to_string(),
+    }
+  }
+}
+
 fn is_exact(specifier: &str) -> bool {
-  regex::Regex::new(r"^\d+\.\d+\.\d+$")
-    .unwrap()
-    .is_match(specifier)
+  EXACT.is_match(specifier)
 }
 
 fn is_caret(specifier: &str) -> bool {
-  regex::Regex::new(r"^\^(\d+\.\d+\.\d+)$")
-    .unwrap()
-    .is_match(specifier)
+  CARET.is_match(specifier)
 }
 
 fn is_tilde(specifier: &str) -> bool {
-  regex::Regex::new(r"^~(\d+\.\d+\.\d+)$")
-    .unwrap()
-    .is_match(specifier)
+  TILDE.is_match(specifier)
 }
 
 fn is_gt(specifier: &str) -> bool {
-  regex::Regex::new(r"^>(\d+\.\d+\.\d+)$")
-    .unwrap()
-    .is_match(specifier)
+  GT.is_match(specifier)
 }
 
 fn is_gte(specifier: &str) -> bool {
-  regex::Regex::new(r"^>=(\d+\.\d+\.\d+)$")
-    .unwrap()
-    .is_match(specifier)
+  GTE.is_match(specifier)
 }
 
 fn is_lt(specifier: &str) -> bool {
-  regex::Regex::new(r"^<(\d+\.\d+\.\d+)$")
-    .unwrap()
-    .is_match(specifier)
+  LT.is_match(specifier)
 }
 
 fn is_lte(specifier: &str) -> bool {
-  regex::Regex::new(r"^<=(\d+\.\d+\.\d+)$")
-    .unwrap()
-    .is_match(specifier)
+  LTE.is_match(specifier)
 }
 
 fn is_range(specifier: &str) -> bool {
@@ -55,39 +125,27 @@ fn is_range(specifier: &str) -> bool {
 }
 
 fn is_caret_minor(specifier: &str) -> bool {
-  regex::Regex::new(r"^\^(\d+\.\d+)$")
-    .unwrap()
-    .is_match(specifier)
+  CARET_MINOR.is_match(specifier)
 }
 
 fn is_tilde_minor(specifier: &str) -> bool {
-  regex::Regex::new(r"^~(\d+\.\d+)$")
-    .unwrap()
-    .is_match(specifier)
+  TILDE_MINOR.is_match(specifier)
 }
 
 fn is_gt_minor(specifier: &str) -> bool {
-  regex::Regex::new(r"^>(\d+\.\d+)$")
-    .unwrap()
-    .is_match(specifier)
+  GT_MINOR.is_match(specifier)
 }
 
 fn is_gte_minor(specifier: &str) -> bool {
-  regex::Regex::new(r"^>=(\d+\.\d+)$")
-    .unwrap()
-    .is_match(specifier)
+  GTE_MINOR.is_match(specifier)
 }
 
 fn is_lt_minor(specifier: &str) -> bool {
-  regex::Regex::new(r"^<(\d+\.\d+)$")
-    .unwrap()
-    .is_match(specifier)
+  LT_MINOR.is_match(specifier)
 }
 
 fn is_lte_minor(specifier: &str) -> bool {
-  regex::Regex::new(r"^<=(\d+\.\d+)$")
-    .unwrap()
-    .is_match(specifier)
+  LTE_MINOR.is_match(specifier)
 }
 
 fn is_range_minor(specifier: &str) -> bool {
@@ -104,91 +162,40 @@ fn is_latest(specifier: &str) -> bool {
 }
 
 fn is_major(specifier: &str) -> bool {
-  regex::Regex::new(r"^(\d+)$").unwrap().is_match(specifier)
+  MAJOR.is_match(specifier)
 }
 
 fn is_minor(specifier: &str) -> bool {
-  regex::Regex::new(r"^(\d+\.\d+)$")
-    .unwrap()
-    .is_match(specifier)
+  MINOR.is_match(specifier)
 }
 
 fn is_alias(specifier: &str) -> bool {
-  regex::Regex::new(r"^npm:").unwrap().is_match(specifier)
+  ALIAS.is_match(specifier)
 }
 
 fn is_file(specifier: &str) -> bool {
-  regex::Regex::new(r"^file:").unwrap().is_match(specifier)
+  FILE.is_match(specifier)
 }
 
 fn is_workspace_protocol(specifier: &str) -> bool {
-  regex::Regex::new(r"^workspace:")
-    .unwrap()
-    .is_match(specifier)
+  WORKSPACE_PROTOCOL.is_match(specifier)
 }
 
 fn is_url(specifier: &str) -> bool {
-  regex::Regex::new(r"^https?://")
-    .unwrap()
-    .is_match(specifier)
+  URL.is_match(specifier)
 }
 
 fn is_git(specifier: &str) -> bool {
-  regex::Regex::new(r"^git(\+(ssh|https?))?://")
-    .unwrap()
-    .is_match(specifier)
+  GIT.is_match(specifier)
 }
 
 fn is_tag(specifier: &str) -> bool {
-  regex::Regex::new(r"^[a-zA-Z0-9-]+$")
-    .unwrap()
-    .is_match(specifier)
-}
-
-fn resolve(name: &str, specifier: &str) -> Specifier {
-  let type_name = if is_exact(specifier) {
-    "exact"
-  } else if is_range(specifier) {
-    "range"
-  } else if is_latest(specifier) {
-    "latest"
-  } else if is_workspace_protocol(specifier) {
-    "workspace-protocol"
-  } else if is_alias(specifier) {
-    "alias"
-  } else if is_major(specifier) {
-    "major"
-  } else if is_minor(specifier) {
-    "minor"
-  } else if is_tag(specifier) {
-    "tag"
-  } else if is_git(specifier) {
-    "git"
-  } else if is_url(specifier) {
-    "url"
-  } else if is_range_minor(specifier) {
-    "range-minor"
-  } else if is_file(specifier) {
-    "file"
-  } else {
-    "unsupported"
-  };
-
-  Specifier {
-    type_name: type_name.to_string(),
-  }
+  TAG.is_match(specifier)
 }
 
 #[cfg(test)]
 mod tests {
   use super::*;
-
-  #[derive(Debug)]
-  struct Scenario<'a> {
-    name: &'a str,
-    specifier: &'a str,
-    expected_type_name: &'a str,
-  }
 
   #[test]
   fn alias() {
@@ -198,7 +205,7 @@ mod tests {
       "npm:foo@1.2.3",
     ];
     for case in cases {
-      let parsed = resolve("foo", case);
+      let parsed = Specifier::new(case);
       assert_eq!(parsed.type_name, "alias", "{} should be alias", case);
     }
   }
@@ -213,7 +220,7 @@ mod tests {
       // "1.2.3+build.123",
     ];
     for case in cases {
-      let parsed = resolve("foo", case);
+      let parsed = Specifier::new(case);
       assert_eq!(parsed.type_name, "exact", "{} should be exact", case);
     }
   }
@@ -240,7 +247,7 @@ mod tests {
       "file:path/to/foo",
     ];
     for case in cases {
-      let parsed = resolve("foo", case);
+      let parsed = Specifier::new(case);
       assert_eq!(parsed.type_name, "file", "{} should be file", case);
     }
   }
@@ -282,7 +289,7 @@ mod tests {
       "git+ssh://git@notgithub.com/user/foo#1.2.3",
     ];
     for case in cases {
-      let parsed = resolve("foo", case);
+      let parsed = Specifier::new(case);
       assert_eq!(parsed.type_name, "git", "{} should be git", case);
     }
   }
@@ -291,7 +298,7 @@ mod tests {
   fn latest() {
     let cases: Vec<&str> = vec!["latest", "*"];
     for case in cases {
-      let parsed = resolve("foo", case);
+      let parsed = Specifier::new(case);
       assert_eq!(parsed.type_name, "latest", "{} should be latest", case);
     }
   }
@@ -300,7 +307,7 @@ mod tests {
   fn major() {
     let cases: Vec<&str> = vec!["1"];
     for case in cases {
-      let parsed = resolve("foo", case);
+      let parsed = Specifier::new(case);
       assert_eq!(parsed.type_name, "major", "{} should be major", case);
     }
   }
@@ -309,7 +316,7 @@ mod tests {
   fn minor() {
     let cases: Vec<&str> = vec!["1.2"];
     for case in cases {
-      let parsed = resolve("foo", case);
+      let parsed = Specifier::new(case);
       assert_eq!(parsed.type_name, "minor", "{} should be minor", case);
     }
   }
@@ -327,7 +334,7 @@ mod tests {
       // ">5.0.0 <6.0.0",
     ];
     for case in cases {
-      let parsed = resolve("foo", case);
+      let parsed = Specifier::new(case);
       assert_eq!(parsed.type_name, "range", "{} should be range", case);
     }
   }
@@ -336,7 +343,7 @@ mod tests {
   fn range_minor() {
     let cases: Vec<&str> = vec!["^4.1", "~1.2", ">=5.0", "<=5.0", ">5.0", "<5.0"];
     for case in cases {
-      let parsed = resolve("foo", case);
+      let parsed = Specifier::new(case);
       assert_eq!(
         parsed.type_name, "range-minor",
         "{} should be range-minor",
@@ -349,7 +356,7 @@ mod tests {
   fn tag() {
     let cases: Vec<&str> = vec!["alpha", "canary", "foo"];
     for case in cases {
-      let parsed = resolve("foo", case);
+      let parsed = Specifier::new(case);
       assert_eq!(parsed.type_name, "tag", "{} should be tag", case);
     }
   }
@@ -376,7 +383,7 @@ mod tests {
       "git+file://path/to/repo#1.2.3",
     ];
     for case in cases {
-      let parsed = resolve("foo", case);
+      let parsed = Specifier::new(case);
       assert_eq!(
         parsed.type_name, "unsupported",
         "{} should be unsupported",
@@ -393,7 +400,7 @@ mod tests {
       "https://server.com/foo.tgz",
     ];
     for case in cases {
-      let parsed = resolve("foo", case);
+      let parsed = Specifier::new(case);
       assert_eq!(parsed.type_name, "url", "{} should be url", case);
     }
   }
@@ -402,7 +409,7 @@ mod tests {
   fn workspace_protocol() {
     let cases: Vec<&str> = vec!["workspace:*", "workspace:^", "workspace:~"];
     for case in cases {
-      let parsed = resolve("foo", case);
+      let parsed = Specifier::new(case);
       assert_eq!(
         parsed.type_name, "workspace-protocol",
         "{} should be workspace-protocol",
