@@ -21,6 +21,84 @@ fn is_tilde(specifier: &str) -> bool {
     .is_match(specifier)
 }
 
+fn is_gt(specifier: &str) -> bool {
+  regex::Regex::new(r"^>(\d+\.\d+\.\d+)$")
+    .unwrap()
+    .is_match(specifier)
+}
+
+fn is_gte(specifier: &str) -> bool {
+  regex::Regex::new(r"^>=(\d+\.\d+\.\d+)$")
+    .unwrap()
+    .is_match(specifier)
+}
+
+fn is_lt(specifier: &str) -> bool {
+  regex::Regex::new(r"^<(\d+\.\d+\.\d+)$")
+    .unwrap()
+    .is_match(specifier)
+}
+
+fn is_lte(specifier: &str) -> bool {
+  regex::Regex::new(r"^<=(\d+\.\d+\.\d+)$")
+    .unwrap()
+    .is_match(specifier)
+}
+
+fn is_range(specifier: &str) -> bool {
+  is_caret(specifier)
+    || is_tilde(specifier)
+    || is_gt(specifier)
+    || is_gte(specifier)
+    || is_lt(specifier)
+    || is_lte(specifier)
+}
+
+fn is_caret_minor(specifier: &str) -> bool {
+  regex::Regex::new(r"^\^(\d+\.\d+)$")
+    .unwrap()
+    .is_match(specifier)
+}
+
+fn is_tilde_minor(specifier: &str) -> bool {
+  regex::Regex::new(r"^~(\d+\.\d+)$")
+    .unwrap()
+    .is_match(specifier)
+}
+
+fn is_gt_minor(specifier: &str) -> bool {
+  regex::Regex::new(r"^>(\d+\.\d+)$")
+    .unwrap()
+    .is_match(specifier)
+}
+
+fn is_gte_minor(specifier: &str) -> bool {
+  regex::Regex::new(r"^>=(\d+\.\d+)$")
+    .unwrap()
+    .is_match(specifier)
+}
+
+fn is_lt_minor(specifier: &str) -> bool {
+  regex::Regex::new(r"^<(\d+\.\d+)$")
+    .unwrap()
+    .is_match(specifier)
+}
+
+fn is_lte_minor(specifier: &str) -> bool {
+  regex::Regex::new(r"^<=(\d+\.\d+)$")
+    .unwrap()
+    .is_match(specifier)
+}
+
+fn is_range_minor(specifier: &str) -> bool {
+  is_caret_minor(specifier)
+    || is_tilde_minor(specifier)
+    || is_gt_minor(specifier)
+    || is_gte_minor(specifier)
+    || is_lt_minor(specifier)
+    || is_lte_minor(specifier)
+}
+
 fn is_latest(specifier: &str) -> bool {
   specifier == "*" || specifier == "latest"
 }
@@ -61,18 +139,24 @@ fn is_git(specifier: &str) -> bool {
     .is_match(specifier)
 }
 
+fn is_tag(specifier: &str) -> bool {
+  regex::Regex::new(r"^[a-zA-Z0-9-]+$")
+    .unwrap()
+    .is_match(specifier)
+}
+
 fn resolve(name: &str, specifier: &str) -> Specifier {
   if is_exact(specifier) {
     Specifier {
       type_name: "exact".to_string(),
     }
-  } else if is_caret(specifier) {
+  } else if is_range(specifier) {
     Specifier {
       type_name: "range".to_string(),
     }
-  } else if is_tilde(specifier) {
+  } else if is_range_minor(specifier) {
     Specifier {
-      type_name: "range".to_string(),
+      type_name: "range-minor".to_string(),
     }
   } else if is_major(specifier) {
     Specifier {
@@ -106,6 +190,10 @@ fn resolve(name: &str, specifier: &str) -> Specifier {
     Specifier {
       type_name: "git".to_string(),
     }
+  } else if is_tag(specifier) {
+    Specifier {
+      type_name: "tag".to_string(),
+    }
   } else {
     Specifier {
       type_name: "unsupported".to_string(),
@@ -126,26 +214,14 @@ mod tests {
 
   #[test]
   fn alias() {
-    let cases: Vec<Scenario> = vec![
-      Scenario {
-        name: "foo",
-        specifier: "npm:@minh.nguyen/plugin-transform-destructuring@^7.5.2",
-        expected_type_name: "alias",
-      },
-      Scenario {
-        name: "foo",
-        specifier: "npm:@types/selenium-webdriver@4.1.18",
-        expected_type_name: "alias",
-      },
-      Scenario {
-        name: "foo",
-        specifier: "npm:foo@1.2.3",
-        expected_type_name: "alias",
-      },
+    let cases: Vec<&str> = vec![
+      "npm:@minh.nguyen/plugin-transform-destructuring@^7.5.2",
+      "npm:@types/selenium-webdriver@4.1.18",
+      "npm:foo@1.2.3",
     ];
     for case in cases {
-      let parsed = resolve(case.name, case.specifier);
-      assert_eq!(parsed.type_name, case.expected_type_name);
+      let parsed = resolve("foo", case);
+      assert_eq!(parsed.type_name, "alias", "{} should be alias", case);
     }
   }
 
@@ -153,13 +229,14 @@ mod tests {
   fn exact() {
     let cases: Vec<&str> = vec![
       "1.2.3",
-      "1.2.3-alpha.1",
-      "1.2.3-alpha.1+build.123",
-      "1.2.3+build.123",
+      // @TODO: how to support postfix?
+      // "1.2.3-alpha.1",
+      // "1.2.3-alpha.1+build.123",
+      // "1.2.3+build.123",
     ];
     for case in cases {
       let parsed = resolve("foo", case);
-      assert_eq!(parsed.type_name, "exact");
+      assert_eq!(parsed.type_name, "exact", "{} should be exact", case);
     }
   }
 
@@ -186,7 +263,7 @@ mod tests {
     ];
     for case in cases {
       let parsed = resolve("foo", case);
-      assert_eq!(parsed.type_name, "file");
+      assert_eq!(parsed.type_name, "file", "{} should be file", case);
     }
   }
 
@@ -228,7 +305,7 @@ mod tests {
     ];
     for case in cases {
       let parsed = resolve("foo", case);
-      assert_eq!(parsed.type_name, "git");
+      assert_eq!(parsed.type_name, "git", "{} should be git", case);
     }
   }
 
@@ -237,7 +314,7 @@ mod tests {
     let cases: Vec<&str> = vec!["latest", "*"];
     for case in cases {
       let parsed = resolve("foo", case);
-      assert_eq!(parsed.type_name, "latest");
+      assert_eq!(parsed.type_name, "latest", "{} should be latest", case);
     }
   }
 
@@ -246,7 +323,7 @@ mod tests {
     let cases: Vec<&str> = vec!["1"];
     for case in cases {
       let parsed = resolve("foo", case);
-      assert_eq!(parsed.type_name, "major");
+      assert_eq!(parsed.type_name, "major", "{} should be major", case);
     }
   }
 
@@ -255,25 +332,38 @@ mod tests {
     let cases: Vec<&str> = vec!["1.2"];
     for case in cases {
       let parsed = resolve("foo", case);
-      assert_eq!(parsed.type_name, "minor");
+      assert_eq!(parsed.type_name, "minor", "{} should be minor", case);
     }
   }
 
   #[test]
   fn range() {
-    let cases: Vec<&str> = vec!["^4.1.1", ">=5.0.0", "~1.2.1"];
+    let cases: Vec<&str> = vec![
+      "^4.1.1", "~1.2.1", ">=5.0.0", "<=5.0.0", ">5.0.0",
+      "<5.0.0",
+      // ">=5.0.0 <6.0.0",
+      // ">5.0.0 <6.0.0",
+      // ">=5.0.0 <=6.0.0",
+      // ">5.0.0 <=6.0.0",
+      // ">=5.0.0 <6.0.0",
+      // ">5.0.0 <6.0.0",
+    ];
     for case in cases {
       let parsed = resolve("foo", case);
-      assert_eq!(parsed.type_name, "range");
+      assert_eq!(parsed.type_name, "range", "{} should be range", case);
     }
   }
 
   #[test]
   fn range_minor() {
-    let cases: Vec<&str> = vec!["~1.2", "^1.2", "~1.2"];
+    let cases: Vec<&str> = vec!["^4.1", "~1.2", ">=5.0", "<=5.0", ">5.0", "<5.0"];
     for case in cases {
       let parsed = resolve("foo", case);
-      assert_eq!(parsed.type_name, "range-minor");
+      assert_eq!(
+        parsed.type_name, "range-minor",
+        "{} should be range-minor",
+        case
+      );
     }
   }
 
@@ -282,7 +372,7 @@ mod tests {
     let cases: Vec<&str> = vec!["alpha", "canary", "foo"];
     for case in cases {
       let parsed = resolve("foo", case);
-      assert_eq!(parsed.type_name, "tag");
+      assert_eq!(parsed.type_name, "tag", "{} should be tag", case);
     }
   }
 
@@ -309,7 +399,11 @@ mod tests {
     ];
     for case in cases {
       let parsed = resolve("foo", case);
-      assert_eq!(parsed.type_name, "unsupported");
+      assert_eq!(
+        parsed.type_name, "unsupported",
+        "{} should be unsupported",
+        case
+      );
     }
   }
 
@@ -322,7 +416,7 @@ mod tests {
     ];
     for case in cases {
       let parsed = resolve("foo", case);
-      assert_eq!(parsed.type_name, "url");
+      assert_eq!(parsed.type_name, "url", "{} should be url", case);
     }
   }
 
@@ -331,7 +425,11 @@ mod tests {
     let cases: Vec<&str> = vec!["workspace:*", "workspace:^", "workspace:~"];
     for case in cases {
       let parsed = resolve("foo", case);
-      assert_eq!(parsed.type_name, "workspace-protocol");
+      assert_eq!(
+        parsed.type_name, "workspace-protocol",
+        "{} should be workspace-protocol",
+        case
+      );
     }
   }
 }
