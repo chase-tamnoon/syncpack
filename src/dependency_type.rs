@@ -6,7 +6,7 @@ use crate::config;
 use crate::instance::Instance;
 use crate::package_json;
 
-#[derive(Clone, Debug)]
+#[derive(Debug)]
 pub enum Strategy {
   /// "name~version"
   NameAndVersionProps,
@@ -33,9 +33,9 @@ impl Strategy {
 }
 
 impl Strategy {
-  fn get_instances(
-    &self,
-    dependency_type: &DependencyType,
+  fn get_instances<'a>(
+    &'a self,
+    dependency_type: &'a DependencyType,
     file: &package_json::PackageJson,
   ) -> Vec<Instance> {
     match *self {
@@ -44,11 +44,7 @@ impl Strategy {
           file.get_prop(&dependency_type.name_path),
           file.get_prop(&dependency_type.path),
         ) {
-          let instance = Instance::new(
-            name.to_string(),
-            version.to_string(),
-            dependency_type.clone(),
-          );
+          let instance = Instance::new(name.to_string(), version.to_string(), &dependency_type);
           return vec![instance];
         }
         vec![]
@@ -56,11 +52,7 @@ impl Strategy {
       Strategy::NamedVersionString => {
         if let Some(Value::String(specifier)) = file.get_prop(&dependency_type.path) {
           if let Some((name, version)) = specifier.split_once('@') {
-            let instance = Instance::new(
-              name.to_string(),
-              version.to_string(),
-              dependency_type.clone(),
-            );
+            let instance = Instance::new(name.to_string(), version.to_string(), &dependency_type);
             return vec![instance];
           }
         }
@@ -71,7 +63,7 @@ impl Strategy {
           let instance = Instance::new(
             dependency_type.name.clone(),
             version.to_string(),
-            dependency_type.clone(),
+            &dependency_type,
           );
           return vec![instance];
         }
@@ -79,20 +71,11 @@ impl Strategy {
       }
       Strategy::VersionsByName => {
         if let Some(Value::Object(versions_by_name)) = file.get_prop(&dependency_type.path) {
-          let instances = versions_by_name
-            .iter()
-            .filter_map(|(name, version)| {
-              if let Value::String(version) = version {
-                Some(Instance::new(
-                  dependency_type.name.to_string(),
-                  version.to_string(),
-                  dependency_type.clone(),
-                ))
-              } else {
-                None
-              }
-            })
-            .collect::<Vec<Instance>>();
+          let mut instances: Vec<Instance> = vec![];
+          for (name, version) in versions_by_name {
+            let instance = Instance::new(name.to_string(), version.to_string(), &dependency_type);
+            instances.push(instance);
+          }
           return instances;
         }
         vec![]
@@ -102,7 +85,7 @@ impl Strategy {
   }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Debug)]
 pub struct DependencyType {
   /// The path to the property that contains the dependency name
   pub name_path: String,

@@ -2,9 +2,9 @@ use crate::dependency_type::DependencyType;
 use crate::specifier::SpecifierType;
 
 #[derive(Debug)]
-pub struct Instance {
+pub struct Instance<'a> {
   /// The dependency type to use to read/write this instance
-  pub dependency_type: DependencyType,
+  pub dependency_type: &'a DependencyType,
   /// The dependency name eg. "react", "react-dom"
   pub name: String,
   /// The parsed dependency specifier
@@ -13,8 +13,8 @@ pub struct Instance {
   pub specifier: String,
 }
 
-impl Instance {
-  pub fn new(name: String, specifier: String, dependency_type: DependencyType) -> Instance {
+impl<'a> Instance<'a> {
+  pub fn new(name: String, specifier: String, dependency_type: &'a DependencyType) -> Instance {
     Instance {
       dependency_type,
       name,

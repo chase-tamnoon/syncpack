@@ -18,11 +18,11 @@ pub struct PackageJson {
   pub contents: serde_json::Value,
 }
 
-impl<'a> PackageJson {
+impl PackageJson {
   /// Create an instance for every enabled dependency type
-  pub fn get_instances(
+  pub fn get_instances<'a>(
     &'a self,
-    enabled_dependency_types: &HashMap<String, DependencyType>,
+    enabled_dependency_types: &'a HashMap<String, DependencyType>,
   ) -> Vec<instance::Instance> {
     enabled_dependency_types
       .iter()
