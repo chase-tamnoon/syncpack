@@ -73,8 +73,10 @@ impl Strategy {
         if let Some(Value::Object(versions_by_name)) = file.get_prop(&dependency_type.path) {
           let mut instances: Vec<Instance> = vec![];
           for (name, version) in versions_by_name {
-            let instance = Instance::new(name.to_string(), version.to_string(), &dependency_type);
-            instances.push(instance);
+            if let Value::String(version) = version {
+              let instance = Instance::new(name.to_string(), version.to_string(), &dependency_type);
+              instances.push(instance);
+            }
           }
           return instances;
         }
