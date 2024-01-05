@@ -42,6 +42,6 @@ pub struct GroupSelector {
 impl GroupSelector {
   pub fn can_add(&self, instance: &Instance) -> bool {
     println!("@TODO implement can_add");
-    false
+    true
   }
 }

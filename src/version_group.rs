@@ -124,12 +124,14 @@ impl<'a> VersionGroup<'a> {
           Some(version) => {
             print!("{} ", version);
             if group.prefer_version == "lowestSemver" {
-              // @TODO: if this version is lower, set it as the preferred version
+              // @TODO: if this version is valid semver and lower, set it as the preferred version
             } else {
-              // @TODO: if this version is higher, set it as the preferred version
+              // @TODO: if this version is valid semver and higher, set it as the preferred version
             }
           }
-          None => {}
+          None => {
+            // @TODO: if this version is valid semver, set it as the preferred version
+          }
         }
 
         if instance.dependency_type.name == "local" {

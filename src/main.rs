@@ -35,12 +35,23 @@ fn main() -> io::Result<()> {
 
   let enabled_dependency_types = config::Rcfile::get_enabled_dependency_types(&ctx.rcfile);
   let semver_groups = semver_group::SemverGroup::from_rcfile(&ctx.rcfile);
-  let version_groups = version_group::VersionGroup::from_rcfile(&ctx.rcfile);
+  let mut version_groups = version_group::VersionGroup::from_rcfile(&ctx.rcfile);
   let all_instances: Vec<instance::Instance> = ctx
     .packages
     .iter()
     .flat_map(|package| package.get_instances(&enabled_dependency_types))
     .collect();
+
+  // Iterate over each instance
+  for instance in &all_instances {
+    // Iterate over each version group
+    for version_group in &mut version_groups {
+      // Call add_instance on the version group
+      if version_group.add_instance(&instance) {
+        break; // Exit the loop if add_instance returns true
+      }
+    }
+  }
 
   println!("{}", "ctx.rcfile".yellow());
   println!("{:#?}", ctx.rcfile);
