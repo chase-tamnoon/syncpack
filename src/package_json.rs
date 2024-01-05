@@ -1,12 +1,12 @@
 use colored::Colorize;
 use serde_json;
-use std::collections;
+use std::collections::HashMap;
 use std::fs;
 use std::io;
 use std::path;
 
-use crate::instance;
 use crate::dependency_type::DependencyType;
+use crate::instance;
 
 #[derive(Debug)]
 pub struct PackageJson {
@@ -22,11 +22,11 @@ impl<'a> PackageJson {
   /// Create an instance for every enabled dependency type
   pub fn get_instances(
     &'a self,
-    enabled_dependency_types: &collections::HashMap<String, DependencyType>,
+    enabled_dependency_types: &HashMap<String, DependencyType>,
   ) -> Vec<instance::Instance> {
     enabled_dependency_types
       .iter()
-      .flat_map(|(type_name, type_strategy)| type_strategy.read(&self))
+      .flat_map(|(name, dependency_type)| dependency_type.get_instances(&self))
       .collect()
   }
 

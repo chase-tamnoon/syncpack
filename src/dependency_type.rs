@@ -7,7 +7,7 @@ use crate::instance::Instance;
 use crate::package_json;
 
 #[derive(Clone, Debug)]
-pub enum StrategyType {
+pub enum Strategy {
   /// "name~version"
   NameAndVersionProps,
   /// "name@version"
@@ -20,26 +20,26 @@ pub enum StrategyType {
   InvalidConfig,
 }
 
-impl StrategyType {
-  pub fn new(strategy: &str) -> StrategyType {
+impl Strategy {
+  pub fn new(strategy: &str) -> Strategy {
     match strategy {
-      "name~version" => StrategyType::NameAndVersionProps,
-      "name@version" => StrategyType::NamedVersionString,
-      "version" => StrategyType::UnnamedVersionString,
-      "versionsByName" => StrategyType::VersionsByName,
-      _ => StrategyType::InvalidConfig,
+      "name~version" => Strategy::NameAndVersionProps,
+      "name@version" => Strategy::NamedVersionString,
+      "version" => Strategy::UnnamedVersionString,
+      "versionsByName" => Strategy::VersionsByName,
+      _ => Strategy::InvalidConfig,
     }
   }
 }
 
-impl StrategyType {
-  fn read(
+impl Strategy {
+  fn get_instances(
     &self,
     dependency_type: &DependencyType,
     file: &package_json::PackageJson,
   ) -> Vec<Instance> {
     match *self {
-      StrategyType::NameAndVersionProps => {
+      Strategy::NameAndVersionProps => {
         if let (Some(Value::String(name)), Some(Value::String(version))) = (
           file.get_prop(&dependency_type.name_path),
           file.get_prop(&dependency_type.path),
@@ -53,7 +53,7 @@ impl StrategyType {
         }
         vec![]
       }
-      StrategyType::NamedVersionString => {
+      Strategy::NamedVersionString => {
         if let Some(Value::String(specifier)) = file.get_prop(&dependency_type.path) {
           if let Some((name, version)) = specifier.split_once('@') {
             let instance = Instance::new(
@@ -66,7 +66,7 @@ impl StrategyType {
         }
         vec![]
       }
-      StrategyType::UnnamedVersionString => {
+      Strategy::UnnamedVersionString => {
         if let Some(Value::String(version)) = file.get_prop(&dependency_type.path) {
           let instance = Instance::new(
             dependency_type.name.clone(),
@@ -77,7 +77,7 @@ impl StrategyType {
         }
         vec![]
       }
-      StrategyType::VersionsByName => {
+      Strategy::VersionsByName => {
         if let Some(Value::Object(versions_by_name)) = file.get_prop(&dependency_type.path) {
           let instances = versions_by_name
             .iter()
@@ -111,13 +111,13 @@ pub struct DependencyType {
   /// The path to the property that contains the version string
   pub path: String,
   /// The strategy to use when reading/writing the version string
-  pub strategy_type: StrategyType,
+  pub strategy: Strategy,
 }
 
 impl DependencyType {
   /// Get all instances of this dependency type from the given package.json
-  pub fn read(&self, file: &package_json::PackageJson) -> Vec<Instance> {
-    self.strategy_type.read(&self, &file)
+  pub fn get_instances(&self, file: &package_json::PackageJson) -> Vec<Instance> {
+    self.strategy.get_instances(&self, &file)
   }
 
   pub fn write(&self, file: &package_json::PackageJson) {
@@ -133,7 +133,7 @@ impl DependencyType {
       },
       name: name.clone(),
       path: normalize_path(config.path.clone()),
-      strategy_type: StrategyType::new(config.strategy.as_str()),
+      strategy: Strategy::new(config.strategy.as_str()),
     }
   }
 }
