@@ -1,57 +1,66 @@
+use std::collections::HashMap;
+
 use serde::Deserialize;
 
 use crate::config;
 use crate::group_selector;
+use crate::instance::Instance;
 
 #[derive(Debug)]
-pub struct BannedVersionGroup {
+pub struct BannedVersionGroup<'a> {
   pub selector: group_selector::GroupSelector,
+  pub instances_by_name: HashMap<String, &'a Instance<'a>>,
   pub is_banned: bool,
 }
 
 #[derive(Debug)]
-pub struct IgnoredVersionGroup {
+pub struct IgnoredVersionGroup<'a> {
   pub selector: group_selector::GroupSelector,
+  pub instances_by_name: HashMap<String, &'a Instance<'a>>,
   pub is_ignored: bool,
 }
 
 #[derive(Debug)]
-pub struct PinnedVersionGroup {
+pub struct PinnedVersionGroup<'a> {
   pub selector: group_selector::GroupSelector,
+  pub instances_by_name: HashMap<String, &'a Instance<'a>>,
   pub pin_version: String,
 }
 
 #[derive(Debug)]
-pub struct SameRangeVersionGroup {
+pub struct SameRangeVersionGroup<'a> {
   pub selector: group_selector::GroupSelector,
+  pub instances_by_name: HashMap<String, &'a Instance<'a>>,
   pub policy: String,
 }
 
 #[derive(Debug)]
-pub struct SnappedToVersionGroup {
+pub struct SnappedToVersionGroup<'a> {
   pub selector: group_selector::GroupSelector,
+  pub instances_by_name: HashMap<String, &'a Instance<'a>>,
   pub snap_to: Vec<String>,
 }
 
 #[derive(Debug)]
-pub struct StandardVersionGroup {
+pub struct StandardVersionGroup<'a> {
   pub selector: group_selector::GroupSelector,
+  pub instances_by_name: HashMap<String, &'a Instance<'a>>,
   pub prefer_version: String,
 }
 
 // @TODO: refactor to not be an enum?
 
 #[derive(Debug)]
-pub enum VersionGroup {
-  Banned(BannedVersionGroup),
-  Ignored(IgnoredVersionGroup),
-  Pinned(PinnedVersionGroup),
-  SameRange(SameRangeVersionGroup),
-  SnappedTo(SnappedToVersionGroup),
-  Standard(StandardVersionGroup),
+pub enum VersionGroup<'a> {
+  Banned(BannedVersionGroup<'a>),
+  Ignored(IgnoredVersionGroup<'a>),
+  Pinned(PinnedVersionGroup<'a>),
+  SameRange(SameRangeVersionGroup<'a>),
+  SnappedTo(SnappedToVersionGroup<'a>),
+  Standard(StandardVersionGroup<'a>),
 }
 
-impl VersionGroup {
+impl VersionGroup<'_> {
   pub fn from_rcfile(rcfile: &config::Rcfile) -> Vec<VersionGroup> {
     rcfile
       .version_groups
@@ -72,36 +81,42 @@ impl VersionGroup {
     if let Some(true) = group.is_banned {
       return VersionGroup::Banned(BannedVersionGroup {
         selector,
+        instances_by_name: HashMap::new(),
         is_banned: true,
       });
     }
     if let Some(true) = group.is_ignored {
       return VersionGroup::Ignored(IgnoredVersionGroup {
         selector,
+        instances_by_name: HashMap::new(),
         is_ignored: true,
       });
     }
     if let Some(pin_version) = &group.pin_version {
       return VersionGroup::Pinned(PinnedVersionGroup {
         selector,
+        instances_by_name: HashMap::new(),
         pin_version: pin_version.clone(),
       });
     }
     if let Some(policy) = &group.policy {
       return VersionGroup::SameRange(SameRangeVersionGroup {
         selector,
+        instances_by_name: HashMap::new(),
         policy: policy.clone(),
       });
     }
     if let Some(snap_to) = &group.snap_to {
       return VersionGroup::SnappedTo(SnappedToVersionGroup {
         selector,
+        instances_by_name: HashMap::new(),
         snap_to: snap_to.clone(),
       });
     }
     if let Some(prefer_version) = &group.prefer_version {
       return VersionGroup::Standard(StandardVersionGroup {
         selector,
+        instances_by_name: HashMap::new(),
         prefer_version: prefer_version.clone(),
       });
     }
