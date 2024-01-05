@@ -1,22 +1,26 @@
+use std::collections::HashMap;
 use std::fs;
 use std::io;
 use std::path;
 
 use crate::config;
+use crate::instance::Instance;
 use crate::package_json;
 
-pub struct Ctx {
+pub struct Ctx<'a> {
   /// Current working directory.
   pub cwd: std::path::PathBuf,
   /// Whether to exit with a non-zero exit code.
   pub is_invalid: bool,
+  /// A lookup of all locally developed packages by name.
+  pub local_instances_by_name: HashMap<String, &'a Instance<'a>>,
   /// Every package.json file which matched the CLI options and rcfile.
   pub packages: Vec<package_json::PackageJson>,
   /// The user's configuration file.
   pub rcfile: config::Rcfile,
 }
 
-impl Ctx {
+impl Ctx<'_> {
   pub fn new(cwd: &std::path::PathBuf) -> Result<Self, io::Error> {
     let rcfile = config::get();
     let sources = rcfile.get_sources(&cwd);
@@ -28,6 +32,7 @@ impl Ctx {
     Ok(Self {
       cwd: cwd.clone(),
       is_invalid: false,
+      local_instances_by_name: HashMap::new(),
       packages,
       rcfile,
     })
