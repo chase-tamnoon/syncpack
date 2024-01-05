@@ -46,21 +46,47 @@ lazy_static! {
   static ref TAG: Regex = Regex::new(r"^[a-zA-Z0-9-]+$").unwrap();
 }
 
+pub const IS_EXACT: SpecifierType = SpecifierType::Semver(Semver::Exact);
+pub const IS_LATEST: SpecifierType = SpecifierType::Semver(Semver::Latest);
+pub const IS_MAJOR: SpecifierType = SpecifierType::Semver(Semver::Major);
+pub const IS_MINOR: SpecifierType = SpecifierType::Semver(Semver::Minor);
+pub const IS_RANGE: SpecifierType = SpecifierType::Semver(Semver::Range);
+pub const IS_RANGE_MINOR: SpecifierType = SpecifierType::Semver(Semver::RangeMinor);
+pub const IS_ALIAS: SpecifierType = SpecifierType::NonSemver(NonSemver::Alias);
+pub const IS_FILE: SpecifierType = SpecifierType::NonSemver(NonSemver::File);
+pub const IS_GIT: SpecifierType = SpecifierType::NonSemver(NonSemver::Git);
+pub const IS_TAG: SpecifierType = SpecifierType::NonSemver(NonSemver::Tag);
+pub const IS_UNSUPPORTED: SpecifierType = SpecifierType::NonSemver(NonSemver::Unsupported);
+pub const IS_URL: SpecifierType = SpecifierType::NonSemver(NonSemver::Url);
+pub const IS_WORKSPACE_PROTOCOL: SpecifierType =
+  SpecifierType::NonSemver(NonSemver::WorkspaceProtocol);
+
 #[derive(Debug, PartialEq)]
-pub enum SpecifierType {
+pub enum Semver {
   Exact,
-  Range,
   Latest,
-  WorkspaceProtocol,
-  Alias,
   Major,
   Minor,
-  Tag,
-  Git,
-  Url,
+  Range,
   RangeMinor,
+}
+
+#[derive(Debug, PartialEq)]
+pub enum NonSemver {
+  // @TODO: can be considered semver once parsing is improved
+  Alias,
   File,
+  Git,
+  Tag,
   Unsupported,
+  Url,
+  WorkspaceProtocol,
+}
+
+#[derive(Debug, PartialEq)]
+pub enum SpecifierType {
+  Semver(Semver),
+  NonSemver(NonSemver),
 }
 
 // @TODO: add nested enums of semver or not
@@ -68,31 +94,31 @@ pub enum SpecifierType {
 impl SpecifierType {
   pub fn new(specifier: &str) -> SpecifierType {
     if EXACT.is_match(specifier) {
-      SpecifierType::Exact
+      IS_EXACT
     } else if is_range(specifier) {
-      SpecifierType::Range
+      IS_RANGE
     } else if specifier == "*" || specifier == "latest" {
-      SpecifierType::Latest
+      IS_LATEST
     } else if WORKSPACE_PROTOCOL.is_match(specifier) {
-      SpecifierType::WorkspaceProtocol
+      IS_WORKSPACE_PROTOCOL
     } else if ALIAS.is_match(specifier) {
-      SpecifierType::Alias
+      IS_ALIAS
     } else if MAJOR.is_match(specifier) {
-      SpecifierType::Major
+      IS_MAJOR
     } else if MINOR.is_match(specifier) {
-      SpecifierType::Minor
+      IS_MINOR
     } else if TAG.is_match(specifier) {
-      SpecifierType::Tag
+      IS_TAG
     } else if GIT.is_match(specifier) {
-      SpecifierType::Git
+      IS_GIT
     } else if URL.is_match(specifier) {
-      SpecifierType::Url
+      IS_URL
     } else if is_range_minor(specifier) {
-      SpecifierType::RangeMinor
+      IS_RANGE_MINOR
     } else if FILE.is_match(specifier) {
-      SpecifierType::File
+      IS_FILE
     } else {
-      SpecifierType::Unsupported
+      IS_UNSUPPORTED
     }
   }
 }
@@ -128,7 +154,12 @@ mod tests {
     ];
     for case in cases {
       let parsed = SpecifierType::new(case);
-      assert_eq!(parsed, SpecifierType::Alias, "{} should be alias", case);
+      assert_eq!(
+        parsed,
+        SpecifierType::NonSemver(NonSemver::Alias),
+        "{} should be alias",
+        case
+      );
     }
   }
 
@@ -143,7 +174,7 @@ mod tests {
     ];
     for case in cases {
       let parsed = SpecifierType::new(case);
-      assert_eq!(parsed, SpecifierType::Exact, "{} should be exact", case);
+      assert_eq!(parsed, IS_EXACT, "{} should be exact", case);
     }
   }
 
@@ -170,7 +201,7 @@ mod tests {
     ];
     for case in cases {
       let parsed = SpecifierType::new(case);
-      assert_eq!(parsed, SpecifierType::File, "{} should be file", case);
+      assert_eq!(parsed, IS_FILE, "{} should be file", case);
     }
   }
 
@@ -212,7 +243,7 @@ mod tests {
     ];
     for case in cases {
       let parsed = SpecifierType::new(case);
-      assert_eq!(parsed, SpecifierType::Git, "{} should be git", case);
+      assert_eq!(parsed, IS_GIT, "{} should be git", case);
     }
   }
 
@@ -221,7 +252,7 @@ mod tests {
     let cases: Vec<&str> = vec!["latest", "*"];
     for case in cases {
       let parsed = SpecifierType::new(case);
-      assert_eq!(parsed, SpecifierType::Latest, "{} should be latest", case);
+      assert_eq!(parsed, IS_LATEST, "{} should be latest", case);
     }
   }
 
@@ -230,7 +261,7 @@ mod tests {
     let cases: Vec<&str> = vec!["1"];
     for case in cases {
       let parsed = SpecifierType::new(case);
-      assert_eq!(parsed, SpecifierType::Major, "{} should be major", case);
+      assert_eq!(parsed, IS_MAJOR, "{} should be major", case);
     }
   }
 
@@ -239,7 +270,7 @@ mod tests {
     let cases: Vec<&str> = vec!["1.2"];
     for case in cases {
       let parsed = SpecifierType::new(case);
-      assert_eq!(parsed, SpecifierType::Minor, "{} should be minor", case);
+      assert_eq!(parsed, IS_MINOR, "{} should be minor", case);
     }
   }
 
@@ -257,7 +288,7 @@ mod tests {
     ];
     for case in cases {
       let parsed = SpecifierType::new(case);
-      assert_eq!(parsed, SpecifierType::Range, "{} should be range", case);
+      assert_eq!(parsed, IS_RANGE, "{} should be range", case);
     }
   }
 
@@ -266,12 +297,7 @@ mod tests {
     let cases: Vec<&str> = vec!["^4.1", "~1.2", ">=5.0", "<=5.0", ">5.0", "<5.0"];
     for case in cases {
       let parsed = SpecifierType::new(case);
-      assert_eq!(
-        parsed,
-        SpecifierType::RangeMinor,
-        "{} should be range-minor",
-        case
-      );
+      assert_eq!(parsed, IS_RANGE_MINOR, "{} should be range-minor", case);
     }
   }
 
@@ -280,7 +306,7 @@ mod tests {
     let cases: Vec<&str> = vec!["alpha", "canary", "foo"];
     for case in cases {
       let parsed = SpecifierType::new(case);
-      assert_eq!(parsed, SpecifierType::Tag, "{} should be tag", case);
+      assert_eq!(parsed, IS_TAG, "{} should be tag", case);
     }
   }
 
@@ -307,12 +333,7 @@ mod tests {
     ];
     for case in cases {
       let parsed = SpecifierType::new(case);
-      assert_eq!(
-        parsed,
-        SpecifierType::Unsupported,
-        "{} should be unsupported",
-        case
-      );
+      assert_eq!(parsed, IS_UNSUPPORTED, "{} should be unsupported", case);
     }
   }
 
@@ -325,7 +346,7 @@ mod tests {
     ];
     for case in cases {
       let parsed = SpecifierType::new(case);
-      assert_eq!(parsed, SpecifierType::Url, "{} should be url", case);
+      assert_eq!(parsed, IS_URL, "{} should be url", case);
     }
   }
 
@@ -335,8 +356,7 @@ mod tests {
     for case in cases {
       let parsed = SpecifierType::new(case);
       assert_eq!(
-        parsed,
-        SpecifierType::WorkspaceProtocol,
+        parsed, IS_WORKSPACE_PROTOCOL,
         "{} should be workspace-protocol",
         case
       );
