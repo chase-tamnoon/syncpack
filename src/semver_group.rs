@@ -1,28 +1,28 @@
-use std::collections::HashMap;
 use serde::Deserialize;
 
 use crate::config;
 use crate::group_selector;
+use crate::group_selector::GroupSelector;
 use crate::instance::Instance;
 
 #[derive(Debug)]
 pub struct DisabledSemverGroup<'a> {
   pub selector: group_selector::GroupSelector,
-  pub instances_by_name: HashMap<String, &'a Instance<'a>>,
+  pub instances: Vec<&'a Instance<'a>>,
   pub is_disabled: bool,
 }
 
 #[derive(Debug)]
 pub struct IgnoredSemverGroup<'a> {
   pub selector: group_selector::GroupSelector,
-  pub instances_by_name: HashMap<String, &'a Instance<'a>>,
+  pub instances: Vec<&'a Instance<'a>>,
   pub is_ignored: bool,
 }
 
 #[derive(Debug)]
 pub struct WithRangeSemverGroup<'a> {
   pub selector: group_selector::GroupSelector,
-  pub instances_by_name: HashMap<String, &'a Instance<'a>>,
+  pub instances: Vec<&'a Instance<'a>>,
   pub range: String,
 }
 
@@ -34,14 +34,29 @@ pub enum SemverGroup<'a> {
 }
 
 impl SemverGroup<'_> {
+  /// Create every version group defined in the rcfile.
   pub fn from_rcfile(rcfile: &config::Rcfile) -> Vec<SemverGroup> {
-    rcfile
+    let mut user_groups: Vec<SemverGroup> = rcfile
       .semver_groups
       .iter()
       .map(|group| SemverGroup::from_config(group))
-      .collect()
+      .collect();
+    let catch_all_group = SemverGroup::WithRange(WithRangeSemverGroup {
+      selector: GroupSelector {
+        dependencies: vec![],
+        dependency_types: vec![],
+        label: "default".to_string(),
+        packages: vec![],
+        specifier_types: vec![],
+      },
+      instances: vec![],
+      range: "".to_string(),
+    });
+    user_groups.push(catch_all_group);
+    user_groups
   }
 
+  /// Create a single version group from a config item from the rcfile.
   pub fn from_config(group: &AnySemverGroup) -> SemverGroup {
     let selector = group_selector::GroupSelector {
       dependencies: group.dependencies.clone(),
@@ -54,19 +69,19 @@ impl SemverGroup<'_> {
     if let Some(true) = group.is_disabled {
       SemverGroup::Disabled(DisabledSemverGroup {
         selector,
-        instances_by_name: HashMap::new(),
+        instances: vec![],
         is_disabled: true,
       })
     } else if let Some(true) = group.is_ignored {
       SemverGroup::Ignored(IgnoredSemverGroup {
         selector,
-        instances_by_name: HashMap::new(),
+        instances: vec![],
         is_ignored: true,
       })
     } else if let Some(range) = &group.range {
       SemverGroup::WithRange(WithRangeSemverGroup {
         selector,
-        instances_by_name: HashMap::new(),
+        instances: vec![],
         range: range.clone(),
       })
     } else {

@@ -4,47 +4,47 @@ use std::collections::HashSet;
 use serde::Deserialize;
 
 use crate::config;
-use crate::group_selector;
+use crate::group_selector::GroupSelector;
 use crate::instance::Instance;
 
 #[derive(Debug)]
 pub struct BannedVersionGroup<'a> {
-  pub selector: group_selector::GroupSelector,
+  pub selector: GroupSelector,
   pub instances_by_name: HashMap<String, &'a Instance<'a>>,
   pub is_banned: bool,
 }
 
 #[derive(Debug)]
 pub struct IgnoredVersionGroup<'a> {
-  pub selector: group_selector::GroupSelector,
+  pub selector: GroupSelector,
   pub instances_by_name: HashMap<String, &'a Instance<'a>>,
   pub is_ignored: bool,
 }
 
 #[derive(Debug)]
 pub struct PinnedVersionGroup<'a> {
-  pub selector: group_selector::GroupSelector,
+  pub selector: GroupSelector,
   pub instances_by_name: HashMap<String, &'a Instance<'a>>,
   pub pin_version: String,
 }
 
 #[derive(Debug)]
 pub struct SameRangeVersionGroup<'a> {
-  pub selector: group_selector::GroupSelector,
+  pub selector: GroupSelector,
   pub instances_by_name: HashMap<String, &'a Instance<'a>>,
   pub policy: String,
 }
 
 #[derive(Debug)]
 pub struct SnappedToVersionGroup<'a> {
-  pub selector: group_selector::GroupSelector,
+  pub selector: GroupSelector,
   pub instances_by_name: HashMap<String, &'a Instance<'a>>,
   pub snap_to: Vec<String>,
 }
 
 #[derive(Debug)]
 pub struct StandardVersionGroup<'a> {
-  pub selector: group_selector::GroupSelector,
+  pub selector: GroupSelector,
   /// Group instances of each dependency together for comparison.
   pub instances_by_name: HashMap<String, &'a InstanceGroup<'a>>,
   /// As defined in the rcfile: "lowestSemver" or "highestSemver".
@@ -75,16 +75,31 @@ pub enum VersionGroup<'a> {
 }
 
 impl VersionGroup<'_> {
+  /// Create every version group defined in the rcfile.
   pub fn from_rcfile(rcfile: &config::Rcfile) -> Vec<VersionGroup> {
-    rcfile
+    let mut user_groups: Vec<VersionGroup> = rcfile
       .version_groups
       .iter()
       .map(|group| VersionGroup::from_config(group))
-      .collect()
+      .collect();
+    let catch_all_group = VersionGroup::Standard(StandardVersionGroup {
+      selector: GroupSelector {
+        dependencies: vec![],
+        dependency_types: vec![],
+        label: "default".to_string(),
+        packages: vec![],
+        specifier_types: vec![],
+      },
+      instances_by_name: HashMap::new(),
+      prefer_version: "highestSemver".to_string(),
+    });
+    user_groups.push(catch_all_group);
+    user_groups
   }
 
+  /// Create a single version group from a config item from the rcfile.
   pub fn from_config(group: &AnyVersionGroup) -> VersionGroup {
-    let selector = group_selector::GroupSelector {
+    let selector = GroupSelector {
       dependencies: group.dependencies.clone(),
       dependency_types: group.dependency_types.clone(),
       label: group.label.clone(),
