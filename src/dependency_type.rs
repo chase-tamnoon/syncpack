@@ -109,20 +109,20 @@ impl DependencyType {
 
   pub fn new(name: &String, config: &config::CustomType) -> DependencyType {
     DependencyType {
-      name_path: if config.name_path.is_some() {
-        normalize_path(config.name_path.clone().unwrap())
+      name_path: if let Some(name_path) = &config.name_path {
+        normalize_path(&name_path)
       } else {
         String::from("")
       },
       name: name.clone(),
-      path: normalize_path(config.path.clone()),
+      path: normalize_path(&config.path),
       strategy: Strategy::new(config.strategy.as_str()),
     }
   }
 }
 
 /// Converts a "some.nested.prop.name" selector to "/some/nested/prop/name"
-fn normalize_path(path: String) -> String {
+fn normalize_path(path: &String) -> String {
   let mut normalized_path = String::from("/");
   normalized_path.push_str(&path.replace(".", "/"));
   normalized_path
