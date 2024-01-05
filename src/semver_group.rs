@@ -1,34 +1,39 @@
+use std::collections::HashMap;
 use serde::Deserialize;
 
 use crate::config;
 use crate::group_selector;
+use crate::instance::Instance;
 
 #[derive(Debug)]
-pub struct DisabledSemverGroup {
+pub struct DisabledSemverGroup<'a> {
   pub selector: group_selector::GroupSelector,
+  pub instances_by_name: HashMap<String, &'a Instance<'a>>,
   pub is_disabled: bool,
 }
 
 #[derive(Debug)]
-pub struct IgnoredSemverGroup {
+pub struct IgnoredSemverGroup<'a> {
   pub selector: group_selector::GroupSelector,
+  pub instances_by_name: HashMap<String, &'a Instance<'a>>,
   pub is_ignored: bool,
 }
 
 #[derive(Debug)]
-pub struct WithRangeSemverGroup {
+pub struct WithRangeSemverGroup<'a> {
   pub selector: group_selector::GroupSelector,
+  pub instances_by_name: HashMap<String, &'a Instance<'a>>,
   pub range: String,
 }
 
 #[derive(Debug)]
-pub enum SemverGroup {
-  Disabled(DisabledSemverGroup),
-  Ignored(IgnoredSemverGroup),
-  WithRange(WithRangeSemverGroup),
+pub enum SemverGroup<'a> {
+  Disabled(DisabledSemverGroup<'a>),
+  Ignored(IgnoredSemverGroup<'a>),
+  WithRange(WithRangeSemverGroup<'a>),
 }
 
-impl SemverGroup {
+impl SemverGroup<'_> {
   pub fn from_rcfile(rcfile: &config::Rcfile) -> Vec<SemverGroup> {
     rcfile
       .semver_groups
@@ -49,16 +54,19 @@ impl SemverGroup {
     if let Some(true) = group.is_disabled {
       SemverGroup::Disabled(DisabledSemverGroup {
         selector,
+        instances_by_name: HashMap::new(),
         is_disabled: true,
       })
     } else if let Some(true) = group.is_ignored {
       SemverGroup::Ignored(IgnoredSemverGroup {
         selector,
+        instances_by_name: HashMap::new(),
         is_ignored: true,
       })
     } else if let Some(range) = &group.range {
       SemverGroup::WithRange(WithRangeSemverGroup {
         selector,
+        instances_by_name: HashMap::new(),
         range: range.clone(),
       })
     } else {
