@@ -87,6 +87,8 @@ pub enum VersionGroup<'a> {
 }
 
 impl<'a> VersionGroup<'a> {
+  /// Add an instance to this version group if it is eligible, and return
+  /// whether it was added.
   pub fn add_instance(&mut self, instance: &'a Instance) -> bool {
     match self {
       VersionGroup::Banned(group) => {

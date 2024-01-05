@@ -34,7 +34,7 @@ fn main() -> io::Result<()> {
   // - [ ] assign instances to version groups
 
   let enabled_dependency_types = config::Rcfile::get_enabled_dependency_types(&ctx.rcfile);
-  let semver_groups = semver_group::SemverGroup::from_rcfile(&ctx.rcfile);
+  let mut semver_groups = semver_group::SemverGroup::from_rcfile(&ctx.rcfile);
   let mut version_groups = version_group::VersionGroup::from_rcfile(&ctx.rcfile);
   let all_instances: Vec<instance::Instance> = ctx
     .packages
@@ -42,13 +42,15 @@ fn main() -> io::Result<()> {
     .flat_map(|package| package.get_instances(&enabled_dependency_types))
     .collect();
 
-  // Iterate over each instance
   for instance in &all_instances {
-    // Iterate over each version group
-    for version_group in &mut version_groups {
-      // Call add_instance on the version group
+    'assignToSemverGroup: for semver_group in &mut semver_groups {
+      if semver_group.add_instance(&instance) {
+        break 'assignToSemverGroup;
+      }
+    }
+    'assignToVersionGroup: for version_group in &mut version_groups {
       if version_group.add_instance(&instance) {
-        break; // Exit the loop if add_instance returns true
+        break 'assignToVersionGroup;
       }
     }
   }

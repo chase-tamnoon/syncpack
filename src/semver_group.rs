@@ -33,7 +33,23 @@ pub enum SemverGroup<'a> {
   WithRange(WithRangeSemverGroup<'a>),
 }
 
-impl SemverGroup<'_> {
+impl<'a> SemverGroup<'a> {
+  /// Add an instance to this version group if it is eligible, and return
+  /// whether it was added.
+  pub fn add_instance(&mut self, instance: &'a Instance) -> bool {
+    match self {
+      SemverGroup::Disabled(group) => {
+        return false;
+      }
+      SemverGroup::Ignored(group) => {
+        return false;
+      }
+      SemverGroup::WithRange(group) => {
+        return false;
+      }
+    }
+  }
+
   /// Create every version group defined in the rcfile.
   pub fn from_rcfile(rcfile: &config::Rcfile) -> Vec<SemverGroup> {
     let mut user_groups: Vec<SemverGroup> = rcfile
