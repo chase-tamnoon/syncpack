@@ -1,3 +1,5 @@
+use crate::instance::Instance;
+
 #[derive(Debug)]
 pub struct GroupSelector {
   /// Glob patterns to match against the installed dependency name.
@@ -38,7 +40,7 @@ pub struct GroupSelector {
 }
 
 impl GroupSelector {
-  pub fn can_add(&self) -> bool {
+  pub fn can_add(&self, instance: &Instance) -> bool {
     println!("@TODO implement can_add");
     false
   }

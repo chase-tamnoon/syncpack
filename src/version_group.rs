@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 use std::collections::HashSet;
+use std::vec;
 
 use serde::Deserialize;
 
@@ -46,7 +47,7 @@ pub struct SnappedToVersionGroup<'a> {
 pub struct StandardVersionGroup<'a> {
   pub selector: GroupSelector,
   /// Group instances of each dependency together for comparison.
-  pub instances_by_name: HashMap<String, &'a InstanceGroup<'a>>,
+  pub instances_by_name: HashMap<String, InstanceGroup<'a>>,
   /// As defined in the rcfile: "lowestSemver" or "highestSemver".
   pub prefer_version: String,
 }
@@ -54,7 +55,7 @@ pub struct StandardVersionGroup<'a> {
 #[derive(Debug)]
 pub struct InstanceGroup<'a> {
   /// Every instance of this dependency in this version group.
-  pub all: &'a Instance<'a>,
+  pub all: Vec<&'a Instance<'a>>,
   /// If this dependency is a local package, this is the local instance.
   pub local: Option<&'a Instance<'a>>,
   /// The highest or lowest version to use if all are valid, or the local
@@ -62,6 +63,17 @@ pub struct InstanceGroup<'a> {
   pub preferred_version: Option<String>,
   /// Raw version specifiers for each dependency.
   pub unique_specifiers: HashSet<String>,
+}
+
+impl<'a> InstanceGroup<'a> {
+  pub fn new() -> InstanceGroup<'a> {
+    InstanceGroup {
+      all: vec![],
+      local: None,
+      preferred_version: None,
+      unique_specifiers: HashSet::new(),
+    }
+  }
 }
 
 #[derive(Debug)]
@@ -74,7 +86,61 @@ pub enum VersionGroup<'a> {
   Standard(StandardVersionGroup<'a>),
 }
 
-impl VersionGroup<'_> {
+impl<'a> VersionGroup<'a> {
+  pub fn add_instance(&mut self, instance: &'a Instance) -> bool {
+    match self {
+      VersionGroup::Banned(group) => {
+        return false;
+      }
+      VersionGroup::Ignored(group) => {
+        return false;
+      }
+      VersionGroup::Pinned(group) => {
+        return false;
+      }
+      VersionGroup::SameRange(group) => {
+        return false;
+      }
+      VersionGroup::SnappedTo(group) => {
+        return false;
+      }
+      VersionGroup::Standard(group) => {
+        if group.selector.can_add(instance) == false {
+          return false;
+        }
+        if !group.instances_by_name.contains_key(&instance.name) {
+          group
+            .instances_by_name
+            .insert(instance.name.clone(), InstanceGroup::new());
+        }
+
+        let instances = group.instances_by_name.get_mut(&instance.name).unwrap();
+        instances.all.push(instance);
+        instances
+          .unique_specifiers
+          .insert(instance.specifier.clone());
+
+        match &instances.preferred_version {
+          Some(version) => {
+            print!("{} ", version);
+            if group.prefer_version == "lowestSemver" {
+              // @TODO: if this version is lower, set it as the preferred version
+            } else {
+              // @TODO: if this version is higher, set it as the preferred version
+            }
+          }
+          None => {}
+        }
+
+        if instance.dependency_type.name == "local" {
+          instances.local = Some(instance);
+        }
+
+        return true;
+      }
+    }
+  }
+
   /// Create every version group defined in the rcfile.
   pub fn from_rcfile(rcfile: &config::Rcfile) -> Vec<VersionGroup> {
     let mut user_groups: Vec<VersionGroup> = rcfile

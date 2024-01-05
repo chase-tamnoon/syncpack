@@ -63,6 +63,8 @@ pub enum SpecifierType {
   Unsupported,
 }
 
+// @TODO: add nested enums of semver or not
+
 impl SpecifierType {
   pub fn new(specifier: &str) -> SpecifierType {
     if EXACT.is_match(specifier) {
