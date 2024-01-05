@@ -3,10 +3,12 @@ use std::collections::HashSet;
 use std::vec;
 
 use serde::Deserialize;
+use version_compare::{compare, Cmp};
 
 use crate::config;
 use crate::group_selector::GroupSelector;
 use crate::instance::Instance;
+use crate::specifier::SpecifierType;
 
 #[derive(Debug)]
 pub struct BannedVersionGroup<'a> {
@@ -117,22 +119,31 @@ impl<'a> VersionGroup<'a> {
         }
 
         let instances = group.instances_by_name.get_mut(&instance.name).unwrap();
+
         instances.all.push(instance);
+
         instances
           .unique_specifiers
           .insert(instance.specifier.clone());
 
-        match &instances.preferred_version {
-          Some(version) => {
-            print!("{} ", version);
-            if group.prefer_version == "lowestSemver" {
-              // @TODO: if this version is valid semver and lower, set it as the preferred version
-            } else {
-              // @TODO: if this version is valid semver and higher, set it as the preferred version
+        if let SpecifierType::Semver(specifier_type) = &instance.specifier_type {
+          let this_version = &instance.specifier;
+          match &mut instances.preferred_version {
+            Some(current_preferred_version) => {
+              print!("{} ", current_preferred_version);
+              if group.prefer_version == "lowestSemver" {
+                if compare(this_version, current_preferred_version) == Ok(Cmp::Lt) {
+                  instances.preferred_version = Some(this_version.clone());
+                }
+              } else {
+                if compare(this_version, current_preferred_version) == Ok(Cmp::Gt) {
+                  instances.preferred_version = Some(this_version.clone());
+                }
+              }
             }
-          }
-          None => {
-            // @TODO: if this version is valid semver, set it as the preferred version
+            None => {
+              instances.preferred_version = Some(this_version.clone());
+            }
           }
         }
 
