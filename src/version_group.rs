@@ -109,48 +109,63 @@ impl<'a> VersionGroup<'a> {
         return false;
       }
       VersionGroup::Standard(group) => {
-        if group.selector.can_add(instance) == false {
+        // If this instance is not eligible for this group, reject it so it can
+        // continue to compare itself against the next group.
+        if !group.selector.can_add(instance) {
           return false;
         }
+
+        // Ensure that a group exists for this dependency name.
         if !group.instances_by_name.contains_key(&instance.name) {
           group
             .instances_by_name
             .insert(instance.name.clone(), InstanceGroup::new());
         }
 
+        // Get the group for this dependency name.
         let instances = group.instances_by_name.get_mut(&instance.name).unwrap();
 
         instances.all.push(instance);
 
+        // If there is more than one version in this list, then we have
+        // mismatching versions.
         instances
           .unique_specifiers
           .insert(instance.specifier.clone());
 
+        // If we have a valid semver specifier, it can be a candidate for being
+        // suggested as the preferred version.
         if let SpecifierType::Semver(specifier_type) = &instance.specifier_type {
-          let this_version = &instance.specifier;
           match &mut instances.preferred_version {
+            // If there is already a preferred version we should keep whichever
+            // is the highest or lowest version depending on the group's
+            // preference.
             Some(current_preferred_version) => {
-              print!("{} ", current_preferred_version);
-              if group.prefer_version == "lowestSemver" {
-                if compare(this_version, current_preferred_version) == Ok(Cmp::Lt) {
-                  instances.preferred_version = Some(this_version.clone());
-                }
+              let this_version = &instance.specifier;
+              let preference = if &group.prefer_version == "lowestSemver" {
+                Cmp::Lt
               } else {
-                if compare(this_version, current_preferred_version) == Ok(Cmp::Gt) {
-                  instances.preferred_version = Some(this_version.clone());
-                }
+                Cmp::Gt
+              };
+
+              if compare(this_version, current_preferred_version) == Ok(preference) {
+                instances.preferred_version = Some(this_version.clone());
               }
             }
+            // If there's no preferred version yet, this is the first candidate.
             None => {
+              let this_version = &instance.specifier;
               instances.preferred_version = Some(this_version.clone());
             }
           }
         }
 
+        // If this is a local package, keep track of it for use when analysing
         if instance.dependency_type.name == "local" {
           instances.local = Some(instance);
         }
 
+        // Claim this instance so it can't be claimed by another group.
         return true;
       }
     }
