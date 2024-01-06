@@ -60,9 +60,13 @@ pub struct InstanceGroup<'a> {
   pub all: Vec<&'a Instance<'a>>,
   /// If this dependency is a local package, this is the local instance.
   pub local: Option<&'a Instance<'a>>,
+  /// All instances with `SpecifierType::NonSemver` versions
+  pub non_semver: Vec<&'a Instance<'a>>,
   /// The highest or lowest version to use if all are valid, or the local
   /// version if this is a package developed in this repo.
   pub preferred_version: Option<String>,
+  /// All instances with `SpecifierType::Semver` versions
+  pub semver: Vec<&'a Instance<'a>>,
   /// Raw version specifiers for each dependency.
   pub unique_specifiers: HashSet<String>,
 }
@@ -72,7 +76,9 @@ impl<'a> InstanceGroup<'a> {
     InstanceGroup {
       all: vec![],
       local: None,
+      non_semver: vec![],
       preferred_version: None,
+      semver: vec![],
       unique_specifiers: HashSet::new(),
     }
   }
@@ -141,6 +147,15 @@ impl<'a> VersionGroup<'a> {
           // package where this dependency is being developed.
           let local_version = &instance.specifier;
           instances.preferred_version = Some(local_version.clone());
+        }
+
+        match &instance.specifier_type {
+          SpecifierType::NonSemver(specifier_type) => {
+            instances.non_semver.push(instance);
+          }
+          SpecifierType::Semver(specifier_type) => {
+            instances.semver.push(instance);
+          }
         }
 
         if instances.local.is_none() {
