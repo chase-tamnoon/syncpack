@@ -133,36 +133,43 @@ impl<'a> VersionGroup<'a> {
           .unique_specifiers
           .insert(instance.specifier.clone());
 
-        // If we have a valid semver specifier, it can be a candidate for being
-        // suggested as the preferred version.
-        if let SpecifierType::Semver(specifier_type) = &instance.specifier_type {
-          match &mut instances.preferred_version {
-            // If there is already a preferred version we should keep whichever
-            // is the highest or lowest version depending on the group's
-            // preference.
-            Some(current_preferred_version) => {
-              let this_version = &instance.specifier;
-              let preference = if &group.prefer_version == "lowestSemver" {
-                Cmp::Lt
-              } else {
-                Cmp::Gt
-              };
+        // If this is a local package
+        if instance.dependency_type.name == "local" {
+          // keep track of it for use when analysing
+          instances.local = Some(instance);
+          // and set this as the preferred version, since it is the originating
+          // package where this dependency is being developed.
+          let local_version = &instance.specifier;
+          instances.preferred_version = Some(local_version.clone());
+        }
 
-              if compare(this_version, current_preferred_version) == Ok(preference) {
+        if instances.local.is_none() {
+          // If we have a valid semver specifier, it can be a candidate for being
+          // suggested as the preferred version.
+          if let SpecifierType::Semver(specifier_type) = &instance.specifier_type {
+            match &mut instances.preferred_version {
+              // If there is already a preferred version we should keep whichever
+              // is the highest or lowest version depending on the group's
+              // preference.
+              Some(current_preferred_version) => {
+                let this_version = &instance.specifier;
+                let preference = if &group.prefer_version == "lowestSemver" {
+                  Cmp::Lt
+                } else {
+                  Cmp::Gt
+                };
+
+                if compare(this_version, current_preferred_version) == Ok(preference) {
+                  instances.preferred_version = Some(this_version.clone());
+                }
+              }
+              // If there's no preferred version yet, this is the first candidate.
+              None => {
+                let this_version = &instance.specifier;
                 instances.preferred_version = Some(this_version.clone());
               }
             }
-            // If there's no preferred version yet, this is the first candidate.
-            None => {
-              let this_version = &instance.specifier;
-              instances.preferred_version = Some(this_version.clone());
-            }
           }
-        }
-
-        // If this is a local package, keep track of it for use when analysing
-        if instance.dependency_type.name == "local" {
-          instances.local = Some(instance);
         }
 
         // Claim this instance so it can't be claimed by another group.
