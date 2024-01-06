@@ -71,6 +71,7 @@ pub enum Semver {
   RangeMinor,
 }
 
+// @TODO: add nested enums of supported or not supported
 #[derive(Debug, PartialEq)]
 pub enum NonSemver {
   // @TODO: can be considered semver once parsing is improved
@@ -88,8 +89,6 @@ pub enum SpecifierType {
   Semver(Semver),
   NonSemver(NonSemver),
 }
-
-// @TODO: add nested enums of semver or not
 
 impl SpecifierType {
   pub fn new(specifier: &str) -> SpecifierType {

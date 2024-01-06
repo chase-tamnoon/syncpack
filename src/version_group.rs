@@ -158,6 +158,18 @@ impl<'a> VersionGroup<'a> {
           }
         }
 
+        let set_preferred_version =
+          |instance: &Instance, instances: &mut InstanceGroup, next_preferred_version: String| {
+            if let Some(semver_group) = instance.semver_group {
+              if let Ok(fixed_version) = semver_group.get_fixed(&next_preferred_version) {
+                println!("Fixed version to {}", &fixed_version);
+                instances.preferred_version = Some(fixed_version);
+              } else {
+                println!("Failed to get fixed version for {:?}", instance);
+              }
+            }
+          };
+
         if instances.local.is_none() {
           // If we have a valid semver specifier, it can be a candidate for being
           // suggested as the preferred version.
@@ -175,13 +187,13 @@ impl<'a> VersionGroup<'a> {
                 };
 
                 if compare(this_version, current_preferred_version) == Ok(preference) {
-                  instances.preferred_version = Some(this_version.clone());
+                  set_preferred_version(instance, instances, this_version.clone());
                 }
               }
               // If there's no preferred version yet, this is the first candidate.
               None => {
                 let this_version = &instance.specifier;
-                instances.preferred_version = Some(this_version.clone());
+                set_preferred_version(instance, instances, this_version.clone());
               }
             }
           }

@@ -50,6 +50,13 @@ impl<'a> SemverGroup<'a> {
     }
   }
 
+  /// When valid, give the value back.
+  /// When invalid, return an error with a reason.
+  pub fn get_fixed(&self, specifier: &String) -> Result<String, ()> {
+    println!("@TODO: implement SemverGroup::get_fixed");
+    Ok(specifier.clone())
+  }
+
   /// Create every version group defined in the rcfile.
   pub fn from_rcfile(rcfile: &config::Rcfile) -> Vec<SemverGroup> {
     let mut user_groups: Vec<SemverGroup> = rcfile
