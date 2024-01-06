@@ -45,7 +45,17 @@ impl<'a> SemverGroup<'a> {
         return false;
       }
       SemverGroup::WithRange(group) => {
-        return false;
+        // If this instance is not eligible for this group, reject it so it can
+        // continue to compare itself against the next group.
+        if !group.selector.can_add(instance) {
+          return false;
+        }
+
+        group.instances.push(instance);
+        // @TODO: set semver_group on instance
+        // instance.semver_group = Some(self);
+
+        true
       }
     }
   }

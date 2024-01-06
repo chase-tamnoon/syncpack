@@ -36,13 +36,13 @@ fn main() -> io::Result<()> {
   let enabled_dependency_types = config::Rcfile::get_enabled_dependency_types(&ctx.rcfile);
   let mut semver_groups = semver_group::SemverGroup::from_rcfile(&ctx.rcfile);
   let mut version_groups = version_group::VersionGroup::from_rcfile(&ctx.rcfile);
-  let all_instances: Vec<instance::Instance> = ctx
+  let instances: Vec<instance::Instance> = ctx
     .packages
     .iter()
     .flat_map(|package| package.get_instances(&enabled_dependency_types))
     .collect();
 
-  for instance in &all_instances {
+  for instance in &instances {
     'assignToSemverGroup: for semver_group in &mut semver_groups {
       if semver_group.add_instance(&instance) {
         break 'assignToSemverGroup;
