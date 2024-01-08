@@ -2,7 +2,9 @@
 #![allow(unused_variables)]
 
 use colored::*;
-use std::{fs, io, path};
+use std::{collections::HashMap, fs, io, path};
+
+use crate::config::Rcfile;
 
 mod cli;
 mod config;
@@ -17,50 +19,35 @@ mod specifier;
 mod version_group;
 mod versions;
 
-/// Read and parse a package.json file
-fn read_file<P: AsRef<path::Path>>(
-  cwd: &std::path::PathBuf,
-  file_path: &P,
-) -> io::Result<package_json::PackageJson> {
-  let json = fs::read_to_string(file_path)?;
-  let contents: serde_json::Value = serde_json::from_str(&json)?;
-
-  Ok(package_json::PackageJson {
-    file_path: file_path.as_ref().to_path_buf(),
-    json,
-    contents,
-  })
-}
-
-fn main() -> io::Result<()> {
-  let cwd = std::env::current_dir()?;
-
-  // - [x] find all package.json files
-  // - [x] get enabled dependency types
-  // - [x] create semver groups
-  // - [x] create version groups
-  // - [x] get all instances
-  //   - [ ] parse version specifiers
-  //   - [ ] set read only initial specifier on instance
-  //   - [ ] set latest specifier on instance
-  // - [ ] assign instances to semver groups
-  // - [ ] assign instances to version groups
-  let rcfile = config::get();
-  let mut sources = rcfile.get_sources(&cwd);
-  let mut packages: Vec<package_json::PackageJson> = sources
-    .iter_mut()
-    .filter_map(|file_path| read_file(&cwd, &file_path).ok())
-    .collect();
-
-  let semver_groups = semver_group::SemverGroup::from_rcfile(&rcfile);
-  let mut version_groups = version_group::VersionGroup::from_rcfile(&rcfile);
-  let enabled_dependency_types = config::Rcfile::get_enabled_dependency_types(&rcfile);
-
-  // store the instances here
-  let mut instances: Vec<instance::Instance> = packages
+fn get_instances<'a>(
+  packages: &'a Vec<package_json::PackageJson>,
+  enabled_dependency_types: &'a HashMap<String, dependency_type::DependencyType>,
+) -> Vec<instance::Instance<'a>> {
+  packages
     .iter()
     .flat_map(|package| package.get_instances(&enabled_dependency_types))
-    .collect();
+    .collect()
+}
+
+// - [x] find all package.json files
+// - [x] get enabled dependency types
+// - [x] create semver groups
+// - [x] create version groups
+// - [x] get all instances
+//   - [ ] parse version specifiers
+//   - [ ] set read only initial specifier on instance
+//   - [ ] set latest specifier on instance
+// - [x] assign instances to semver groups
+// - [x] assign instances to version groups
+fn main() -> io::Result<()> {
+  let cwd = std::env::current_dir()?;
+  let rcfile = config::get();
+  let enabled_dependency_types = Rcfile::get_enabled_dependency_types(&rcfile);
+  let sources = rcfile.get_sources(&cwd);
+  let mut packages = get_packages(sources, cwd);
+  let semver_groups = semver_group::SemverGroup::from_rcfile(&rcfile);
+  let mut version_groups = version_group::VersionGroup::from_rcfile(&rcfile);
+  let mut instances = get_instances(&packages, &enabled_dependency_types);
 
   instances.iter_mut().for_each(|instance| {
     semver_groups
@@ -73,8 +60,6 @@ fn main() -> io::Result<()> {
 
   println!("{}", "rcfile".yellow());
   println!("{:#?}", &rcfile);
-  // println!("{}", "strategies".yellow());
-  // println!("{:#?}", enabled_dependency_types);
   println!("{}", "semver_groups".yellow());
   println!("{:#?}", &semver_groups);
   println!("{}", "version_groups".yellow());
@@ -123,6 +108,31 @@ fn main() -> io::Result<()> {
     }
     _ => Err(create_error("unrecognized subcommand")),
   }
+}
+
+fn get_packages(
+  mut sources: Vec<path::PathBuf>,
+  cwd: path::PathBuf,
+) -> Vec<package_json::PackageJson> {
+  sources
+    .iter_mut()
+    .filter_map(|file_path| read_file(&cwd, &file_path).ok())
+    .collect()
+}
+
+/// Read and parse a package.json file
+fn read_file<P: AsRef<path::Path>>(
+  cwd: &std::path::PathBuf,
+  file_path: &P,
+) -> io::Result<package_json::PackageJson> {
+  let json = fs::read_to_string(file_path)?;
+  let contents: serde_json::Value = serde_json::from_str(&json)?;
+
+  Ok(package_json::PackageJson {
+    file_path: file_path.as_ref().to_path_buf(),
+    json,
+    contents,
+  })
 }
 
 fn create_error(message: &str) -> io::Error {

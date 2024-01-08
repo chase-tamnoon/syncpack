@@ -6,7 +6,7 @@ use crate::config;
 use crate::instance::Instance;
 use crate::package_json;
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub enum Strategy {
   /// "name~version"
   NameAndVersionProps,
@@ -87,7 +87,7 @@ impl Strategy {
   }
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct DependencyType {
   /// The path to the property that contains the dependency name
   pub name_path: String,
