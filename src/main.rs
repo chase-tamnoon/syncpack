@@ -20,7 +20,6 @@ mod versions;
 
 fn main() -> io::Result<()> {
   let cwd = std::env::current_dir()?;
-  let mut ctx = context::Ctx::new(&cwd)?;
 
   // - [x] find all package.json files
   // - [x] get enabled dependency types
@@ -32,31 +31,36 @@ fn main() -> io::Result<()> {
   //   - [ ] set latest specifier on instance
   // - [ ] assign instances to semver groups
   // - [ ] assign instances to version groups
+  let rcfile = config::get();
+  let sources = rcfile.get_sources(&cwd);
+  let packages: Vec<package_json::PackageJson> = sources
+    .into_iter()
+    .filter_map(|file_path| context::read_file(&cwd, &file_path).ok())
+    .collect();
 
-  let enabled_dependency_types = config::Rcfile::get_enabled_dependency_types(&ctx.rcfile);
-  let mut semver_groups = semver_group::SemverGroup::from_rcfile(&ctx.rcfile);
-  let mut version_groups = version_group::VersionGroup::from_rcfile(&ctx.rcfile);
-  let instances: Vec<instance::Instance> = ctx
-    .packages
+  let mut semver_groups = semver_group::SemverGroup::from_rcfile(&rcfile);
+  let mut version_groups = version_group::VersionGroup::from_rcfile(&rcfile);
+  let enabled_dependency_types = config::Rcfile::get_enabled_dependency_types(&rcfile);
+  let instances: Vec<instance::Instance> = packages
     .iter()
     .flat_map(|package| package.get_instances(&enabled_dependency_types))
     .collect();
 
-  for instance in &instances {
-    'assignToSemverGroup: for semver_group in &mut semver_groups {
-      if semver_group.add_instance(&instance) {
-        break 'assignToSemverGroup;
-      }
-    }
-    'assignToVersionGroup: for version_group in &mut version_groups {
-      if version_group.add_instance(&instance) {
-        break 'assignToVersionGroup;
-      }
-    }
-  }
 
-  println!("{}", "ctx.rcfile".yellow());
-  println!("{:#?}", ctx.rcfile);
+
+  // 'assignToSemverGroup: for semver_group in &mut semver_groups {
+  //   if semver_group.add_instance(&instance) {
+  //     break 'assignToSemverGroup;
+  //   }
+  // }
+  // 'assignToVersionGroup: for version_group in &mut version_groups {
+  //   if version_group.add_instance(&instance) {
+  //     break 'assignToVersionGroup;
+  //   }
+  // }
+
+  println!("{}", "rcfile".yellow());
+  println!("{:#?}", rcfile);
   println!("{}", "strategies".yellow());
   println!("{:#?}", enabled_dependency_types);
   println!("{}", "semver_groups".yellow());
@@ -66,47 +70,49 @@ fn main() -> io::Result<()> {
   // println!("{}", "all_instances".yellow());
   // println!("{:#?}", all_instances);
 
-  match cli::create().get_matches().subcommand() {
-    Some(("lint", matches)) => {
-      let enabled_steps = cli::get_enabled_steps(matches);
-      if enabled_steps.format {
-        println!("{}", "Formatting".yellow());
-        format::lint_all(&mut ctx);
-        println!("@TODO: log whether formatting is valid or not");
-      }
-      if enabled_steps.ranges {
-        println!("{}", "Semver Ranges".yellow());
-        semver_ranges::lint_all(&mut ctx);
-        println!("@TODO: log whether semver ranges match or not");
-      }
-      if enabled_steps.versions {
-        println!("{}", "Versions".yellow());
-        versions::lint_all(&mut ctx);
-        println!("@TODO: log whether version mismatches are valid or not");
-      }
-      Ok(())
-    }
-    Some(("fix", matches)) => {
-      let enabled_steps = cli::get_enabled_steps(matches);
-      if enabled_steps.format {
-        println!("{}", "Formatting".yellow());
-        format::fix_all(&mut ctx);
-        println!("@TODO: log whether formatting was fixed or not");
-      }
-      if enabled_steps.ranges {
-        println!("{}", "Semver Ranges".yellow());
-        semver_ranges::fix_all(&mut ctx);
-        println!("@TODO: log whether semver range mismatches were fixed or not");
-      }
-      if enabled_steps.versions {
-        println!("{}", "Versions".yellow());
-        versions::fix_all(&mut ctx);
-        println!("@TODO: log whether version mismatches were fixed or not");
-      }
-      Ok(())
-    }
-    _ => Err(create_error("unrecognized subcommand")),
-  }
+  // match cli::create().get_matches().subcommand() {
+  //   Some(("lint", matches)) => {
+  //     let enabled_steps = cli::get_enabled_steps(matches);
+  //     if enabled_steps.format {
+  //       println!("{}", "Formatting".yellow());
+  //       format::lint_all(&mut ctx);
+  //       println!("@TODO: log whether formatting is valid or not");
+  //     }
+  //     if enabled_steps.ranges {
+  //       println!("{}", "Semver Ranges".yellow());
+  //       semver_ranges::lint_all(&mut ctx);
+  //       println!("@TODO: log whether semver ranges match or not");
+  //     }
+  //     if enabled_steps.versions {
+  //       println!("{}", "Versions".yellow());
+  //       versions::lint_all(&mut ctx);
+  //       println!("@TODO: log whether version mismatches are valid or not");
+  //     }
+  //     Ok(())
+  //   }
+  //   Some(("fix", matches)) => {
+  //     let enabled_steps = cli::get_enabled_steps(matches);
+  //     if enabled_steps.format {
+  //       println!("{}", "Formatting".yellow());
+  //       format::fix_all(&mut ctx);
+  //       println!("@TODO: log whether formatting was fixed or not");
+  //     }
+  //     if enabled_steps.ranges {
+  //       println!("{}", "Semver Ranges".yellow());
+  //       semver_ranges::fix_all(&mut ctx);
+  //       println!("@TODO: log whether semver range mismatches were fixed or not");
+  //     }
+  //     if enabled_steps.versions {
+  //       println!("{}", "Versions".yellow());
+  //       versions::fix_all(&mut ctx);
+  //       println!("@TODO: log whether version mismatches were fixed or not");
+  //     }
+  //     Ok(())
+  //   }
+  //   _ => Err(create_error("unrecognized subcommand")),
+  // }
+
+  Ok(())
 }
 
 fn create_error(message: &str) -> io::Error {

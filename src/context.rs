@@ -35,7 +35,7 @@ impl Ctx {
 }
 
 /// Read and parse a package.json file
-fn read_file<P: AsRef<path::Path>>(
+pub fn read_file<P: AsRef<path::Path>>(
   cwd: &std::path::PathBuf,
   file_path: &P,
 ) -> io::Result<package_json::PackageJson> {
