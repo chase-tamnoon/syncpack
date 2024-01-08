@@ -52,7 +52,7 @@ fn main() -> io::Result<()> {
     .filter_map(|file_path| read_file(&cwd, &file_path).ok())
     .collect();
 
-  let mut semver_groups = semver_group::SemverGroup::from_rcfile(&rcfile);
+  let semver_groups = semver_group::SemverGroup::from_rcfile(&rcfile);
   let mut version_groups = version_group::VersionGroup::from_rcfile(&rcfile);
   let enabled_dependency_types = config::Rcfile::get_enabled_dependency_types(&rcfile);
 
@@ -64,7 +64,7 @@ fn main() -> io::Result<()> {
 
   instances.iter_mut().for_each(|instance| {
     semver_groups
-      .iter_mut()
+      .iter()
       .any(|semver_group| semver_group.add_instance(instance));
     version_groups
       .iter_mut()
@@ -79,8 +79,8 @@ fn main() -> io::Result<()> {
   println!("{:#?}", &semver_groups);
   println!("{}", "version_groups".yellow());
   println!("{:#?}", &version_groups);
-  println!("{}", "instances".yellow());
-  println!("{:#?}", &instances);
+  // println!("{}", "instances".yellow());
+  // println!("{:#?}", &instances);
 
   match cli::create().get_matches().subcommand() {
     Some(("lint", matches)) => {
