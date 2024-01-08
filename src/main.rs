@@ -19,16 +19,10 @@ mod specifier;
 mod version_group;
 mod versions;
 
-// - [x] find all package.json files
-// - [x] get enabled dependency types
-// - [x] create semver groups
-// - [x] create version groups
-// - [x] get all instances
-//   - [ ] parse version specifiers
-//   - [ ] set read only initial specifier on instance
-//   - [ ] set latest specifier on instance
-// - [x] assign instances to semver groups
-// - [x] assign instances to version groups
+// - [ ] when fixing, write to fixed_specifier_type/fixed_specifier on instance
+// - [ ] don't create version groups etc when running format
+// - [ ]
+// - [ ]
 fn main() -> io::Result<()> {
   let cwd = std::env::current_dir()?;
   let rcfile = config::get();

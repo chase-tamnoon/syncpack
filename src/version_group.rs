@@ -129,54 +129,40 @@ impl<'a> VersionGroup<'a> {
         }
 
         // Get the group for this dependency name.
-        let instances = group.instances_by_name.get_mut(&instance.name).unwrap();
+        let instance_group = group.instances_by_name.get_mut(&instance.name).unwrap();
 
-        instances.all.push(instance);
+        instance_group.all.push(instance);
 
         // If there is more than one version in this list, then we have
         // mismatching versions.
-        instances
+        instance_group
           .unique_specifiers
           .insert(instance.specifier.clone());
 
         // If this is a local package
         if instance.dependency_type.name == "local" {
           // keep track of it for use when analysing
-          instances.local = Some(instance);
+          instance_group.local = Some(instance);
           // and set this as the preferred version, since it is the originating
           // package where this dependency is being developed.
           let local_version = &instance.specifier;
-          instances.preferred_version = Some(local_version.clone());
+          instance_group.preferred_version = Some(local_version.clone());
         }
 
         match &instance.specifier_type {
           SpecifierType::NonSemver(specifier_type) => {
-            instances.non_semver.push(instance);
+            instance_group.non_semver.push(instance);
           }
           SpecifierType::Semver(specifier_type) => {
-            instances.semver.push(instance);
+            instance_group.semver.push(instance);
           }
         }
 
-        let set_preferred_version =
-          |instance: &Instance, instances: &mut InstanceGroup, next_preferred_version: String| {
-            if let Some(expected_range) = &instance.expected_range {
-              println!("@TODO fix semver range");
-              let with_fixed_semver_range: Result<String, std::io::Error> = Ok(next_preferred_version.clone());
-              if let Ok(fixed_version) = with_fixed_semver_range {
-                println!("Fixed version to {}", &fixed_version);
-                instances.preferred_version = Some(fixed_version);
-              } else {
-                println!("Failed to get fixed version for {:?}", instance);
-              }
-            }
-          };
-
-        if instances.local.is_none() {
+        if instance_group.local.is_none() {
           // If we have a valid semver specifier, it can be a candidate for being
           // suggested as the preferred version.
           if let SpecifierType::Semver(specifier_type) = &instance.specifier_type {
-            match &mut instances.preferred_version {
+            match &mut instance_group.preferred_version {
               // If there is already a preferred version we should keep whichever
               // is the highest or lowest version depending on the group's
               // preference.
@@ -189,13 +175,13 @@ impl<'a> VersionGroup<'a> {
                 };
 
                 if compare(this_version, current_preferred_version) == Ok(preference) {
-                  set_preferred_version(instance, instances, this_version.clone());
+                  set_preferred_version(instance, instance_group, this_version.clone());
                 }
               }
               // If there's no preferred version yet, this is the first candidate.
               None => {
                 let this_version = &instance.specifier;
-                set_preferred_version(instance, instances, this_version.clone());
+                set_preferred_version(instance, instance_group, this_version.clone());
               }
             }
           }
@@ -305,4 +291,22 @@ pub struct AnyVersionGroup {
   pub policy: Option<String>,
   pub snap_to: Option<Vec<String>>,
   pub prefer_version: Option<String>,
+}
+
+fn set_preferred_version(
+  instance: &Instance,
+  instances: &mut InstanceGroup,
+  next_preferred_version: String,
+) {
+  if let Some(expected_range) = &instance.expected_range {
+    println!("@TODO fix semver range");
+    let with_fixed_semver_range: Result<String, std::io::Error> =
+      Ok(next_preferred_version.clone());
+    if let Ok(fixed_version) = with_fixed_semver_range {
+      println!("Fixed version to {}", &fixed_version);
+      instances.preferred_version = Some(fixed_version);
+    } else {
+      println!("Failed to get fixed version for {:?}", instance);
+    }
+  }
 }

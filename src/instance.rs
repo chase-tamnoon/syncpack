@@ -13,6 +13,10 @@ pub struct Instance<'a> {
   pub specifier_type: SpecifierType,
   /// The raw dependency specifier eg. "16.8.0", "^16.8.0"
   pub specifier: String,
+  /// The parsed dependency specifier after it has been fixed, if it was fixed
+  pub fixed_specifier_type: Option<SpecifierType>,
+  /// The raw dependency specifier after it has been fixed, if it was fixed
+  pub fixed_specifier: Option<String>,
 }
 
 impl<'a> Instance<'a> {
@@ -23,6 +27,8 @@ impl<'a> Instance<'a> {
       name,
       specifier_type: SpecifierType::new(specifier.as_str()),
       specifier,
+      fixed_specifier_type: None,
+      fixed_specifier: None,
     }
   }
 }
