@@ -122,9 +122,7 @@ fn main() -> io::Result<()> {
       Ok(())
     }
     _ => Err(create_error("unrecognized subcommand")),
-  };
-
-  Ok(())
+  }
 }
 
 fn create_error(message: &str) -> io::Error {
