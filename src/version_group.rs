@@ -160,8 +160,10 @@ impl<'a> VersionGroup<'a> {
 
         let set_preferred_version =
           |instance: &Instance, instances: &mut InstanceGroup, next_preferred_version: String| {
-            if let Some(semver_group) = instance.semver_group {
-              if let Ok(fixed_version) = semver_group.get_fixed(&next_preferred_version) {
+            if let Some(expected_range) = &instance.expected_range {
+              println!("@TODO fix semver range");
+              let with_fixed_semver_range: Result<String, std::io::Error> = Ok(next_preferred_version.clone());
+              if let Ok(fixed_version) = with_fixed_semver_range {
                 println!("Fixed version to {}", &fixed_version);
                 instances.preferred_version = Some(fixed_version);
               } else {

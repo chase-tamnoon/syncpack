@@ -79,8 +79,8 @@ fn main() -> io::Result<()> {
   println!("{:#?}", &semver_groups);
   println!("{}", "version_groups".yellow());
   println!("{:#?}", &version_groups);
-  // println!("{}", "all_instances".yellow());
-  // println!("{:#?}", all_instances);
+  println!("{}", "instances".yellow());
+  println!("{:#?}", &instances);
 
   match cli::create().get_matches().subcommand() {
     Some(("lint", matches)) => {

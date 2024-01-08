@@ -52,8 +52,7 @@ impl<'a> SemverGroup<'a> {
         }
 
         group.instances.push(instance);
-        // @TODO: set semver_group on instance
-        // instance.semver_group = Some(self);
+        // instance.expected_range = Some(group.range.clone());
 
         true
       }
