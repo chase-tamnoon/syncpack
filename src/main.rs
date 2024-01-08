@@ -41,12 +41,32 @@ fn main() -> io::Result<()> {
   let mut semver_groups = semver_group::SemverGroup::from_rcfile(&rcfile);
   let mut version_groups = version_group::VersionGroup::from_rcfile(&rcfile);
   let enabled_dependency_types = config::Rcfile::get_enabled_dependency_types(&rcfile);
-  let instances: Vec<instance::Instance> = packages
+
+  // store the instances here
+  let mut instances: Vec<instance::Instance> = packages
     .iter()
     .flat_map(|package| package.get_instances(&enabled_dependency_types))
     .collect();
 
+  instances.iter_mut().for_each(|instance| {
+    semver_groups
+      .iter_mut()
+      .any(|semver_group| semver_group.add_instance(instance));
+    version_groups
+      .iter_mut()
+      .any(|version_group| version_group.add_instance(instance));
+  });
 
+  // loop over mutable references to the instances and mutable references to the semver groups
+  // for instance in &mut instances {
+  //   println!("{:#?}", &instance);
+  //   'assignToSemverGroup: for semver_group in &mut semver_groups {
+  //     println!("{:#?}", semver_group);
+  //     if semver_group.add_instance(&instance) {
+  //       break 'assignToSemverGroup;
+  //     }
+  //   }
+  // }
 
   // 'assignToSemverGroup: for semver_group in &mut semver_groups {
   //   if semver_group.add_instance(&instance) {
