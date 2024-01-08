@@ -3,24 +3,25 @@ use serde_json;
 use std::collections;
 
 use crate::config;
-use crate::context;
 use crate::package_json;
 
-pub fn lint_all(ctx: &mut context::Ctx) {
-  ctx.packages.iter_mut().for_each(|mut package| {
-    fix(&ctx.rcfile, &mut package);
+pub fn lint_all(rcfile: &config::Rcfile, packages: &mut Vec<package_json::PackageJson>) {
+  packages.iter_mut().for_each(|mut package| {
+    fix(&rcfile, &mut package);
     if package.has_changed() {
-      ctx.is_invalid = true;
-      package.log_as_invalid(&ctx.cwd);
+      // is_invalid = true;
+      // package.log_as_invalid(&cwd);
+      println!("package.log_as_invalid");
     } else {
-      package.log_as_valid(&ctx.cwd);
+      // package.log_as_valid(&cwd);
+      println!("package.log_as_valid");
     }
   });
 }
 
-pub fn fix_all(ctx: &mut context::Ctx) {
-  ctx.packages.iter_mut().for_each(|mut package| {
-    fix(&ctx.rcfile, &mut package);
+pub fn fix_all(rcfile: &config::Rcfile, packages: &mut Vec<package_json::PackageJson>) {
+  packages.iter_mut().for_each(|package| {
+    fix(&rcfile, package);
   });
 }
 

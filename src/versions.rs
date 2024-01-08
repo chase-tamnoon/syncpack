@@ -1,9 +1,7 @@
-use crate::context;
-
-pub fn lint_all(ctx: &mut context::Ctx) {
+pub fn lint_all() {
   println!("@TODO lint version mismatches");
 }
 
-pub fn fix_all(ctx: &mut context::Ctx) {
+pub fn fix_all() {
   println!("@TODO: fix version mismatches");
 }
