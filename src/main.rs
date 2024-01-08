@@ -4,7 +4,7 @@
 use colored::*;
 use std::{collections::HashMap, fs, io, path};
 
-use crate::config::Rcfile;
+use crate::{config::Rcfile, semver_group::SemverGroup, version_group::VersionGroup};
 
 mod cli;
 mod config;
@@ -19,16 +19,6 @@ mod specifier;
 mod version_group;
 mod versions;
 
-fn get_instances<'a>(
-  packages: &'a Vec<package_json::PackageJson>,
-  enabled_dependency_types: &'a HashMap<String, dependency_type::DependencyType>,
-) -> Vec<instance::Instance<'a>> {
-  packages
-    .iter()
-    .flat_map(|package| package.get_instances(&enabled_dependency_types))
-    .collect()
-}
-
 // - [x] find all package.json files
 // - [x] get enabled dependency types
 // - [x] create semver groups
@@ -42,12 +32,12 @@ fn get_instances<'a>(
 fn main() -> io::Result<()> {
   let cwd = std::env::current_dir()?;
   let rcfile = config::get();
-  let enabled_dependency_types = Rcfile::get_enabled_dependency_types(&rcfile);
+  let dependency_types = Rcfile::get_enabled_dependency_types(&rcfile);
   let sources = rcfile.get_sources(&cwd);
+  let semver_groups = SemverGroup::from_rcfile(&rcfile);
   let mut packages = get_packages(sources, cwd);
-  let semver_groups = semver_group::SemverGroup::from_rcfile(&rcfile);
-  let mut version_groups = version_group::VersionGroup::from_rcfile(&rcfile);
-  let mut instances = get_instances(&packages, &enabled_dependency_types);
+  let mut version_groups = VersionGroup::from_rcfile(&rcfile);
+  let mut instances = get_instances(&packages, &dependency_types);
 
   instances.iter_mut().for_each(|instance| {
     semver_groups
@@ -117,6 +107,16 @@ fn get_packages(
   sources
     .iter_mut()
     .filter_map(|file_path| read_file(&cwd, &file_path).ok())
+    .collect()
+}
+
+fn get_instances<'a>(
+  packages: &'a Vec<package_json::PackageJson>,
+  dependency_types: &'a HashMap<String, dependency_type::DependencyType>,
+) -> Vec<instance::Instance<'a>> {
+  packages
+    .iter()
+    .flat_map(|package| package.get_instances(&dependency_types))
     .collect()
 }
 
