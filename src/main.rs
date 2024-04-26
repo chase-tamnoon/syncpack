@@ -26,7 +26,6 @@ enum Subcommand {
 }
 
 // - [ ] when fixing, write to fixed_specifier_type/fixed_specifier on instance
-// - [ ] don't create version groups etc when running format
 fn main() -> io::Result<()> {
   env_logger::init();
 
@@ -44,6 +43,9 @@ fn main() -> io::Result<()> {
   let subcommand = subcommand.unwrap();
   let cwd = std::env::current_dir()?;
   let rcfile = config::get();
+
+  debug!("rcfile: {:#?}", &rcfile);
+
   let dependency_types = Rcfile::get_enabled_dependency_types(&rcfile);
   let sources = rcfile.get_sources(&cwd);
   let semver_groups = SemverGroup::from_rcfile(&rcfile);
@@ -51,38 +53,33 @@ fn main() -> io::Result<()> {
   let mut version_groups = VersionGroup::from_rcfile(&rcfile);
   let mut instances = get_instances(&packages, &dependency_types);
 
+  // assign every instance to the first group it matches
   instances.iter_mut().for_each(|instance| {
     semver_groups
       .iter()
-      .any(|semver_group| semver_group.add_instance(instance));
+      .any(|group| group.add_instance_if_eligible(instance));
     version_groups
       .iter_mut()
-      .any(|version_group| version_group.add_instance(instance));
+      .any(|group| group.add_instance_if_eligible(instance));
   });
-
-  debug!("rcfile: {:#?}", &rcfile);
 
   let is_valid: bool = match subcommand {
     (Subcommand::Lint, enabled) => {
       let format_valid = !enabled.format || format::lint_all(&cwd, &rcfile, &mut packages);
-      let ranges_valid = !enabled.ranges || semver_ranges::lint_all(&cwd, &rcfile, &mut packages);
-      let versions_valid = !enabled.versions || versions::lint_all(&cwd, &rcfile, &mut packages);
-
       println!("format: {}", format_valid);
+      let ranges_valid = !enabled.ranges || semver_ranges::lint_all(&cwd, &rcfile, &mut packages);
       println!("semver ranges: {}", ranges_valid);
+      let versions_valid = !enabled.versions || versions::lint_all(&cwd, &rcfile, &mut packages);
       println!("versions: {}", versions_valid);
-
       format_valid && ranges_valid && versions_valid
     }
     (Subcommand::Fix, enabled) => {
       let format_valid = !enabled.format || format::fix_all(&cwd, &rcfile, &mut packages);
-      let ranges_valid = !enabled.ranges || semver_ranges::fix_all(&cwd, &rcfile, &mut packages);
-      let versions_valid = !enabled.versions || versions::fix_all(&cwd, &rcfile, &mut packages);
-
       println!("format: {}", format_valid);
+      let ranges_valid = !enabled.ranges || semver_ranges::fix_all(&cwd, &rcfile, &mut packages);
       println!("semver ranges: {}", ranges_valid);
+      let versions_valid = !enabled.versions || versions::fix_all(&cwd, &rcfile, &mut packages);
       println!("versions: {}", versions_valid);
-
       format_valid && ranges_valid && versions_valid
     }
   };

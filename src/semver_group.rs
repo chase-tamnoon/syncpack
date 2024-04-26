@@ -37,7 +37,7 @@ pub enum SemverGroup<'a> {
 impl<'a> SemverGroup<'a> {
   /// Add an instance to this version group if it is eligible, and return
   /// whether it was added.
-  pub fn add_instance(&self, instance: &'a mut Instance) -> bool {
+  pub fn add_instance_if_eligible(&self, instance: &'a mut Instance) -> bool {
     match self {
       SemverGroup::Disabled(group) => {
         return false;
