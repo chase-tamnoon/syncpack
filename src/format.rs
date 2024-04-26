@@ -5,24 +5,37 @@ use std::collections;
 use crate::config;
 use crate::package_json;
 
-pub fn lint_all(rcfile: &config::Rcfile, packages: &mut Vec<package_json::PackageJson>) {
-  packages.iter_mut().for_each(|mut package| {
+/// Check whether every package is formatted according to config
+/// Returns true if all are valid
+pub fn lint_all(
+  cwd: &std::path::PathBuf,
+  rcfile: &config::Rcfile,
+  packages: &mut Vec<package_json::PackageJson>,
+) -> bool {
+  packages.iter_mut().fold(true, |is_valid, mut package| {
     fix(&rcfile, &mut package);
     if package.has_changed() {
-      // is_invalid = true;
-      // package.log_as_invalid(&cwd);
-      println!("package.log_as_invalid");
+      package.log_as_invalid(&cwd);
+      false
     } else {
-      // package.log_as_valid(&cwd);
-      println!("package.log_as_valid");
+      package.log_as_valid(&cwd);
+      true
     }
-  });
+  })
 }
 
-pub fn fix_all(rcfile: &config::Rcfile, packages: &mut Vec<package_json::PackageJson>) {
+/// Format every package according to config
+/// Returns true if all are were fixable
+pub fn fix_all(
+  cwd: &std::path::PathBuf,
+  rcfile: &config::Rcfile,
+  packages: &mut Vec<package_json::PackageJson>,
+) -> bool {
   packages.iter_mut().for_each(|package| {
     fix(&rcfile, package);
   });
+  // all fix_all methods return a boolean, but formatting is always fixable
+  true
 }
 
 fn fix(rcfile: &config::Rcfile, package: &mut package_json::PackageJson) {

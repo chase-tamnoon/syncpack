@@ -30,7 +30,7 @@ fn main() -> io::Result<()> {
   let dependency_types = Rcfile::get_enabled_dependency_types(&rcfile);
   let sources = rcfile.get_sources(&cwd);
   let semver_groups = SemverGroup::from_rcfile(&rcfile);
-  let mut packages = get_packages(sources, cwd);
+  let mut packages = get_packages(sources, &cwd);
   let mut version_groups = VersionGroup::from_rcfile(&rcfile);
   let mut instances = get_instances(&packages, &dependency_types);
 
@@ -45,52 +45,75 @@ fn main() -> io::Result<()> {
 
   debug!("rcfile: {:#?}", &rcfile);
 
-  match cli::create().get_matches().subcommand() {
+  let is_valid: bool = match cli::create().get_matches().subcommand() {
     Some(("lint", matches)) => {
+      let mut is_valid = true;
       let enabled_steps = cli::get_enabled_steps(matches);
       if enabled_steps.format {
         println!("{}", "Formatting".yellow());
-        format::lint_all(&rcfile, &mut packages);
+        if !format::lint_all(&cwd, &rcfile, &mut packages) {
+          is_valid = false;
+        }
         debug!("@TODO: log whether formatting is valid or not");
       }
       if enabled_steps.ranges {
         println!("{}", "Semver Ranges".yellow());
-        semver_ranges::lint_all();
+        if !semver_ranges::lint_all(&cwd, &rcfile, &mut packages) {
+          is_valid = false;
+        }
         debug!("@TODO: log whether semver ranges match or not");
       }
       if enabled_steps.versions {
         println!("{}", "Versions".yellow());
-        versions::lint_all();
+        if !versions::lint_all(&cwd, &rcfile, &mut packages) {
+          is_valid = false;
+        }
         debug!("@TODO: log whether version mismatches are valid or not");
       }
-      Ok(())
+      is_valid
     }
     Some(("fix", matches)) => {
+      let mut is_valid = true;
       let enabled_steps = cli::get_enabled_steps(matches);
       if enabled_steps.format {
         println!("{}", "Formatting".yellow());
-        format::fix_all(&rcfile, &mut packages);
+        if !format::fix_all(&cwd, &rcfile, &mut packages) {
+          is_valid = false;
+        }
         debug!("@TODO: log whether formatting was fixed or not");
       }
       if enabled_steps.ranges {
         println!("{}", "Semver Ranges".yellow());
-        semver_ranges::fix_all();
+        if !semver_ranges::fix_all(&cwd, &rcfile, &mut packages) {
+          is_valid = false;
+        }
         debug!("@TODO: log whether semver range mismatches were fixed or not");
       }
       if enabled_steps.versions {
         println!("{}", "Versions".yellow());
-        versions::fix_all();
+        if !versions::fix_all(&cwd, &rcfile, &mut packages) {
+          is_valid = false;
+        }
         debug!("@TODO: log whether version mismatches were fixed or not");
       }
-      Ok(())
+      is_valid
     }
-    _ => Err(create_error("unrecognized subcommand")),
+    _ => {
+      debug!("@TODO: output --help when command is not recognised");
+      false
+    }
+  };
+
+  if is_valid {
+    std::process::exit(0);
+  } else {
+    std::process::exit(1);
   }
 }
 
 fn get_packages(
   mut sources: Vec<path::PathBuf>,
-  cwd: path::PathBuf,
+  cwd: &path::PathBuf,
 ) -> Vec<package_json::PackageJson> {
   sources
     .iter_mut()
