@@ -20,11 +20,28 @@ mod specifier;
 mod version_group;
 mod versions;
 
+enum Subcommand {
+  Lint,
+  Fix,
+}
+
 // - [ ] when fixing, write to fixed_specifier_type/fixed_specifier on instance
 // - [ ] don't create version groups etc when running format
 fn main() -> io::Result<()> {
   env_logger::init();
 
+  let subcommand = match cli::create().get_matches().subcommand() {
+    Some(("lint", matches)) => Some((Subcommand::Lint, cli::get_enabled_steps(matches))),
+    Some(("fix", matches)) => Some((Subcommand::Fix, cli::get_enabled_steps(matches))),
+    _ => None,
+  };
+
+  if subcommand.is_none() {
+    debug!("@TODO: output --help when command is not recognised");
+    std::process::exit(1);
+  }
+
+  let subcommand = subcommand.unwrap();
   let cwd = std::env::current_dir()?;
   let rcfile = config::get();
   let dependency_types = Rcfile::get_enabled_dependency_types(&rcfile);
@@ -45,62 +62,28 @@ fn main() -> io::Result<()> {
 
   debug!("rcfile: {:#?}", &rcfile);
 
-  let is_valid: bool = match cli::create().get_matches().subcommand() {
-    Some(("lint", matches)) => {
-      let mut is_valid = true;
-      let enabled_steps = cli::get_enabled_steps(matches);
-      if enabled_steps.format {
-        println!("{}", "Formatting".yellow());
-        if !format::lint_all(&cwd, &rcfile, &mut packages) {
-          is_valid = false;
-        }
-        debug!("@TODO: log whether formatting is valid or not");
-      }
-      if enabled_steps.ranges {
-        println!("{}", "Semver Ranges".yellow());
-        if !semver_ranges::lint_all(&cwd, &rcfile, &mut packages) {
-          is_valid = false;
-        }
-        debug!("@TODO: log whether semver ranges match or not");
-      }
-      if enabled_steps.versions {
-        println!("{}", "Versions".yellow());
-        if !versions::lint_all(&cwd, &rcfile, &mut packages) {
-          is_valid = false;
-        }
-        debug!("@TODO: log whether version mismatches are valid or not");
-      }
-      is_valid
+  let is_valid: bool = match subcommand {
+    (Subcommand::Lint, enabled) => {
+      let format_valid = !enabled.format || format::lint_all(&cwd, &rcfile, &mut packages);
+      let ranges_valid = !enabled.ranges || semver_ranges::lint_all(&cwd, &rcfile, &mut packages);
+      let versions_valid = !enabled.versions || versions::lint_all(&cwd, &rcfile, &mut packages);
+
+      println!("format: {}", format_valid);
+      println!("semver ranges: {}", ranges_valid);
+      println!("versions: {}", versions_valid);
+
+      format_valid && ranges_valid && versions_valid
     }
-    Some(("fix", matches)) => {
-      let mut is_valid = true;
-      let enabled_steps = cli::get_enabled_steps(matches);
-      if enabled_steps.format {
-        println!("{}", "Formatting".yellow());
-        if !format::fix_all(&cwd, &rcfile, &mut packages) {
-          is_valid = false;
-        }
-        debug!("@TODO: log whether formatting was fixed or not");
-      }
-      if enabled_steps.ranges {
-        println!("{}", "Semver Ranges".yellow());
-        if !semver_ranges::fix_all(&cwd, &rcfile, &mut packages) {
-          is_valid = false;
-        }
-        debug!("@TODO: log whether semver range mismatches were fixed or not");
-      }
-      if enabled_steps.versions {
-        println!("{}", "Versions".yellow());
-        if !versions::fix_all(&cwd, &rcfile, &mut packages) {
-          is_valid = false;
-        }
-        debug!("@TODO: log whether version mismatches were fixed or not");
-      }
-      is_valid
-    }
-    _ => {
-      debug!("@TODO: output --help when command is not recognised");
-      false
+    (Subcommand::Fix, enabled) => {
+      let format_valid = !enabled.format || format::fix_all(&cwd, &rcfile, &mut packages);
+      let ranges_valid = !enabled.ranges || semver_ranges::fix_all(&cwd, &rcfile, &mut packages);
+      let versions_valid = !enabled.versions || versions::fix_all(&cwd, &rcfile, &mut packages);
+
+      println!("format: {}", format_valid);
+      println!("semver ranges: {}", ranges_valid);
+      println!("versions: {}", versions_valid);
+
+      format_valid && ranges_valid && versions_valid
     }
   };
 
