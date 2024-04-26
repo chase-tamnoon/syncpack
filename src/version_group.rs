@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::BTreeMap;
 use std::collections::HashSet;
 use std::vec;
 
@@ -14,35 +14,35 @@ use crate::specifier::SpecifierType;
 #[derive(Debug)]
 pub struct BannedVersionGroup<'a> {
   pub selector: GroupSelector,
-  pub instances_by_name: HashMap<String, &'a Instance<'a>>,
+  pub instances_by_name: BTreeMap<String, &'a Instance<'a>>,
   pub is_banned: bool,
 }
 
 #[derive(Debug)]
 pub struct IgnoredVersionGroup<'a> {
   pub selector: GroupSelector,
-  pub instances_by_name: HashMap<String, &'a Instance<'a>>,
+  pub instances_by_name: BTreeMap<String, &'a Instance<'a>>,
   pub is_ignored: bool,
 }
 
 #[derive(Debug)]
 pub struct PinnedVersionGroup<'a> {
   pub selector: GroupSelector,
-  pub instances_by_name: HashMap<String, &'a Instance<'a>>,
+  pub instances_by_name: BTreeMap<String, &'a Instance<'a>>,
   pub pin_version: String,
 }
 
 #[derive(Debug)]
 pub struct SameRangeVersionGroup<'a> {
   pub selector: GroupSelector,
-  pub instances_by_name: HashMap<String, &'a Instance<'a>>,
+  pub instances_by_name: BTreeMap<String, &'a Instance<'a>>,
   pub policy: String,
 }
 
 #[derive(Debug)]
 pub struct SnappedToVersionGroup<'a> {
   pub selector: GroupSelector,
-  pub instances_by_name: HashMap<String, &'a Instance<'a>>,
+  pub instances_by_name: BTreeMap<String, &'a Instance<'a>>,
   pub snap_to: Vec<String>,
 }
 
@@ -50,7 +50,7 @@ pub struct SnappedToVersionGroup<'a> {
 pub struct StandardVersionGroup<'a> {
   pub selector: GroupSelector,
   /// Group instances of each dependency together for comparison.
-  pub instances_by_name: HashMap<String, InstanceGroup<'a>>,
+  pub instances_by_name: BTreeMap<String, InstanceGroup<'a>>,
   /// As defined in the rcfile: "lowestSemver" or "highestSemver".
   pub prefer_version: String,
 }
@@ -169,13 +169,11 @@ impl<'a> VersionGroup<'a> {
               // preference.
               Some(current_preferred_version) => {
                 let this_version = &instance.specifier;
-                let preference = if &group.prefer_version == "lowestSemver" {
-                  Cmp::Lt
-                } else {
-                  Cmp::Gt
-                };
-
-                if compare(this_version, current_preferred_version) == Ok(preference) {
+                let prefer_lowest = &group.prefer_version == "lowestSemver";
+                let preferred = if prefer_lowest { Cmp::Lt } else { Cmp::Gt };
+                let actual = compare(this_version, current_preferred_version);
+                let is_preferred = actual == Ok(preferred);
+                if is_preferred {
                   set_preferred_version(instance, instance_group, this_version.clone());
                 }
               }
@@ -209,7 +207,7 @@ impl<'a> VersionGroup<'a> {
         packages: vec![],
         specifier_types: vec![],
       },
-      instances_by_name: HashMap::new(),
+      instances_by_name: BTreeMap::new(),
       prefer_version: "highestSemver".to_string(),
     });
     user_groups.push(catch_all_group);
@@ -229,42 +227,42 @@ impl<'a> VersionGroup<'a> {
     if let Some(true) = group.is_banned {
       return VersionGroup::Banned(BannedVersionGroup {
         selector,
-        instances_by_name: HashMap::new(),
+        instances_by_name: BTreeMap::new(),
         is_banned: true,
       });
     }
     if let Some(true) = group.is_ignored {
       return VersionGroup::Ignored(IgnoredVersionGroup {
         selector,
-        instances_by_name: HashMap::new(),
+        instances_by_name: BTreeMap::new(),
         is_ignored: true,
       });
     }
     if let Some(pin_version) = &group.pin_version {
       return VersionGroup::Pinned(PinnedVersionGroup {
         selector,
-        instances_by_name: HashMap::new(),
+        instances_by_name: BTreeMap::new(),
         pin_version: pin_version.clone(),
       });
     }
     if let Some(policy) = &group.policy {
       return VersionGroup::SameRange(SameRangeVersionGroup {
         selector,
-        instances_by_name: HashMap::new(),
+        instances_by_name: BTreeMap::new(),
         policy: policy.clone(),
       });
     }
     if let Some(snap_to) = &group.snap_to {
       return VersionGroup::SnappedTo(SnappedToVersionGroup {
         selector,
-        instances_by_name: HashMap::new(),
+        instances_by_name: BTreeMap::new(),
         snap_to: snap_to.clone(),
       });
     }
     if let Some(prefer_version) = &group.prefer_version {
       return VersionGroup::Standard(StandardVersionGroup {
         selector,
-        instances_by_name: HashMap::new(),
+        instances_by_name: BTreeMap::new(),
         prefer_version: prefer_version.clone(),
       });
     }
@@ -299,15 +297,21 @@ fn set_preferred_version(
   instances: &mut InstanceGroup,
   next_preferred_version: String,
 ) {
+  debug!(
+    target: "set_preferred_version",
+    "{}: {:?} → {} ({:?})",
+    &instance.name, &instances.preferred_version, &next_preferred_version, &instance.expected_range
+  );
+
   if let Some(expected_range) = &instance.expected_range {
-    debug!(
-      "@TODO apply preferred semver range ('{}') to preferred version",
-      expected_range
-    );
+    // debug!(
+    //   "@TODO apply preferred semver range ('{}') to preferred version",
+    //   expected_range
+    // );
     let with_fixed_semver_range: Result<String, std::io::Error> =
       Ok(next_preferred_version.clone());
     if let Ok(fixed_version) = with_fixed_semver_range {
-      println!("Fixed version to {}", &fixed_version);
+      // println!("Fixed version to {}", &fixed_version);
       instances.preferred_version = Some(fixed_version);
     } else {
       error!("Failed to get fixed version for {:?}", instance);
