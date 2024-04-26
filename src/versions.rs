@@ -1,7 +1,9 @@
+use log::debug;
+
 pub fn lint_all() {
-  println!("@TODO lint version mismatches");
+  debug!("@TODO lint version mismatches");
 }
 
 pub fn fix_all() {
-  println!("@TODO: fix version mismatches");
+  debug!("@TODO: fix version mismatches");
 }

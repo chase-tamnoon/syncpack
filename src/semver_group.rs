@@ -1,3 +1,4 @@
+use log::debug;
 use serde::Deserialize;
 
 use crate::config;
@@ -62,7 +63,7 @@ impl<'a> SemverGroup<'a> {
   /// When valid, give the value back.
   /// When invalid, return an error with a reason.
   pub fn get_fixed(&self, specifier: &String) -> Result<String, ()> {
-    println!("@TODO: implement SemverGroup::get_fixed");
+    debug!("@TODO: implement SemverGroup::get_fixed");
     Ok(specifier.clone())
   }
 

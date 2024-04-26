@@ -2,6 +2,7 @@ use std::collections::HashMap;
 use std::collections::HashSet;
 use std::vec;
 
+use log::{debug, error};
 use serde::Deserialize;
 use version_compare::{compare, Cmp};
 
@@ -299,14 +300,17 @@ fn set_preferred_version(
   next_preferred_version: String,
 ) {
   if let Some(expected_range) = &instance.expected_range {
-    println!("@TODO fix semver range");
+    debug!(
+      "@TODO apply preferred semver range ('{}') to preferred version",
+      expected_range
+    );
     let with_fixed_semver_range: Result<String, std::io::Error> =
       Ok(next_preferred_version.clone());
     if let Ok(fixed_version) = with_fixed_semver_range {
       println!("Fixed version to {}", &fixed_version);
       instances.preferred_version = Some(fixed_version);
     } else {
-      println!("Failed to get fixed version for {:?}", instance);
+      error!("Failed to get fixed version for {:?}", instance);
     }
   }
 }

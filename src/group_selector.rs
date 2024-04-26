@@ -1,3 +1,5 @@
+use log::debug;
+
 use crate::instance::Instance;
 
 #[derive(Debug)]
@@ -41,7 +43,7 @@ pub struct GroupSelector {
 
 impl GroupSelector {
   pub fn can_add(&self, instance: &Instance) -> bool {
-    println!("@TODO implement can_add");
+    debug!("@TODO implement GroupSelector::can_add");
     true
   }
 }

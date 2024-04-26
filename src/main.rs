@@ -2,6 +2,7 @@
 #![allow(unused_variables)]
 
 use colored::*;
+use log::debug;
 use std::{collections::HashMap, fs, io, path};
 
 use crate::{config::Rcfile, semver_group::SemverGroup, version_group::VersionGroup};
@@ -21,9 +22,9 @@ mod versions;
 
 // - [ ] when fixing, write to fixed_specifier_type/fixed_specifier on instance
 // - [ ] don't create version groups etc when running format
-// - [ ]
-// - [ ]
 fn main() -> io::Result<()> {
+  env_logger::init();
+
   let cwd = std::env::current_dir()?;
   let rcfile = config::get();
   let dependency_types = Rcfile::get_enabled_dependency_types(&rcfile);
@@ -42,14 +43,7 @@ fn main() -> io::Result<()> {
       .any(|version_group| version_group.add_instance(instance));
   });
 
-  println!("{}", "rcfile".yellow());
-  println!("{:#?}", &rcfile);
-  println!("{}", "semver_groups".yellow());
-  println!("{:#?}", &semver_groups);
-  println!("{}", "version_groups".yellow());
-  println!("{:#?}", &version_groups);
-  // println!("{}", "instances".yellow());
-  // println!("{:#?}", &instances);
+  debug!("rcfile: {:#?}", &rcfile);
 
   match cli::create().get_matches().subcommand() {
     Some(("lint", matches)) => {
@@ -57,17 +51,17 @@ fn main() -> io::Result<()> {
       if enabled_steps.format {
         println!("{}", "Formatting".yellow());
         format::lint_all(&rcfile, &mut packages);
-        println!("@TODO: log whether formatting is valid or not");
+        debug!("@TODO: log whether formatting is valid or not");
       }
       if enabled_steps.ranges {
         println!("{}", "Semver Ranges".yellow());
         semver_ranges::lint_all();
-        println!("@TODO: log whether semver ranges match or not");
+        debug!("@TODO: log whether semver ranges match or not");
       }
       if enabled_steps.versions {
         println!("{}", "Versions".yellow());
         versions::lint_all();
-        println!("@TODO: log whether version mismatches are valid or not");
+        debug!("@TODO: log whether version mismatches are valid or not");
       }
       Ok(())
     }
@@ -76,17 +70,17 @@ fn main() -> io::Result<()> {
       if enabled_steps.format {
         println!("{}", "Formatting".yellow());
         format::fix_all(&rcfile, &mut packages);
-        println!("@TODO: log whether formatting was fixed or not");
+        debug!("@TODO: log whether formatting was fixed or not");
       }
       if enabled_steps.ranges {
         println!("{}", "Semver Ranges".yellow());
         semver_ranges::fix_all();
-        println!("@TODO: log whether semver range mismatches were fixed or not");
+        debug!("@TODO: log whether semver range mismatches were fixed or not");
       }
       if enabled_steps.versions {
         println!("{}", "Versions".yellow());
         versions::fix_all();
-        println!("@TODO: log whether version mismatches were fixed or not");
+        debug!("@TODO: log whether version mismatches were fixed or not");
       }
       Ok(())
     }
