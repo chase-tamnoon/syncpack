@@ -78,7 +78,7 @@ impl<'a> SemverGroup<'a> {
       selector: GroupSelector {
         dependencies: vec![],
         dependency_types: vec![],
-        label: "default".to_string(),
+        label: "Default Semver Group".to_string(),
         packages: vec![],
         specifier_types: vec![],
       },

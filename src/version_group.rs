@@ -83,6 +83,13 @@ impl<'a> InstanceGroup<'a> {
       unique_specifiers: HashSet::new(),
     }
   }
+
+  pub fn is_mismatch(&self, specifier: &String) -> bool {
+    match &self.preferred_version {
+      Some(preferred_version) => specifier != preferred_version,
+      None => false,
+    }
+  }
 }
 
 #[derive(Debug)]
@@ -203,7 +210,7 @@ impl<'a> VersionGroup<'a> {
       selector: GroupSelector {
         dependencies: vec![],
         dependency_types: vec![],
-        label: "default".to_string(),
+        label: "Default Version Group".to_string(),
         packages: vec![],
         specifier_types: vec![],
       },

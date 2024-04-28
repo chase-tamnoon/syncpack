@@ -73,8 +73,7 @@ fn main() -> io::Result<()> {
           VersionGroup::SameRange(group) => {}
           VersionGroup::SnappedTo(group) => {}
           VersionGroup::Standard(group) => {
-            // write version group header
-            println!("{}", group.selector.label.blue());
+            print_group_header(&group.selector.label);
             group
               .instances_by_name
               .iter()
@@ -83,23 +82,13 @@ fn main() -> io::Result<()> {
                 let count = format!("{: >4}x", instance_group.all.len()).dimmed();
                 if has_mismatches(instance_group) {
                   println!("  {} {}", count, name.red());
-                  let expected = instance_group.preferred_version.as_ref().unwrap();
                   instance_group.unique_specifiers.iter().for_each(|actual| {
-                    if actual != expected {
-                      let icon = "✘".red();
-                      let arrow = "→".dimmed();
-                      println!(
-                        "        {} {} {} {}",
-                        icon,
-                        actual.red(),
-                        arrow,
-                        expected.green()
-                      );
+                    if instance_group.is_mismatch(actual) {
+                      print_version_mismatch(instance_group, actual);
                     }
                   });
                 } else {
-                  let versions = &instance_group.unique_specifiers.iter().join(" ");
-                  println!("  {} {} {}", count, name, &versions.dimmed());
+                  print_version_match(instance_group, count, name);
                 };
               })
           }
@@ -134,6 +123,40 @@ fn main() -> io::Result<()> {
   } else {
     std::process::exit(1);
   }
+}
+
+fn print_group_header(label: &String) {
+  let print_width = 80;
+  let header = format!("= {} ", label);
+  let divider = if header.len() < print_width {
+    "=".repeat(print_width - header.len())
+  } else {
+    "".to_string()
+  };
+  let full_header = format!("{}{}", header, divider);
+  println!("{}", full_header.blue());
+}
+
+fn print_version_match(
+  instance_group: &version_group::InstanceGroup<'_>,
+  count: ColoredString,
+  name: &String,
+) {
+  let version = &instance_group.unique_specifiers.iter().join(" ");
+  println!("  {} {} {}", count, name, &version.dimmed());
+}
+
+fn print_version_mismatch(instance_group: &version_group::InstanceGroup<'_>, actual: &String) {
+  let icon = "✘".red();
+  let arrow = "→".dimmed();
+  let expected = instance_group.preferred_version.as_ref().unwrap();
+  println!(
+    "        {} {} {} {}",
+    icon,
+    actual.red(),
+    arrow,
+    expected.green()
+  );
 }
 
 fn has_mismatches(instance_group: &version_group::InstanceGroup<'_>) -> bool {
