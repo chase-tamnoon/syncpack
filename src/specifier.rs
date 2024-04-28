@@ -140,6 +140,24 @@ fn is_range_minor(specifier: &str) -> bool {
     || LTE_MINOR.is_match(specifier)
 }
 
+pub fn get_specifier_type_name(specifier_type: &SpecifierType) -> String {
+  match specifier_type {
+    &IS_EXACT => "exact".to_string(),
+    &IS_LATEST => "latest".to_string(),
+    &IS_MAJOR => "major".to_string(),
+    &IS_MINOR => "minor".to_string(),
+    &IS_RANGE => "range".to_string(),
+    &IS_RANGE_MINOR => "range-minor".to_string(),
+    &IS_ALIAS => "alias".to_string(),
+    &IS_FILE => "file".to_string(),
+    &IS_GIT => "git".to_string(),
+    &IS_TAG => "tag".to_string(),
+    &IS_UNSUPPORTED => "unsupported".to_string(),
+    &IS_URL => "url".to_string(),
+    &IS_WORKSPACE_PROTOCOL => "workspace-protocol".to_string(),
+  }
+}
+
 #[cfg(test)]
 mod tests {
   use super::*;

@@ -37,7 +37,7 @@ impl Strategy {
   fn get_instances<'a>(
     &'a self,
     dependency_type: &'a DependencyType,
-    file: &package_json::PackageJson,
+    file: &'a package_json::PackageJson,
     filter: &Regex,
   ) -> Vec<Instance> {
     match *self {
@@ -47,7 +47,12 @@ impl Strategy {
           file.get_prop(&dependency_type.path),
         ) {
           if filter.is_match(name) {
-            let instance = Instance::new(name.to_string(), version.to_string(), &dependency_type);
+            let instance = Instance::new(
+              name.to_string(),
+              version.to_string(),
+              &dependency_type,
+              &file,
+            );
             return vec![instance];
           }
         }
@@ -57,7 +62,12 @@ impl Strategy {
         if let Some(Value::String(specifier)) = file.get_prop(&dependency_type.path) {
           if let Some((name, version)) = specifier.split_once('@') {
             if filter.is_match(name) {
-              let instance = Instance::new(name.to_string(), version.to_string(), &dependency_type);
+              let instance = Instance::new(
+                name.to_string(),
+                version.to_string(),
+                &dependency_type,
+                &file,
+              );
               return vec![instance];
             }
           }
@@ -71,6 +81,7 @@ impl Strategy {
               dependency_type.name.clone(),
               version.to_string(),
               &dependency_type,
+              &file,
             );
             return vec![instance];
           }
@@ -83,8 +94,12 @@ impl Strategy {
           for (name, version) in versions_by_name {
             if filter.is_match(name) {
               if let Value::String(version) = version {
-                let instance =
-                  Instance::new(name.to_string(), version.to_string(), &dependency_type);
+                let instance = Instance::new(
+                  name.to_string(),
+                  version.to_string(),
+                  &dependency_type,
+                  &file,
+                );
                 instances.push(instance);
               }
             }
@@ -112,7 +127,11 @@ pub struct DependencyType {
 
 impl DependencyType {
   /// Get all instances of this dependency type from the given package.json
-  pub fn get_instances(&self, file: &package_json::PackageJson, filter: &Regex) -> Vec<Instance> {
+  pub fn get_instances<'a>(
+    &'a self,
+    file: &'a package_json::PackageJson,
+    filter: &Regex,
+  ) -> Vec<Instance<'a>> {
     self.strategy.get_instances(&self, &file, &filter)
   }
 

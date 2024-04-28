@@ -1,6 +1,8 @@
 use regex::Regex;
 use serde::Deserialize;
 use std::collections::HashMap;
+use std::fs;
+use std::io;
 use std::path;
 
 use crate::dependency_type;
@@ -115,7 +117,8 @@ impl Rcfile {
   }
 
   pub fn get_sources(&self, cwd: &path::PathBuf) -> Vec<path::PathBuf> {
-    let pattern = &cwd.join("fixtures/fluid-framework/**/package.json");
+    // @TODO: get patterns from rcfile
+    let pattern = &cwd.join("**/package.json");
     let pattern_str = pattern.to_str().unwrap();
     get_file_paths(pattern_str)
   }
@@ -259,75 +262,9 @@ fn get_default_dependency_types() -> HashMap<String, CustomType> {
   ])
 }
 
-pub fn get() -> Rcfile {
-  let raw_json = r#"
-    {
-      "customTypes": {
-        "engines": {
-          "strategy": "versionsByName",
-          "path": "engines"
-        },
-        "packageManager": {
-          "strategy": "name@version",
-          "path": "packageManager"
-        },
-        "someVersion": {
-          "strategy": "version",
-          "path": "someVersion"
-        }
-      },
-      "dependencyTypes": ["!pnpmOverrides"],
-      "filter": ".",
-      "formatBugs": true,
-      "formatRepository": true,
-      "indent": "  ",
-      "semverGroups": [
-        {
-          "dependencyTypes": ["overrides"],
-          "isIgnored": true
-        },
-        {
-          "range": ""
-        }
-      ],
-      "sortAz": [
-        "bin",
-        "contributors",
-        "dependencies",
-        "devDependencies",
-        "keywords",
-        "peerDependencies",
-        "resolutions",
-        "scripts"
-      ],
-      "sortExports": [
-        "types",
-        "node-addons",
-        "node",
-        "browser",
-        "module",
-        "import",
-        "require",
-        "development",
-        "production",
-        "script",
-        "default"
-      ],
-      "sortFirst": ["name", "description", "version", "author"],
-      "sortPackages": true,
-      "source": ["package.json", "packages/*/package.json"],
-      "specifierTypes": ["**"],
-      "versionGroups": [
-        { "dependencies": ["string-width"], "pinVersion": "<5.0.0" },
-        { "dependencies": ["strip-ansi"], "pinVersion": "<7.0.0" },
-        { "dependencies": ["wrap-ansi"], "pinVersion": "<8.0.0" },
-        { "dependencies": ["chalk"], "pinVersion": "4.1.2" },
-        { "dependencies": ["globby"], "pinVersion": "11.1.0" },
-        { "dependencies": ["ora"], "pinVersion": "5.4.1" }
-      ]
-    }
-  "#;
-
-  let deserialized: Rcfile = serde_json::from_str(raw_json).unwrap();
-  deserialized
+pub fn get(cwd: &path::PathBuf) -> io::Result<Rcfile> {
+  let file_path = cwd.join("./.syncpackrc.json");
+  let json = fs::read_to_string(file_path)?;
+  let rcfile: Rcfile = serde_json::from_str(&json)?;
+  Ok(rcfile)
 }

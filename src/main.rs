@@ -15,6 +15,7 @@ mod dependency_type;
 mod format;
 mod group_selector;
 mod instance;
+mod json_file;
 mod package_json;
 mod semver_group;
 mod semver_ranges;
@@ -42,17 +43,23 @@ fn main() -> io::Result<()> {
     }
   };
 
-  let cwd = std::env::current_dir()?;
-  let rcfile = config::get();
+  let cwd = std::env::current_dir()?.join("fixtures/fluid-framework");
+  let rcfile = config::get(&cwd).expect("missing config file");
 
   debug!("rcfile: {:#?}", &rcfile);
 
   let dependency_types = Rcfile::get_enabled_dependency_types(&rcfile);
+  debug!("dependency_types: {}", dependency_types.len());
   let sources = rcfile.get_sources(&cwd);
+  debug!("sources: {}", sources.len());
   let semver_groups = SemverGroup::from_rcfile(&rcfile);
+  debug!("semver_groups: {}", semver_groups.len());
   let mut packages = get_packages(sources, &cwd);
+  debug!("packages: {}", packages.len());
   let mut version_groups = VersionGroup::from_rcfile(&rcfile);
+  debug!("version_groups: {}", version_groups.len());
   let mut instances = get_instances(&packages, &dependency_types, &rcfile.get_filter());
+  debug!("instances: {}", instances.len());
 
   // assign every instance to the first group it matches
   instances.iter_mut().for_each(|instance| {
@@ -68,11 +75,61 @@ fn main() -> io::Result<()> {
     (Subcommand::List, _) => {
       version_groups.iter().for_each(|group| {
         match group {
-          VersionGroup::Banned(group) => {}
-          VersionGroup::Ignored(group) => {}
-          VersionGroup::Pinned(group) => {}
-          VersionGroup::SameRange(group) => {}
-          VersionGroup::SnappedTo(group) => {}
+          VersionGroup::Banned(group) => {
+            print_group_header(&group.selector.label);
+            group
+              .instances_by_name
+              .iter()
+              .for_each(|(name, instance_group)| {
+                // right align the count of instances
+                let count = format!("{: >4}x", instance_group.all.len()).dimmed();
+                print_version_match(instance_group, count, name);
+              })
+          }
+          VersionGroup::Ignored(group) => {
+            print_group_header(&group.selector.label);
+            group
+              .instances_by_name
+              .iter()
+              .for_each(|(name, instance_group)| {
+                // right align the count of instances
+                let count = format!("{: >4}x", instance_group.all.len()).dimmed();
+                print_version_match(instance_group, count, name);
+              })
+          }
+          VersionGroup::Pinned(group) => {
+            print_group_header(&group.selector.label);
+            group
+              .instances_by_name
+              .iter()
+              .for_each(|(name, instance_group)| {
+                // right align the count of instances
+                let count = format!("{: >4}x", instance_group.all.len()).dimmed();
+                print_version_match(instance_group, count, name);
+              })
+          }
+          VersionGroup::SameRange(group) => {
+            print_group_header(&group.selector.label);
+            group
+              .instances_by_name
+              .iter()
+              .for_each(|(name, instance_group)| {
+                // right align the count of instances
+                let count = format!("{: >4}x", instance_group.all.len()).dimmed();
+                print_version_match(instance_group, count, name);
+              })
+          }
+          VersionGroup::SnappedTo(group) => {
+            print_group_header(&group.selector.label);
+            group
+              .instances_by_name
+              .iter()
+              .for_each(|(name, instance_group)| {
+                // right align the count of instances
+                let count = format!("{: >4}x", instance_group.all.len()).dimmed();
+                print_version_match(instance_group, count, name);
+              })
+          }
           VersionGroup::Standard(group) => {
             print_group_header(&group.selector.label);
             group
@@ -170,7 +227,7 @@ fn get_packages(
 ) -> Vec<package_json::PackageJson> {
   sources
     .iter_mut()
-    .filter_map(|file_path| read_file(&cwd, &file_path).ok())
+    .filter_map(|file_path| json_file::read_json_file(&cwd, &file_path).ok())
     .collect()
 }
 
@@ -186,7 +243,7 @@ fn get_instances<'a>(
 }
 
 /// Read and parse a package.json file
-fn read_file<P: AsRef<path::Path>>(
+fn read_json_file<P: AsRef<path::Path>>(
   cwd: &std::path::PathBuf,
   file_path: &P,
 ) -> io::Result<package_json::PackageJson> {
@@ -198,8 +255,4 @@ fn read_file<P: AsRef<path::Path>>(
     json,
     contents,
   })
-}
-
-fn create_error(message: &str) -> io::Error {
-  io::Error::new(io::ErrorKind::Other, message)
 }

@@ -14,35 +14,35 @@ use crate::specifier::SpecifierType;
 #[derive(Debug)]
 pub struct BannedVersionGroup<'a> {
   pub selector: GroupSelector,
-  pub instances_by_name: BTreeMap<String, &'a Instance<'a>>,
+  pub instances_by_name: BTreeMap<String, InstanceGroup<'a>>,
   pub is_banned: bool,
 }
 
 #[derive(Debug)]
 pub struct IgnoredVersionGroup<'a> {
   pub selector: GroupSelector,
-  pub instances_by_name: BTreeMap<String, &'a Instance<'a>>,
+  pub instances_by_name: BTreeMap<String, InstanceGroup<'a>>,
   pub is_ignored: bool,
 }
 
 #[derive(Debug)]
 pub struct PinnedVersionGroup<'a> {
   pub selector: GroupSelector,
-  pub instances_by_name: BTreeMap<String, &'a Instance<'a>>,
+  pub instances_by_name: BTreeMap<String, InstanceGroup<'a>>,
   pub pin_version: String,
 }
 
 #[derive(Debug)]
 pub struct SameRangeVersionGroup<'a> {
   pub selector: GroupSelector,
-  pub instances_by_name: BTreeMap<String, &'a Instance<'a>>,
+  pub instances_by_name: BTreeMap<String, InstanceGroup<'a>>,
   pub policy: String,
 }
 
 #[derive(Debug)]
 pub struct SnappedToVersionGroup<'a> {
   pub selector: GroupSelector,
-  pub instances_by_name: BTreeMap<String, &'a Instance<'a>>,
+  pub instances_by_name: BTreeMap<String, InstanceGroup<'a>>,
   pub snap_to: Vec<String>,
 }
 
@@ -108,19 +108,114 @@ impl<'a> VersionGroup<'a> {
   pub fn add_instance_if_eligible(&mut self, instance: &'a Instance) -> bool {
     match self {
       VersionGroup::Banned(group) => {
-        return false;
+        // If this instance is not eligible for this group, reject it so it can
+        // continue to compare itself against the next group.
+        if !group.selector.can_add(instance) {
+          return false;
+        }
+
+        // Ensure that a group exists for this dependency name.
+        if !group.instances_by_name.contains_key(&instance.name) {
+          group
+            .instances_by_name
+            .insert(instance.name.clone(), InstanceGroup::new());
+        }
+
+        // Get the group for this dependency name.
+        let instance_group = group.instances_by_name.get_mut(&instance.name).unwrap();
+
+        instance_group.all.push(instance);
+
+        // Claim this instance so it can't be claimed by another group.
+        return true;
       }
       VersionGroup::Ignored(group) => {
-        return false;
+        // If this instance is not eligible for this group, reject it so it can
+        // continue to compare itself against the next group.
+        if !group.selector.can_add(instance) {
+          return false;
+        }
+
+        // Ensure that a group exists for this dependency name.
+        if !group.instances_by_name.contains_key(&instance.name) {
+          group
+            .instances_by_name
+            .insert(instance.name.clone(), InstanceGroup::new());
+        }
+
+        // Get the group for this dependency name.
+        let instance_group = group.instances_by_name.get_mut(&instance.name).unwrap();
+
+        instance_group.all.push(instance);
+
+        // Claim this instance so it can't be claimed by another group.
+        return true;
       }
       VersionGroup::Pinned(group) => {
-        return false;
+        // If this instance is not eligible for this group, reject it so it can
+        // continue to compare itself against the next group.
+        if !group.selector.can_add(instance) {
+          return false;
+        }
+
+        // Ensure that a group exists for this dependency name.
+        if !group.instances_by_name.contains_key(&instance.name) {
+          group
+            .instances_by_name
+            .insert(instance.name.clone(), InstanceGroup::new());
+        }
+
+        // Get the group for this dependency name.
+        let instance_group = group.instances_by_name.get_mut(&instance.name).unwrap();
+
+        instance_group.all.push(instance);
+
+        // Claim this instance so it can't be claimed by another group.
+        return true;
       }
       VersionGroup::SameRange(group) => {
-        return false;
+        // If this instance is not eligible for this group, reject it so it can
+        // continue to compare itself against the next group.
+        if !group.selector.can_add(instance) {
+          return false;
+        }
+
+        // Ensure that a group exists for this dependency name.
+        if !group.instances_by_name.contains_key(&instance.name) {
+          group
+            .instances_by_name
+            .insert(instance.name.clone(), InstanceGroup::new());
+        }
+
+        // Get the group for this dependency name.
+        let instance_group = group.instances_by_name.get_mut(&instance.name).unwrap();
+
+        instance_group.all.push(instance);
+
+        // Claim this instance so it can't be claimed by another group.
+        return true;
       }
       VersionGroup::SnappedTo(group) => {
-        return false;
+        // If this instance is not eligible for this group, reject it so it can
+        // continue to compare itself against the next group.
+        if !group.selector.can_add(instance) {
+          return false;
+        }
+
+        // Ensure that a group exists for this dependency name.
+        if !group.instances_by_name.contains_key(&instance.name) {
+          group
+            .instances_by_name
+            .insert(instance.name.clone(), InstanceGroup::new());
+        }
+
+        // Get the group for this dependency name.
+        let instance_group = group.instances_by_name.get_mut(&instance.name).unwrap();
+
+        instance_group.all.push(instance);
+
+        // Claim this instance so it can't be claimed by another group.
+        return true;
       }
       VersionGroup::Standard(group) => {
         // If this instance is not eligible for this group, reject it so it can
@@ -207,13 +302,13 @@ impl<'a> VersionGroup<'a> {
       .map(|group| VersionGroup::from_config(group))
       .collect();
     let catch_all_group = VersionGroup::Standard(StandardVersionGroup {
-      selector: GroupSelector {
-        dependencies: vec![],
-        dependency_types: vec![],
-        label: "Default Version Group".to_string(),
-        packages: vec![],
-        specifier_types: vec![],
-      },
+      selector: GroupSelector::new(
+        /*include_dependencies:*/ vec![],
+        /*include_dependency_types:*/ vec![],
+        /*label:*/ "Default Version Group".to_string(),
+        /*include_packages:*/ vec![],
+        /*include_specifier_types:*/ vec![],
+      ),
       instances_by_name: BTreeMap::new(),
       prefer_version: "highestSemver".to_string(),
     });
@@ -223,13 +318,13 @@ impl<'a> VersionGroup<'a> {
 
   /// Create a single version group from a config item from the rcfile.
   pub fn from_config(group: &AnyVersionGroup) -> VersionGroup {
-    let selector = GroupSelector {
-      dependencies: group.dependencies.clone(),
-      dependency_types: group.dependency_types.clone(),
-      label: group.label.clone(),
-      packages: group.packages.clone(),
-      specifier_types: group.specifier_types.clone(),
-    };
+    let selector = GroupSelector::new(
+      /*include_dependencies:*/ group.dependencies.clone(),
+      /*include_dependency_types:*/ group.dependency_types.clone(),
+      /*label:*/ group.label.clone(),
+      /*include_packages:*/ group.packages.clone(),
+      /*include_specifier_types:*/ group.specifier_types.clone(),
+    );
 
     if let Some(true) = group.is_banned {
       return VersionGroup::Banned(BannedVersionGroup {
@@ -273,7 +368,11 @@ impl<'a> VersionGroup<'a> {
         prefer_version: prefer_version.clone(),
       });
     }
-    panic!("Invalid version group");
+    VersionGroup::Standard(StandardVersionGroup {
+      selector,
+      instances_by_name: BTreeMap::new(),
+      prefer_version: "highestSemver".to_string(),
+    })
   }
 }
 
