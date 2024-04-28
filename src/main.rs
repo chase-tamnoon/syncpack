@@ -4,6 +4,7 @@
 use colored::*;
 use itertools::Itertools;
 use log::debug;
+use regex::Regex;
 use std::{collections::HashMap, fs, io, path};
 
 use crate::{config::Rcfile, semver_group::SemverGroup, version_group::VersionGroup};
@@ -51,7 +52,7 @@ fn main() -> io::Result<()> {
   let semver_groups = SemverGroup::from_rcfile(&rcfile);
   let mut packages = get_packages(sources, &cwd);
   let mut version_groups = VersionGroup::from_rcfile(&rcfile);
-  let mut instances = get_instances(&packages, &dependency_types);
+  let mut instances = get_instances(&packages, &dependency_types, &rcfile.get_filter());
 
   // assign every instance to the first group it matches
   instances.iter_mut().for_each(|instance| {
@@ -176,10 +177,11 @@ fn get_packages(
 fn get_instances<'a>(
   packages: &'a Vec<package_json::PackageJson>,
   dependency_types: &'a HashMap<String, dependency_type::DependencyType>,
+  filter: &Regex,
 ) -> Vec<instance::Instance<'a>> {
   packages
     .iter()
-    .flat_map(|package| package.get_instances(&dependency_types))
+    .flat_map(|package| package.get_instances(&dependency_types, &filter))
     .collect()
 }
 

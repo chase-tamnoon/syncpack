@@ -1,4 +1,5 @@
 use colored::Colorize;
+use regex::Regex;
 use serde_json;
 use std::collections::HashMap;
 use std::fs;
@@ -23,10 +24,11 @@ impl PackageJson {
   pub fn get_instances<'a>(
     &'a self,
     enabled_dependency_types: &'a HashMap<String, DependencyType>,
+    filter: &Regex,
   ) -> Vec<instance::Instance> {
     enabled_dependency_types
       .iter()
-      .flat_map(|(name, dependency_type)| dependency_type.get_instances(&self))
+      .flat_map(|(name, dependency_type)| dependency_type.get_instances(&self, filter))
       .collect()
   }
 

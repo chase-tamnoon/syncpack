@@ -1,3 +1,4 @@
+use regex::Regex;
 use serde::Deserialize;
 use std::collections::HashMap;
 use std::path;
@@ -109,6 +110,10 @@ pub struct Rcfile {
 }
 
 impl Rcfile {
+  pub fn get_filter(&self) -> Regex {
+    Regex::new(&self.filter).expect("filter config value is not a valid Regex string")
+  }
+
   pub fn get_sources(&self, cwd: &path::PathBuf) -> Vec<path::PathBuf> {
     let pattern = &cwd.join("fixtures/fluid-framework/**/package.json");
     let pattern_str = pattern.to_str().unwrap();
