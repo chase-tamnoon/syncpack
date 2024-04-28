@@ -32,18 +32,15 @@ fn main() -> io::Result<()> {
   env_logger::init();
 
   let subcommand = match cli::create().get_matches().subcommand() {
-    Some(("list", matches)) => Some((Subcommand::List, None)),
-    Some(("lint", matches)) => Some((Subcommand::Lint, Some(cli::get_enabled_steps(matches)))),
-    Some(("fix", matches)) => Some((Subcommand::Fix, Some(cli::get_enabled_steps(matches)))),
-    _ => None,
+    Some(("list", matches)) => (Subcommand::List, None),
+    Some(("lint", matches)) => (Subcommand::Lint, Some(cli::get_enabled_steps(matches))),
+    Some(("fix", matches)) => (Subcommand::Fix, Some(cli::get_enabled_steps(matches))),
+    _ => {
+      debug!("@TODO: output --help when command is not recognised");
+      std::process::exit(1);
+    }
   };
 
-  if subcommand.is_none() {
-    debug!("@TODO: output --help when command is not recognised");
-    std::process::exit(1);
-  }
-
-  let subcommand = subcommand.unwrap();
   let cwd = std::env::current_dir()?;
   let rcfile = config::get();
 
@@ -76,32 +73,30 @@ fn main() -> io::Result<()> {
           VersionGroup::SameRange(group) => {}
           VersionGroup::SnappedTo(group) => {}
           VersionGroup::Standard(group) => {
+            // write version group header
             println!("{}", group.selector.label.blue());
             group
               .instances_by_name
               .iter()
               .for_each(|(name, instance_group)| {
+                // right align the count of instances
                 let count = format!("{: >4}x", instance_group.all.len()).dimmed();
-                let size = &instance_group.unique_specifiers.len();
-                if *size > (1 as usize) {
+                if has_mismatches(instance_group) {
                   println!("  {} {}", count, name.red());
-                  let preferred = instance_group.preferred_version.as_ref().unwrap();
-                  instance_group
-                    .unique_specifiers
-                    .iter()
-                    .for_each(|specifier| {
-                      if specifier != preferred {
-                        let icon = "✘".red();
-                        let arrow = "→".dimmed();
-                        println!(
-                          "        {} {} {} {}",
-                          icon,
-                          specifier.red(),
-                          arrow,
-                          preferred.green()
-                        );
-                      }
-                    });
+                  let expected = instance_group.preferred_version.as_ref().unwrap();
+                  instance_group.unique_specifiers.iter().for_each(|actual| {
+                    if actual != expected {
+                      let icon = "✘".red();
+                      let arrow = "→".dimmed();
+                      println!(
+                        "        {} {} {} {}",
+                        icon,
+                        actual.red(),
+                        arrow,
+                        expected.green()
+                      );
+                    }
+                  });
                 } else {
                   let versions = &instance_group.unique_specifiers.iter().join(" ");
                   println!("  {} {} {}", count, name, &versions.dimmed());
@@ -139,6 +134,10 @@ fn main() -> io::Result<()> {
   } else {
     std::process::exit(1);
   }
+}
+
+fn has_mismatches(instance_group: &version_group::InstanceGroup<'_>) -> bool {
+  instance_group.unique_specifiers.len() > (1 as usize)
 }
 
 fn get_packages(
