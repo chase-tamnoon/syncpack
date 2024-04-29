@@ -66,7 +66,7 @@ impl<'a> VersionGroup<'a> {
     instance_group.all.push(instance);
 
     if matches!(self.variant, VersionGroupVariant::Standard) {
-      // If there is more than one version in this list, then we have
+      // If there is more than one unique version, then we have
       // mismatching versions.
       instance_group
         .unique_specifiers

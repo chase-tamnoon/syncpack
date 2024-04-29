@@ -34,7 +34,6 @@ enum Subcommand {
   Fix,
 }
 
-// - [ ] when fixing, write to fixed_specifier_type/fixed_specifier on instance
 fn main() -> io::Result<()> {
   env_logger::init();
 
@@ -51,20 +50,20 @@ fn main() -> io::Result<()> {
   let cwd = std::env::current_dir()?.join("fixtures/fluid-framework");
   let rcfile = config::get(&cwd).expect("missing config file");
 
-  debug!("rcfile: {:#?}", &rcfile);
+  debug!("rcfile: {:?}", &rcfile);
 
   let dependency_types = Rcfile::get_enabled_dependency_types(&rcfile);
-  debug!("dependency_types: {}", dependency_types.len());
+  debug!("{} dependency_types", dependency_types.len());
   let sources = rcfile.get_sources(&cwd);
-  debug!("sources: {}", sources.len());
+  debug!("{} sources", sources.len());
   let semver_groups = SemverGroup::from_rcfile(&rcfile);
-  debug!("semver_groups: {}", semver_groups.len());
+  debug!("{} semver_groups", semver_groups.len());
   let mut packages = get_packages(sources, &cwd);
-  debug!("packages: {}", packages.len());
+  debug!("{} packages", packages.len());
   let mut version_groups = VersionGroup::from_rcfile(&rcfile);
-  debug!("version_groups: {}", version_groups.len());
+  debug!("{} version_groups", version_groups.len());
   let mut instances = get_instances(&packages, &dependency_types, &rcfile.get_filter());
-  debug!("instances: {}", instances.len());
+  debug!("{} instances", instances.len());
 
   // assign every instance to the first group it matches
   instances.iter_mut().for_each(|instance| {
