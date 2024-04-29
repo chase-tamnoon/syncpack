@@ -15,6 +15,7 @@ mod dependency_type;
 mod format;
 mod group_selector;
 mod instance;
+mod instance_group;
 mod json_file;
 mod package_json;
 mod semver_group;
@@ -196,7 +197,7 @@ fn print_group_header(label: &String) {
 }
 
 fn print_version_match(
-  instance_group: &version_group::InstanceGroup<'_>,
+  instance_group: &instance_group::InstanceGroup<'_>,
   count: ColoredString,
   name: &String,
 ) {
@@ -204,7 +205,7 @@ fn print_version_match(
   println!("  {} {} {}", count, name, &version.dimmed());
 }
 
-fn print_version_mismatch(instance_group: &version_group::InstanceGroup<'_>, actual: &String) {
+fn print_version_mismatch(instance_group: &instance_group::InstanceGroup<'_>, actual: &String) {
   let icon = "✘".red();
   let arrow = "→".dimmed();
   let expected = instance_group.preferred_version.as_ref().unwrap();
@@ -217,7 +218,7 @@ fn print_version_mismatch(instance_group: &version_group::InstanceGroup<'_>, act
   );
 }
 
-fn has_mismatches(instance_group: &version_group::InstanceGroup<'_>) -> bool {
+fn has_mismatches(instance_group: &instance_group::InstanceGroup<'_>) -> bool {
   instance_group.unique_specifiers.len() > (1 as usize)
 }
 
