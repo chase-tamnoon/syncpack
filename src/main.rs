@@ -7,7 +7,11 @@ use log::debug;
 use regex::Regex;
 use std::{collections::HashMap, fs, io, path};
 
-use crate::{config::Rcfile, semver_group::SemverGroup, version_group::VersionGroup};
+use crate::{
+  config::Rcfile,
+  semver_group::SemverGroup,
+  version_group::{VersionGroup, VersionGroupVariant},
+};
 
 mod cli;
 mod config;
@@ -75,8 +79,12 @@ fn main() -> io::Result<()> {
   let is_valid: bool = match subcommand {
     (Subcommand::List, _) => {
       version_groups.iter().for_each(|group| {
-        match group {
-          VersionGroup::Banned(group) => {
+        match group.variant {
+          VersionGroupVariant::Banned
+          | VersionGroupVariant::Ignored
+          | VersionGroupVariant::Pinned
+          | VersionGroupVariant::SameRange
+          | VersionGroupVariant::SnappedTo => {
             print_group_header(&group.selector.label);
             group
               .instances_by_name
@@ -87,51 +95,7 @@ fn main() -> io::Result<()> {
                 print_version_match(instance_group, count, name);
               })
           }
-          VersionGroup::Ignored(group) => {
-            print_group_header(&group.selector.label);
-            group
-              .instances_by_name
-              .iter()
-              .for_each(|(name, instance_group)| {
-                // right align the count of instances
-                let count = format!("{: >4}x", instance_group.all.len()).dimmed();
-                print_version_match(instance_group, count, name);
-              })
-          }
-          VersionGroup::Pinned(group) => {
-            print_group_header(&group.selector.label);
-            group
-              .instances_by_name
-              .iter()
-              .for_each(|(name, instance_group)| {
-                // right align the count of instances
-                let count = format!("{: >4}x", instance_group.all.len()).dimmed();
-                print_version_match(instance_group, count, name);
-              })
-          }
-          VersionGroup::SameRange(group) => {
-            print_group_header(&group.selector.label);
-            group
-              .instances_by_name
-              .iter()
-              .for_each(|(name, instance_group)| {
-                // right align the count of instances
-                let count = format!("{: >4}x", instance_group.all.len()).dimmed();
-                print_version_match(instance_group, count, name);
-              })
-          }
-          VersionGroup::SnappedTo(group) => {
-            print_group_header(&group.selector.label);
-            group
-              .instances_by_name
-              .iter()
-              .for_each(|(name, instance_group)| {
-                // right align the count of instances
-                let count = format!("{: >4}x", instance_group.all.len()).dimmed();
-                print_version_match(instance_group, count, name);
-              })
-          }
-          VersionGroup::Standard(group) => {
+          VersionGroupVariant::Standard => {
             print_group_header(&group.selector.label);
             group
               .instances_by_name

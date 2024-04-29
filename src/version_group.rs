@@ -12,249 +12,115 @@ use crate::instance_group::InstanceGroup;
 use crate::specifier::SpecifierType;
 
 #[derive(Debug)]
-pub struct BannedVersionGroup<'a> {
-  pub selector: GroupSelector,
-  pub instances_by_name: BTreeMap<String, InstanceGroup<'a>>,
-  pub is_banned: bool,
+pub enum PreferVersion {
+  LowestSemver,
+  HighestSemver,
 }
 
 #[derive(Debug)]
-pub struct IgnoredVersionGroup<'a> {
-  pub selector: GroupSelector,
-  pub instances_by_name: BTreeMap<String, InstanceGroup<'a>>,
-  pub is_ignored: bool,
+pub enum VersionGroupVariant {
+  Banned,
+  Ignored,
+  Pinned,
+  SameRange,
+  SnappedTo,
+  Standard,
 }
 
 #[derive(Debug)]
-pub struct PinnedVersionGroup<'a> {
-  pub selector: GroupSelector,
-  pub instances_by_name: BTreeMap<String, InstanceGroup<'a>>,
-  pub pin_version: String,
-}
-
-#[derive(Debug)]
-pub struct SameRangeVersionGroup<'a> {
-  pub selector: GroupSelector,
-  pub instances_by_name: BTreeMap<String, InstanceGroup<'a>>,
-  pub policy: String,
-}
-
-#[derive(Debug)]
-pub struct SnappedToVersionGroup<'a> {
-  pub selector: GroupSelector,
-  pub instances_by_name: BTreeMap<String, InstanceGroup<'a>>,
-  pub snap_to: Vec<String>,
-}
-
-#[derive(Debug)]
-pub struct StandardVersionGroup<'a> {
+pub struct VersionGroup<'a> {
+  /// What behaviour has this group been configured to exhibit?
+  pub variant: VersionGroupVariant,
+  /// Data to determine which instances should be added to this group
   pub selector: GroupSelector,
   /// Group instances of each dependency together for comparison.
   pub instances_by_name: BTreeMap<String, InstanceGroup<'a>>,
-  /// As defined in the rcfile: "lowestSemver" or "highestSemver".
-  pub prefer_version: String,
-}
-
-#[derive(Debug)]
-pub enum VersionGroup<'a> {
-  Banned(BannedVersionGroup<'a>),
-  Ignored(IgnoredVersionGroup<'a>),
-  Pinned(PinnedVersionGroup<'a>),
-  SameRange(SameRangeVersionGroup<'a>),
-  SnappedTo(SnappedToVersionGroup<'a>),
-  Standard(StandardVersionGroup<'a>),
+  /// Which version to use when variant is `Standard`
+  pub prefer_version: Option<PreferVersion>,
+  /// The version to pin all instances to when variant is `Pinned`
+  pub pin_version: Option<String>,
+  /// `name` properties of package.json files developed in the monorepo when variant is `SnappedTo`
+  pub snap_to: Option<Vec<String>>,
 }
 
 impl<'a> VersionGroup<'a> {
   /// Add an instance to this version group if it is eligible, and return
   /// whether it was added.
   pub fn add_instance_if_eligible(&mut self, instance: &'a Instance) -> bool {
-    match self {
-      VersionGroup::Banned(group) => {
-        // If this instance is not eligible for this group, reject it so it can
-        // continue to compare itself against the next group.
-        if !group.selector.can_add(instance) {
-          return false;
-        }
+    // If this instance is not eligible for this group, reject it so it can
+    // continue to compare itself against the next group.
+    if !self.selector.can_add(instance) {
+      return false;
+    }
 
-        // Ensure that a group exists for this dependency name.
-        if !group.instances_by_name.contains_key(&instance.name) {
-          group
-            .instances_by_name
-            .insert(instance.name.clone(), InstanceGroup::new());
-        }
+    // Ensure that a group exists for this dependency name.
+    if !self.instances_by_name.contains_key(&instance.name) {
+      self
+        .instances_by_name
+        .insert(instance.name.clone(), InstanceGroup::new());
+    }
 
-        // Get the group for this dependency name.
-        let instance_group = group.instances_by_name.get_mut(&instance.name).unwrap();
+    // Get the group for this dependency name.
+    let instance_group = self.instances_by_name.get_mut(&instance.name).unwrap();
 
-        instance_group.all.push(instance);
+    instance_group.all.push(instance);
 
-        // Claim this instance so it can't be claimed by another group.
-        return true;
+    if matches!(self.variant, VersionGroupVariant::Standard) {
+      // If there is more than one version in this list, then we have
+      // mismatching versions.
+      instance_group
+        .unique_specifiers
+        .insert(instance.specifier.clone());
+
+      // If this is a local package
+      if instance.dependency_type.name == "local" {
+        // keep track of it for use when analysing
+        instance_group.local = Some(instance);
+        // and set this as the preferred version, since it is the originating
+        // package where this dependency is being developed.
+        let local_version = &instance.specifier;
+        instance_group.preferred_version = Some(local_version.clone());
       }
-      VersionGroup::Ignored(group) => {
-        // If this instance is not eligible for this group, reject it so it can
-        // continue to compare itself against the next group.
-        if !group.selector.can_add(instance) {
-          return false;
+
+      match &instance.specifier_type {
+        SpecifierType::NonSemver(specifier_type) => {
+          instance_group.non_semver.push(instance);
         }
-
-        // Ensure that a group exists for this dependency name.
-        if !group.instances_by_name.contains_key(&instance.name) {
-          group
-            .instances_by_name
-            .insert(instance.name.clone(), InstanceGroup::new());
+        SpecifierType::Semver(specifier_type) => {
+          instance_group.semver.push(instance);
         }
-
-        // Get the group for this dependency name.
-        let instance_group = group.instances_by_name.get_mut(&instance.name).unwrap();
-
-        instance_group.all.push(instance);
-
-        // Claim this instance so it can't be claimed by another group.
-        return true;
       }
-      VersionGroup::Pinned(group) => {
-        // If this instance is not eligible for this group, reject it so it can
-        // continue to compare itself against the next group.
-        if !group.selector.can_add(instance) {
-          return false;
-        }
 
-        // Ensure that a group exists for this dependency name.
-        if !group.instances_by_name.contains_key(&instance.name) {
-          group
-            .instances_by_name
-            .insert(instance.name.clone(), InstanceGroup::new());
-        }
-
-        // Get the group for this dependency name.
-        let instance_group = group.instances_by_name.get_mut(&instance.name).unwrap();
-
-        instance_group.all.push(instance);
-
-        // Claim this instance so it can't be claimed by another group.
-        return true;
-      }
-      VersionGroup::SameRange(group) => {
-        // If this instance is not eligible for this group, reject it so it can
-        // continue to compare itself against the next group.
-        if !group.selector.can_add(instance) {
-          return false;
-        }
-
-        // Ensure that a group exists for this dependency name.
-        if !group.instances_by_name.contains_key(&instance.name) {
-          group
-            .instances_by_name
-            .insert(instance.name.clone(), InstanceGroup::new());
-        }
-
-        // Get the group for this dependency name.
-        let instance_group = group.instances_by_name.get_mut(&instance.name).unwrap();
-
-        instance_group.all.push(instance);
-
-        // Claim this instance so it can't be claimed by another group.
-        return true;
-      }
-      VersionGroup::SnappedTo(group) => {
-        // If this instance is not eligible for this group, reject it so it can
-        // continue to compare itself against the next group.
-        if !group.selector.can_add(instance) {
-          return false;
-        }
-
-        // Ensure that a group exists for this dependency name.
-        if !group.instances_by_name.contains_key(&instance.name) {
-          group
-            .instances_by_name
-            .insert(instance.name.clone(), InstanceGroup::new());
-        }
-
-        // Get the group for this dependency name.
-        let instance_group = group.instances_by_name.get_mut(&instance.name).unwrap();
-
-        instance_group.all.push(instance);
-
-        // Claim this instance so it can't be claimed by another group.
-        return true;
-      }
-      VersionGroup::Standard(group) => {
-        // If this instance is not eligible for this group, reject it so it can
-        // continue to compare itself against the next group.
-        if !group.selector.can_add(instance) {
-          return false;
-        }
-
-        // Ensure that a group exists for this dependency name.
-        if !group.instances_by_name.contains_key(&instance.name) {
-          group
-            .instances_by_name
-            .insert(instance.name.clone(), InstanceGroup::new());
-        }
-
-        // Get the group for this dependency name.
-        let instance_group = group.instances_by_name.get_mut(&instance.name).unwrap();
-
-        instance_group.all.push(instance);
-
-        // If there is more than one version in this list, then we have
-        // mismatching versions.
-        instance_group
-          .unique_specifiers
-          .insert(instance.specifier.clone());
-
-        // If this is a local package
-        if instance.dependency_type.name == "local" {
-          // keep track of it for use when analysing
-          instance_group.local = Some(instance);
-          // and set this as the preferred version, since it is the originating
-          // package where this dependency is being developed.
-          let local_version = &instance.specifier;
-          instance_group.preferred_version = Some(local_version.clone());
-        }
-
-        match &instance.specifier_type {
-          SpecifierType::NonSemver(specifier_type) => {
-            instance_group.non_semver.push(instance);
-          }
-          SpecifierType::Semver(specifier_type) => {
-            instance_group.semver.push(instance);
-          }
-        }
-
-        if instance_group.local.is_none() {
-          // If we have a valid semver specifier, it can be a candidate for being
-          // suggested as the preferred version.
-          if let SpecifierType::Semver(specifier_type) = &instance.specifier_type {
-            match &mut instance_group.preferred_version {
-              // If there is already a preferred version we should keep whichever
-              // is the highest or lowest version depending on the group's
-              // preference.
-              Some(current_preferred_version) => {
-                let this_version = &instance.specifier;
-                let prefer_lowest = &group.prefer_version == "lowestSemver";
-                let preferred = if prefer_lowest { Cmp::Lt } else { Cmp::Gt };
-                let actual = compare(this_version, current_preferred_version);
-                let is_preferred = actual == Ok(preferred);
-                if is_preferred {
-                  set_preferred_version(instance, instance_group, this_version.clone());
-                }
-              }
-              // If there's no preferred version yet, this is the first candidate.
-              None => {
-                let this_version = &instance.specifier;
+      if instance_group.local.is_none() {
+        // If we have a valid semver specifier, it can be a candidate for being
+        // suggested as the preferred version.
+        if let SpecifierType::Semver(specifier_type) = &instance.specifier_type {
+          match &mut instance_group.preferred_version {
+            // If there is already a preferred version we should keep whichever
+            // is the highest or lowest version depending on the group's
+            // preference.
+            Some(current_preferred_version) => {
+              let this_version = &instance.specifier;
+              let prefer_lowest = matches!(&self.prefer_version, Some(PreferVersion::LowestSemver));
+              let preferred = if prefer_lowest { Cmp::Lt } else { Cmp::Gt };
+              let actual = compare(this_version, current_preferred_version);
+              let is_preferred = actual == Ok(preferred);
+              if is_preferred {
                 set_preferred_version(instance, instance_group, this_version.clone());
               }
             }
+            // If there's no preferred version yet, this is the first candidate.
+            None => {
+              let this_version = &instance.specifier;
+              set_preferred_version(instance, instance_group, this_version.clone());
+            }
           }
         }
-
-        // Claim this instance so it can't be claimed by another group.
-        return true;
       }
     }
+
+    // Claim this instance so it can't be claimed by another group.
+    return true;
   }
 
   /// Create every version group defined in the rcfile.
@@ -264,7 +130,8 @@ impl<'a> VersionGroup<'a> {
       .iter()
       .map(|group| VersionGroup::from_config(group))
       .collect();
-    let catch_all_group = VersionGroup::Standard(StandardVersionGroup {
+    let catch_all_group = VersionGroup {
+      variant: VersionGroupVariant::Standard,
       selector: GroupSelector::new(
         /*include_dependencies:*/ vec![],
         /*include_dependency_types:*/ vec![],
@@ -273,8 +140,10 @@ impl<'a> VersionGroup<'a> {
         /*include_specifier_types:*/ vec![],
       ),
       instances_by_name: BTreeMap::new(),
-      prefer_version: "highestSemver".to_string(),
-    });
+      prefer_version: Some(PreferVersion::HighestSemver),
+      pin_version: None,
+      snap_to: None,
+    };
     user_groups.push(catch_all_group);
     user_groups
   }
@@ -290,52 +159,77 @@ impl<'a> VersionGroup<'a> {
     );
 
     if let Some(true) = group.is_banned {
-      return VersionGroup::Banned(BannedVersionGroup {
+      return VersionGroup {
+        variant: VersionGroupVariant::Banned,
         selector,
         instances_by_name: BTreeMap::new(),
-        is_banned: true,
-      });
+        prefer_version: None,
+        pin_version: None,
+        snap_to: None,
+      };
     }
     if let Some(true) = group.is_ignored {
-      return VersionGroup::Ignored(IgnoredVersionGroup {
+      return VersionGroup {
+        variant: VersionGroupVariant::Ignored,
         selector,
         instances_by_name: BTreeMap::new(),
-        is_ignored: true,
-      });
+        prefer_version: None,
+        pin_version: None,
+        snap_to: None,
+      };
     }
     if let Some(pin_version) = &group.pin_version {
-      return VersionGroup::Pinned(PinnedVersionGroup {
+      return VersionGroup {
+        variant: VersionGroupVariant::Pinned,
         selector,
         instances_by_name: BTreeMap::new(),
-        pin_version: pin_version.clone(),
-      });
+        prefer_version: None,
+        pin_version: Some(pin_version.clone()),
+        snap_to: None,
+      };
     }
     if let Some(policy) = &group.policy {
-      return VersionGroup::SameRange(SameRangeVersionGroup {
+      return VersionGroup {
+        variant: VersionGroupVariant::SameRange,
         selector,
         instances_by_name: BTreeMap::new(),
-        policy: policy.clone(),
-      });
+        prefer_version: None,
+        pin_version: None,
+        snap_to: None,
+      };
     }
     if let Some(snap_to) = &group.snap_to {
-      return VersionGroup::SnappedTo(SnappedToVersionGroup {
+      return VersionGroup {
+        variant: VersionGroupVariant::SnappedTo,
         selector,
         instances_by_name: BTreeMap::new(),
-        snap_to: snap_to.clone(),
-      });
+        prefer_version: None,
+        pin_version: None,
+        snap_to: Some(snap_to.clone()),
+      };
     }
     if let Some(prefer_version) = &group.prefer_version {
-      return VersionGroup::Standard(StandardVersionGroup {
+      return VersionGroup {
+        variant: VersionGroupVariant::Standard,
         selector,
         instances_by_name: BTreeMap::new(),
-        prefer_version: prefer_version.clone(),
-      });
+        prefer_version: Some(if prefer_version == "lowestSemver" {
+          PreferVersion::LowestSemver
+        } else {
+          PreferVersion::HighestSemver
+        }),
+        pin_version: None,
+        snap_to: None,
+      };
     }
-    VersionGroup::Standard(StandardVersionGroup {
+    VersionGroup {
+      variant: VersionGroupVariant::Standard,
       selector,
       instances_by_name: BTreeMap::new(),
-      prefer_version: "highestSemver".to_string(),
-    })
+      prefer_version: Some(PreferVersion::HighestSemver),
+      pin_version: None,
+      snap_to: None,
+    }
   }
 }
 
