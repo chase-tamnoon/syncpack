@@ -53,26 +53,22 @@ fn main() -> io::Result<()> {
   debug!("rcfile: {:?}", &rcfile);
 
   let dependency_types = Rcfile::get_enabled_dependency_types(&rcfile);
-  debug!("{} dependency_types", dependency_types.len());
-  let sources = rcfile.get_sources(&cwd);
-  debug!("{} sources", sources.len());
   let semver_groups = SemverGroup::from_rcfile(&rcfile);
-  debug!("{} semver_groups", semver_groups.len());
-  let mut packages = get_packages(sources, &cwd);
-  debug!("{} packages", packages.len());
   let mut version_groups = VersionGroup::from_rcfile(&rcfile);
-  debug!("{} version_groups", version_groups.len());
-  let mut instances = get_instances(&packages, &dependency_types, &rcfile.get_filter());
-  debug!("{} instances", instances.len());
+  let mut packages = get_packages(&rcfile, &cwd);
+  let instances = get_instances(&packages, &dependency_types, &rcfile.get_filter());
 
   // assign every instance to the first group it matches
-  instances.iter_mut().for_each(|instance| {
-    semver_groups
+  instances.iter().for_each(|instance| {
+    let semver_group = semver_groups
       .iter()
-      .any(|group| group.add_instance_if_eligible(instance));
+      .find(|semver_group| semver_group.selector.can_add(instance))
+      .expect("instance did not match a semver group");
     version_groups
       .iter_mut()
-      .any(|group| group.add_instance_if_eligible(instance));
+      .find(|version_group| version_group.selector.can_add(instance))
+      .expect("instance did not match a version group")
+      .add_instance(instance, semver_group);
   });
 
   let is_valid: bool = match subcommand {
@@ -122,7 +118,7 @@ fn main() -> io::Result<()> {
       let enabled = some_enabled.unwrap();
       let format_valid = !enabled.format || format::lint_all(&cwd, &rcfile, &mut packages);
       println!("format: {}", format_valid);
-      let ranges_valid = !enabled.ranges || semver_ranges::lint_all(&cwd, &rcfile, &mut packages);
+      let ranges_valid = !enabled.ranges || semver_ranges::lint_all(&semver_groups);
       println!("semver ranges: {}", ranges_valid);
       let versions_valid = !enabled.versions || versions::lint_all(&cwd, &rcfile, &mut packages);
       println!("versions: {}", versions_valid);
@@ -185,11 +181,9 @@ fn has_mismatches(instance_group: &instance_group::InstanceGroup<'_>) -> bool {
   instance_group.unique_specifiers.len() > (1 as usize)
 }
 
-fn get_packages(
-  mut sources: Vec<path::PathBuf>,
-  cwd: &path::PathBuf,
-) -> Vec<package_json::PackageJson> {
-  sources
+fn get_packages(rcfile: &Rcfile, cwd: &path::PathBuf) -> Vec<package_json::PackageJson> {
+  rcfile
+    .get_sources(&cwd)
     .iter_mut()
     .filter_map(|file_path| json_file::read_json_file(&cwd, &file_path).ok())
     .collect()

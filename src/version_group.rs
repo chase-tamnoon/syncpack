@@ -9,6 +9,7 @@ use crate::config;
 use crate::group_selector::GroupSelector;
 use crate::instance::Instance;
 use crate::instance_group::InstanceGroup;
+use crate::semver_group::{SemverGroup, SemverGroupVariant};
 use crate::specifier::SpecifierType;
 
 #[derive(Debug)]
@@ -46,13 +47,7 @@ pub struct VersionGroup<'a> {
 impl<'a> VersionGroup<'a> {
   /// Add an instance to this version group if it is eligible, and return
   /// whether it was added.
-  pub fn add_instance_if_eligible(&mut self, instance: &'a Instance) -> bool {
-    // If this instance is not eligible for this group, reject it so it can
-    // continue to compare itself against the next group.
-    if !self.selector.can_add(instance) {
-      return false;
-    }
-
+  pub fn add_instance(&mut self, instance: &'a Instance, semver_group: &'a SemverGroup) {
     // Ensure that a group exists for this dependency name.
     if !self.instances_by_name.contains_key(&instance.name) {
       self
@@ -91,6 +86,13 @@ impl<'a> VersionGroup<'a> {
         }
       }
 
+      if matches!(semver_group.variant, SemverGroupVariant::WithRange) {
+        if let Some(range) = &semver_group.range {
+          debug!("@TODO: apply semver range {}", range);
+          // instance.expected_range = Some(range.to_string());
+        }
+      }
+
       if instance_group.local.is_none() {
         // If we have a valid semver specifier, it can be a candidate for being
         // suggested as the preferred version.
@@ -118,9 +120,6 @@ impl<'a> VersionGroup<'a> {
         }
       }
     }
-
-    // Claim this instance so it can't be claimed by another group.
-    return true;
   }
 
   /// Create every version group defined in the rcfile.

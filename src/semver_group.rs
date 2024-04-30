@@ -1,72 +1,26 @@
-use log::debug;
 use serde::Deserialize;
 
 use crate::config;
-use crate::group_selector;
 use crate::group_selector::GroupSelector;
-use crate::instance::Instance;
 
 #[derive(Debug)]
-pub struct DisabledSemverGroup<'a> {
-  pub selector: group_selector::GroupSelector,
-  pub instances: Vec<&'a Instance<'a>>,
-  pub is_disabled: bool,
+pub struct SemverGroup {
+  /// What behaviour has this group been configured to exhibit?
+  pub variant: SemverGroupVariant,
+  /// Data to determine which instances should be added to this group
+  pub selector: GroupSelector,
+  /// The Semver Range which all instances in this group should use
+  pub range: Option<String>,
 }
 
 #[derive(Debug)]
-pub struct IgnoredSemverGroup<'a> {
-  pub selector: group_selector::GroupSelector,
-  pub instances: Vec<&'a Instance<'a>>,
-  pub is_ignored: bool,
+pub enum SemverGroupVariant {
+  Disabled,
+  Ignored,
+  WithRange,
 }
 
-#[derive(Debug)]
-pub struct WithRangeSemverGroup<'a> {
-  pub selector: group_selector::GroupSelector,
-  pub instances: Vec<&'a Instance<'a>>,
-  pub range: String,
-}
-
-#[derive(Debug)]
-pub enum SemverGroup<'a> {
-  Disabled(DisabledSemverGroup<'a>),
-  Ignored(IgnoredSemverGroup<'a>),
-  WithRange(WithRangeSemverGroup<'a>),
-}
-
-impl<'a> SemverGroup<'a> {
-  /// Add an instance to this version group if it is eligible, and return
-  /// whether it was added.
-  pub fn add_instance_if_eligible(&self, instance: &'a mut Instance) -> bool {
-    match self {
-      SemverGroup::Disabled(group) => {
-        return false;
-      }
-      SemverGroup::Ignored(group) => {
-        return false;
-      }
-      SemverGroup::WithRange(group) => {
-        // If this instance is not eligible for this group, reject it so it can
-        // continue to compare itself against the next group.
-        if !group.selector.can_add(instance) {
-          return false;
-        }
-
-        // group.instances.push(instance);
-        instance.expected_range = Some(group.range.clone());
-
-        true
-      }
-    }
-  }
-
-  /// When valid, give the value back.
-  /// When invalid, return an error with a reason.
-  pub fn get_fixed(&self, specifier: &String) -> Result<String, ()> {
-    debug!("@TODO: implement SemverGroup::get_fixed");
-    Ok(specifier.clone())
-  }
-
+impl SemverGroup {
   /// Create every version group defined in the rcfile.
   pub fn from_rcfile(rcfile: &config::Rcfile) -> Vec<SemverGroup> {
     let mut user_groups: Vec<SemverGroup> = rcfile
@@ -74,7 +28,8 @@ impl<'a> SemverGroup<'a> {
       .iter()
       .map(|group| SemverGroup::from_config(group))
       .collect();
-    let catch_all_group = SemverGroup::WithRange(WithRangeSemverGroup {
+    let catch_all_group = SemverGroup {
+      variant: SemverGroupVariant::WithRange,
       selector: GroupSelector::new(
         /*include_dependencies:*/ vec![],
         /*include_dependency_types:*/ vec![],
@@ -82,9 +37,8 @@ impl<'a> SemverGroup<'a> {
         /*include_packages:*/ vec![],
         /*include_specifier_types:*/ vec![],
       ),
-      instances: vec![],
-      range: "".to_string(),
-    });
+      range: Some("".to_string()),
+    };
     user_groups.push(catch_all_group);
     user_groups
   }
@@ -100,23 +54,23 @@ impl<'a> SemverGroup<'a> {
     );
 
     if let Some(true) = group.is_disabled {
-      SemverGroup::Disabled(DisabledSemverGroup {
+      SemverGroup {
+        variant: SemverGroupVariant::Disabled,
         selector,
-        instances: vec![],
-        is_disabled: true,
-      })
+        range: None,
+      }
     } else if let Some(true) = group.is_ignored {
-      SemverGroup::Ignored(IgnoredSemverGroup {
+      SemverGroup {
+        variant: SemverGroupVariant::Ignored,
         selector,
-        instances: vec![],
-        is_ignored: true,
-      })
+        range: None,
+      }
     } else if let Some(range) = &group.range {
-      SemverGroup::WithRange(WithRangeSemverGroup {
+      SemverGroup {
+        variant: SemverGroupVariant::WithRange,
         selector,
-        instances: vec![],
-        range: range.clone(),
-      })
+        range: Some(range.clone()),
+      }
     } else {
       panic!("Invalid semver group");
     }
