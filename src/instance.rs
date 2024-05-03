@@ -8,8 +8,6 @@ pub struct Instance<'a> {
   pub dependency_type: &'a DependencyType,
   /// The dependency name eg. "react", "react-dom"
   pub name: String,
-  /// The range from the semver group this instance belongs to
-  pub expected_range: Option<String>,
   /// Whether this is a package developed in this repo
   pub is_local: bool,
   /// The package.json file this instance belongs to
@@ -29,7 +27,6 @@ impl<'a> Instance<'a> {
   ) -> Instance<'a> {
     Instance {
       dependency_type,
-      expected_range: None,
       is_local: match file.get_prop("/name") {
         Some(package_name) => package_name == &name,
         None => false,

@@ -35,7 +35,7 @@ pub struct VersionGroup<'a> {
   /// Data to determine which instances should be added to this group
   pub selector: GroupSelector,
   /// Group instances of each dependency together for comparison.
-  pub instances_by_name: BTreeMap<String, InstanceGroup<'a>>,
+  pub instance_groups_by_name: BTreeMap<String, InstanceGroup<'a>>,
   /// Which version to use when variant is `Standard`
   pub prefer_version: Option<PreferVersion>,
   /// The version to pin all instances to when variant is `Pinned`
@@ -49,14 +49,17 @@ impl<'a> VersionGroup<'a> {
   /// whether it was added.
   pub fn add_instance(&mut self, instance: &'a Instance, semver_group: &'a SemverGroup) {
     // Ensure that a group exists for this dependency name.
-    if !self.instances_by_name.contains_key(&instance.name) {
+    if !self.instance_groups_by_name.contains_key(&instance.name) {
       self
-        .instances_by_name
+        .instance_groups_by_name
         .insert(instance.name.clone(), InstanceGroup::new());
     }
 
     // Get the group for this dependency name.
-    let instance_group = self.instances_by_name.get_mut(&instance.name).unwrap();
+    let instance_group = self
+      .instance_groups_by_name
+      .get_mut(&instance.name)
+      .unwrap();
 
     instance_group.all.push(instance);
 
@@ -86,13 +89,6 @@ impl<'a> VersionGroup<'a> {
         }
       }
 
-      if matches!(semver_group.variant, SemverGroupVariant::WithRange) {
-        if let Some(range) = &semver_group.range {
-          debug!("@TODO: apply semver range {}", range);
-          // instance.expected_range = Some(range.to_string());
-        }
-      }
-
       if instance_group.local.is_none() {
         // If we have a valid semver specifier, it can be a candidate for being
         // suggested as the preferred version.
@@ -108,13 +104,13 @@ impl<'a> VersionGroup<'a> {
               let actual = compare(this_version, current_preferred_version);
               let is_preferred = actual == Ok(preferred);
               if is_preferred {
-                set_preferred_version(instance, instance_group, this_version.clone());
+                set_preferred_version(instance, instance_group, semver_group, &this_version);
               }
             }
             // If there's no preferred version yet, this is the first candidate.
             None => {
               let this_version = &instance.specifier;
-              set_preferred_version(instance, instance_group, this_version.clone());
+              set_preferred_version(instance, instance_group, semver_group, &this_version);
             }
           }
         }
@@ -138,7 +134,7 @@ impl<'a> VersionGroup<'a> {
         /*include_packages:*/ vec![],
         /*include_specifier_types:*/ vec![],
       ),
-      instances_by_name: BTreeMap::new(),
+      instance_groups_by_name: BTreeMap::new(),
       prefer_version: Some(PreferVersion::HighestSemver),
       pin_version: None,
       snap_to: None,
@@ -161,7 +157,7 @@ impl<'a> VersionGroup<'a> {
       return VersionGroup {
         variant: VersionGroupVariant::Banned,
         selector,
-        instances_by_name: BTreeMap::new(),
+        instance_groups_by_name: BTreeMap::new(),
         prefer_version: None,
         pin_version: None,
         snap_to: None,
@@ -171,7 +167,7 @@ impl<'a> VersionGroup<'a> {
       return VersionGroup {
         variant: VersionGroupVariant::Ignored,
         selector,
-        instances_by_name: BTreeMap::new(),
+        instance_groups_by_name: BTreeMap::new(),
         prefer_version: None,
         pin_version: None,
         snap_to: None,
@@ -181,7 +177,7 @@ impl<'a> VersionGroup<'a> {
       return VersionGroup {
         variant: VersionGroupVariant::Pinned,
         selector,
-        instances_by_name: BTreeMap::new(),
+        instance_groups_by_name: BTreeMap::new(),
         prefer_version: None,
         pin_version: Some(pin_version.clone()),
         snap_to: None,
@@ -191,7 +187,7 @@ impl<'a> VersionGroup<'a> {
       return VersionGroup {
         variant: VersionGroupVariant::SameRange,
         selector,
-        instances_by_name: BTreeMap::new(),
+        instance_groups_by_name: BTreeMap::new(),
         prefer_version: None,
         pin_version: None,
         snap_to: None,
@@ -201,7 +197,7 @@ impl<'a> VersionGroup<'a> {
       return VersionGroup {
         variant: VersionGroupVariant::SnappedTo,
         selector,
-        instances_by_name: BTreeMap::new(),
+        instance_groups_by_name: BTreeMap::new(),
         prefer_version: None,
         pin_version: None,
         snap_to: Some(snap_to.clone()),
@@ -211,7 +207,7 @@ impl<'a> VersionGroup<'a> {
       return VersionGroup {
         variant: VersionGroupVariant::Standard,
         selector,
-        instances_by_name: BTreeMap::new(),
+        instance_groups_by_name: BTreeMap::new(),
         prefer_version: Some(if prefer_version == "lowestSemver" {
           PreferVersion::LowestSemver
         } else {
@@ -224,7 +220,7 @@ impl<'a> VersionGroup<'a> {
     VersionGroup {
       variant: VersionGroupVariant::Standard,
       selector,
-      instances_by_name: BTreeMap::new(),
+      instance_groups_by_name: BTreeMap::new(),
       prefer_version: Some(PreferVersion::HighestSemver),
       pin_version: None,
       snap_to: None,
@@ -256,27 +252,31 @@ pub struct AnyVersionGroup {
 
 fn set_preferred_version(
   instance: &Instance,
-  instances: &mut InstanceGroup,
-  next_preferred_version: String,
+  instance_group: &mut InstanceGroup,
+  semver_group: &SemverGroup,
+  next_preferred_version: &String,
 ) {
   debug!(
     target: "set_preferred_version",
     "{}: {:?} → {} ({:?})",
-    &instance.name, &instances.preferred_version, &next_preferred_version, &instance.expected_range
+    &instance.name, &instance_group.preferred_version, &next_preferred_version, &semver_group.range
   );
 
-  if let Some(expected_range) = &instance.expected_range {
-    // debug!(
-    //   "@TODO apply preferred semver range ('{}') to preferred version",
-    //   expected_range
-    // );
-    let with_fixed_semver_range: Result<String, std::io::Error> =
-      Ok(next_preferred_version.clone());
-    if let Ok(fixed_version) = with_fixed_semver_range {
-      // println!("Fixed version to {}", &fixed_version);
-      instances.preferred_version = Some(fixed_version);
-    } else {
-      error!("Failed to get fixed version for {:?}", instance);
+  if matches!(semver_group.variant, SemverGroupVariant::WithRange) {
+    if let Some(expected_range) = &semver_group.range {
+      debug!("@TODO: apply semver range {}", expected_range);
+      // debug!(
+      //   "@TODO apply preferred semver range ('{}') to preferred version",
+      //   expected_range
+      // );
+      let with_fixed_semver_range: Result<String, std::io::Error> =
+        Ok(next_preferred_version.clone());
+      if let Ok(fixed_version) = with_fixed_semver_range {
+        // println!("Fixed version to {}", &fixed_version);
+        instance_group.preferred_version = Some(fixed_version);
+      } else {
+        error!("Failed to get fixed version for {:?}", instance);
+      }
     }
   }
 }

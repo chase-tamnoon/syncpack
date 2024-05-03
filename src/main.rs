@@ -82,7 +82,7 @@ fn main() -> io::Result<()> {
           | VersionGroupVariant::SnappedTo => {
             print_group_header(&group.selector.label);
             group
-              .instances_by_name
+              .instance_groups_by_name
               .iter()
               .for_each(|(name, instance_group)| {
                 // right align the count of instances
@@ -93,7 +93,7 @@ fn main() -> io::Result<()> {
           VersionGroupVariant::Standard => {
             print_group_header(&group.selector.label);
             group
-              .instances_by_name
+              .instance_groups_by_name
               .iter()
               .for_each(|(name, instance_group)| {
                 // right align the count of instances
