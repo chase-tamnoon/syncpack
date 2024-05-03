@@ -1,7 +1,6 @@
 use std::collections::BTreeMap;
 use std::vec;
 
-use log::{debug, error};
 use serde::Deserialize;
 use version_compare::{compare, Cmp};
 
@@ -9,7 +8,7 @@ use crate::config;
 use crate::group_selector::GroupSelector;
 use crate::instance::Instance;
 use crate::instance_group::InstanceGroup;
-use crate::semver_group::{SemverGroup, SemverGroupVariant};
+use crate::semver_group::SemverGroup;
 use crate::specifier::SpecifierType;
 
 #[derive(Debug)]
@@ -61,25 +60,16 @@ impl<'a> VersionGroup<'a> {
       .get_mut(&instance.name)
       .unwrap();
 
+    // Track/count instances
     instance_group.all.push(instance);
 
     if matches!(self.variant, VersionGroupVariant::Standard) {
-      // If there is more than one unique version, then we have
-      // mismatching versions.
+      // Track/count unique version specifiers
       instance_group
         .unique_specifiers
         .insert(instance.specifier.clone());
 
-      // If this is a local package
-      if instance.dependency_type.name == "local" {
-        // keep track of it for use when analysing
-        instance_group.local = Some(instance);
-        // and set this as the preferred version, since it is the originating
-        // package where this dependency is being developed.
-        let local_version = &instance.specifier;
-        instance_group.preferred_version = Some(local_version.clone());
-      }
-
+      // Track/count what specifier types we have encountered
       match &instance.specifier_type {
         SpecifierType::NonSemver(specifier_type) => {
           instance_group.non_semver.push(instance);
@@ -89,28 +79,42 @@ impl<'a> VersionGroup<'a> {
         }
       }
 
+      // If this is the original source of a locally-developed package, keep a
+      // reference to it and set it as the preferred version
+      if instance.dependency_type.name == "local" {
+        instance_group.local = Some(instance);
+        instance_group.expected_version = Some(instance.specifier.clone());
+      }
+
+      // A locally-developed package version overrides every other, so if one
+      // has not been found, we need to look at the usages of it for a preferred
+      // version
       if instance_group.local.is_none() {
-        // If we have a valid semver specifier, it can be a candidate for being
-        // suggested as the preferred version.
         if let SpecifierType::Semver(specifier_type) = &instance.specifier_type {
-          match &mut instance_group.preferred_version {
-            // If there is already a preferred version we should keep whichever
-            // is the highest or lowest version depending on the group's
-            // preference.
+          // Have we set a preferred version yet for these instances?
+          match &mut instance_group.expected_version {
+            // No, this is the first candidate.
+            None => {
+              instance_group.expected_version = Some(instance.specifier.clone());
+            }
+            // Yes, compare this candidate with the previous one
             Some(current_preferred_version) => {
               let this_version = &instance.specifier;
               let prefer_lowest = matches!(&self.prefer_version, Some(PreferVersion::LowestSemver));
-              let preferred = if prefer_lowest { Cmp::Lt } else { Cmp::Gt };
-              let actual = compare(this_version, current_preferred_version);
-              let is_preferred = actual == Ok(preferred);
-              if is_preferred {
-                set_preferred_version(instance, instance_group, semver_group, &this_version);
-              }
-            }
-            // If there's no preferred version yet, this is the first candidate.
-            None => {
-              let this_version = &instance.specifier;
-              set_preferred_version(instance, instance_group, semver_group, &this_version);
+              let preferred_order = if prefer_lowest { Cmp::Lt } else { Cmp::Gt };
+              match compare(this_version, &current_preferred_version) {
+                Ok(actual_order) => {
+                  if preferred_order == actual_order {
+                    instance_group.expected_version = Some(instance.specifier.clone());
+                  }
+                }
+                Err(_) => {
+                  panic!(
+                    "Cannot compare {} and {}",
+                    &this_version, &current_preferred_version
+                  );
+                }
+              };
             }
           }
         }
@@ -248,35 +252,4 @@ pub struct AnyVersionGroup {
   pub policy: Option<String>,
   pub snap_to: Option<Vec<String>>,
   pub prefer_version: Option<String>,
-}
-
-fn set_preferred_version(
-  instance: &Instance,
-  instance_group: &mut InstanceGroup,
-  semver_group: &SemverGroup,
-  next_preferred_version: &String,
-) {
-  debug!(
-    target: "set_preferred_version",
-    "{}: {:?} → {} ({:?})",
-    &instance.name, &instance_group.preferred_version, &next_preferred_version, &semver_group.range
-  );
-
-  if matches!(semver_group.variant, SemverGroupVariant::WithRange) {
-    if let Some(expected_range) = &semver_group.range {
-      debug!("@TODO: apply semver range {}", expected_range);
-      // debug!(
-      //   "@TODO apply preferred semver range ('{}') to preferred version",
-      //   expected_range
-      // );
-      let with_fixed_semver_range: Result<String, std::io::Error> =
-        Ok(next_preferred_version.clone());
-      if let Ok(fixed_version) = with_fixed_semver_range {
-        // println!("Fixed version to {}", &fixed_version);
-        instance_group.preferred_version = Some(fixed_version);
-      } else {
-        error!("Failed to get fixed version for {:?}", instance);
-      }
-    }
-  }
 }

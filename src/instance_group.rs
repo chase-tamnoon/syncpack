@@ -7,16 +7,16 @@ use crate::instance::Instance;
 pub struct InstanceGroup<'a> {
   /// Every instance of this dependency in this version group.
   pub all: Vec<&'a Instance<'a>>,
+  /// The version specifier which all instances in this group should have
+  pub expected_version: Option<String>,
   /// If this dependency is a local package, this is the local instance.
   pub local: Option<&'a Instance<'a>>,
   /// All instances with `SpecifierType::NonSemver` versions
   pub non_semver: Vec<&'a Instance<'a>>,
-  /// The highest or lowest version to use if all are valid, or the local
-  /// version if this is a package developed in this repo.
-  pub preferred_version: Option<String>,
   /// All instances with `SpecifierType::Semver` versions
   pub semver: Vec<&'a Instance<'a>>,
-  /// Raw version specifiers for each dependency.
+  /// Raw version specifiers for each dependency. If there is more than one
+  /// unique version, then we have mismatching versions
   pub unique_specifiers: HashSet<String>,
 }
 
@@ -24,16 +24,16 @@ impl<'a> InstanceGroup<'a> {
   pub fn new() -> InstanceGroup<'a> {
     InstanceGroup {
       all: vec![],
+      expected_version: None,
       local: None,
       non_semver: vec![],
-      preferred_version: None,
       semver: vec![],
       unique_specifiers: HashSet::new(),
     }
   }
 
   pub fn is_mismatch(&self, specifier: &String) -> bool {
-    match &self.preferred_version {
+    match &self.expected_version {
       Some(preferred_version) => specifier != preferred_version,
       None => false,
     }

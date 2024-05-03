@@ -167,7 +167,7 @@ fn print_version_match(
 fn print_version_mismatch(instance_group: &instance_group::InstanceGroup<'_>, actual: &String) {
   let icon = "✘".red();
   let arrow = "→".dimmed();
-  let expected = instance_group.preferred_version.as_ref().unwrap();
+  let expected = instance_group.expected_version.as_ref().unwrap();
   println!(
     "        {} {} {} {}",
     icon,
