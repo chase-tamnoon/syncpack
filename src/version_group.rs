@@ -98,21 +98,18 @@ impl<'a> VersionGroup<'a> {
               instance_group.expected_version = Some(instance.specifier.clone());
             }
             // Yes, compare this candidate with the previous one
-            Some(current_preferred_version) => {
+            Some(expected_version) => {
               let this_version = &instance.specifier;
               let prefer_lowest = matches!(&self.prefer_version, Some(PreferVersion::LowestSemver));
               let preferred_order = if prefer_lowest { Cmp::Lt } else { Cmp::Gt };
-              match compare(this_version, &current_preferred_version) {
+              match compare(this_version, &expected_version) {
                 Ok(actual_order) => {
                   if preferred_order == actual_order {
                     instance_group.expected_version = Some(instance.specifier.clone());
                   }
                 }
                 Err(_) => {
-                  panic!(
-                    "Cannot compare {} and {}",
-                    &this_version, &current_preferred_version
-                  );
+                  panic!("Cannot compare {} and {}", &this_version, &expected_version);
                 }
               };
             }
