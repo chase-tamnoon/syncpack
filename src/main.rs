@@ -23,7 +23,6 @@ mod instance_group;
 mod json_file;
 mod package_json;
 mod semver_group;
-mod semver_ranges;
 mod specifier;
 mod version_group;
 mod versions;
@@ -116,23 +115,19 @@ fn main() -> io::Result<()> {
     }
     (Subcommand::Lint, some_enabled) => {
       let enabled = some_enabled.unwrap();
-      let format_valid = !enabled.format || format::lint_all(&cwd, &rcfile, &mut packages);
-      println!("format: {}", format_valid);
-      let ranges_valid = !enabled.ranges || semver_ranges::lint_all(&semver_groups);
-      println!("semver ranges: {}", ranges_valid);
-      let versions_valid = !enabled.versions || versions::lint_all(&cwd, &rcfile, &mut packages);
+      let versions_valid = !enabled.versions || versions::is_valid(&version_groups);
       println!("versions: {}", versions_valid);
-      format_valid && ranges_valid && versions_valid
+      let format_valid = !enabled.format || format::is_valid(&cwd, &rcfile, &mut packages);
+      println!("format: {}", format_valid);
+      format_valid && versions_valid
     }
     (Subcommand::Fix, some_enabled) => {
       let enabled = some_enabled.unwrap();
-      let format_valid = !enabled.format || format::fix_all(&cwd, &rcfile, &mut packages);
+      let format_valid = !enabled.format || format::fix(&cwd, &rcfile, &mut packages);
       println!("format: {}", format_valid);
-      let ranges_valid = !enabled.ranges || semver_ranges::fix_all(&cwd, &rcfile, &mut packages);
-      println!("semver ranges: {}", ranges_valid);
-      let versions_valid = !enabled.versions || versions::fix_all(&cwd, &rcfile, &mut packages);
+      let versions_valid = !enabled.versions || versions::fix(&cwd, &rcfile, &mut packages);
       println!("versions: {}", versions_valid);
-      format_valid && ranges_valid && versions_valid
+      format_valid && versions_valid
     }
   };
 

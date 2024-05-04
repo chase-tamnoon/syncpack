@@ -7,13 +7,13 @@ use crate::package_json;
 
 /// Check whether every package is formatted according to config
 /// Returns true if all are valid
-pub fn lint_all(
+pub fn is_valid(
   cwd: &std::path::PathBuf,
   rcfile: &config::Rcfile,
   packages: &mut Vec<package_json::PackageJson>,
 ) -> bool {
   packages.iter_mut().fold(true, |is_valid, mut package| {
-    fix(&rcfile, &mut package);
+    fix_package(&rcfile, &mut package);
     if package.has_changed() {
       package.log_as_invalid(&cwd);
       false
@@ -26,19 +26,19 @@ pub fn lint_all(
 
 /// Format every package according to config
 /// Returns true if all are were fixable
-pub fn fix_all(
+pub fn fix(
   cwd: &std::path::PathBuf,
   rcfile: &config::Rcfile,
   packages: &mut Vec<package_json::PackageJson>,
 ) -> bool {
   packages.iter_mut().for_each(|package| {
-    fix(&rcfile, package);
+    fix_package(&rcfile, package);
   });
   // all fix_all methods return a boolean, but formatting is always fixable
   true
 }
 
-fn fix(rcfile: &config::Rcfile, package: &mut package_json::PackageJson) {
+fn fix_package(rcfile: &config::Rcfile, package: &mut package_json::PackageJson) {
   if rcfile.format_bugs {
     format_bugs(package);
   }
