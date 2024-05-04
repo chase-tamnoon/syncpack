@@ -28,7 +28,6 @@ mod version_group;
 mod versions;
 
 enum Subcommand {
-  List,
   Lint,
   Fix,
 }
@@ -37,9 +36,8 @@ fn main() -> io::Result<()> {
   env_logger::init();
 
   let subcommand = match cli::create().get_matches().subcommand() {
-    Some(("list", matches)) => (Subcommand::List, None),
-    Some(("lint", matches)) => (Subcommand::Lint, Some(cli::get_enabled_steps(matches))),
-    Some(("fix", matches)) => (Subcommand::Fix, Some(cli::get_enabled_steps(matches))),
+    Some(("lint", matches)) => (Subcommand::Lint, cli::get_enabled_steps(matches)),
+    Some(("fix", matches)) => (Subcommand::Fix, cli::get_enabled_steps(matches)),
     _ => {
       debug!("@TODO: output --help when command is not recognised");
       std::process::exit(1);
@@ -71,7 +69,8 @@ fn main() -> io::Result<()> {
   });
 
   let is_valid: bool = match subcommand {
-    (Subcommand::List, _) => {
+    (Subcommand::Lint, enabled) => {
+      println!("lint enabled {:?}", enabled);
       version_groups.iter().for_each(|group| {
         match group.variant {
           VersionGroupVariant::Banned
@@ -113,21 +112,17 @@ fn main() -> io::Result<()> {
       });
       true
     }
-    (Subcommand::Lint, some_enabled) => {
-      let enabled = some_enabled.unwrap();
-      let versions_valid = !enabled.versions || versions::is_valid(&version_groups);
-      println!("versions: {}", versions_valid);
-      let format_valid = !enabled.format || format::is_valid(&cwd, &rcfile, &mut packages);
-      println!("format: {}", format_valid);
-      format_valid && versions_valid
-    }
-    (Subcommand::Fix, some_enabled) => {
-      let enabled = some_enabled.unwrap();
-      let format_valid = !enabled.format || format::fix(&cwd, &rcfile, &mut packages);
-      println!("format: {}", format_valid);
-      let versions_valid = !enabled.versions || versions::fix(&cwd, &rcfile, &mut packages);
-      println!("versions: {}", versions_valid);
-      format_valid && versions_valid
+    (Subcommand::Fix, enabled) => {
+      println!("fix enabled {:?}", enabled);
+      if enabled.format {
+        println!("format packages");
+        format::fix(&rcfile, &mut packages);
+      }
+      if enabled.versions {
+        println!("fix versions");
+        versions::fix(&cwd, &rcfile, &mut packages);
+      }
+      true
     }
   };
 

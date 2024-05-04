@@ -26,16 +26,10 @@ pub fn is_valid(
 
 /// Format every package according to config
 /// Returns true if all are were fixable
-pub fn fix(
-  cwd: &std::path::PathBuf,
-  rcfile: &config::Rcfile,
-  packages: &mut Vec<package_json::PackageJson>,
-) -> bool {
+pub fn fix(rcfile: &config::Rcfile, packages: &mut Vec<package_json::PackageJson>) {
   packages.iter_mut().for_each(|package| {
     fix_package(&rcfile, package);
   });
-  // all fix_all methods return a boolean, but formatting is always fixable
-  true
 }
 
 fn fix_package(rcfile: &config::Rcfile, package: &mut package_json::PackageJson) {

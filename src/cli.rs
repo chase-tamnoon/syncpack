@@ -9,7 +9,6 @@ pub fn create() -> Command {
     .about("Consistent dependency versions in large JavaScript Monorepos")
     .version("13.0.0")
     .author("Jamie Mason <jamie@foldleft.io> (https://github.com/JamieMason)")
-    .subcommand(Command::new("list").about("List command"))
     .subcommand(
       Command::new("lint")
         .about("Lint command")
