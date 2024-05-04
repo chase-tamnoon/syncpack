@@ -1,6 +1,6 @@
 {
 	"name": "@fluid-example/multiview-triangle-view",
-	"version": "2.0.0-rc.4.0.0",
+	"version": "2.2.2-rc.1.1.0",
 	"private": true,
 	"description": "View for multiview sample",
 	"homepage": "https://fluidframework.com",
@@ -38,19 +38,19 @@
 	},
 	"dependencies": {
 		"@fluid-example/multiview-coordinate-interface": "workspace:~",
-		"react": "^17.0.1"
+		"react": "^17.1.2"
 	},
 	"devDependencies": {
-		"@biomejs/biome": "^1.6.2",
-		"@fluidframework/build-common": "^2.0.3",
-		"@fluidframework/build-tools": "^0.37.0",
-		"@fluidframework/eslint-config-fluid": "^5.1.0",
-		"@types/react": "^17.0.44",
-		"copyfiles": "^2.4.1",
-		"eslint": "~8.55.0",
-		"prettier": "~3.0.3",
-		"rimraf": "^4.4.0",
-		"typescript": "~5.1.6"
+		"@biomejs/biome": "^1.2.1",
+		"@fluidframework/build-common": "^2.2.1",
+		"@fluidframework/build-tools": "^0.1.1",
+		"@fluidframework/eslint-config-fluid": "^5.2.0",
+		"@types/react": "^17.2.0",
+		"copyfiles": "^2.1.1",
+		"eslint": "~8.1.1",
+		"prettier": "~3.2.1",
+		"rimraf": "^4.1.2",
+		"typescript": "~5.0.0"
 	},
 	"fluid": {
 		"browser": {

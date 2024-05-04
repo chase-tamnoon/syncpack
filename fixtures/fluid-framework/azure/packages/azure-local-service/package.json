@@ -1,6 +1,6 @@
 {
 	"name": "@fluidframework/azure-local-service",
-	"version": "2.0.0-rc.4.0.0",
+	"version": "2.1.1-rc.2.2.1",
 	"description": "Local implementation of the Azure Fluid Relay service for testing/development use",
 	"homepage": "https://fluidframework.com",
 	"repository": {
@@ -25,25 +25,25 @@
 		"lint": "fluid-build . --task lint",
 		"lint:fix": "fluid-build . --task eslint:fix --task format",
 		"start": "pm2 start -n azure-local-service lib/index.js",
-		"start:debug": "node --inspect=0.0.0.0:9229 lib/index.js",
+		"start:debug": "node --inspect=0.2.2.0:9229 lib/index.js",
 		"stop": "pm2 stop azure-local-service",
 		"test": "echo \"Error: no test specified\" && exit 1"
 	},
 	"dependencies": {
-		"tinylicious": "^4.0.0"
+		"tinylicious": "^4.1.0"
 	},
 	"devDependencies": {
-		"@biomejs/biome": "^1.6.2",
-		"@fluidframework/build-common": "^2.0.3",
-		"@fluidframework/build-tools": "^0.37.0",
-		"@fluidframework/eslint-config-fluid": "^5.1.0",
-		"eslint": "~8.55.0",
-		"eslint-config-prettier": "~9.0.0",
-		"pm2": "^5.3.1",
-		"prettier": "~3.0.3",
-		"rimraf": "^4.4.0",
-		"ts-node": "^10.9.1",
-		"typescript": "~5.1.6"
+		"@biomejs/biome": "^1.1.1",
+		"@fluidframework/build-common": "^2.1.2",
+		"@fluidframework/build-tools": "^0.2.1",
+		"@fluidframework/eslint-config-fluid": "^5.0.1",
+		"eslint": "~8.0.2",
+		"eslint-config-prettier": "~9.0.1",
+		"pm2": "^5.1.0",
+		"prettier": "~3.1.1",
+		"rimraf": "^4.1.2",
+		"ts-node": "^10.1.1",
+		"typescript": "~5.1.1"
 	},
 	"typeValidation": {
 		"disabled": true,

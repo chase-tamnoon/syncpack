@@ -1,6 +1,6 @@
 {
 	"name": "@fluid-experimental/data-objects",
-	"version": "2.0.0-rc.4.0.0",
+	"version": "2.0.0-rc.1.2.1",
 	"description": "A collection of ready to use Fluid Data Objects",
 	"homepage": "https://fluidframework.com",
 	"repository": {
@@ -53,20 +53,20 @@
 		"@fluidframework/runtime-definitions": "workspace:~"
 	},
 	"devDependencies": {
-		"@arethetypeswrong/cli": "^0.15.2",
-		"@biomejs/biome": "^1.6.2",
-		"@fluid-tools/build-cli": "^0.37.0",
-		"@fluidframework/build-common": "^2.0.3",
-		"@fluidframework/build-tools": "^0.37.0",
-		"@fluidframework/eslint-config-fluid": "^5.1.0",
-		"@microsoft/api-extractor": "^7.42.3",
-		"@types/node": "^18.19.0",
-		"copyfiles": "^2.4.1",
-		"cross-env": "^7.0.3",
-		"eslint": "~8.55.0",
-		"prettier": "~3.0.3",
-		"rimraf": "^4.4.0",
-		"typescript": "~5.1.6"
+		"@arethetypeswrong/cli": "^0.1.2",
+		"@biomejs/biome": "^1.2.2",
+		"@fluid-tools/build-cli": "^0.1.2",
+		"@fluidframework/build-common": "^2.0.1",
+		"@fluidframework/build-tools": "^0.2.1",
+		"@fluidframework/eslint-config-fluid": "^5.1.1",
+		"@microsoft/api-extractor": "^7.1.1",
+		"@types/node": "^18.2.1",
+		"copyfiles": "^2.0.2",
+		"cross-env": "^7.1.2",
+		"eslint": "~8.2.2",
+		"prettier": "~3.0.2",
+		"rimraf": "^4.0.1",
+		"typescript": "~5.0.1"
 	},
 	"typeValidation": {
 		"disabled": true,

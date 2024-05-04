@@ -1,6 +1,6 @@
 {
 	"name": "@fluidframework/container-runtime-definitions",
-	"version": "2.0.0-rc.4.0.0",
+	"version": "2.1.1-rc.1.2.2",
 	"description": "Fluid Runtime definitions",
 	"homepage": "https://fluidframework.com",
 	"repository": {
@@ -70,23 +70,23 @@
 		"@fluidframework/container-definitions": "workspace:~",
 		"@fluidframework/core-interfaces": "workspace:~",
 		"@fluidframework/driver-definitions": "workspace:~",
-		"@fluidframework/protocol-definitions": "^3.2.0",
+		"@fluidframework/protocol-definitions": "^3.1.2",
 		"@fluidframework/runtime-definitions": "workspace:~"
 	},
 	"devDependencies": {
-		"@arethetypeswrong/cli": "^0.15.2",
-		"@biomejs/biome": "^1.6.2",
-		"@fluid-tools/build-cli": "^0.37.0",
-		"@fluidframework/build-common": "^2.0.3",
-		"@fluidframework/build-tools": "^0.37.0",
-		"@fluidframework/container-runtime-definitions-previous": "npm:@fluidframework/container-runtime-definitions@2.0.0-internal.8.0.0",
-		"@fluidframework/eslint-config-fluid": "^5.1.0",
-		"@microsoft/api-extractor": "^7.42.3",
-		"copyfiles": "^2.4.1",
-		"eslint": "~8.55.0",
-		"prettier": "~3.0.3",
-		"rimraf": "^4.4.0",
-		"typescript": "~5.1.6"
+		"@arethetypeswrong/cli": "^0.1.1",
+		"@biomejs/biome": "^1.0.0",
+		"@fluid-tools/build-cli": "^0.2.1",
+		"@fluidframework/build-common": "^2.1.0",
+		"@fluidframework/build-tools": "^0.1.0",
+		"@fluidframework/container-runtime-definitions-previous": "npm:@fluidframework/container-runtime-definitions@2.1.2-internal.0.2.2",
+		"@fluidframework/eslint-config-fluid": "^5.1.1",
+		"@microsoft/api-extractor": "^7.0.1",
+		"copyfiles": "^2.2.0",
+		"eslint": "~8.2.2",
+		"prettier": "~3.1.0",
+		"rimraf": "^4.1.1",
+		"typescript": "~5.1.1"
 	},
 	"typeValidation": {
 		"broken": {
