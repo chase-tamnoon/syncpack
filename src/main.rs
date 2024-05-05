@@ -93,7 +93,7 @@ fn main() -> io::Result<()> {
               .iter()
               .for_each(|(name, instance_group)| {
                 print_ignored(instance_group, name);
-              })
+              });
           }
           VersionGroupVariant::Banned => {
             print_group_header(&group.selector.label);
@@ -101,31 +101,31 @@ fn main() -> io::Result<()> {
               .instance_groups_by_name
               .iter()
               .for_each(|(name, instance_group)| {
-                print_banned(instance_group, name);
-              })
+                let count = render_count_column(instance_group.all.len());
+                println!("{} {}", count, name.red());
+                instance_group.unique_specifiers.iter().for_each(|actual| {
+                  print_banned(instance_group, actual);
+                });
+              });
           }
           VersionGroupVariant::Pinned => {
             print_group_header(&group.selector.label);
-            if let Some(pin_version) = &group.pin_version {
-              group
-                .instance_groups_by_name
-                .iter()
-                .for_each(|(name, instance_group)| {
-                  if has_mismatches(instance_group) {
-                    let count = render_count_column(instance_group.all.len());
-                    println!("{} {}", count, name.red());
-                    instance_group.unique_specifiers.iter().for_each(|actual| {
-                      if instance_group.is_mismatch(actual) {
-                        print_pinned_version_mismatch(instance_group, name, &pin_version);
-                      }
-                    });
-                  } else {
-                    print_version_match(instance_group, name);
-                  };
-                })
-            } else {
-              panic!("A Pinned Version Group must always have a .pinVersion property");
-            }
+            group
+              .instance_groups_by_name
+              .iter()
+              .for_each(|(name, instance_group)| {
+                if has_mismatches(instance_group) {
+                  let count = render_count_column(instance_group.all.len());
+                  println!("{} {}", count, name.red());
+                  instance_group.unique_specifiers.iter().for_each(|actual| {
+                    if instance_group.is_mismatch(actual) {
+                      print_pinned_version_mismatch(instance_group, actual);
+                    }
+                  });
+                } else {
+                  print_version_match(instance_group, name);
+                };
+              });
           }
           VersionGroupVariant::SameRange | VersionGroupVariant::SnappedTo => {
             print_group_header(&group.selector.label);
@@ -134,7 +134,7 @@ fn main() -> io::Result<()> {
               .iter()
               .for_each(|(name, instance_group)| {
                 print_version_match(instance_group, name);
-              })
+              });
           }
           VersionGroupVariant::Standard => {
             print_group_header(&group.selector.label);
@@ -157,7 +157,7 @@ fn main() -> io::Result<()> {
                 } else {
                   print_version_match(instance_group, name);
                 };
-              })
+              });
           }
         };
       });
@@ -230,10 +230,9 @@ fn print_group_header(label: &String) {
   println!("{}", full_header.blue());
 }
 
-fn print_banned(instance_group: &instance_group::InstanceGroup<'_>, name: &String) {
-  let count = render_count_column(instance_group.all.len());
+fn print_banned(instance_group: &instance_group::InstanceGroup<'_>, actual: &String) {
   let icon = "✘".red();
-  println!("{} {} {} {}", count, icon, name.red(), "[Banned]".dimmed());
+  println!("      {} {} {}", icon, actual.red(), "[Banned]".dimmed());
 }
 
 fn print_ignored(instance_group: &instance_group::InstanceGroup<'_>, name: &String) {
@@ -250,16 +249,16 @@ fn print_version_match(instance_group: &instance_group::InstanceGroup<'_>, name:
 fn print_pinned_version_mismatch(
   instance_group: &instance_group::InstanceGroup<'_>,
   actual: &String,
-  pin_version: &String,
 ) {
   let icon = "✘".red();
   let arrow = "→".dimmed();
+  let expected = instance_group.expected_version.as_ref().unwrap();
   println!(
     "      {} {} {} {} {}",
     icon,
     actual.red(),
     arrow,
-    pin_version.green(),
+    expected.green(),
     "[PinnedMismatch]".dimmed()
   );
 }

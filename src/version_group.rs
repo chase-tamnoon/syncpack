@@ -63,22 +63,27 @@ impl<'a> VersionGroup<'a> {
     // Track/count instances
     instance_group.all.push(instance);
 
-    if matches!(self.variant, VersionGroupVariant::Standard) {
-      // Track/count unique version specifiers
-      instance_group
-        .unique_specifiers
-        .insert(instance.specifier.clone());
+    // Track/count unique version specifiers
+    instance_group
+      .unique_specifiers
+      .insert(instance.specifier.clone());
 
-      // Track/count what specifier types we have encountered
-      match &instance.specifier_type {
-        SpecifierType::NonSemver(specifier_type) => {
-          instance_group.non_semver.push(instance);
-        }
-        SpecifierType::Semver(specifier_type) => {
-          instance_group.semver.push(instance);
-        }
+    // Track/count what specifier types we have encountered
+    match &instance.specifier_type {
+      SpecifierType::NonSemver(specifier_type) => {
+        instance_group.non_semver.push(instance);
       }
+      SpecifierType::Semver(specifier_type) => {
+        instance_group.semver.push(instance);
+      }
+    }
 
+    if matches!(self.variant, VersionGroupVariant::Pinned) {
+      instance_group.expected_version = self.pin_version.clone();
+      return;
+    }
+
+    if matches!(self.variant, VersionGroupVariant::Standard) {
       // If this is the original source of a locally-developed package, keep a
       // reference to it and set it as the preferred version
       if instance.dependency_type.name == "local" {

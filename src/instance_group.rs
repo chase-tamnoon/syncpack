@@ -34,7 +34,7 @@ impl<'a> InstanceGroup<'a> {
 
   pub fn is_mismatch(&self, specifier: &String) -> bool {
     match &self.expected_version {
-      Some(preferred_version) => specifier != preferred_version,
+      Some(expected_version) => specifier != expected_version,
       None => false,
     }
   }
