@@ -9,7 +9,6 @@ use crate::group_selector::GroupSelector;
 use crate::instance::Instance;
 use crate::instance_group::InstanceGroup;
 use crate::semver_group::SemverGroup;
-use crate::specifier::Specifier;
 
 #[derive(Debug)]
 pub enum PreferVersion {
@@ -187,14 +186,18 @@ impl<'a> VersionGroup<'a> {
       };
     }
     if let Some(policy) = &group.policy {
-      return VersionGroup {
-        variant: VersionGroupVariant::SameRange,
-        selector,
-        instance_groups_by_name: BTreeMap::new(),
-        prefer_version: None,
-        pin_version: None,
-        snap_to: None,
-      };
+      if policy == "sameRange" {
+        return VersionGroup {
+          variant: VersionGroupVariant::SameRange,
+          selector,
+          instance_groups_by_name: BTreeMap::new(),
+          prefer_version: None,
+          pin_version: None,
+          snap_to: None,
+        };
+      } else {
+        panic!("Unrecognised version group policy: {}", policy);
+      }
     }
     if let Some(snap_to) = &group.snap_to {
       return VersionGroup {

@@ -6,7 +6,7 @@ use colored::*;
 use itertools::Itertools;
 use log::debug;
 use regex::Regex;
-use std::{collections::HashMap, fs, io, path};
+use std::{collections::HashMap, io, path};
 
 use crate::{
   config::Rcfile,
@@ -133,7 +133,7 @@ fn main() -> io::Result<()> {
             group
               .instance_groups_by_name
               .iter()
-              .for_each(|(name, instance_group)| {
+              .for_each(|(name, _instance_group)| {
                 println!("@TODO SameRange: {}", name);
               });
           }
@@ -142,7 +142,7 @@ fn main() -> io::Result<()> {
             group
               .instance_groups_by_name
               .iter()
-              .for_each(|(name, instance_group)| {
+              .for_each(|(name, _instance_group)| {
                 println!("@TODO SnappedTo: {}", name);
               });
           }
@@ -328,19 +328,4 @@ fn get_instances<'a>(
     .iter()
     .flat_map(|package| package.get_instances(&dependency_types, &filter))
     .collect()
-}
-
-/// Read and parse a package.json file
-fn read_json_file<P: AsRef<path::Path>>(
-  cwd: &std::path::PathBuf,
-  file_path: &P,
-) -> io::Result<package_json::PackageJson> {
-  let json = fs::read_to_string(file_path)?;
-  let contents: serde_json::Value = serde_json::from_str(&json)?;
-
-  Ok(package_json::PackageJson {
-    file_path: file_path.as_ref().to_path_buf(),
-    json,
-    contents,
-  })
 }

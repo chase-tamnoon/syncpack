@@ -27,7 +27,7 @@ impl PackageJson {
   ) -> Vec<instance::Instance> {
     enabled_dependency_types
       .iter()
-      .flat_map(|(name, dependency_type)| dependency_type.get_instances(&self, filter))
+      .flat_map(|(_, dependency_type)| dependency_type.get_instances(&self, filter))
       .collect()
   }
 
