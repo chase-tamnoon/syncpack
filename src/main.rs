@@ -71,6 +71,15 @@ fn main() -> io::Result<()> {
   let is_valid: bool = match subcommand {
     (Subcommand::Lint, enabled) => {
       println!("lint enabled {:?}", enabled);
+      if enabled.format {
+        println!("lint formatting");
+        let lint_result = format::lint(&rcfile, &packages);
+        println!(
+          "  {} valid {} invalid",
+          lint_result.valid.len(),
+          lint_result.invalid.len()
+        );
+      }
       version_groups.iter().for_each(|group| {
         match group.variant {
           VersionGroupVariant::Banned

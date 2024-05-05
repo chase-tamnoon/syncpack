@@ -3,36 +3,44 @@ use serde_json;
 use std::collections;
 
 use crate::config;
-use crate::package_json;
+use crate::package_json::PackageJson;
+
+pub struct LintResult<'a> {
+  pub invalid: Vec<&'a PackageJson>,
+  pub valid: Vec<&'a PackageJson>,
+}
 
 /// Check whether every package is formatted according to config
-/// Returns true if all are valid
-pub fn is_valid(
-  cwd: &std::path::PathBuf,
-  rcfile: &config::Rcfile,
-  packages: &mut Vec<package_json::PackageJson>,
-) -> bool {
-  packages.iter_mut().fold(true, |is_valid, mut package| {
-    fix_package(&rcfile, &mut package);
-    if package.has_changed() {
-      package.log_as_invalid(&cwd);
-      false
+pub fn lint<'a>(rcfile: &'a config::Rcfile, packages: &'a Vec<PackageJson>) -> LintResult<'a> {
+  let mut lint_result = LintResult {
+    invalid: Vec::new(),
+    valid: Vec::new(),
+  };
+  // let mut invalid: Vec<&'a PackageJson> = Vec::new();
+  // let mut valid: Vec<&'a PackageJson> = Vec::new();
+  packages.iter().for_each(|package| {
+    // clone the package so we don't introduce side-effects
+    let mut package_clone = package.clone();
+    // to lint, apply all configured formatting to the clone...
+    fix_package(&rcfile, &mut package_clone);
+    // ...and if it has changed we know it is invalid
+    if package_clone.has_changed() {
+      lint_result.invalid.push(package);
     } else {
-      package.log_as_valid(&cwd);
-      true
+      lint_result.valid.push(package);
     }
-  })
+  });
+  lint_result
 }
 
 /// Format every package according to config
-/// Returns true if all are were fixable
-pub fn fix(rcfile: &config::Rcfile, packages: &mut Vec<package_json::PackageJson>) {
+pub fn fix(rcfile: &config::Rcfile, packages: &mut Vec<PackageJson>) {
   packages.iter_mut().for_each(|package| {
     fix_package(&rcfile, package);
   });
 }
 
-fn fix_package(rcfile: &config::Rcfile, package: &mut package_json::PackageJson) {
+fn fix_package(rcfile: &config::Rcfile, package: &mut PackageJson) {
   if rcfile.format_bugs {
     format_bugs(package);
   }
@@ -51,7 +59,7 @@ fn fix_package(rcfile: &config::Rcfile, package: &mut package_json::PackageJson)
 }
 
 /// Sorts conditional exports and conditional exports subpaths
-fn sort_exports(rcfile: &config::Rcfile, package: &mut package_json::PackageJson) {
+fn sort_exports(rcfile: &config::Rcfile, package: &mut PackageJson) {
   if let Some(exports) = package.get_prop_mut("/exports") {
     visit_node(&rcfile.sort_exports, exports);
   }
@@ -68,7 +76,7 @@ fn sort_exports(rcfile: &config::Rcfile, package: &mut package_json::PackageJson
 }
 
 /// Sort the values of the given keys alphabetically
-fn sort_az(rcfile: &config::Rcfile, package: &mut package_json::PackageJson) {
+fn sort_az(rcfile: &config::Rcfile, package: &mut PackageJson) {
   rcfile.sort_az.iter().for_each(|key| {
     package
       .contents
@@ -78,7 +86,7 @@ fn sort_az(rcfile: &config::Rcfile, package: &mut package_json::PackageJson) {
 }
 
 /// Sort package.json with the given keys first
-fn sort_first(rcfile: &config::Rcfile, package: &mut package_json::PackageJson) {
+fn sort_first(rcfile: &config::Rcfile, package: &mut PackageJson) {
   if let serde_json::Value::Object(obj) = &mut package.contents {
     sort_keys_with_priority(&rcfile.sort_first, obj, rcfile.sort_packages);
   }
@@ -146,7 +154,7 @@ fn sort_alphabetically(value: &mut serde_json::Value) {
 }
 
 /// Use a shorthand format for the bugs URL when possible
-fn format_bugs(package: &mut package_json::PackageJson) {
+fn format_bugs(package: &mut PackageJson) {
   let bugs_url = package.get_prop("/bugs/url");
   if let Some(bugs_url) = bugs_url {
     package.set_prop("/bugs", bugs_url.clone());
@@ -154,7 +162,7 @@ fn format_bugs(package: &mut package_json::PackageJson) {
 }
 
 /// Use a shorthand format for the repository URL when possible
-fn format_repository(package: &mut package_json::PackageJson) {
+fn format_repository(package: &mut PackageJson) {
   if package.get_prop("/repository/directory").is_none() {
     if let Some(repository_url) = package.get_prop("/repository/url") {
       if let Some(url) = repository_url.as_str() {

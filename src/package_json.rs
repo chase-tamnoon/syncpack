@@ -9,7 +9,7 @@ use std::path;
 use crate::dependency_type::DependencyType;
 use crate::instance;
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct PackageJson {
   /// The path to the package.json file
   pub file_path: path::PathBuf,
