@@ -11,7 +11,7 @@ use crate::{
   config::Rcfile,
   format::LintResult,
   semver_group::SemverGroup,
-  version_group::{VersionGroup, VersionGroupVariant},
+  version_group::{PreferVersion, VersionGroup, VersionGroupVariant},
 };
 
 mod cli;
@@ -86,8 +86,16 @@ fn main() -> io::Result<()> {
 
       version_groups.iter().for_each(|group| {
         match group.variant {
+          VersionGroupVariant::Ignored => {
+            print_group_header(&group.selector.label);
+            group
+              .instance_groups_by_name
+              .iter()
+              .for_each(|(name, instance_group)| {
+                print_ignored(instance_group, name);
+              })
+          }
           VersionGroupVariant::Banned
-          | VersionGroupVariant::Ignored
           | VersionGroupVariant::Pinned
           | VersionGroupVariant::SameRange
           | VersionGroupVariant::SnappedTo => {
@@ -110,7 +118,11 @@ fn main() -> io::Result<()> {
                   println!("{} {}", count, name.red());
                   instance_group.unique_specifiers.iter().for_each(|actual| {
                     if instance_group.is_mismatch(actual) {
-                      print_version_mismatch(instance_group, actual);
+                      if let Some(PreferVersion::LowestSemver) = group.prefer_version {
+                        print_lowest_version_mismatch(instance_group, actual);
+                      } else {
+                        print_highest_version_mismatch(instance_group, actual);
+                      }
                     }
                   });
                 } else {
@@ -149,6 +161,7 @@ fn render_count_column(count: usize) -> ColoredString {
   format!("{: >4}x", count).dimmed()
 }
 
+/// Check formatting of package.json files and return whether all are valid
 fn lint_formatting(
   cwd: &path::PathBuf,
   rcfile: &Rcfile,
@@ -161,7 +174,7 @@ fn lint_formatting(
   println!("{}", "= FORMATTING".yellow());
   let LintResult { valid, invalid } = format::lint(rcfile, packages);
   println!("{} valid", render_count_column(valid.len()));
-  println!("{} {}", render_count_column(invalid.len()), "invalid".red());
+  println!("{} invalid", render_count_column(invalid.len()));
   invalid.iter().for_each(|package| {
     println!(
       "      {} {}",
@@ -184,22 +197,48 @@ fn print_group_header(label: &String) {
   println!("{}", full_header.blue());
 }
 
+fn print_ignored(instance_group: &instance_group::InstanceGroup<'_>, name: &String) {
+  let count = render_count_column(instance_group.all.len());
+  println!("{} {} {}", count, name.dimmed(), "[Ignored]".dimmed());
+}
+
 fn print_version_match(instance_group: &instance_group::InstanceGroup<'_>, name: &String) {
   let count = render_count_column(instance_group.all.len());
   let version = &instance_group.unique_specifiers.iter().join(" ");
   println!("{} {} {}", count, name, &version.dimmed());
 }
 
-fn print_version_mismatch(instance_group: &instance_group::InstanceGroup<'_>, actual: &String) {
+fn print_lowest_version_mismatch(
+  instance_group: &instance_group::InstanceGroup<'_>,
+  actual: &String,
+) {
   let icon = "✘".red();
   let arrow = "→".dimmed();
   let expected = instance_group.expected_version.as_ref().unwrap();
   println!(
-    "      {} {} {} {}",
+    "      {} {} {} {} {}",
     icon,
     actual.red(),
     arrow,
-    expected.green()
+    expected.green(),
+    "[LowestSemverMismatch]".dimmed()
+  );
+}
+
+fn print_highest_version_mismatch(
+  instance_group: &instance_group::InstanceGroup<'_>,
+  actual: &String,
+) {
+  let icon = "✘".red();
+  let arrow = "→".dimmed();
+  let expected = instance_group.expected_version.as_ref().unwrap();
+  println!(
+    "      {} {} {} {} {}",
+    icon,
+    actual.red(),
+    arrow,
+    expected.green(),
+    "[HighestSemverMismatch]".dimmed()
   );
 }
 
