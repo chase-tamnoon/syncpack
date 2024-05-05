@@ -269,24 +269,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c08c74e62047bb2de4ff487b251e4a92e24f48745648451635cec7d591162d9f"
 
 [[package]]
-name = "rust-syncpack"
-version = "0.1.0"
-dependencies = [
- "clap",
- "colored",
- "env_logger",
- "glob",
- "globset",
- "itertools",
- "lazy_static",
- "log",
- "regex",
- "serde",
- "serde_json",
- "version-compare",
-]
-
-[[package]]
 name = "ryu"
 version = "1.0.16"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -339,6 +321,24 @@ dependencies = [
  "proc-macro2",
  "quote",
  "unicode-ident",
+]
+
+[[package]]
+name = "syncpack"
+version = "0.1.0"
+dependencies = [
+ "clap",
+ "colored",
+ "env_logger",
+ "glob",
+ "globset",
+ "itertools",
+ "lazy_static",
+ "log",
+ "regex",
+ "serde",
+ "serde_json",
+ "version-compare",
 ]
 
 [[package]]
