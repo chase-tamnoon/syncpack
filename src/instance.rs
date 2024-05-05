@@ -1,6 +1,6 @@
 use crate::dependency_type::DependencyType;
 use crate::package_json;
-use crate::specifier::SpecifierType;
+use crate::specifier::Specifier;
 
 #[derive(Debug)]
 pub struct Instance<'a> {
@@ -13,7 +13,7 @@ pub struct Instance<'a> {
   /// The package.json file this instance belongs to
   pub package_json: &'a package_json::PackageJson,
   /// The parsed dependency specifier
-  pub specifier_type: SpecifierType,
+  pub specifier_type: Specifier,
   /// The raw dependency specifier eg. "16.8.0", "^16.8.0"
   pub specifier: String,
 }
@@ -33,7 +33,7 @@ impl<'a> Instance<'a> {
       },
       name,
       package_json: file,
-      specifier_type: SpecifierType::new(specifier.as_str()),
+      specifier_type: Specifier::new(specifier.as_str()),
       specifier,
     }
   }

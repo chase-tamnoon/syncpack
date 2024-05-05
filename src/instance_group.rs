@@ -11,9 +11,9 @@ pub struct InstanceGroup<'a> {
   pub expected_version: Option<String>,
   /// If this dependency is a local package, this is the local instance.
   pub local: Option<&'a Instance<'a>>,
-  /// All instances with `SpecifierType::NonSemver` versions
+  /// All instances with `Specifier::NonSemver` versions
   pub non_semver: Vec<&'a Instance<'a>>,
-  /// All instances with `SpecifierType::Semver` versions
+  /// All instances with `Specifier::Semver` versions
   pub semver: Vec<&'a Instance<'a>>,
   /// Raw version specifiers for each dependency. If there is more than one
   /// unique version, then we have mismatching versions

@@ -9,7 +9,7 @@ use crate::group_selector::GroupSelector;
 use crate::instance::Instance;
 use crate::instance_group::InstanceGroup;
 use crate::semver_group::SemverGroup;
-use crate::specifier::SpecifierType;
+use crate::specifier::Specifier;
 
 #[derive(Debug)]
 pub enum PreferVersion {
@@ -70,10 +70,10 @@ impl<'a> VersionGroup<'a> {
 
     // Track/count what specifier types we have encountered
     match &instance.specifier_type {
-      SpecifierType::NonSemver(specifier_type) => {
+      Specifier::NonSemver(specifier_type) => {
         instance_group.non_semver.push(instance);
       }
-      SpecifierType::Semver(specifier_type) => {
+      Specifier::Semver(specifier_type) => {
         instance_group.semver.push(instance);
       }
     }
@@ -95,7 +95,7 @@ impl<'a> VersionGroup<'a> {
       // has not been found, we need to look at the usages of it for a preferred
       // version
       if instance_group.local.is_none() {
-        if let SpecifierType::Semver(specifier_type) = &instance.specifier_type {
+        if let Specifier::Semver(specifier_type) = &instance.specifier_type {
           // Have we set a preferred version yet for these instances?
           match &mut instance_group.expected_version {
             // No, this is the first candidate.
