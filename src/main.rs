@@ -72,6 +72,18 @@ fn main() -> io::Result<()> {
   let is_valid: bool = match subcommand {
     (Subcommand::Lint, enabled) => {
       lint_formatting(&cwd, &rcfile, &packages, &enabled);
+
+      let header = match (enabled.ranges, enabled.versions) {
+        (true, true) => "= SEMVER RANGES AND VERSION MISMATCHES",
+        (true, false) => "= SEMVER RANGES",
+        (false, true) => "= VERSION MISMATCHES",
+        (false, false) => "",
+      };
+
+      if header != "" {
+        println!("{}", header.yellow());
+      }
+
       version_groups.iter().for_each(|group| {
         match group.variant {
           VersionGroupVariant::Banned
@@ -146,7 +158,7 @@ fn lint_formatting(
   if !enabled.format {
     return true;
   }
-  println!("{}", "= formatting".yellow());
+  println!("{}", "= FORMATTING".yellow());
   let LintResult { valid, invalid } = format::lint(rcfile, packages);
   println!("{} valid", render_count_column(valid.len()));
   println!("{} {}", render_count_column(invalid.len()), "invalid".red());
