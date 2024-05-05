@@ -44,36 +44,21 @@ lazy_static! {
   static ref REGEX_GIT: Regex = Regex::new(r"^git(\+(ssh|https?))?://").unwrap();
   /// "alpha"
   static ref REGEX_TAG: Regex = Regex::new(r"^[a-zA-Z0-9-]+$").unwrap();
+  /// a logical OR in a semver range
+  static ref REGEX_OR_OPERATOR:Regex = Regex::new(r" ?\|\| ?").unwrap();
 }
 
-pub const EXACT: Specifier = Specifier::Semver(Semver::Exact);
-pub const LATEST: Specifier = Specifier::Semver(Semver::Latest);
-pub const MAJOR: Specifier = Specifier::Semver(Semver::Major);
-pub const MINOR: Specifier = Specifier::Semver(Semver::Minor);
-pub const RANGE: Specifier = Specifier::Semver(Semver::Range);
-pub const RANGE_MINOR: Specifier = Specifier::Semver(Semver::RangeMinor);
-pub const ALIAS: Specifier = Specifier::NonSemver(NonSemver::Alias);
-pub const FILE: Specifier = Specifier::NonSemver(NonSemver::File);
-pub const GIT: Specifier = Specifier::NonSemver(NonSemver::Git);
-pub const TAG: Specifier = Specifier::NonSemver(NonSemver::Tag);
-pub const UNSUPPORTED: Specifier = Specifier::NonSemver(NonSemver::Unsupported);
-pub const URL: Specifier = Specifier::NonSemver(NonSemver::Url);
-pub const WORKSPACE_PROTOCOL: Specifier = Specifier::NonSemver(NonSemver::WorkspaceProtocol);
-
 #[derive(Debug, PartialEq)]
-pub enum Semver {
+pub enum Specifier {
+  // Semver
   Exact,
   Latest,
   Major,
   Minor,
   Range,
+  RangeComplex,
   RangeMinor,
-}
-
-// @TODO: add nested enums of supported or not supported
-#[derive(Debug, PartialEq)]
-pub enum NonSemver {
-  // @TODO: can be considered semver once parsing is improved
+  // Non Semver
   Alias,
   File,
   Git,
@@ -83,42 +68,79 @@ pub enum NonSemver {
   WorkspaceProtocol,
 }
 
-#[derive(Debug, PartialEq)]
-pub enum Specifier {
-  Semver(Semver),
-  NonSemver(NonSemver),
+impl Specifier {
+  pub fn is_semver(&self) -> bool {
+    match self {
+      Self::Exact => true,
+      Self::Latest => true,
+      Self::Major => true,
+      Self::Minor => true,
+      Self::Range => true,
+      Self::RangeComplex => true,
+      Self::RangeMinor => true,
+      Self::Alias => false,
+      Self::File => false,
+      Self::Git => false,
+      Self::Tag => false,
+      Self::Unsupported => false,
+      Self::Url => false,
+      Self::WorkspaceProtocol => false,
+    }
+  }
 }
 
 impl Specifier {
-  pub fn new(specifier: &str) -> Specifier {
-    if REGEX_EXACT.is_match(specifier) {
-      EXACT
-    } else if is_range(specifier) {
-      RANGE
-    } else if specifier == "*" || specifier == "latest" {
-      LATEST
-    } else if REGEX_WORKSPACE_PROTOCOL.is_match(specifier) {
-      WORKSPACE_PROTOCOL
-    } else if REGEX_ALIAS.is_match(specifier) {
-      ALIAS
-    } else if REGEX_MAJOR.is_match(specifier) {
-      MAJOR
-    } else if REGEX_MINOR.is_match(specifier) {
-      MINOR
-    } else if REGEX_TAG.is_match(specifier) {
-      TAG
-    } else if REGEX_GIT.is_match(specifier) {
-      GIT
-    } else if REGEX_URL.is_match(specifier) {
-      URL
-    } else if is_range_minor(specifier) {
-      RANGE_MINOR
-    } else if REGEX_FILE.is_match(specifier) {
-      FILE
-    } else {
-      UNSUPPORTED
-    }
+  pub fn new(specifier: &str) -> Self {
+    parse_specifier(specifier, false)
   }
+}
+
+pub fn parse_specifier(specifier: &str, is_recursive: bool) -> Specifier {
+  if REGEX_EXACT.is_match(specifier) {
+    Specifier::Exact
+  } else if is_range(specifier) {
+    Specifier::Range
+  } else if specifier == "*" || specifier == "latest" || specifier == "x" {
+    Specifier::Latest
+  } else if REGEX_WORKSPACE_PROTOCOL.is_match(specifier) {
+    Specifier::WorkspaceProtocol
+  } else if REGEX_ALIAS.is_match(specifier) {
+    Specifier::Alias
+  } else if REGEX_MAJOR.is_match(specifier) {
+    Specifier::Major
+  } else if REGEX_MINOR.is_match(specifier) {
+    Specifier::Minor
+  } else if REGEX_TAG.is_match(specifier) {
+    Specifier::Tag
+  } else if REGEX_GIT.is_match(specifier) {
+    Specifier::Git
+  } else if REGEX_URL.is_match(specifier) {
+    Specifier::Url
+  } else if is_range_minor(specifier) {
+    Specifier::RangeMinor
+  } else if REGEX_FILE.is_match(specifier) {
+    Specifier::File
+  } else if !is_recursive && is_complex_range(specifier) {
+    Specifier::RangeComplex
+  } else {
+    Specifier::Unsupported
+  }
+}
+
+/// Is this a semver range containing multiple parts?
+/// Such as OR (" || ") or AND (" ")
+fn is_complex_range(specifier: &str) -> bool {
+  REGEX_OR_OPERATOR
+    .split(specifier)
+    .map(|str| str.trim())
+    .filter(|str| str.len() > 0)
+    .all(|or_condition| {
+      or_condition
+        .split(" ")
+        .map(|str| str.trim())
+        .filter(|str| str.len() > 0)
+        .all(|and_condition| parse_specifier(and_condition, true).is_semver())
+    })
 }
 
 fn is_range(specifier: &str) -> bool {
@@ -141,19 +163,20 @@ fn is_range_minor(specifier: &str) -> bool {
 
 pub fn get_specifier_type_name(specifier_type: &Specifier) -> String {
   match specifier_type {
-    &EXACT => "exact".to_string(),
-    &LATEST => "latest".to_string(),
-    &MAJOR => "major".to_string(),
-    &MINOR => "minor".to_string(),
-    &RANGE => "range".to_string(),
-    &RANGE_MINOR => "range-minor".to_string(),
-    &ALIAS => "alias".to_string(),
-    &FILE => "file".to_string(),
-    &GIT => "git".to_string(),
-    &TAG => "tag".to_string(),
-    &UNSUPPORTED => "unsupported".to_string(),
-    &URL => "url".to_string(),
-    &WORKSPACE_PROTOCOL => "workspace-protocol".to_string(),
+    &Specifier::Exact => "exact".to_string(),
+    &Specifier::Latest => "latest".to_string(),
+    &Specifier::Major => "major".to_string(),
+    &Specifier::Minor => "minor".to_string(),
+    &Specifier::Range => "range".to_string(),
+    &Specifier::RangeMinor => "range-minor".to_string(),
+    &Specifier::RangeComplex => "range-complex".to_string(),
+    &Specifier::Alias => "alias".to_string(),
+    &Specifier::File => "file".to_string(),
+    &Specifier::Git => "git".to_string(),
+    &Specifier::Tag => "tag".to_string(),
+    &Specifier::Unsupported => "unsupported".to_string(),
+    &Specifier::Url => "url".to_string(),
+    &Specifier::WorkspaceProtocol => "workspace-protocol".to_string(),
   }
 }
 
@@ -170,12 +193,7 @@ mod tests {
     ];
     for case in cases {
       let parsed = Specifier::new(case);
-      assert_eq!(
-        parsed,
-        Specifier::NonSemver(NonSemver::Alias),
-        "{} should be alias",
-        case
-      );
+      assert_eq!(parsed, Specifier::Alias, "{} should be alias", case);
     }
   }
 
@@ -190,7 +208,7 @@ mod tests {
     ];
     for case in cases {
       let parsed = Specifier::new(case);
-      assert_eq!(parsed, EXACT, "{} should be exact", case);
+      assert_eq!(parsed, Specifier::Exact, "{} should be exact", case);
     }
   }
 
@@ -217,7 +235,7 @@ mod tests {
     ];
     for case in cases {
       let parsed = Specifier::new(case);
-      assert_eq!(parsed, FILE, "{} should be file", case);
+      assert_eq!(parsed, Specifier::File, "{} should be file", case);
     }
   }
 
@@ -259,7 +277,7 @@ mod tests {
     ];
     for case in cases {
       let parsed = Specifier::new(case);
-      assert_eq!(parsed, GIT, "{} should be git", case);
+      assert_eq!(parsed, Specifier::Git, "{} should be git", case);
     }
   }
 
@@ -268,7 +286,7 @@ mod tests {
     let cases: Vec<&str> = vec!["latest", "*"];
     for case in cases {
       let parsed = Specifier::new(case);
-      assert_eq!(parsed, LATEST, "{} should be latest", case);
+      assert_eq!(parsed, Specifier::Latest, "{} should be latest", case);
     }
   }
 
@@ -277,7 +295,7 @@ mod tests {
     let cases: Vec<&str> = vec!["1"];
     for case in cases {
       let parsed = Specifier::new(case);
-      assert_eq!(parsed, MAJOR, "{} should be major", case);
+      assert_eq!(parsed, Specifier::Major, "{} should be major", case);
     }
   }
 
@@ -286,7 +304,7 @@ mod tests {
     let cases: Vec<&str> = vec!["1.2"];
     for case in cases {
       let parsed = Specifier::new(case);
-      assert_eq!(parsed, MINOR, "{} should be minor", case);
+      assert_eq!(parsed, Specifier::Minor, "{} should be minor", case);
     }
   }
 
@@ -304,7 +322,7 @@ mod tests {
     ];
     for case in cases {
       let parsed = Specifier::new(case);
-      assert_eq!(parsed, RANGE, "{} should be range", case);
+      assert_eq!(parsed, Specifier::Range, "{} should be range", case);
     }
   }
 
@@ -313,7 +331,12 @@ mod tests {
     let cases: Vec<&str> = vec!["^4.1", "~1.2", ">=5.0", "<=5.0", ">5.0", "<5.0"];
     for case in cases {
       let parsed = Specifier::new(case);
-      assert_eq!(parsed, RANGE_MINOR, "{} should be range-minor", case);
+      assert_eq!(
+        parsed,
+        Specifier::RangeMinor,
+        "{} should be range-minor",
+        case
+      );
     }
   }
 
@@ -322,7 +345,7 @@ mod tests {
     let cases: Vec<&str> = vec!["alpha", "canary", "foo"];
     for case in cases {
       let parsed = Specifier::new(case);
-      assert_eq!(parsed, TAG, "{} should be tag", case);
+      assert_eq!(parsed, Specifier::Tag, "{} should be tag", case);
     }
   }
 
@@ -337,8 +360,6 @@ mod tests {
       "/path/to/foo",
       "$typescript",
       "1.typo.wat",
-      " 1.2 ",
-      " 1.2.3 ",
       "=v1.2.3",
       "not-git@hostname.com:some/repo",
       "user/foo#1234::path:dist",
@@ -349,7 +370,12 @@ mod tests {
     ];
     for case in cases {
       let parsed = Specifier::new(case);
-      assert_eq!(parsed, UNSUPPORTED, "{} should be unsupported", case);
+      assert_eq!(
+        parsed,
+        Specifier::Unsupported,
+        "{} should be unsupported",
+        case
+      );
     }
   }
 
@@ -362,7 +388,7 @@ mod tests {
     ];
     for case in cases {
       let parsed = Specifier::new(case);
-      assert_eq!(parsed, URL, "{} should be url", case);
+      assert_eq!(parsed, Specifier::Url, "{} should be url", case);
     }
   }
 
@@ -372,8 +398,32 @@ mod tests {
     for case in cases {
       let parsed = Specifier::new(case);
       assert_eq!(
-        parsed, WORKSPACE_PROTOCOL,
+        parsed,
+        Specifier::WorkspaceProtocol,
         "{} should be workspace-protocol",
+        case
+      );
+    }
+  }
+
+  #[test]
+  fn complex_range() {
+    let cases: Vec<&str> = vec![
+      "1.3.0 || <1.0.0 >2.0.0",
+      "<1.0.0 >2.0.0",
+      ">1.0.0 <=2.0.0",
+      "<1.0.0 >=2.0.0",
+      "<1.5.0 || >=1.6.0",
+      "<1.6.16 || >=1.7.0 <1.7.11 || >=1.8.0 <1.8.2",
+      "<=1.6.16 || >=1.7.0 <1.7.11 || >=1.8.0 <1.8.2",
+      ">1.0.0 <1.0.0",
+    ];
+    for case in cases {
+      let parsed = Specifier::new(case);
+      assert_eq!(
+        parsed,
+        Specifier::RangeComplex,
+        "{} should be range-complex",
         case
       );
     }

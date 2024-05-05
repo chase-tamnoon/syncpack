@@ -1,4 +1,5 @@
 #![allow(dead_code)]
+#![allow(unused_imports)]
 #![allow(unused_variables)]
 
 use colored::*;
@@ -127,13 +128,22 @@ fn main() -> io::Result<()> {
                 };
               });
           }
-          VersionGroupVariant::SameRange | VersionGroupVariant::SnappedTo => {
+          VersionGroupVariant::SameRange => {
             print_group_header(&group.selector.label);
             group
               .instance_groups_by_name
               .iter()
               .for_each(|(name, instance_group)| {
-                print_version_match(instance_group, name);
+                println!("@TODO SameRange: {}", name);
+              });
+          }
+          VersionGroupVariant::SnappedTo => {
+            print_group_header(&group.selector.label);
+            group
+              .instance_groups_by_name
+              .iter()
+              .for_each(|(name, instance_group)| {
+                println!("@TODO SnappedTo: {}", name);
               });
           }
           VersionGroupVariant::Standard => {

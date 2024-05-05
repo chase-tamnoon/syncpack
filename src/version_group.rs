@@ -69,13 +69,10 @@ impl<'a> VersionGroup<'a> {
       .insert(instance.specifier.clone());
 
     // Track/count what specifier types we have encountered
-    match &instance.specifier_type {
-      Specifier::NonSemver(specifier_type) => {
-        instance_group.non_semver.push(instance);
-      }
-      Specifier::Semver(specifier_type) => {
-        instance_group.semver.push(instance);
-      }
+    if instance.specifier_type.is_semver() {
+      instance_group.semver.push(instance);
+    } else {
+      instance_group.non_semver.push(instance);
     }
 
     if matches!(self.variant, VersionGroupVariant::Pinned) {
@@ -95,7 +92,7 @@ impl<'a> VersionGroup<'a> {
       // has not been found, we need to look at the usages of it for a preferred
       // version
       if instance_group.local.is_none() {
-        if let Specifier::Semver(specifier_type) = &instance.specifier_type {
+        if instance.specifier_type.is_semver() {
           // Have we set a preferred version yet for these instances?
           match &mut instance_group.expected_version {
             // No, this is the first candidate.

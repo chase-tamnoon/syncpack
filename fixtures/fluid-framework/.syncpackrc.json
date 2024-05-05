@@ -119,6 +119,11 @@
       "pinVersion": "4.0.0"
     },
     {
+      "label": "Example of same range dependency",
+      "dependencies": ["@fluidframework/build-common"],
+      "policy": "sameRange"
+    },
+    {
       "label": "Version compatibility workarounds should be used, or removed from syncpack.config.cjs if no longer needed.",
       "dependencies": [
         "react-virtualized-auto-sizer",
