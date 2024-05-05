@@ -1,4 +1,3 @@
-use colored::Colorize;
 use regex::Regex;
 use serde_json;
 use std::collections::HashMap;
@@ -59,15 +58,8 @@ impl PackageJson {
     fs::write(&self.file_path, self.contents.to_string())
   }
 
-  pub fn log_as_valid(&self, cwd: &std::path::PathBuf) -> () {
-    println!("{} {}", "✓".green(), self.get_short_path(cwd));
-  }
-
-  pub fn log_as_invalid(&self, cwd: &std::path::PathBuf) -> () {
-    println!("{} {}", "✘".red(), self.get_short_path(cwd));
-  }
-
-  fn get_short_path(&self, cwd: &std::path::PathBuf) -> String {
+  /// Return a short path for logging to the terminal
+  pub fn get_relative_file_path(&self, cwd: &std::path::PathBuf) -> String {
     self
       .file_path
       .strip_prefix(&cwd)

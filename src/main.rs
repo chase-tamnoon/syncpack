@@ -9,6 +9,7 @@ use std::{collections::HashMap, fs, io, path};
 
 use crate::{
   config::Rcfile,
+  format::LintResult,
   semver_group::SemverGroup,
   version_group::{VersionGroup, VersionGroupVariant},
 };
@@ -52,7 +53,7 @@ fn main() -> io::Result<()> {
   let dependency_types = Rcfile::get_enabled_dependency_types(&rcfile);
   let semver_groups = SemverGroup::from_rcfile(&rcfile);
   let mut version_groups = VersionGroup::from_rcfile(&rcfile);
-  let mut packages = get_packages(&rcfile, &cwd);
+  let mut packages = get_packages(&cwd, &rcfile);
   let instances = get_instances(&packages, &dependency_types, &rcfile.get_filter());
 
   // assign every instance to the first group it matches
@@ -70,16 +71,7 @@ fn main() -> io::Result<()> {
 
   let is_valid: bool = match subcommand {
     (Subcommand::Lint, enabled) => {
-      println!("lint enabled {:?}", enabled);
-      if enabled.format {
-        println!("lint formatting");
-        let lint_result = format::lint(&rcfile, &packages);
-        println!(
-          "  {} valid {} invalid",
-          lint_result.valid.len(),
-          lint_result.invalid.len()
-        );
-      }
+      lint_formatting(&cwd, &rcfile, &packages, &enabled);
       version_groups.iter().for_each(|group| {
         match group.variant {
           VersionGroupVariant::Banned
@@ -92,9 +84,7 @@ fn main() -> io::Result<()> {
               .instance_groups_by_name
               .iter()
               .for_each(|(name, instance_group)| {
-                // right align the count of instances
-                let count = format!("{: >4}x", instance_group.all.len()).dimmed();
-                print_version_match(instance_group, count, name);
+                print_version_match(instance_group, name);
               })
           }
           VersionGroupVariant::Standard => {
@@ -103,17 +93,16 @@ fn main() -> io::Result<()> {
               .instance_groups_by_name
               .iter()
               .for_each(|(name, instance_group)| {
-                // right align the count of instances
-                let count = format!("{: >4}x", instance_group.all.len()).dimmed();
                 if has_mismatches(instance_group) {
-                  println!("  {} {}", count, name.red());
+                  let count = render_count_column(instance_group.all.len());
+                  println!("{} {}", count, name.red());
                   instance_group.unique_specifiers.iter().for_each(|actual| {
                     if instance_group.is_mismatch(actual) {
                       print_version_mismatch(instance_group, actual);
                     }
                   });
                 } else {
-                  print_version_match(instance_group, count, name);
+                  print_version_match(instance_group, name);
                 };
               })
           }
@@ -142,6 +131,35 @@ fn main() -> io::Result<()> {
   }
 }
 
+/// Return a right aligned column of a count of instances
+/// Example "    38x"
+fn render_count_column(count: usize) -> ColoredString {
+  format!("{: >4}x", count).dimmed()
+}
+
+fn lint_formatting(
+  cwd: &path::PathBuf,
+  rcfile: &Rcfile,
+  packages: &Vec<package_json::PackageJson>,
+  enabled: &cli::EnabledSteps,
+) -> bool {
+  if !enabled.format {
+    return true;
+  }
+  println!("{}", "= formatting".yellow());
+  let LintResult { valid, invalid } = format::lint(rcfile, packages);
+  println!("{} valid", render_count_column(valid.len()));
+  println!("{} {}", render_count_column(invalid.len()), "invalid".red());
+  invalid.iter().for_each(|package| {
+    println!(
+      "      {} {}",
+      "✘".red(),
+      package.get_relative_file_path(cwd).red()
+    );
+  });
+  invalid.len() == 0
+}
+
 fn print_group_header(label: &String) {
   let print_width = 80;
   let header = format!("= {} ", label);
@@ -154,13 +172,10 @@ fn print_group_header(label: &String) {
   println!("{}", full_header.blue());
 }
 
-fn print_version_match(
-  instance_group: &instance_group::InstanceGroup<'_>,
-  count: ColoredString,
-  name: &String,
-) {
+fn print_version_match(instance_group: &instance_group::InstanceGroup<'_>, name: &String) {
+  let count = render_count_column(instance_group.all.len());
   let version = &instance_group.unique_specifiers.iter().join(" ");
-  println!("  {} {} {}", count, name, &version.dimmed());
+  println!("{} {} {}", count, name, &version.dimmed());
 }
 
 fn print_version_mismatch(instance_group: &instance_group::InstanceGroup<'_>, actual: &String) {
@@ -168,7 +183,7 @@ fn print_version_mismatch(instance_group: &instance_group::InstanceGroup<'_>, ac
   let arrow = "→".dimmed();
   let expected = instance_group.expected_version.as_ref().unwrap();
   println!(
-    "        {} {} {} {}",
+    "      {} {} {} {}",
     icon,
     actual.red(),
     arrow,
@@ -180,7 +195,7 @@ fn has_mismatches(instance_group: &instance_group::InstanceGroup<'_>) -> bool {
   instance_group.unique_specifiers.len() > (1 as usize)
 }
 
-fn get_packages(rcfile: &Rcfile, cwd: &path::PathBuf) -> Vec<package_json::PackageJson> {
+fn get_packages(cwd: &path::PathBuf, rcfile: &Rcfile) -> Vec<package_json::PackageJson> {
   rcfile
     .get_sources(&cwd)
     .iter_mut()
