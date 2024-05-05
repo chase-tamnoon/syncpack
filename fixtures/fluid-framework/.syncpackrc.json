@@ -1,8 +1,14 @@
 {
   "indent": "\\t",
   "customTypes": {
-    "engines": { "path": "engines", "strategy": "versionsByName" },
-    "packageManager": { "path": "packageManager", "strategy": "name@version" }
+    "engines": {
+      "path": "engines",
+      "strategy": "versionsByName"
+    },
+    "packageManager": {
+      "path": "packageManager",
+      "strategy": "name@version"
+    }
   },
   "semverGroups": [
     {
@@ -102,6 +108,16 @@
     }
   ],
   "versionGroups": [
+    {
+      "label": "Example of banned dependency",
+      "dependencies": ["lodash"],
+      "isBanned": true
+    },
+    {
+      "label": "Example of pinned dependency",
+      "dependencies": ["@types/chai"],
+      "pinVersion": "4.0.0"
+    },
     {
       "label": "Version compatibility workarounds should be used, or removed from syncpack.config.cjs if no longer needed.",
       "dependencies": [
