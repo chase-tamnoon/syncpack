@@ -2,11 +2,17 @@
 #![allow(unused_imports)]
 #![allow(unused_variables)]
 
+use cli::CliOptions;
 use colored::*;
 use itertools::Itertools;
 use log::debug;
+use path_buf::path_buf_to_str;
 use regex::Regex;
-use std::{collections::HashMap, io, path};
+use std::{
+  collections::HashMap,
+  io::{self, Error},
+  path,
+};
 
 use crate::{
   config::Rcfile,
@@ -24,11 +30,13 @@ mod instance;
 mod instance_group;
 mod json_file;
 mod package_json;
+mod path_buf;
 mod semver_group;
 mod specifier;
 mod version_group;
 mod versions;
 
+#[derive(Debug)]
 enum Subcommand {
   Lint,
   Fix,
@@ -41,20 +49,28 @@ fn main() -> io::Result<()> {
     Some(("lint", matches)) => (Subcommand::Lint, cli::get_cli_options(matches)),
     Some(("fix", matches)) => (Subcommand::Fix, cli::get_cli_options(matches)),
     _ => {
-      debug!("@TODO: output --help when command is not recognised");
       std::process::exit(1);
     }
   };
 
+  let (command_name, cli_options) = &subcommand;
   let cwd = std::env::current_dir()?.join("fixtures/fluid-framework");
   let rcfile = config::get(&cwd).expect("missing config file");
 
+  debug!("cwd: {:?}", &cwd);
+  debug!("command_name: {:?}", &command_name);
+  debug!("cli_options: {:?}", &cli_options);
   debug!("rcfile: {:?}", &rcfile);
 
   let dependency_types = Rcfile::get_enabled_dependency_types(&rcfile);
   let semver_groups = SemverGroup::from_rcfile(&rcfile);
   let mut version_groups = VersionGroup::from_rcfile(&rcfile);
-  let mut packages = get_packages(&cwd, &rcfile);
+  let file_paths = get_sources(&cwd, &cli_options, &rcfile).expect("Failed to get globs");
+  let mut packages = get_packages(&file_paths).expect("Failed to read packages");
+
+  println!("{:#?}", file_paths);
+  println!("{:#?}", packages);
+
   let instances = get_instances(&packages, &dependency_types, &rcfile.get_filter());
 
   // assign every instance to the first group it matches
@@ -70,8 +86,8 @@ fn main() -> io::Result<()> {
       .add_instance(instance, semver_group);
   });
 
-  let is_valid: bool = match subcommand {
-    (Subcommand::Lint, cli_options) => {
+  let is_valid: bool = match command_name {
+    Subcommand::Lint => {
       println!("{:#?}", &cli_options);
 
       lint_formatting(&cwd, &rcfile, &packages, &cli_options);
@@ -175,7 +191,7 @@ fn main() -> io::Result<()> {
       });
       true
     }
-    (Subcommand::Fix, cli_options) => {
+    Subcommand::Fix => {
       println!("fix enabled {:?}", cli_options);
       if cli_options.format {
         println!("format packages");
@@ -313,12 +329,55 @@ fn has_mismatches(instance_group: &instance_group::InstanceGroup<'_>) -> bool {
   instance_group.unique_specifiers.len() > (1 as usize)
 }
 
-fn get_packages(cwd: &path::PathBuf, rcfile: &Rcfile) -> Vec<package_json::PackageJson> {
-  rcfile
-    .get_sources(&cwd)
-    .iter_mut()
-    .filter_map(|file_path| json_file::read_json_file(&cwd, &file_path).ok())
-    .collect()
+fn get_sources(
+  cwd: &path::PathBuf,
+  cli_options: &CliOptions,
+  rcfile: &Rcfile,
+) -> io::Result<Vec<path::PathBuf>> {
+  let sources: Vec<path::PathBuf> = if cli_options.source.len() > 0 {
+    cli_options.source.clone()
+  } else {
+    rcfile.get_sources(&cwd)
+  };
+
+  let mut file_paths: Vec<path::PathBuf> = vec![];
+
+  for source in sources.iter() {
+    let absolute_source = cwd.join(source);
+    let outcome = match glob::glob(path_buf_to_str(&absolute_source)) {
+      Ok(glob_paths) => {
+        for glob_path in glob_paths {
+          match glob_path {
+            Ok(file_path) => {
+              file_paths.push(file_path);
+            }
+            Err(_) => {
+              panic!("Failed to read source {:?}", source);
+            }
+          };
+        }
+      }
+      Err(_) => {
+        panic!("Failed to read source {:?}", source);
+      }
+    };
+  }
+
+  Ok(file_paths)
+}
+
+fn get_packages(file_paths: &Vec<path::PathBuf>) -> io::Result<Vec<package_json::PackageJson>> {
+  Ok(
+    file_paths
+      .iter()
+      .map(|file_path| match json_file::read_json_file(&file_path) {
+        Ok(package_json) => package_json,
+        Err(x) => {
+          panic!("Failed to read {:?}", &file_path.to_str());
+        }
+      })
+      .collect(),
+  )
 }
 
 fn get_instances<'a>(

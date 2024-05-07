@@ -7,6 +7,8 @@ use std::path;
 
 use crate::dependency_type::DependencyType;
 use crate::instance;
+use crate::path_buf::path_buf_to_string;
+use crate::path_buf::path_to_string;
 
 #[derive(Clone, Debug)]
 pub struct PackageJson {
@@ -60,12 +62,6 @@ impl PackageJson {
 
   /// Return a short path for logging to the terminal
   pub fn get_relative_file_path(&self, cwd: &std::path::PathBuf) -> String {
-    self
-      .file_path
-      .strip_prefix(&cwd)
-      .unwrap()
-      .to_str()
-      .unwrap()
-      .to_string()
+    path_to_string(&self.file_path.strip_prefix(&cwd).unwrap())
   }
 }
