@@ -38,8 +38,8 @@ fn main() -> io::Result<()> {
   env_logger::init();
 
   let subcommand = match cli::create().get_matches().subcommand() {
-    Some(("lint", matches)) => (Subcommand::Lint, cli::get_enabled_steps(matches)),
-    Some(("fix", matches)) => (Subcommand::Fix, cli::get_enabled_steps(matches)),
+    Some(("lint", matches)) => (Subcommand::Lint, cli::get_cli_options(matches)),
+    Some(("fix", matches)) => (Subcommand::Fix, cli::get_cli_options(matches)),
     _ => {
       debug!("@TODO: output --help when command is not recognised");
       std::process::exit(1);
@@ -71,10 +71,12 @@ fn main() -> io::Result<()> {
   });
 
   let is_valid: bool = match subcommand {
-    (Subcommand::Lint, enabled) => {
-      lint_formatting(&cwd, &rcfile, &packages, &enabled);
+    (Subcommand::Lint, cli_options) => {
+      println!("{:#?}", &cli_options);
 
-      let header = match (enabled.ranges, enabled.versions) {
+      lint_formatting(&cwd, &rcfile, &packages, &cli_options);
+
+      let header = match (cli_options.ranges, cli_options.versions) {
         (true, true) => "= SEMVER RANGES AND VERSION MISMATCHES",
         (true, false) => "= SEMVER RANGES",
         (false, true) => "= VERSION MISMATCHES",
@@ -173,13 +175,13 @@ fn main() -> io::Result<()> {
       });
       true
     }
-    (Subcommand::Fix, enabled) => {
-      println!("fix enabled {:?}", enabled);
-      if enabled.format {
+    (Subcommand::Fix, cli_options) => {
+      println!("fix enabled {:?}", cli_options);
+      if cli_options.format {
         println!("format packages");
         format::fix(&rcfile, &mut packages);
       }
-      if enabled.versions {
+      if cli_options.versions {
         println!("fix versions");
         versions::fix(&cwd, &rcfile, &mut packages);
       }
@@ -205,7 +207,7 @@ fn lint_formatting(
   cwd: &path::PathBuf,
   rcfile: &Rcfile,
   packages: &Vec<package_json::PackageJson>,
-  enabled: &cli::EnabledSteps,
+  enabled: &cli::CliOptions,
 ) -> bool {
   if !enabled.format {
     return true;
