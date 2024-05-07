@@ -6,6 +6,7 @@ use cli::CliOptions;
 use colored::*;
 use itertools::Itertools;
 use log::debug;
+use node_semver::Range;
 use path_buf::path_buf_to_str;
 use regex::Regex;
 use std::{
@@ -151,8 +152,16 @@ fn main() -> io::Result<()> {
             group
               .instance_groups_by_name
               .iter()
-              .for_each(|(name, _instance_group)| {
+              .for_each(|(name, instance_group)| {
                 println!("@TODO SameRange: {}", name);
+
+                instance_group.unique_specifiers.iter().for_each(|a| {
+                  let range_a = a.parse::<Range>().unwrap();
+                  instance_group.unique_specifiers.iter().for_each(|b| {
+                    let range_b = b.parse::<Range>().unwrap();
+                    println!("{:?} {:?} {}", a, b, range_a.allows_all(&range_b));
+                  });
+                });
               });
           }
           VersionGroupVariant::SnappedTo => {
