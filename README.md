@@ -8,7 +8,7 @@
 
 ## Rust
 
-A work in progress implementation of Syncpack in Rust. It is not ready for public use and is hardcoded to operate on files in the `fixtures/` directory.
+A work in progress implementation of Syncpack in Rust. It is not ready for public use.
 
 ## Develop
 

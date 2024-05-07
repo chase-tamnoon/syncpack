@@ -54,7 +54,7 @@ fn main() -> io::Result<()> {
   };
 
   let (command_name, cli_options) = &subcommand;
-  let cwd = std::env::current_dir()?.join("fixtures/fluid-framework");
+  let cwd = std::env::current_dir()?;
   let rcfile = config::get(&cwd).expect("missing config file");
 
   debug!("cwd: {:?}", &cwd);
@@ -63,13 +63,15 @@ fn main() -> io::Result<()> {
   debug!("rcfile: {:?}", &rcfile);
 
   let dependency_types = Rcfile::get_enabled_dependency_types(&rcfile);
+  debug!("dependency_types: {:?}", dependency_types);
   let semver_groups = SemverGroup::from_rcfile(&rcfile);
+  debug!("semver_groups: {:?}", semver_groups);
   let mut version_groups = VersionGroup::from_rcfile(&rcfile);
+  debug!("version_groups: {:?}", version_groups);
   let file_paths = get_sources(&cwd, &cli_options, &rcfile).expect("Failed to get globs");
+  debug!("file_paths: {:?}", file_paths);
   let mut packages = get_packages(&file_paths).expect("Failed to read packages");
-
-  println!("{:#?}", file_paths);
-  println!("{:#?}", packages);
+  debug!("packages: {:?}", packages);
 
   let instances = get_instances(&packages, &dependency_types, &rcfile.get_filter());
 
@@ -88,8 +90,6 @@ fn main() -> io::Result<()> {
 
   let is_valid: bool = match command_name {
     Subcommand::Lint => {
-      println!("{:#?}", &cli_options);
-
       lint_formatting(&cwd, &rcfile, &packages, &cli_options);
 
       let header = match (cli_options.ranges, cli_options.versions) {
