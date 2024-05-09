@@ -35,7 +35,6 @@ mod path_buf;
 mod semver_group;
 mod specifier;
 mod version_group;
-mod versions;
 
 #[derive(Debug)]
 enum Subcommand {
@@ -207,8 +206,7 @@ fn main() -> io::Result<()> {
         format::fix(&rcfile, &mut packages);
       }
       if cli_options.versions {
-        println!("fix versions");
-        versions::fix(&cwd, &rcfile, &mut packages);
+        println!("@TOD: fix versions");
       }
       true
     }
