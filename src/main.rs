@@ -10,7 +10,7 @@ use node_semver::Range;
 use path_buf::path_buf_to_str;
 use regex::Regex;
 use std::{
-  collections::HashMap,
+  collections::{HashMap, HashSet},
   io::{self, Error},
   path,
 };
@@ -90,6 +90,8 @@ fn main() -> io::Result<()> {
 
   let is_valid: bool = match command_name {
     Subcommand::Lint => {
+      // @TODO: track whether is_valid and exit with correct status code at the end
+
       lint_formatting(&cwd, &rcfile, &packages, &cli_options);
 
       let header = match (cli_options.ranges, cli_options.versions) {
@@ -152,15 +154,38 @@ fn main() -> io::Result<()> {
               .instance_groups_by_name
               .iter()
               .for_each(|(name, instance_group)| {
-                println!("@TODO SameRange: {}", name);
-
+                let mut mismatches: HashSet<String> = HashSet::new();
                 instance_group.unique_specifiers.iter().for_each(|a| {
                   let range_a = a.parse::<Range>().unwrap();
                   instance_group.unique_specifiers.iter().for_each(|b| {
+                    if a == b {
+                      return;
+                    }
                     let range_b = b.parse::<Range>().unwrap();
-                    println!("{:?} {:?} {}", a, b, range_a.allows_all(&range_b));
-                  });
+                    if range_a.allows_all(&range_b) {
+                      return;
+                    }
+                    mismatches.insert(format!(
+                      "      {} {} {} {} {}",
+                      "✘".red(),
+                      b.red(),
+                      "falls outside".red(),
+                      a.red(),
+                      "[SameRangeMismatch]".dimmed()
+                    ));
+                  })
                 });
+                if mismatches.len() == 0 {
+                  let count = render_count_column(instance_group.all.len());
+                  println!("{} {}", count, name);
+                } else {
+                  // @TODO: set is_valid to true
+                  let count = render_count_column(instance_group.all.len());
+                  println!("{} {}", count, name.red());
+                  mismatches.iter().for_each(|message| {
+                    println!("{}", message);
+                  });
+                }
               });
           }
           VersionGroupVariant::SnappedTo => {
