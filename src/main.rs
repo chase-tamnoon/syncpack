@@ -90,9 +90,7 @@ fn main() -> io::Result<()> {
 
   let is_valid: bool = match command_name {
     Subcommand::Lint => {
-      // @TODO: track whether is_valid and exit with correct status code at the end
-
-      lint_formatting(&cwd, &rcfile, &packages, &cli_options);
+      let mut lint_is_valid = lint_formatting(&cwd, &rcfile, &packages, &cli_options);
 
       let header = match (cli_options.ranges, cli_options.versions) {
         (true, true) => "= SEMVER RANGES AND VERSION MISMATCHES",
@@ -125,6 +123,7 @@ fn main() -> io::Result<()> {
                 let count = render_count_column(instance_group.all.len());
                 println!("{} {}", count, name.red());
                 instance_group.unique_specifiers.iter().for_each(|actual| {
+                  lint_is_valid = false;
                   print_banned(instance_group, actual);
                 });
               });
@@ -140,6 +139,7 @@ fn main() -> io::Result<()> {
                   println!("{} {}", count, name.red());
                   instance_group.unique_specifiers.iter().for_each(|actual| {
                     if instance_group.is_mismatch(actual) {
+                      lint_is_valid = false;
                       print_pinned_version_mismatch(instance_group, actual);
                     }
                   });
@@ -179,7 +179,7 @@ fn main() -> io::Result<()> {
                   let count = render_count_column(instance_group.all.len());
                   println!("{} {}", count, name);
                 } else {
-                  // @TODO: set is_valid to false
+                  lint_is_valid = false;
                   let count = render_count_column(instance_group.all.len());
                   println!("{} {}", count, name.red());
                   mismatches.iter().for_each(|message| {
@@ -235,7 +235,7 @@ fn main() -> io::Result<()> {
                       let count = render_count_column(instance_group.all.len());
                       println!("{} {}", count, name);
                     } else {
-                      // @TODO: set is_valid to false
+                      lint_is_valid = false;
                       let count = render_count_column(instance_group.all.len());
                       println!("{} {}", count, name.red());
                       mismatches.iter().for_each(|message| {
@@ -260,6 +260,7 @@ fn main() -> io::Result<()> {
                   println!("{} {}", count, name.red());
                   instance_group.unique_specifiers.iter().for_each(|actual| {
                     if instance_group.is_mismatch(actual) {
+                      lint_is_valid = false;
                       if let Some(PreferVersion::LowestSemver) = group.prefer_version {
                         print_lowest_version_mismatch(instance_group, actual);
                       } else {
@@ -274,7 +275,7 @@ fn main() -> io::Result<()> {
           }
         };
       });
-      true
+      lint_is_valid
     }
     Subcommand::Fix => {
       println!("fix enabled {:?}", cli_options);
@@ -290,8 +291,10 @@ fn main() -> io::Result<()> {
   };
 
   if is_valid {
+    println!("{} {}", "\n✓".green(), "syncpack found no errors");
     std::process::exit(0);
   } else {
+    println!("{} {}", "\n✘".red(), "syncpack found errors");
     std::process::exit(1);
   }
 }
