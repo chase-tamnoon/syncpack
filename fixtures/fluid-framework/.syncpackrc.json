@@ -129,6 +129,12 @@
       "preferVersion": "lowestSemver"
     },
     {
+      "label": "Example of snapped to version group",
+      "dependencies": ["**"],
+      "packages": ["fluid-framework", "@fluidframework/undo-redo"],
+      "snapTo": ["@fluidframework/core-utils"]
+    },
+    {
       "label": "Version compatibility workarounds should be used, or removed from syncpack.config.cjs if no longer needed.",
       "dependencies": [
         "react-virtualized-auto-sizer",

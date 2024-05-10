@@ -179,7 +179,7 @@ fn main() -> io::Result<()> {
                   let count = render_count_column(instance_group.all.len());
                   println!("{} {}", count, name);
                 } else {
-                  // @TODO: set is_valid to true
+                  // @TODO: set is_valid to false
                   let count = render_count_column(instance_group.all.len());
                   println!("{} {}", count, name.red());
                   mismatches.iter().for_each(|message| {
@@ -190,12 +190,64 @@ fn main() -> io::Result<()> {
           }
           VersionGroupVariant::SnappedTo => {
             print_group_header(&group.selector.label);
-            group
-              .instance_groups_by_name
-              .iter()
-              .for_each(|(name, _instance_group)| {
-                println!("@TODO SnappedTo: {}", name);
-              });
+            match &group.snap_to {
+              Some(snap_to) => {
+                group
+                  .instance_groups_by_name
+                  .iter()
+                  .for_each(|(name, instance_group)| {
+                    let mut mismatches: HashSet<String> = HashSet::new();
+                    snap_to.iter().any(|snapped_to_package_name| {
+                      let snappable_instance = &instances.iter().find(|instance| {
+                        instance.name == *name
+                          && match instance.package_json.get_prop("/name") {
+                            Some(instance_package_name) => {
+                              instance_package_name.as_str().unwrap().to_string()
+                                == *snapped_to_package_name
+                            }
+                            None => false,
+                          }
+                      });
+                      match snappable_instance {
+                        Some(instance) => {
+                          let expected = &instance.specifier;
+                          instance_group.unique_specifiers.iter().for_each(|actual| {
+                            if actual != expected {
+                              let icon = "✘".red();
+                              let arrow = "→".dimmed();
+                              mismatches.insert(format!(
+                                "      {} {} {} {} {}",
+                                icon,
+                                actual.red(),
+                                arrow,
+                                expected.green(),
+                                "[SnappedToMismatch]".dimmed()
+                              ));
+                            }
+                          });
+                          // stop searching if we found a match
+                          true
+                        }
+                        None => false,
+                      }
+                    });
+                    if mismatches.len() == 0 {
+                      let count = render_count_column(instance_group.all.len());
+                      println!("{} {}", count, name);
+                    } else {
+                      // @TODO: set is_valid to false
+                      let count = render_count_column(instance_group.all.len());
+                      println!("{} {}", count, name.red());
+                      mismatches.iter().for_each(|message| {
+                        println!("{}", message);
+                      });
+                    }
+                  });
+              }
+              None => {
+                panic!("Failed to get snapTo property");
+              }
+            }
           }
           VersionGroupVariant::Standard => {
             print_group_header(&group.selector.label);
