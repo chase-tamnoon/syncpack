@@ -135,23 +135,6 @@
       "snapTo": ["@fluidframework/core-utils"]
     },
     {
-      "label": "Version compatibility workarounds should be used, or removed from syncpack.config.cjs if no longer needed.",
-      "dependencies": [
-        "react-virtualized-auto-sizer",
-        "@types/react",
-        "@types/react-dom"
-      ],
-      "packages": ["**"],
-      "isIgnored": true
-    },
-    {
-      "label": "Ignore private workaround package @types/jest-environment-puppeteer",
-      "dependencies": ["@types/jest-environment-puppeteer"],
-      "dependencyTypes": ["dev", "prod"],
-      "packages": ["**"],
-      "isIgnored": true
-    },
-    {
       "label": "Versions of common Fluid packages should all match",
       "dependencies": [
         "@fluidframework/build-common",
@@ -173,28 +156,6 @@
       "dependencyTypes": ["packageManager"],
       "dependencies": ["**"],
       "packages": ["**"]
-    },
-    {
-      "label": "Ignore interdependencies on other Fluid packages. This is needed because syncpack doesn't understand our >= < semver ranges",
-      "isIgnored": true,
-      "packages": [
-        "@fluid-example/**",
-        "@fluid-experimental/**",
-        "@fluid-internal/**",
-        "@fluid-private/**",
-        "@fluid-tools/**",
-        "@fluidframework/**",
-        "fluid-framework"
-      ],
-      "dependencies": [
-        "@fluid-example/**",
-        "@fluid-experimental/**",
-        "@fluid-internal/**",
-        "@fluid-private/**",
-        "@fluid-tools/**",
-        "@fluidframework/**",
-        "fluid-framework"
-      ]
     }
   ]
 }

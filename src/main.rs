@@ -261,7 +261,9 @@ fn main() -> io::Result<()> {
                   instance_group.unique_specifiers.iter().for_each(|actual| {
                     if instance_group.is_mismatch(actual) {
                       lint_is_valid = false;
-                      if let Some(PreferVersion::LowestSemver) = group.prefer_version {
+                      if instance_group.local.is_some() {
+                        print_local_version_mismatch(instance_group, actual);
+                      } else if let Some(PreferVersion::LowestSemver) = group.prefer_version {
                         print_lowest_version_mismatch(instance_group, actual);
                       } else {
                         print_highest_version_mismatch(instance_group, actual);
@@ -375,6 +377,23 @@ fn print_pinned_version_mismatch(
     arrow,
     expected.green(),
     "[PinnedMismatch]".dimmed()
+  );
+}
+
+fn print_local_version_mismatch(
+  instance_group: &instance_group::InstanceGroup<'_>,
+  actual: &String,
+) {
+  let icon = "✘".red();
+  let arrow = "→".dimmed();
+  let expected = instance_group.expected_version.as_ref().unwrap();
+  println!(
+    "      {} {} {} {} {}",
+    icon,
+    actual.red(),
+    arrow,
+    expected.green(),
+    "[LocalPackageMismatch]".dimmed()
   );
 }
 
