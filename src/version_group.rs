@@ -121,11 +121,14 @@ impl<'a> VersionGroup<'a> {
   }
 
   /// Create every version group defined in the rcfile.
-  pub fn from_rcfile(rcfile: &config::Rcfile) -> Vec<VersionGroup> {
+  pub fn from_rcfile(
+    rcfile: &config::Rcfile,
+    local_package_names: &Vec<String>,
+  ) -> Vec<VersionGroup<'a>> {
     let mut user_groups: Vec<VersionGroup> = rcfile
       .version_groups
       .iter()
-      .map(|group| VersionGroup::from_config(group))
+      .map(|group| VersionGroup::from_config(group, local_package_names))
       .collect();
     let catch_all_group = VersionGroup {
       variant: VersionGroupVariant::Standard,
@@ -146,9 +149,13 @@ impl<'a> VersionGroup<'a> {
   }
 
   /// Create a single version group from a config item from the rcfile.
-  pub fn from_config(group: &AnyVersionGroup) -> VersionGroup {
+  pub fn from_config(
+    group: &AnyVersionGroup,
+    local_package_names: &Vec<String>,
+  ) -> VersionGroup<'a> {
     let selector = GroupSelector::new(
-      /*include_dependencies:*/ group.dependencies.clone(),
+      /*include_dependencies:*/
+      with_resolved_keywords(&group.dependencies, local_package_names),
       /*include_dependency_types:*/ group.dependency_types.clone(),
       /*label:*/ group.label.clone(),
       /*include_packages:*/ group.packages.clone(),
@@ -254,4 +261,30 @@ pub struct AnyVersionGroup {
   pub policy: Option<String>,
   pub snap_to: Option<Vec<String>>,
   pub prefer_version: Option<String>,
+}
+
+/// Resolve keywords such as `$LOCAL` and `!$LOCAL` to their actual values.
+fn with_resolved_keywords(
+  dependency_names: &Vec<String>,
+  local_package_names: &Vec<String>,
+) -> Vec<String> {
+  let mut resolved_dependencies: Vec<String> = vec![];
+  for dependency in dependency_names.iter() {
+    match dependency.as_str() {
+      "$LOCAL" => {
+        for package_name in local_package_names.iter() {
+          resolved_dependencies.push(package_name.clone());
+        }
+      }
+      "!$LOCAL" => {
+        for package_name in local_package_names.iter() {
+          resolved_dependencies.push(format!("!{}", package_name));
+        }
+      }
+      _ => {
+        resolved_dependencies.push(dependency.clone());
+      }
+    }
+  }
+  resolved_dependencies
 }

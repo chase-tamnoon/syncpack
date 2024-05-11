@@ -64,14 +64,16 @@ fn main() -> io::Result<()> {
 
   let dependency_types = Rcfile::get_enabled_dependency_types(&rcfile);
   debug!("dependency_types: {:?}", dependency_types);
+  let file_paths = get_sources(&cwd, &cli_options, &rcfile).unwrap();
+  debug!("file_paths: {:?}", file_paths);
+  let mut packages = get_packages(&file_paths).unwrap();
+  debug!("packages: {:?}", packages);
+  let local_package_names = get_local_package_names(&packages);
+  debug!("local_package_names: {:?}", local_package_names);
   let semver_groups = SemverGroup::from_rcfile(&rcfile);
   debug!("semver_groups: {:?}", semver_groups);
-  let mut version_groups = VersionGroup::from_rcfile(&rcfile);
+  let mut version_groups = VersionGroup::from_rcfile(&rcfile, &local_package_names);
   debug!("version_groups: {:?}", version_groups);
-  let file_paths = get_sources(&cwd, &cli_options, &rcfile).expect("Failed to get globs");
-  debug!("file_paths: {:?}", file_paths);
-  let mut packages = get_packages(&file_paths).expect("Failed to read packages");
-  debug!("packages: {:?}", packages);
 
   let instances = get_instances(&packages, &dependency_types, &rcfile.get_filter());
 
@@ -484,6 +486,18 @@ fn get_packages(file_paths: &Vec<path::PathBuf>) -> io::Result<Vec<package_json:
       })
       .collect(),
   )
+}
+
+/// Get all package names, to be used by the `$LOCAL` alias
+fn get_local_package_names(packages: &Vec<package_json::PackageJson>) -> Vec<String> {
+  packages
+    .iter()
+    .flat_map(|package| {
+      package
+        .get_prop("/name")
+        .map(|package_name| package_name.as_str().unwrap().to_string())
+    })
+    .collect()
 }
 
 fn get_instances<'a>(

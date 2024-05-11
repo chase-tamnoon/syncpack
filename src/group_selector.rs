@@ -68,16 +68,6 @@ impl GroupSelector {
   }
 
   pub fn can_add(&self, instance: &Instance) -> bool {
-    // println!(
-    //   "{} {} {:?} {} {} {} {}",
-    //   instance.dependency_type.name,
-    //   instance.name,
-    //   instance.package_json.file_path,
-    //   self.matches_dependency_types(instance),
-    //   self.matches_packages(instance),
-    //   self.matches_dependencies(instance),
-    //   self.matches_specifier_types(instance),
-    // );
     self.matches_dependency_types(instance)
       && self.matches_packages(instance)
       && self.matches_dependencies(instance)
@@ -104,7 +94,6 @@ impl GroupSelector {
   }
 
   pub fn matches_dependencies(&self, instance: &Instance) -> bool {
-    // @TODO: handle "$LOCAL"
     matches_globs(
       &instance.name,
       &self.include_dependencies,

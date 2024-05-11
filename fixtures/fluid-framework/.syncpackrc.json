@@ -109,6 +109,12 @@
   ],
   "versionGroups": [
     {
+      "label": "Example of $LOCAL keyword",
+      "dependencies": ["$LOCAL"],
+      "dependencyTypes": ["!local"],
+      "pinVersion": "workspace:~"
+    },
+    {
       "label": "Example of banned dependency",
       "dependencies": ["lodash"],
       "isBanned": true
