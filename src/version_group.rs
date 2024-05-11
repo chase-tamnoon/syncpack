@@ -45,7 +45,7 @@ pub struct VersionGroup<'a> {
 impl<'a> VersionGroup<'a> {
   /// Add an instance to this version group if it is eligible, and return
   /// whether it was added.
-  pub fn add_instance(&mut self, instance: &'a Instance, semver_group: &'a SemverGroup) {
+  pub fn add_instance(&mut self, instance: &'a Instance, semver_group: Option<&'a SemverGroup>) {
     // Ensure that a group exists for this dependency name.
     if !self.instance_groups_by_name.contains_key(&instance.name) {
       self

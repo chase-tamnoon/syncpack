@@ -264,7 +264,8 @@ fn get_default_dependency_types() -> HashMap<String, CustomType> {
 
 pub fn get(cwd: &path::PathBuf) -> io::Result<Rcfile> {
   let file_path = cwd.join("./.syncpackrc.json");
-  let json = fs::read_to_string(file_path)?;
+  let json = fs::read_to_string(file_path).unwrap_or("{}".to_string());
   let rcfile: Rcfile = serde_json::from_str(&json)?;
+  println!("rcfile: {:?}", rcfile);
   Ok(rcfile)
 }

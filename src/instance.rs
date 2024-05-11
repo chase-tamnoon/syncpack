@@ -1,3 +1,5 @@
+use log::debug;
+
 use crate::dependency_type::DependencyType;
 use crate::package_json;
 use crate::specifier::Specifier;
@@ -34,7 +36,17 @@ impl<'a> Instance<'a> {
       name,
       package_json: file,
       specifier_type: Specifier::new(specifier.as_str()),
-      specifier,
+      specifier: sanitise_specifier(specifier),
     }
+  }
+}
+
+/// Convert non-semver specifiers to semver when behaviour is identical
+fn sanitise_specifier(specifier: String) -> String {
+  if specifier == "latest" || specifier == "x" {
+    debug!("Sanitising specifier: {} -> *", specifier);
+    "*".to_string()
+  } else {
+    specifier
   }
 }

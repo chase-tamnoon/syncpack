@@ -81,8 +81,7 @@ fn main() -> io::Result<()> {
   instances.iter().for_each(|instance| {
     let semver_group = semver_groups
       .iter()
-      .find(|semver_group| semver_group.selector.can_add(instance))
-      .expect("instance did not match a semver group");
+      .find(|semver_group| semver_group.selector.can_add(instance));
     version_groups
       .iter_mut()
       .find(|version_group| version_group.selector.can_add(instance))
