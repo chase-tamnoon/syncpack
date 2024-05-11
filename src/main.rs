@@ -265,6 +265,8 @@ fn main() -> io::Result<()> {
                       lint_is_valid = false;
                       if instance_group.local.is_some() {
                         print_local_version_mismatch(instance_group, actual);
+                      } else if instance_group.non_semver.len() > 0 {
+                        print_unsupported_mismatch(instance_group, actual);
                       } else if let Some(PreferVersion::LowestSemver) = group.prefer_version {
                         print_lowest_version_mismatch(instance_group, actual);
                       } else {
@@ -430,6 +432,19 @@ fn print_highest_version_mismatch(
     arrow,
     expected.green(),
     "[HighestSemverMismatch]".dimmed()
+  );
+}
+
+fn print_unsupported_mismatch(instance_group: &instance_group::InstanceGroup<'_>, actual: &String) {
+  let icon = "✘".red();
+  let arrow = "→".dimmed();
+  println!(
+    "      {} {} {} {} {}",
+    icon,
+    actual.red(),
+    arrow,
+    "?".yellow(),
+    "[UnsupportedMismatch]".dimmed()
   );
 }
 

@@ -32,10 +32,19 @@ impl<'a> InstanceGroup<'a> {
     }
   }
 
-  pub fn is_mismatch(&self, specifier: &String) -> bool {
+  pub fn is_mismatch(&self, actual: &String) -> bool {
+    // if we determined an expected version... (such as the highest semver version,
+    // the local dependency version, or a pinned version)
     match &self.expected_version {
-      Some(expected_version) => specifier != expected_version,
-      None => false,
+      // ...we can just check if this one matches it
+      Some(expected) => actual != expected,
+      // if no expected version was suggested, this is because...
+      None => match self.non_semver.len() {
+        // ...something went badly wrong
+        0 => panic!("An expected version was not set for a group with no non-semver versions"),
+        // ...or we have an `UnsupportedMismatch`
+        _ => true,
+      },
     }
   }
 }

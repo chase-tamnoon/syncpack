@@ -91,7 +91,7 @@ impl<'a> VersionGroup<'a> {
       // has not been found, we need to look at the usages of it for a preferred
       // version
       if instance_group.local.is_none() {
-        if instance.specifier_type.is_semver() {
+        if instance.specifier_type.is_semver() && instance_group.non_semver.len() == 0 {
           // Have we set a preferred version yet for these instances?
           match &mut instance_group.expected_version {
             // No, this is the first candidate.
@@ -115,6 +115,9 @@ impl<'a> VersionGroup<'a> {
               };
             }
           }
+        } else {
+          // clear any previous preferred version if we encounter a non-semver
+          instance_group.expected_version = None;
         }
       }
     }
