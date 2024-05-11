@@ -55,7 +55,7 @@ fn main() -> io::Result<()> {
 
   let (command_name, cli_options) = &subcommand;
   let cwd = std::env::current_dir()?;
-  let rcfile = config::get(&cwd).expect("missing config file");
+  let rcfile = config::get(&cwd);
 
   debug!("cwd: {:?}", &cwd);
   debug!("command_name: {:?}", &command_name);

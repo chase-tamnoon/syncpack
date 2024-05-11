@@ -1,3 +1,5 @@
+use colored::*;
+use log::debug;
 use regex::Regex;
 use serde::Deserialize;
 use std::collections::HashMap;
@@ -6,6 +8,7 @@ use std::io;
 use std::path;
 
 use crate::dependency_type;
+use crate::path_buf;
 use crate::semver_group;
 use crate::version_group;
 
@@ -189,9 +192,9 @@ impl Rcfile {
 /// Return all matching file paths for a given glob pattern
 fn get_file_paths(pattern: &str) -> Vec<path::PathBuf> {
   glob::glob(pattern)
-    .expect("Failed to read glob pattern")
-    .filter_map(Result::ok)
-    .collect()
+    .map(|paths| paths.filter_map(Result::ok).collect())
+    .inspect_err(|e| debug!("Failed to read glob pattern {}: {}", pattern, e))
+    .unwrap_or(vec![])
 }
 
 /// Adds "!" to the start of the String
@@ -262,10 +265,23 @@ fn get_default_dependency_types() -> HashMap<String, CustomType> {
   ])
 }
 
-pub fn get(cwd: &path::PathBuf) -> io::Result<Rcfile> {
-  let file_path = cwd.join("./.syncpackrc.json");
-  let json = fs::read_to_string(file_path).unwrap_or("{}".to_string());
-  let rcfile: Rcfile = serde_json::from_str(&json)?;
-  println!("rcfile: {:?}", rcfile);
-  Ok(rcfile)
+/// Try to read the rcfile from the current working directory and fall back to
+/// defaults if one is not found
+pub fn get(cwd: &path::PathBuf) -> Rcfile {
+  let short_path = ".syncpackrc.json";
+  let file_path = cwd.join(short_path);
+  fs::read_to_string(&file_path)
+    .inspect_err(|_| {
+      println!(
+        "{}",
+        format!(
+          "? using default config: {} not found",
+          path_buf::path_buf_to_str(&file_path)
+        )
+        .dimmed()
+      );
+    })
+    .or_else(|_| Ok("{}".to_string()))
+    .and_then(|json| serde_json::from_str::<Rcfile>(&json))
+    .unwrap()
 }
