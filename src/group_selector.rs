@@ -84,7 +84,7 @@ impl GroupSelector {
 
   pub fn matches_packages(&self, instance: &Instance) -> bool {
     matches_globs(
-      &instance.package_json.get_name(),
+      &instance.package_name,
       &self.include_packages,
       &self.exclude_packages,
     )

@@ -8,15 +8,15 @@ pub struct InstanceGroup<'a> {
   /// The name of the dependency
   pub name: String,
   /// Every instance of this dependency in this version group.
-  pub all: Vec<&'a Instance<'a>>,
+  pub all: Vec<&'a Instance>,
   /// The version specifier which all instances in this group should have
   pub expected_version: Option<String>,
   /// If this dependency is a local package, this is the local instance.
-  pub local: Option<&'a Instance<'a>>,
+  pub local: Option<&'a Instance>,
   /// All instances with `Specifier::NonSemver` versions
-  pub non_semver: Vec<&'a Instance<'a>>,
+  pub non_semver: Vec<&'a Instance>,
   /// All instances with `Specifier::Semver` versions
-  pub semver: Vec<&'a Instance<'a>>,
+  pub semver: Vec<&'a Instance>,
   /// Raw version specifiers for each dependency. If there is more than one
   /// unique version, then we have mismatching versions
   pub unique_specifiers: HashSet<String>,

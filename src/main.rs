@@ -3,6 +3,7 @@
 
 use cli::CliOptions;
 use colored::*;
+use dependency_type::Strategy;
 use glob::glob;
 use json_file::read_json_file;
 use package_json::PackageJson;
@@ -10,8 +11,8 @@ use regex::Regex;
 use std::{io, path::PathBuf};
 
 use crate::{
-  config::Rcfile, effects::Effects, format::LintResult, lint_effects::LintEffects,
-  semver_group::SemverGroup, version_group::VersionGroup,
+  config::Rcfile, effects::Effects, format::LintResult, instance::Instance,
+  lint_effects::LintEffects, semver_group::SemverGroup, version_group::VersionGroup,
 };
 
 mod cli;
@@ -51,8 +52,8 @@ fn main() -> io::Result<()> {
   let rcfile = config::get(&cwd);
   let filter = rcfile.get_filter();
   let dependency_types = Rcfile::get_enabled_dependency_types(&rcfile);
-  let enabled_source_patterns = get_enabled_source_patterns(&cli_options, &rcfile);
-  let absolute_file_paths = get_file_paths(&cwd, &enabled_source_patterns);
+  let source_patterns = get_enabled_source_patterns(&cli_options, &rcfile);
+  let absolute_file_paths = get_file_paths(&cwd, &source_patterns);
   let semver_groups = SemverGroup::from_rcfile(&rcfile);
 
   // all dependent on `packages`
@@ -75,13 +76,7 @@ fn main() -> io::Result<()> {
   // Switch version groups back to immutable
   let version_groups = version_groups;
 
-  // @FIXME: how can this expensive clone be avoided?
-  //
-  // Above this line `packages` only needs to be read, but below it needs to be
-  // mutated. I *think* via lifetimes I've tied the lifetime of `packages` to
-  // the lifetime of `all_instances`(?) which could be why I can't borrow it
-  // mutably here(?)
-  let mut packages = packages.all.clone();
+  let mut packages = packages;
 
   let is_valid: bool = match command_name {
     Subcommand::Lint => {
@@ -90,7 +85,7 @@ fn main() -> io::Result<()> {
 
       if cli_options.format {
         effects.on_begin_format();
-        let LintResult { valid, invalid } = format::lint(&rcfile, &mut packages);
+        let LintResult { valid, invalid } = format::lint(&rcfile, &mut packages.all);
         effects.on_formatted_packages(&valid, &cwd);
         effects.on_unformatted_packages(&invalid, &cwd);
         if !invalid.is_empty() {
@@ -118,7 +113,7 @@ fn main() -> io::Result<()> {
       println!("fix enabled {:?}", cli_options);
       if cli_options.format {
         println!("format packages");
-        format::fix(&rcfile, &mut packages);
+        format::fix(&rcfile, &mut packages.all);
       }
       if cli_options.versions {
         println!("@TOD: fix versions");
@@ -199,11 +194,88 @@ fn get_packages(file_paths: &Vec<PathBuf>) -> Packages {
 /// Get every instance of a dependency from every package.json file
 fn get_instances<'a>(
   packages: &'a Vec<PackageJson>,
-  dependency_types: &'a Vec<dependency_type::DependencyType>,
+  dependency_types: &Vec<dependency_type::DependencyType>,
   filter: &Regex,
-) -> Vec<instance::Instance<'a>> {
-  packages
-    .iter()
-    .flat_map(|package| package.get_instances(&dependency_types, &filter))
-    .collect()
+) -> Vec<instance::Instance> {
+  let mut instances: Vec<instance::Instance> = vec![];
+
+  for package in packages {
+    for dependency_type in dependency_types {
+      match dependency_type.strategy {
+        Strategy::NameAndVersionProps => {
+          if let (Some(serde_json::Value::String(name)), Some(serde_json::Value::String(version))) = (
+            package.get_prop(&dependency_type.name_path.as_ref().unwrap()),
+            package.get_prop(&dependency_type.path),
+          ) {
+            if filter.is_match(name) {
+              instances.push(Instance::new(
+                name.to_string(),
+                version.to_string(),
+                dependency_type.clone(),
+                &package,
+              ));
+            }
+          }
+        }
+        Strategy::NamedVersionString => {
+          if let Some(serde_json::Value::String(specifier)) =
+            package.get_prop(&dependency_type.path)
+          {
+            if let Some((name, version)) = specifier.split_once('@') {
+              if filter.is_match(name) {
+                instances.push(Instance::new(
+                  name.to_string(),
+                  version.to_string(),
+                  dependency_type.clone(),
+                  &package,
+                ));
+              }
+            }
+          }
+        }
+        Strategy::UnnamedVersionString => {
+          if let Some(serde_json::Value::String(version)) = package.get_prop(&dependency_type.path)
+          {
+            if filter.is_match(&dependency_type.name) {
+              instances.push(Instance::new(
+                dependency_type.name.clone(),
+                version.to_string(),
+                dependency_type.clone(),
+                &package,
+              ));
+            }
+          }
+        }
+        Strategy::VersionsByName => {
+          if let Some(serde_json::Value::Object(versions_by_name)) =
+            package.get_prop(&dependency_type.path)
+          {
+            for (name, version) in versions_by_name {
+              if filter.is_match(name) {
+                if let serde_json::Value::String(version) = version {
+                  instances.push(Instance::new(
+                    name.to_string(),
+                    version.to_string(),
+                    dependency_type.clone(),
+                    &package,
+                  ));
+                }
+              }
+            }
+          }
+        }
+        _ => {
+          panic!("unimplemented strategy")
+        }
+      };
+      //
+    }
+  }
+
+  instances
+
+  // packages
+  //   .iter()
+  //   .flat_map(|package| package.get_instances(&dependency_types, &filter))
+  //   .collect()
 }

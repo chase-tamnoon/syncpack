@@ -1,17 +1,12 @@
-use regex::Regex;
 use serde_json;
 use std::fs;
 use std::io;
-use std::path;
 use std::path::PathBuf;
-
-use crate::dependency_type::DependencyType;
-use crate::instance;
 
 #[derive(Clone, Debug)]
 pub struct PackageJson {
   /// The path to the package.json file
-  pub file_path: path::PathBuf,
+  pub file_path: PathBuf,
   /// The original, unedited raw JSON string
   pub json: String,
   /// The parsed JSON object
@@ -19,18 +14,6 @@ pub struct PackageJson {
 }
 
 impl PackageJson {
-  /// Create an instance for every enabled dependency type
-  pub fn get_instances<'a>(
-    &'a self,
-    dependency_types: &'a Vec<DependencyType>,
-    filter: &Regex,
-  ) -> Vec<instance::Instance> {
-    dependency_types
-      .iter()
-      .flat_map(|dependency_type| dependency_type.get_instances(&self, filter))
-      .collect()
-  }
-
   /// Convenience method to get the name of the package
   pub fn get_name(&self) -> String {
     self

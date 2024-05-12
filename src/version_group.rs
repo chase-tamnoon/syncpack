@@ -387,8 +387,7 @@ fn get_snap_to_mismatches(
   let mut mismatches: HashSet<(String, String)> = HashSet::new();
   snap_to.iter().any(|snapped_to_package_name| {
     let maybe_snappable_instance = &all_instances.iter().find(|instance| {
-      instance.name == instance_group.name
-        && instance.package_json.get_name() == *snapped_to_package_name
+      instance.name == instance_group.name && instance.package_name == *snapped_to_package_name
     });
     match maybe_snappable_instance {
       Some(snappable_instance) => {
