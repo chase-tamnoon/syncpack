@@ -1,7 +1,11 @@
-use std::collections::HashSet;
+use std::collections::HashMap;
 use std::vec;
 
 use crate::instance::Instance;
+
+/// A reference to a group of instances of the same dependency which all have the
+/// same version specifier.
+pub type InstancesBySpecifier<'a> = (&'a String, &'a Vec<&'a Instance>);
 
 #[derive(Debug)]
 pub struct InstanceGroup<'a> {
@@ -17,9 +21,11 @@ pub struct InstanceGroup<'a> {
   pub non_semver: Vec<&'a Instance>,
   /// All instances with `Specifier::Semver` versions
   pub semver: Vec<&'a Instance>,
-  /// Raw version specifiers for each dependency. If there is more than one
-  /// unique version, then we have mismatching versions
-  pub unique_specifiers: HashSet<String>,
+  /// Each key is a unique raw version specifier for each dependency. The values
+  /// are each instance which has that version specifier.
+  ///
+  /// If there is more than one unique version, then we have mismatches
+  pub by_specifier: HashMap<String, Vec<&'a Instance>>,
 }
 
 impl<'a> InstanceGroup<'a> {
@@ -31,13 +37,13 @@ impl<'a> InstanceGroup<'a> {
       local: None,
       non_semver: vec![],
       semver: vec![],
-      unique_specifiers: HashSet::new(),
+      by_specifier: HashMap::new(),
     }
   }
 
   /// Is the exact same specifier used by all instances in this group?
   pub fn has_identical_specifiers(&self) -> bool {
-    self.unique_specifiers.len() == (1 as usize)
+    self.by_specifier.len() == (1 as usize)
   }
 
   pub fn is_mismatch(&self, actual: &String) -> bool {

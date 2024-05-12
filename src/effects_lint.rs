@@ -3,13 +3,20 @@ use std::path::PathBuf;
 use colored::*;
 
 use crate::{
-  effects::Effects, group_selector::GroupSelector, instance_group::InstanceGroup,
+  effects::Effects,
+  group_selector::GroupSelector,
+  instance::Instance,
+  instance_group::{InstanceGroup, InstancesBySpecifier},
   package_json::PackageJson,
 };
 
 pub struct LintEffects {}
 
 impl Effects for LintEffects {
+  // ===========================================================================
+  // Enabled Tasks
+  // ===========================================================================
+
   fn on_begin_format(&self) {
     println!("{}", "= FORMATTING".yellow());
   }
@@ -27,6 +34,10 @@ impl Effects for LintEffects {
   fn on_begin_versions_only(&self) {
     println!("{}", "= VERSION MISMATCHES".yellow());
   }
+
+  // ===========================================================================
+  // Formatting
+  // ===========================================================================
 
   fn on_formatted_packages(&self, valid_packages: &Vec<&PackageJson>, _cwd: &PathBuf) {
     if !valid_packages.is_empty() {
@@ -55,6 +66,10 @@ impl Effects for LintEffects {
     }
   }
 
+  // ===========================================================================
+  // Version/Semver Groups
+  // ===========================================================================
+
   fn on_group(&self, selector: &GroupSelector) {
     let print_width = 80;
     let header = format!("= {} ", selector.label);
@@ -66,6 +81,10 @@ impl Effects for LintEffects {
     let full_header = format!("{}{}", header, divider);
     println!("{}", full_header.blue());
   }
+
+  // ===========================================================================
+  // Instance Groups
+  // ===========================================================================
 
   fn on_ignored_instance_group(&self, instance_group: &InstanceGroup) {
     let count = render_count_column(instance_group.all.len());
@@ -82,16 +101,6 @@ impl Effects for LintEffects {
     println!("{} {}", count, instance_group.name.red());
   }
 
-  fn on_banned_instance(&self, actual_specifier: &String, _instance_group: &InstanceGroup) {
-    let icon = "✘".red();
-    println!(
-      "      {} {} {}",
-      icon,
-      actual_specifier.red(),
-      "[Banned]".dimmed()
-    );
-  }
-
   fn on_valid_pinned_instance_group(&self, instance_group: &InstanceGroup) {
     print_version_match(instance_group);
   }
@@ -99,20 +108,6 @@ impl Effects for LintEffects {
   fn on_invalid_pinned_instance_group(&self, instance_group: &InstanceGroup) {
     let count = render_count_column(instance_group.all.len());
     println!("{} {}", count, instance_group.name.red());
-  }
-
-  fn on_pinned_version_mismatch(&self, actual_specifier: &String, instance_group: &InstanceGroup) {
-    let icon = "✘".red();
-    let arrow = "→".dimmed();
-    let expected = instance_group.expected_version.as_ref().unwrap();
-    println!(
-      "      {} {} {} {} {}",
-      icon,
-      actual_specifier.red(),
-      arrow,
-      expected.green(),
-      "[PinnedMismatch]".dimmed()
-    );
   }
 
   fn on_valid_same_range_instance_group(&self, instance_group: &InstanceGroup) {
@@ -125,22 +120,6 @@ impl Effects for LintEffects {
     println!("{} {}", count, instance_group.name.red());
   }
 
-  fn on_same_range_mismatch(
-    &self,
-    mismatching_ranges: &(String, String),
-    _instance_group: &InstanceGroup,
-  ) {
-    let (a, b) = mismatching_ranges;
-    println!(
-      "      {} {} {} {} {}",
-      "✘".red(),
-      b.red(),
-      "falls outside".red(),
-      a.red(),
-      "[SameRangeMismatch]".dimmed()
-    )
-  }
-
   fn on_valid_snap_to_instance_group(&self, instance_group: &InstanceGroup) {
     let count = render_count_column(instance_group.all.len());
     println!("{} {}", count, instance_group.name);
@@ -149,24 +128,6 @@ impl Effects for LintEffects {
   fn on_invalid_snap_to_instance_group(&self, instance_group: &InstanceGroup) {
     let count = render_count_column(instance_group.all.len());
     println!("{} {}", count, instance_group.name.red());
-  }
-
-  fn on_snap_to_mismatch(
-    &self,
-    mismatching_versions: &(String, String),
-    _instance_group: &InstanceGroup,
-  ) {
-    let (actual_specifier, expected_specifier) = mismatching_versions;
-    let icon = "✘".red();
-    let arrow = "→".dimmed();
-    println!(
-      "      {} {} {} {} {}",
-      icon,
-      actual_specifier.red(),
-      arrow,
-      expected_specifier.green(),
-      "[SnappedToMismatch]".dimmed()
-    );
   }
 
   fn on_valid_standard_instance_group(&self, instance_group: &InstanceGroup) {
@@ -178,55 +139,138 @@ impl Effects for LintEffects {
     println!("{} {}", count, instance_group.name.red());
   }
 
-  fn on_local_version_mismatch(&self, instance_group: &InstanceGroup, actual: &String) {
+  // ===========================================================================
+  // Instances
+  // ===========================================================================
+
+  fn on_banned_instance(&self, specifier: &InstancesBySpecifier, instance_group: &InstanceGroup) {
+    let icon = "✘".red();
+    println!(
+      "      {} {} {}",
+      icon,
+      specifier.0.red(),
+      "[Banned]".dimmed()
+    );
+  }
+
+  fn on_pinned_version_mismatch(
+    &self,
+    specifier: &InstancesBySpecifier,
+    instance_group: &InstanceGroup,
+  ) {
     let icon = "✘".red();
     let arrow = "→".dimmed();
     let expected = instance_group.expected_version.as_ref().unwrap();
     println!(
       "      {} {} {} {} {}",
       icon,
-      actual.red(),
+      specifier.0.red(),
+      arrow,
+      expected.green(),
+      "[PinnedMismatch]".dimmed()
+    );
+  }
+
+  fn on_same_range_mismatch(
+    &self,
+    specifier: &InstancesBySpecifier,
+    mismatches_with: &InstancesBySpecifier,
+    instance_group: &InstanceGroup,
+  ) {
+    println!(
+      "      {} {} {} {} {}",
+      "✘".red(),
+      mismatches_with.0.red(),
+      "falls outside".red(),
+      specifier.0.red(),
+      "[SameRangeMismatch]".dimmed()
+    )
+  }
+
+  fn on_snap_to_mismatch(
+    &self,
+    specifier: &InstancesBySpecifier,
+    mismatches_with: &Instance,
+    instance_group: &InstanceGroup,
+  ) {
+    let icon = "✘".red();
+    let arrow = "→".dimmed();
+    println!(
+      "      {} {} {} {} {}",
+      icon,
+      specifier.0.red(),
+      arrow,
+      mismatches_with.specifier.green(),
+      "[SnappedToMismatch]".dimmed()
+    );
+  }
+
+  fn on_local_version_mismatch(
+    &self,
+    specifier: &InstancesBySpecifier,
+    mismatches_with: &Instance,
+    instance_group: &InstanceGroup,
+  ) {
+    let icon = "✘".red();
+    let arrow = "→".dimmed();
+    let expected = instance_group.expected_version.as_ref().unwrap();
+    println!(
+      "      {} {} {} {} {}",
+      icon,
+      specifier.0.red(),
       arrow,
       expected.green(),
       "[LocalPackageMismatch]".dimmed()
     );
   }
 
-  fn on_unsupported_mismatch(&self, actual: &String, _instance_group: &InstanceGroup) {
+  fn on_unsupported_mismatch(
+    &self,
+    specifier: &InstancesBySpecifier,
+    instance_group: &InstanceGroup,
+  ) {
     let icon = "✘".red();
     let arrow = "→".dimmed();
     println!(
       "      {} {} {} {} {}",
       icon,
-      actual.red(),
+      specifier.0.red(),
       arrow,
       "?".yellow(),
       "[UnsupportedMismatch]".dimmed()
     );
   }
 
-  fn on_lowest_version_mismatch(&self, actual: &String, instance_group: &InstanceGroup) {
+  fn on_lowest_version_mismatch(
+    &self,
+    specifier: &InstancesBySpecifier,
+    instance_group: &InstanceGroup,
+  ) {
     let icon = "✘".red();
     let arrow = "→".dimmed();
     let expected = instance_group.expected_version.as_ref().unwrap();
     println!(
       "      {} {} {} {} {}",
       icon,
-      actual.red(),
+      specifier.0.red(),
       arrow,
       expected.green(),
       "[LowestSemverMismatch]".dimmed()
     );
   }
 
-  fn on_highest_version_mismatch(&self, actual: &String, instance_group: &InstanceGroup) {
+  fn on_highest_version_mismatch(
+    &self,
+    specifier: &InstancesBySpecifier,
+    instance_group: &InstanceGroup,
+  ) {
     let icon = "✘".red();
     let arrow = "→".dimmed();
     let expected = instance_group.expected_version.as_ref().unwrap();
     println!(
       "      {} {} {} {} {}",
       icon,
-      actual.red(),
+      specifier.0.red(),
       arrow,
       expected.green(),
       "[HighestSemverMismatch]".dimmed()
@@ -242,6 +286,6 @@ fn render_count_column(count: usize) -> ColoredString {
 
 fn print_version_match(instance_group: &InstanceGroup<'_>) {
   let count = render_count_column(instance_group.all.len());
-  let version = instance_group.unique_specifiers.iter().next().unwrap();
+  let (version, _) = instance_group.by_specifier.iter().next().unwrap();
   println!("{} {} {}", count, instance_group.name, &version.dimmed());
 }
