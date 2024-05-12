@@ -50,25 +50,20 @@ fn main() -> io::Result<()> {
   let (command_name, cli_options) = &subcommand;
   let cwd = std::env::current_dir()?;
   let rcfile = config::get(&cwd);
+  let filter = rcfile.get_filter();
   let enabled_dependency_types = Rcfile::get_enabled_dependency_types(&rcfile);
   let enabled_source_patterns = get_enabled_source_patterns(&cli_options, &rcfile);
   let absolute_file_paths = get_file_paths(&cwd, &enabled_source_patterns);
+  let semver_groups = SemverGroup::from_rcfile(&rcfile);
+
+  // all dependent on `packages`
   let packages = get_packages(&absolute_file_paths);
   let local_package_names = get_local_package_names(&packages);
-  let semver_groups = SemverGroup::from_rcfile(&rcfile);
   let mut version_groups = VersionGroup::from_rcfile(&rcfile, &local_package_names);
-  let all_instances = get_all_instances(&packages, &enabled_dependency_types, &rcfile.get_filter());
-
-  // @FIXME: how can this expensive clone be avoided?
-  //
-  // Above this line `packages` only needs to be read, but below it needs to be
-  // mutated. I *think* via lifetimes I've tied the lifetime of `packages` to
-  // the lifetime of `all_instances`(?) which could be why I can't borrow it
-  // mutably here(?)
-  let mut packages = packages.clone();
+  let instances = get_instances(&packages, &enabled_dependency_types, &filter);
 
   // assign every instance to the first group it matches
-  all_instances.iter().for_each(|instance| {
+  instances.iter().for_each(|instance| {
     let semver_group = semver_groups
       .iter()
       .find(|semver_group| semver_group.selector.can_add(instance));
@@ -78,6 +73,17 @@ fn main() -> io::Result<()> {
       .unwrap()
       .add_instance(instance, semver_group);
   });
+
+  // Switch version groups back to immutable
+  let version_groups = version_groups;
+
+  // @FIXME: how can this expensive clone be avoided?
+  //
+  // Above this line `packages` only needs to be read, but below it needs to be
+  // mutated. I *think* via lifetimes I've tied the lifetime of `packages` to
+  // the lifetime of `all_instances`(?) which could be why I can't borrow it
+  // mutably here(?)
+  let mut packages = packages.clone();
 
   let is_valid: bool = match command_name {
     Subcommand::Lint => {
@@ -102,7 +108,7 @@ fn main() -> io::Result<()> {
       };
 
       version_groups.iter().for_each(|group| {
-        let group_is_valid = group.visit(&all_instances, &effects);
+        let group_is_valid = group.visit(&instances, &effects);
         if !group_is_valid {
           lint_is_valid = false;
         }
@@ -191,7 +197,7 @@ fn get_local_package_names(packages: &Vec<PackageJson>) -> Vec<String> {
 }
 
 /// Get every instance of a dependency from every package.json file
-fn get_all_instances<'a>(
+fn get_instances<'a>(
   packages: &'a Vec<PackageJson>,
   dependency_types: &'a HashMap<String, dependency_type::DependencyType>,
   filter: &Regex,
