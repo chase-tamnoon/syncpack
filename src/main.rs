@@ -58,9 +58,8 @@ fn main() -> io::Result<()> {
 
   // all dependent on `packages`
   let packages = get_packages(&absolute_file_paths);
-  let local_package_names = get_local_package_names(&packages);
-  let mut version_groups = VersionGroup::from_rcfile(&rcfile, &local_package_names);
-  let instances = get_instances(&packages, &enabled_dependency_types, &filter);
+  let mut version_groups = VersionGroup::from_rcfile(&rcfile, &packages.all_names);
+  let instances = get_instances(&packages.all, &enabled_dependency_types, &filter);
 
   // assign every instance to the first group it matches
   instances.iter().for_each(|instance| {
@@ -83,7 +82,7 @@ fn main() -> io::Result<()> {
   // mutated. I *think* via lifetimes I've tied the lifetime of `packages` to
   // the lifetime of `all_instances`(?) which could be why I can't borrow it
   // mutably here(?)
-  let mut packages = packages.clone();
+  let mut packages = packages.all.clone();
 
   let is_valid: bool = match command_name {
     Subcommand::Lint => {
@@ -178,22 +177,24 @@ fn get_file_paths(cwd: &PathBuf, source_patterns: &Vec<String>) -> Vec<PathBuf> 
     .collect()
 }
 
-/// Get every package.json file matched by the user's source patterns
-fn get_packages(file_paths: &Vec<PathBuf>) -> Vec<PackageJson> {
-  file_paths
-    .iter()
-    .map(|file_path| {
-      read_json_file(&file_path)
-        .inspect_err(|_| error!("Failed to read {:?}", &file_path))
-        .ok()
-    })
-    .flatten()
-    .collect()
+struct Packages {
+  all: Vec<PackageJson>,
+  all_names: Vec<String>,
 }
 
-/// Get all package names, to be used by the `$LOCAL` alias
-fn get_local_package_names(packages: &Vec<PackageJson>) -> Vec<String> {
-  packages.iter().map(|package| package.get_name()).collect()
+/// Get every package.json file matched by the user's source patterns
+fn get_packages(file_paths: &Vec<PathBuf>) -> Packages {
+  let mut packages = Packages {
+    all: vec![],
+    all_names: vec![],
+  };
+  for file_path in file_paths {
+    if let Ok(file) = read_json_file(&file_path) {
+      packages.all_names.push(file.get_name());
+      packages.all.push(file);
+    }
+  }
+  packages
 }
 
 /// Get every instance of a dependency from every package.json file
