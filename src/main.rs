@@ -5,10 +5,9 @@ use cli::CliOptions;
 use colored::*;
 use glob::glob;
 use json_file::read_json_file;
-use log::error;
 use package_json::PackageJson;
 use regex::Regex;
-use std::{collections::HashMap, io, path::PathBuf};
+use std::{io, path::PathBuf};
 
 use crate::{
   config::Rcfile, effects::Effects, format::LintResult, lint_effects::LintEffects,
@@ -51,7 +50,7 @@ fn main() -> io::Result<()> {
   let cwd = std::env::current_dir()?;
   let rcfile = config::get(&cwd);
   let filter = rcfile.get_filter();
-  let enabled_dependency_types = Rcfile::get_enabled_dependency_types(&rcfile);
+  let dependency_types = Rcfile::get_enabled_dependency_types(&rcfile);
   let enabled_source_patterns = get_enabled_source_patterns(&cli_options, &rcfile);
   let absolute_file_paths = get_file_paths(&cwd, &enabled_source_patterns);
   let semver_groups = SemverGroup::from_rcfile(&rcfile);
@@ -59,7 +58,7 @@ fn main() -> io::Result<()> {
   // all dependent on `packages`
   let packages = get_packages(&absolute_file_paths);
   let mut version_groups = VersionGroup::from_rcfile(&rcfile, &packages.all_names);
-  let instances = get_instances(&packages.all, &enabled_dependency_types, &filter);
+  let instances = get_instances(&packages.all, &dependency_types, &filter);
 
   // assign every instance to the first group it matches
   instances.iter().for_each(|instance| {
@@ -200,7 +199,7 @@ fn get_packages(file_paths: &Vec<PathBuf>) -> Packages {
 /// Get every instance of a dependency from every package.json file
 fn get_instances<'a>(
   packages: &'a Vec<PackageJson>,
-  dependency_types: &'a HashMap<String, dependency_type::DependencyType>,
+  dependency_types: &'a Vec<dependency_type::DependencyType>,
   filter: &Regex,
 ) -> Vec<instance::Instance<'a>> {
   packages

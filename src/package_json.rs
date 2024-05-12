@@ -1,6 +1,5 @@
 use regex::Regex;
 use serde_json;
-use std::collections::HashMap;
 use std::fs;
 use std::io;
 use std::path;
@@ -23,12 +22,12 @@ impl PackageJson {
   /// Create an instance for every enabled dependency type
   pub fn get_instances<'a>(
     &'a self,
-    enabled_dependency_types: &'a HashMap<String, DependencyType>,
+    dependency_types: &'a Vec<DependencyType>,
     filter: &Regex,
   ) -> Vec<instance::Instance> {
-    enabled_dependency_types
+    dependency_types
       .iter()
-      .flat_map(|(_, dependency_type)| dependency_type.get_instances(&self, filter))
+      .flat_map(|dependency_type| dependency_type.get_instances(&self, filter))
       .collect()
   }
 

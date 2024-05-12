@@ -113,9 +113,7 @@ impl Rcfile {
     Regex::new(&self.filter).expect("filter config value is not a valid Regex string")
   }
 
-  pub fn get_enabled_dependency_types(
-    rcfile: &Rcfile,
-  ) -> HashMap<String, dependency_type::DependencyType> {
+  pub fn get_enabled_dependency_types(rcfile: &Rcfile) -> Vec<dependency_type::DependencyType> {
     // Dependency type names referenced in the rcfile
     let named_types = &rcfile.dependency_types;
     // Custom dependency types defined in the rcfile
@@ -123,10 +121,9 @@ impl Rcfile {
     // Internal dependency types are also defined as custom types
     let default_types = get_default_dependency_types();
     // Collect which dependency types are enabled
-    let mut enabled_dependency_types: HashMap<String, dependency_type::DependencyType> =
-      HashMap::new();
-    let len = named_types.len();
+    let mut dependency_types: Vec<dependency_type::DependencyType> = vec![];
     // When no dependency types are referenced in the rcfile, all are enabled
+    let len = named_types.len();
     let include_all = len == 0 || len == 1 && named_types[0] == "**";
     // When any dependency types are explicitly disabled, all others are enabled
     let contains_explicitly_disabled = named_types
@@ -156,23 +153,17 @@ impl Rcfile {
 
     default_types.iter().for_each(|(name, custom_type)| {
       if is_enabled(name) {
-        enabled_dependency_types.insert(
-          name.clone(),
-          dependency_type::DependencyType::new(name, custom_type),
-        );
+        dependency_types.push(dependency_type::DependencyType::new(name, custom_type));
       }
     });
 
     custom_types.iter().for_each(|(name, custom_type)| {
       if is_enabled(name) {
-        enabled_dependency_types.insert(
-          name.clone(),
-          dependency_type::DependencyType::new(name, custom_type),
-        );
+        dependency_types.push(dependency_type::DependencyType::new(name, custom_type));
       }
     });
 
-    enabled_dependency_types
+    dependency_types
   }
 }
 
