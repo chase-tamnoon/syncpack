@@ -5,7 +5,7 @@ use cli::CliOptions;
 use colored::*;
 use glob::glob;
 use json_file::read_json_file;
-use log::{debug, error};
+use log::error;
 use package_json::PackageJson;
 use regex::Regex;
 use std::{collections::HashMap, io, path::PathBuf};
@@ -47,28 +47,24 @@ fn main() -> io::Result<()> {
   };
 
   let (command_name, cli_options) = &subcommand;
-  debug!("command_name: {:?}", &command_name);
-  debug!("cli_options: {:?}", &cli_options);
   let cwd = std::env::current_dir()?;
-  debug!("cwd: {:?}", &cwd);
   let rcfile = config::get(&cwd);
-  debug!("rcfile: {:?}", &rcfile);
   let enabled_dependency_types = Rcfile::get_enabled_dependency_types(&rcfile);
-  debug!("enabled_dependency_types: {:?}", enabled_dependency_types);
   let enabled_source_patterns = get_enabled_source_patterns(&cli_options, &rcfile);
-  debug!("enabled_source_patterns: {:?}", enabled_source_patterns);
   let absolute_file_paths = get_file_paths(&cwd, &enabled_source_patterns);
-  debug!("absolute_file_paths: {:?}", absolute_file_paths);
-  let mut packages = get_packages(&absolute_file_paths);
-  debug!("packages: {:?}", packages);
+  let packages = get_packages(&absolute_file_paths);
   let local_package_names = get_local_package_names(&packages);
-  debug!("local_package_names: {:?}", local_package_names);
   let semver_groups = SemverGroup::from_rcfile(&rcfile);
-  debug!("semver_groups: {:?}", semver_groups);
   let mut version_groups = VersionGroup::from_rcfile(&rcfile, &local_package_names);
-  debug!("version_groups: {:?}", version_groups);
   let all_instances = get_all_instances(&packages, &enabled_dependency_types, &rcfile.get_filter());
-  debug!("total instances: {}", all_instances.len());
+
+  // @FIXME: how can this expensive clone be avoided?
+  //
+  // Above this line `packages` only needs to be read, but below it needs to be
+  // mutated. I *think* via lifetimes I've tied the lifetime of `packages` to
+  // the lifetime of `all_instances`(?) which could be why I can't borrow it
+  // mutably here(?)
+  let mut packages = packages.clone();
 
   // assign every instance to the first group it matches
   all_instances.iter().for_each(|instance| {
@@ -89,7 +85,7 @@ fn main() -> io::Result<()> {
 
       if cli_options.format {
         effects.on_begin_format();
-        let LintResult { valid, invalid } = format::lint(&rcfile, &packages);
+        let LintResult { valid, invalid } = format::lint(&rcfile, &mut packages);
         effects.on_formatted_packages(&valid, &cwd);
         effects.on_unformatted_packages(&invalid, &cwd);
         if !invalid.is_empty() {

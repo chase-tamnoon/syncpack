@@ -11,20 +11,18 @@ pub struct LintResult<'a> {
 }
 
 /// Check whether every package is formatted according to config
-pub fn lint<'a>(rcfile: &'a config::Rcfile, packages: &'a Vec<PackageJson>) -> LintResult<'a> {
+pub fn lint<'a>(rcfile: &'a config::Rcfile, packages: &'a mut Vec<PackageJson>) -> LintResult<'a> {
   let mut lint_result = LintResult {
     invalid: Vec::new(),
     valid: Vec::new(),
   };
   // let mut invalid: Vec<&'a PackageJson> = Vec::new();
   // let mut valid: Vec<&'a PackageJson> = Vec::new();
-  packages.iter().for_each(|package| {
-    // clone the package so we don't introduce side-effects
-    let mut package_clone = package.clone();
+  packages.iter_mut().for_each(|package| {
     // to lint, apply all configured formatting to the clone...
-    fix_package(&rcfile, &mut package_clone);
+    fix_package(&rcfile, package);
     // ...and if it has changed we know it is invalid
-    if package_clone.has_changed() {
+    if package.has_changed() {
       lint_result.invalid.push(package);
     } else {
       lint_result.valid.push(package);
