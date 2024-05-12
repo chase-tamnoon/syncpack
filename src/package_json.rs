@@ -7,7 +7,6 @@ use std::path;
 
 use crate::dependency_type::DependencyType;
 use crate::instance;
-use crate::path_buf::path_buf_to_string;
 use crate::path_buf::path_to_string;
 
 #[derive(Clone, Debug)]

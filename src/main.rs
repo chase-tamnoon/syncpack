@@ -1,5 +1,4 @@
 #![allow(dead_code)]
-#![allow(unused_imports)]
 #![allow(unused_variables)]
 
 use cli::CliOptions;
@@ -11,8 +10,7 @@ use path_buf::path_buf_to_str;
 use regex::Regex;
 use std::{
   collections::{HashMap, HashSet},
-  io::{self, Error},
-  path,
+  io, path,
 };
 
 use crate::{
@@ -125,7 +123,7 @@ fn main() -> io::Result<()> {
                 println!("{} {}", count, name.red());
                 instance_group.unique_specifiers.iter().for_each(|actual| {
                   lint_is_valid = false;
-                  print_banned(instance_group, actual);
+                  print_banned(actual);
                 });
               });
           }
@@ -265,7 +263,7 @@ fn main() -> io::Result<()> {
                       if instance_group.local.is_some() {
                         print_local_version_mismatch(instance_group, actual);
                       } else if instance_group.non_semver.len() > 0 {
-                        print_unsupported_mismatch(instance_group, actual);
+                        print_unsupported_mismatch(actual);
                       } else if let Some(PreferVersion::LowestSemver) = group.prefer_version {
                         print_lowest_version_mismatch(instance_group, actual);
                       } else {
@@ -350,7 +348,7 @@ fn print_group_header(label: &String) {
   println!("{}", full_header.blue());
 }
 
-fn print_banned(instance_group: &instance_group::InstanceGroup<'_>, actual: &String) {
+fn print_banned(actual: &String) {
   let icon = "✘".red();
   println!("      {} {} {}", icon, actual.red(), "[Banned]".dimmed());
 }
@@ -434,7 +432,7 @@ fn print_highest_version_mismatch(
   );
 }
 
-fn print_unsupported_mismatch(instance_group: &instance_group::InstanceGroup<'_>, actual: &String) {
+fn print_unsupported_mismatch(actual: &String) {
   let icon = "✘".red();
   let arrow = "→".dimmed();
   println!(
@@ -466,7 +464,7 @@ fn get_sources(
 
   for source in sources.iter() {
     let absolute_source = cwd.join(source);
-    let outcome = match glob::glob(path_buf_to_str(&absolute_source)) {
+    match glob::glob(path_buf_to_str(&absolute_source)) {
       Ok(glob_paths) => {
         for glob_path in glob_paths {
           match glob_path {
@@ -494,8 +492,8 @@ fn get_packages(file_paths: &Vec<path::PathBuf>) -> io::Result<Vec<package_json:
       .iter()
       .map(|file_path| match json_file::read_json_file(&file_path) {
         Ok(package_json) => package_json,
-        Err(x) => {
-          panic!("Failed to read {:?}", &file_path.to_str());
+        Err(err) => {
+          panic!("Failed to read {:?} {}", &file_path.to_str(), err);
         }
       })
       .collect(),

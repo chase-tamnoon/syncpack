@@ -4,7 +4,6 @@ use regex::Regex;
 use serde::Deserialize;
 use std::collections::HashMap;
 use std::fs;
-use std::io;
 use std::path;
 
 use crate::dependency_type;
