@@ -1,5 +1,4 @@
 use colored::*;
-use log::debug;
 use regex::Regex;
 use serde::Deserialize;
 use std::collections::HashMap;
@@ -7,7 +6,6 @@ use std::fs;
 use std::path;
 
 use crate::dependency_type;
-use crate::path_buf;
 use crate::semver_group;
 use crate::version_group;
 
@@ -66,10 +64,7 @@ fn sort_first() -> Vec<String> {
 }
 
 fn default_source() -> Vec<String> {
-  vec![
-    "package.json".to_string(),
-    "packages/*/package.json".to_string(),
-  ]
+  vec![]
 }
 
 #[derive(Debug, Deserialize)]
@@ -116,13 +111,6 @@ pub struct Rcfile {
 impl Rcfile {
   pub fn get_filter(&self) -> Regex {
     Regex::new(&self.filter).expect("filter config value is not a valid Regex string")
-  }
-
-  pub fn get_sources(&self, cwd: &path::PathBuf) -> Vec<path::PathBuf> {
-    // @TODO: get patterns from rcfile
-    let pattern = &cwd.join("**/package.json");
-    let pattern_str = pattern.to_str().unwrap();
-    get_file_paths(pattern_str)
   }
 
   pub fn get_enabled_dependency_types(
@@ -186,14 +174,6 @@ impl Rcfile {
 
     enabled_dependency_types
   }
-}
-
-/// Return all matching file paths for a given glob pattern
-fn get_file_paths(pattern: &str) -> Vec<path::PathBuf> {
-  glob::glob(pattern)
-    .map(|paths| paths.filter_map(Result::ok).collect())
-    .inspect_err(|e| debug!("Failed to read glob pattern {}: {}", pattern, e))
-    .unwrap_or(vec![])
 }
 
 /// Adds "!" to the start of the String
@@ -275,7 +255,7 @@ pub fn get(cwd: &path::PathBuf) -> Rcfile {
         "{}",
         format!(
           "? using default config: {} not found",
-          path_buf::path_buf_to_str(&file_path)
+          &file_path.to_str().unwrap()
         )
         .dimmed()
       );

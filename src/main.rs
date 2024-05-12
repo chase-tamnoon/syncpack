@@ -3,10 +3,12 @@
 
 use cli::CliOptions;
 use colored::*;
-use log::debug;
-use path_buf::path_buf_to_str;
+use glob::glob;
+use json_file::read_json_file;
+use log::{debug, error};
+use package_json::PackageJson;
 use regex::Regex;
-use std::{collections::HashMap, io, path};
+use std::{collections::HashMap, io, path::PathBuf};
 
 use crate::{
   config::Rcfile, effects::Effects, format::LintResult, semver_group::SemverGroup,
@@ -23,7 +25,6 @@ mod instance;
 mod instance_group;
 mod json_file;
 mod package_json;
-mod path_buf;
 mod semver_group;
 mod specifier;
 mod version_group;
@@ -46,19 +47,19 @@ fn main() -> io::Result<()> {
   };
 
   let (command_name, cli_options) = &subcommand;
-  let cwd = std::env::current_dir()?;
-  let rcfile = config::get(&cwd);
-
-  debug!("cwd: {:?}", &cwd);
   debug!("command_name: {:?}", &command_name);
   debug!("cli_options: {:?}", &cli_options);
+  let cwd = std::env::current_dir()?;
+  debug!("cwd: {:?}", &cwd);
+  let rcfile = config::get(&cwd);
   debug!("rcfile: {:?}", &rcfile);
-
-  let dependency_types = Rcfile::get_enabled_dependency_types(&rcfile);
-  debug!("dependency_types: {:?}", dependency_types);
-  let file_paths = get_sources(&cwd, &cli_options, &rcfile).unwrap();
-  debug!("file_paths: {:?}", file_paths);
-  let mut packages = get_packages(&file_paths).unwrap();
+  let enabled_dependency_types = Rcfile::get_enabled_dependency_types(&rcfile);
+  debug!("enabled_dependency_types: {:?}", enabled_dependency_types);
+  let enabled_source_patterns = get_enabled_source_patterns(&cli_options, &rcfile);
+  debug!("enabled_source_patterns: {:?}", enabled_source_patterns);
+  let absolute_file_paths = get_file_paths(&cwd, &enabled_source_patterns);
+  debug!("absolute_file_paths: {:?}", absolute_file_paths);
+  let mut packages = get_packages(&absolute_file_paths);
   debug!("packages: {:?}", packages);
   let local_package_names = get_local_package_names(&packages);
   debug!("local_package_names: {:?}", local_package_names);
@@ -66,39 +67,45 @@ fn main() -> io::Result<()> {
   debug!("semver_groups: {:?}", semver_groups);
   let mut version_groups = VersionGroup::from_rcfile(&rcfile, &local_package_names);
   debug!("version_groups: {:?}", version_groups);
-
-  let instances = get_instances(&packages, &dependency_types, &rcfile.get_filter());
+  let all_instances = get_all_instances(&packages, &enabled_dependency_types, &rcfile.get_filter());
+  debug!("total instances: {}", all_instances.len());
 
   // assign every instance to the first group it matches
-  instances.iter().for_each(|instance| {
+  all_instances.iter().for_each(|instance| {
     let semver_group = semver_groups
       .iter()
       .find(|semver_group| semver_group.selector.can_add(instance));
     version_groups
       .iter_mut()
       .find(|version_group| version_group.selector.can_add(instance))
-      .expect("instance did not match a version group")
+      .unwrap()
       .add_instance(instance, semver_group);
   });
 
   let is_valid: bool = match command_name {
     Subcommand::Lint => {
       let effects = Effects {};
-      let mut lint_is_valid = lint_formatting(&cwd, &rcfile, &packages, &cli_options);
+      let mut lint_is_valid = true;
 
-      let header = match (cli_options.ranges, cli_options.versions) {
-        (true, true) => "= SEMVER RANGES AND VERSION MISMATCHES",
-        (true, false) => "= SEMVER RANGES",
-        (false, true) => "= VERSION MISMATCHES",
-        (false, false) => "",
-      };
-
-      if header != "" {
-        println!("{}", header.yellow());
+      if cli_options.format {
+        effects.on_begin_format();
+        let LintResult { valid, invalid } = format::lint(&rcfile, &packages);
+        effects.on_formatted_packages(&valid, &cwd);
+        effects.on_unformatted_packages(&invalid, &cwd);
+        if !invalid.is_empty() {
+          lint_is_valid = false;
+        }
       }
 
+      match (cli_options.ranges, cli_options.versions) {
+        (true, true) => effects.on_begin_ranges_and_versions(),
+        (true, false) => effects.on_begin_ranges_only(),
+        (false, true) => effects.on_begin_versions_only(),
+        (false, false) => effects.on_skip_ranges_and_versions(),
+      };
+
       version_groups.iter().for_each(|group| {
-        let group_is_valid = group.visit(&instances, &effects);
+        let group_is_valid = group.visit(&all_instances, &effects);
         if !group_is_valid {
           lint_is_valid = false;
         }
@@ -128,98 +135,67 @@ fn main() -> io::Result<()> {
   }
 }
 
-/// Return a right aligned column of a count of instances
-/// Example "    38x"
-fn render_count_column(count: usize) -> ColoredString {
-  format!("{: >4}x", count).dimmed()
+/// Based on the user's config file and command line `--source` options, return
+/// the source glob patterns which should be used to resolve package.json files
+fn get_enabled_source_patterns(cli_options: &CliOptions, rcfile: &Rcfile) -> Vec<String> {
+  Some(cli_options.source.clone())
+    .filter(|list| !list.is_empty())
+    .or_else(|| Some(rcfile.source.clone()))
+    .filter(|list| !list.is_empty())
+    .or_else(|| {
+      Some(vec![
+        String::from("package.json"),
+        String::from("packages/*/package.json"),
+      ])
+    })
+    .unwrap_or(vec![])
 }
 
-/// Check formatting of package.json files and return whether all are valid
-fn lint_formatting(
-  cwd: &path::PathBuf,
-  rcfile: &Rcfile,
-  packages: &Vec<package_json::PackageJson>,
-  enabled: &cli::CliOptions,
-) -> bool {
-  if !enabled.format {
-    return true;
-  }
-  println!("{}", "= FORMATTING".yellow());
-  let LintResult { valid, invalid } = format::lint(rcfile, packages);
-  println!("{} {} valid", render_count_column(valid.len()), "✓".green());
-  println!(
-    "{} {} invalid",
-    render_count_column(invalid.len()),
-    "✘".red()
-  );
-  invalid.iter().for_each(|package| {
-    println!(
-      "      {} {}",
-      "✘".red(),
-      package.get_relative_file_path(cwd).red()
-    );
-  });
-  invalid.len() == 0
-}
-
-fn get_sources(
-  cwd: &path::PathBuf,
-  cli_options: &CliOptions,
-  rcfile: &Rcfile,
-) -> io::Result<Vec<path::PathBuf>> {
-  let sources: Vec<path::PathBuf> = if cli_options.source.len() > 0 {
-    cli_options.source.clone()
-  } else {
-    rcfile.get_sources(&cwd)
-  };
-
-  let mut file_paths: Vec<path::PathBuf> = vec![];
-
-  for source in sources.iter() {
-    let absolute_source = cwd.join(source);
-    match glob::glob(path_buf_to_str(&absolute_source)) {
-      Ok(glob_paths) => {
-        for glob_path in glob_paths {
-          match glob_path {
-            Ok(file_path) => {
-              file_paths.push(file_path);
-            }
-            Err(_) => {
-              panic!("Failed to read source {:?}", source);
-            }
-          };
-        }
+/// Resolve every source glob pattern into their absolute file paths of
+/// package.json files
+fn get_file_paths(cwd: &PathBuf, source_patterns: &Vec<String>) -> Vec<PathBuf> {
+  source_patterns
+    .iter()
+    .map(|pattern| {
+      if PathBuf::from(pattern).is_absolute() {
+        pattern.clone()
+      } else {
+        cwd.join(pattern).to_str().unwrap().to_string()
       }
-      Err(_) => {
-        panic!("Failed to read source {:?}", source);
-      }
-    };
-  }
-
-  Ok(file_paths)
+    })
+    .flat_map(|pattern| glob(&pattern).ok())
+    .flat_map(|paths| {
+      paths
+        .filter_map(Result::ok)
+        .fold(vec![], |mut paths, path| {
+          paths.push(path.clone());
+          paths
+        })
+    })
+    .collect()
 }
 
-fn get_packages(file_paths: &Vec<path::PathBuf>) -> io::Result<Vec<package_json::PackageJson>> {
-  Ok(
-    file_paths
-      .iter()
-      .map(|file_path| match json_file::read_json_file(&file_path) {
-        Ok(package_json) => package_json,
-        Err(err) => {
-          panic!("Failed to read {:?} {}", &file_path.to_str(), err);
-        }
-      })
-      .collect(),
-  )
+/// Get every package.json file matched by the user's source patterns
+fn get_packages(file_paths: &Vec<PathBuf>) -> Vec<PackageJson> {
+  file_paths
+    .iter()
+    .map(|file_path| {
+      read_json_file(&file_path)
+        .inspect_err(|_| error!("Failed to read {:?}", &file_path))
+        .ok()
+    })
+    .flatten()
+    .collect()
 }
 
 /// Get all package names, to be used by the `$LOCAL` alias
-fn get_local_package_names(packages: &Vec<package_json::PackageJson>) -> Vec<String> {
+fn get_local_package_names(packages: &Vec<PackageJson>) -> Vec<String> {
   packages.iter().map(|package| package.get_name()).collect()
 }
 
-fn get_instances<'a>(
-  packages: &'a Vec<package_json::PackageJson>,
+/// Get every instance of a dependency from every package.json file
+fn get_all_instances<'a>(
+  packages: &'a Vec<PackageJson>,
   dependency_types: &'a HashMap<String, dependency_type::DependencyType>,
   filter: &Regex,
 ) -> Vec<instance::Instance<'a>> {

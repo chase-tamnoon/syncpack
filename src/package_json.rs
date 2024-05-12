@@ -4,10 +4,10 @@ use std::collections::HashMap;
 use std::fs;
 use std::io;
 use std::path;
+use std::path::PathBuf;
 
 use crate::dependency_type::DependencyType;
 use crate::instance;
-use crate::path_buf::path_to_string;
 
 #[derive(Clone, Debug)]
 pub struct PackageJson {
@@ -69,7 +69,13 @@ impl PackageJson {
   }
 
   /// Return a short path for logging to the terminal
-  pub fn get_relative_file_path(&self, cwd: &std::path::PathBuf) -> String {
-    path_to_string(&self.file_path.strip_prefix(&cwd).unwrap())
+  pub fn get_relative_file_path(&self, cwd: &PathBuf) -> String {
+    self
+      .file_path
+      .strip_prefix(&cwd)
+      .ok()
+      .map(|path| path.to_str().map(|path_str| path_str.to_string()))
+      .flatten()
+      .expect("Failed to create relative file path")
   }
 }
