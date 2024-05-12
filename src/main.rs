@@ -11,8 +11,8 @@ use regex::Regex;
 use std::{collections::HashMap, io, path::PathBuf};
 
 use crate::{
-  config::Rcfile, effects::Effects, format::LintResult, semver_group::SemverGroup,
-  version_group::VersionGroup,
+  config::Rcfile, effects::Effects, format::LintResult, lint_effects::LintEffects,
+  semver_group::SemverGroup, version_group::VersionGroup,
 };
 
 mod cli;
@@ -24,6 +24,7 @@ mod group_selector;
 mod instance;
 mod instance_group;
 mod json_file;
+mod lint_effects;
 mod package_json;
 mod semver_group;
 mod specifier;
@@ -80,7 +81,7 @@ fn main() -> io::Result<()> {
 
   let is_valid: bool = match command_name {
     Subcommand::Lint => {
-      let effects = Effects {};
+      let effects = LintEffects {};
       let mut lint_is_valid = true;
 
       if cli_options.format {

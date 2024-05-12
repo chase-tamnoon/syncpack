@@ -246,7 +246,7 @@ impl<'a> VersionGroup<'a> {
     }
   }
 
-  pub fn visit(&self, all_instances: &Vec<Instance>, effects: &Effects) -> bool {
+  pub fn visit(&self, all_instances: &Vec<Instance>, effects: &impl Effects) -> bool {
     // @TODO: return a Vec of Result<GoodEnum, BadEnum>?
     let mut lint_is_valid = true;
     match self.variant {
