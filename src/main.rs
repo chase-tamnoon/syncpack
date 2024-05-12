@@ -80,39 +80,34 @@ fn main() -> io::Result<()> {
 
   let mut packages = packages;
 
-  let is_valid: bool = match command_name {
-    Subcommand::Lint => {
-      let effects = LintEffects {};
-      let mut lint_is_valid = true;
+  // When fixing, we run the fixes first and then lint them
+  if matches!(command_name, Subcommand::Fix) {
+    let effects = FixEffects {};
 
-      if cli_options.format {
-        effects.on_begin_format();
-        let LintResult { valid, invalid } = format::lint(&rcfile, &mut packages.all);
-        effects.on_formatted_packages(&valid, &cwd);
-        effects.on_unformatted_packages(&invalid, &cwd);
-        if !invalid.is_empty() {
-          lint_is_valid = false;
-        }
-      }
-
-      match (cli_options.ranges, cli_options.versions) {
-        (true, true) => effects.on_begin_ranges_and_versions(),
-        (true, false) => effects.on_begin_ranges_only(),
-        (false, true) => effects.on_begin_versions_only(),
-        (false, false) => effects.on_skip_ranges_and_versions(),
-      };
-
-      version_groups.iter().for_each(|group| {
-        let group_is_valid = group.visit(&instances, &effects);
-        if !group_is_valid {
-          lint_is_valid = false;
-        }
-      });
-
-      lint_is_valid
+    if cli_options.format {
+      effects.on_begin_format();
+      let LintResult { valid, invalid } = format::lint(&rcfile, &mut packages.all);
+      effects.on_formatted_packages(&valid, &cwd);
+      effects.on_unformatted_packages(&invalid, &cwd);
     }
-    Subcommand::Fix => {
-      let effects = FixEffects {};
+
+    match (cli_options.ranges, cli_options.versions) {
+      (true, true) => effects.on_begin_ranges_and_versions(),
+      (true, false) => effects.on_begin_ranges_only(),
+      (false, true) => effects.on_begin_versions_only(),
+      (false, false) => effects.on_skip_ranges_and_versions(),
+    };
+
+    version_groups.iter().for_each(|group| {
+      let group_is_valid = group.visit(&instances, &effects);
+    });
+  }
+
+  // When fixing, we run the linter again to show what the fix did and if there
+  // were any unfixable issues left over
+  let is_valid: bool = match command_name {
+    Subcommand::Fix | Subcommand::Lint => {
+      let effects = LintEffects {};
       let mut lint_is_valid = true;
 
       if cli_options.format {
