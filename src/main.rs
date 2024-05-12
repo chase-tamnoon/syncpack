@@ -4,7 +4,7 @@
 use cli::CliOptions;
 use colored::*;
 use dependency_type::Strategy;
-use fix_effects::FixEffects;
+use effects_fix::FixEffects;
 use glob::glob;
 use json_file::read_json_file;
 use package_json::PackageJson;
@@ -12,21 +12,21 @@ use regex::Regex;
 use std::{io, path::PathBuf};
 
 use crate::{
-  config::Rcfile, effects::Effects, format::LintResult, instance::Instance,
-  lint_effects::LintEffects, semver_group::SemverGroup, version_group::VersionGroup,
+  config::Rcfile, effects::Effects, effects_lint::LintEffects, format::LintResult,
+  instance::Instance, semver_group::SemverGroup, version_group::VersionGroup,
 };
 
 mod cli;
 mod config;
 mod dependency_type;
 mod effects;
-mod fix_effects;
+mod effects_fix;
+mod effects_lint;
 mod format;
 mod group_selector;
 mod instance;
 mod instance_group;
 mod json_file;
-mod lint_effects;
 mod package_json;
 mod semver_group;
 mod specifier;
