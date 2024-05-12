@@ -4,6 +4,7 @@
 use cli::CliOptions;
 use colored::*;
 use dependency_type::Strategy;
+use fix_effects::FixEffects;
 use glob::glob;
 use json_file::read_json_file;
 use package_json::PackageJson;
@@ -19,6 +20,7 @@ mod cli;
 mod config;
 mod dependency_type;
 mod effects;
+mod fix_effects;
 mod format;
 mod group_selector;
 mod instance;
@@ -110,15 +112,34 @@ fn main() -> io::Result<()> {
       lint_is_valid
     }
     Subcommand::Fix => {
-      println!("fix enabled {:?}", cli_options);
+      let effects = FixEffects {};
+      let mut lint_is_valid = true;
+
       if cli_options.format {
-        println!("format packages");
-        format::fix(&rcfile, &mut packages.all);
+        effects.on_begin_format();
+        let LintResult { valid, invalid } = format::lint(&rcfile, &mut packages.all);
+        effects.on_formatted_packages(&valid, &cwd);
+        effects.on_unformatted_packages(&invalid, &cwd);
+        if !invalid.is_empty() {
+          lint_is_valid = false;
+        }
       }
-      if cli_options.versions {
-        println!("@TOD: fix versions");
-      }
-      true
+
+      match (cli_options.ranges, cli_options.versions) {
+        (true, true) => effects.on_begin_ranges_and_versions(),
+        (true, false) => effects.on_begin_ranges_only(),
+        (false, true) => effects.on_begin_versions_only(),
+        (false, false) => effects.on_skip_ranges_and_versions(),
+      };
+
+      version_groups.iter().for_each(|group| {
+        let group_is_valid = group.visit(&instances, &effects);
+        if !group_is_valid {
+          lint_is_valid = false;
+        }
+      });
+
+      lint_is_valid
     }
   };
 
