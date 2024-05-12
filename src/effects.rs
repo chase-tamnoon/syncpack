@@ -42,29 +42,33 @@ impl Effects {
 
   /// Linting/fixing of formatting has completed and these packages were valid
   pub fn on_formatted_packages(&self, valid_packages: &Vec<&PackageJson>, _cwd: &PathBuf) {
-    println!(
-      "{} {} valid",
-      render_count_column(valid_packages.len()),
-      "✓".green()
-    );
+    if !valid_packages.is_empty() {
+      println!(
+        "{} {} valid formatting",
+        render_count_column(valid_packages.len()),
+        "✓".green()
+      );
+    }
   }
 
   /// Linting/fixing of formatting has completed and these packages were
   /// initially invalid. In the case of fixing, they are now valid but were
   /// invalid beforehand.
   pub fn on_unformatted_packages(&self, invalid_packages: &Vec<&PackageJson>, cwd: &PathBuf) {
-    println!(
-      "{} {} invalid",
-      render_count_column(invalid_packages.len()),
-      "✘".red()
-    );
-    invalid_packages.iter().for_each(|package| {
+    if !invalid_packages.is_empty() {
       println!(
-        "      {} {}",
-        "✘".red(),
-        package.get_relative_file_path(&cwd).red()
+        "{} {}",
+        render_count_column(invalid_packages.len()),
+        "invalid formatting".red()
       );
-    });
+      invalid_packages.iter().for_each(|package| {
+        println!(
+          "      {} {}",
+          "✘".red(),
+          package.get_relative_file_path(&cwd).red()
+        );
+      });
+    }
   }
 
   // ===========================================================================
