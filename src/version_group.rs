@@ -1,10 +1,12 @@
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, HashSet};
 use std::vec;
 
+use node_semver::Range;
 use serde::Deserialize;
 use version_compare::{compare, Cmp};
 
 use crate::config;
+use crate::effects::Effects;
 use crate::group_selector::GroupSelector;
 use crate::instance::Instance;
 use crate::instance_group::InstanceGroup;
@@ -48,9 +50,10 @@ impl<'a> VersionGroup<'a> {
   pub fn add_instance(&mut self, instance: &'a Instance, semver_group: Option<&'a SemverGroup>) {
     // Ensure that a group exists for this dependency name.
     if !self.instance_groups_by_name.contains_key(&instance.name) {
-      self
-        .instance_groups_by_name
-        .insert(instance.name.clone(), InstanceGroup::new());
+      self.instance_groups_by_name.insert(
+        instance.name.clone(),
+        InstanceGroup::new(instance.name.clone()),
+      );
     }
 
     // Get the group for this dependency name.
@@ -242,6 +245,171 @@ impl<'a> VersionGroup<'a> {
       snap_to: None,
     }
   }
+
+  pub fn visit(&self, all_instances: &Vec<Instance>, effects: &Effects) -> bool {
+    // @TODO: return a Vec of Result<GoodEnum, BadEnum>?
+    let mut lint_is_valid = true;
+    match self.variant {
+      VersionGroupVariant::Ignored => {
+        effects.on_group(&self.selector);
+        self
+          .instance_groups_by_name
+          .values()
+          .for_each(|instance_group| {
+            effects.on_ignored_instance_group(instance_group);
+          });
+      }
+      VersionGroupVariant::Banned => {
+        effects.on_group(&self.selector);
+        self
+          .instance_groups_by_name
+          .values()
+          .for_each(|instance_group| {
+            effects.on_banned_instance_group(instance_group);
+            instance_group.unique_specifiers.iter().for_each(|actual| {
+              lint_is_valid = false;
+              effects.on_banned_instance(actual, instance_group);
+            });
+          });
+      }
+      VersionGroupVariant::Pinned => {
+        effects.on_group(&self.selector);
+        self
+          .instance_groups_by_name
+          .values()
+          .for_each(|instance_group| {
+            if !instance_group.has_identical_specifiers() {
+              effects.on_invalid_pinned_instance_group(instance_group);
+              instance_group
+                .unique_specifiers
+                .iter()
+                .for_each(|actual_specifier| {
+                  if instance_group.is_mismatch(actual_specifier) {
+                    lint_is_valid = false;
+                    effects.on_pinned_version_mismatch(actual_specifier, instance_group);
+                  }
+                });
+            } else {
+              effects.on_valid_pinned_instance_group(instance_group);
+            };
+          });
+      }
+      VersionGroupVariant::SameRange => {
+        effects.on_group(&self.selector);
+        self
+          .instance_groups_by_name
+          .values()
+          .for_each(|instance_group| {
+            // @TODO: use (Instance, Instance)
+            let mut mismatches: HashSet<(String, String)> = HashSet::new();
+            instance_group.unique_specifiers.iter().for_each(|a| {
+              let range_a = a.parse::<Range>().unwrap();
+              instance_group.unique_specifiers.iter().for_each(|b| {
+                if a == b {
+                  return;
+                }
+                let range_b = b.parse::<Range>().unwrap();
+                if range_a.allows_all(&range_b) {
+                  return;
+                }
+                mismatches.insert((a.clone(), b.clone()));
+              })
+            });
+            if mismatches.len() == 0 {
+              effects.on_valid_same_range_instance_group(instance_group);
+            } else {
+              lint_is_valid = false;
+              effects.on_invalid_same_range_instance_group(instance_group);
+              mismatches.iter().for_each(|mismatching_ranges| {
+                effects.on_same_range_mismatch(&mismatching_ranges, instance_group);
+              });
+            }
+          });
+      }
+      VersionGroupVariant::SnappedTo => {
+        effects.on_group(&self.selector);
+        if let Some(snap_to) = &self.snap_to {
+          self
+            .instance_groups_by_name
+            .values()
+            .for_each(|instance_group| {
+              let mismatches = get_snap_to_mismatches(snap_to, all_instances, instance_group);
+              if mismatches.len() == 0 {
+                effects.on_valid_snap_to_instance_group(instance_group);
+              } else {
+                lint_is_valid = false;
+                effects.on_invalid_snap_to_instance_group(instance_group);
+                mismatches.iter().for_each(|mismatching_versions| {
+                  effects.on_snap_to_mismatch(&mismatching_versions, instance_group);
+                });
+              }
+            });
+        }
+      }
+      VersionGroupVariant::Standard => {
+        effects.on_group(&self.selector);
+        self
+          .instance_groups_by_name
+          .values()
+          .for_each(|instance_group| {
+            if !instance_group.has_identical_specifiers() {
+              effects.on_invalid_standard_instance_group(instance_group);
+              instance_group.unique_specifiers.iter().for_each(|actual| {
+                if instance_group.is_mismatch(actual) {
+                  lint_is_valid = false;
+                  if instance_group.local.is_some() {
+                    effects.on_local_version_mismatch(instance_group, actual);
+                  } else if instance_group.non_semver.len() > 0 {
+                    effects.on_unsupported_mismatch(actual, instance_group);
+                  } else if let Some(PreferVersion::LowestSemver) = self.prefer_version {
+                    effects.on_lowest_version_mismatch(actual, instance_group);
+                  } else {
+                    effects.on_highest_version_mismatch(actual, instance_group);
+                  }
+                }
+              });
+            } else {
+              effects.on_valid_standard_instance_group(instance_group);
+            };
+          });
+      }
+    };
+    lint_is_valid
+  }
+}
+
+fn get_snap_to_mismatches(
+  snap_to: &Vec<String>,
+  all_instances: &Vec<Instance>,
+  instance_group: &InstanceGroup,
+) -> HashSet<(String, String)> {
+  // @TODO: use (Instance, Instance)
+  let mut mismatches: HashSet<(String, String)> = HashSet::new();
+  snap_to.iter().any(|snapped_to_package_name| {
+    let maybe_snappable_instance = &all_instances.iter().find(|instance| {
+      instance.name == instance_group.name
+        && instance.package_json.get_name() == *snapped_to_package_name
+    });
+    match maybe_snappable_instance {
+      Some(snappable_instance) => {
+        let expected = &snappable_instance.specifier;
+        instance_group
+          .unique_specifiers
+          .iter()
+          .filter(|actual| *actual != expected)
+          .for_each(|actual| {
+            mismatches.insert((actual.clone(), expected.clone()));
+          });
+        // stop searching
+        true
+      }
+      None => {
+        // keep searching
+        false
+      }
+    }
+  });
+  mismatches
 }
 
 #[derive(Debug, Deserialize)]

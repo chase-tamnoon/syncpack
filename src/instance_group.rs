@@ -5,6 +5,8 @@ use crate::instance::Instance;
 
 #[derive(Debug)]
 pub struct InstanceGroup<'a> {
+  /// The name of the dependency
+  pub name: String,
   /// Every instance of this dependency in this version group.
   pub all: Vec<&'a Instance<'a>>,
   /// The version specifier which all instances in this group should have
@@ -21,8 +23,9 @@ pub struct InstanceGroup<'a> {
 }
 
 impl<'a> InstanceGroup<'a> {
-  pub fn new() -> InstanceGroup<'a> {
+  pub fn new(name: String) -> InstanceGroup<'a> {
     InstanceGroup {
+      name,
       all: vec![],
       expected_version: None,
       local: None,
@@ -30,6 +33,11 @@ impl<'a> InstanceGroup<'a> {
       semver: vec![],
       unique_specifiers: HashSet::new(),
     }
+  }
+
+  /// Is the exact same specifier used by all instances in this group?
+  pub fn has_identical_specifiers(&self) -> bool {
+    self.unique_specifiers.len() == (1 as usize)
   }
 
   pub fn is_mismatch(&self, actual: &String) -> bool {

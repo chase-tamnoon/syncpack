@@ -32,6 +32,15 @@ impl PackageJson {
       .collect()
   }
 
+  /// Convenience method to get the name of the package
+  pub fn get_name(&self) -> String {
+    self
+      .get_prop("/name")
+      .and_then(|name| name.as_str())
+      .unwrap_or("")
+      .to_string()
+  }
+
   /// Deeply get a property in the parsed package.json
   pub fn get_prop(&self, pointer: &str) -> Option<&serde_json::Value> {
     self.contents.pointer(pointer)

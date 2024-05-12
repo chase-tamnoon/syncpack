@@ -3,26 +3,20 @@
 
 use cli::CliOptions;
 use colored::*;
-use itertools::Itertools;
 use log::debug;
-use node_semver::Range;
 use path_buf::path_buf_to_str;
 use regex::Regex;
-use std::{
-  collections::{HashMap, HashSet},
-  io, path,
-};
+use std::{collections::HashMap, io, path};
 
 use crate::{
-  config::Rcfile,
-  format::LintResult,
-  semver_group::SemverGroup,
-  version_group::{PreferVersion, VersionGroup, VersionGroupVariant},
+  config::Rcfile, effects::Effects, format::LintResult, semver_group::SemverGroup,
+  version_group::VersionGroup,
 };
 
 mod cli;
 mod config;
 mod dependency_type;
+mod effects;
 mod format;
 mod group_selector;
 mod instance;
@@ -89,6 +83,7 @@ fn main() -> io::Result<()> {
 
   let is_valid: bool = match command_name {
     Subcommand::Lint => {
+      let effects = Effects {};
       let mut lint_is_valid = lint_formatting(&cwd, &rcfile, &packages, &cli_options);
 
       let header = match (cli_options.ranges, cli_options.versions) {
@@ -103,181 +98,12 @@ fn main() -> io::Result<()> {
       }
 
       version_groups.iter().for_each(|group| {
-        match group.variant {
-          VersionGroupVariant::Ignored => {
-            print_group_header(&group.selector.label);
-            group
-              .instance_groups_by_name
-              .iter()
-              .for_each(|(name, instance_group)| {
-                print_ignored(instance_group, name);
-              });
-          }
-          VersionGroupVariant::Banned => {
-            print_group_header(&group.selector.label);
-            group
-              .instance_groups_by_name
-              .iter()
-              .for_each(|(name, instance_group)| {
-                let count = render_count_column(instance_group.all.len());
-                println!("{} {}", count, name.red());
-                instance_group.unique_specifiers.iter().for_each(|actual| {
-                  lint_is_valid = false;
-                  print_banned(actual);
-                });
-              });
-          }
-          VersionGroupVariant::Pinned => {
-            print_group_header(&group.selector.label);
-            group
-              .instance_groups_by_name
-              .iter()
-              .for_each(|(name, instance_group)| {
-                if has_mismatches(instance_group) {
-                  let count = render_count_column(instance_group.all.len());
-                  println!("{} {}", count, name.red());
-                  instance_group.unique_specifiers.iter().for_each(|actual| {
-                    if instance_group.is_mismatch(actual) {
-                      lint_is_valid = false;
-                      print_pinned_version_mismatch(instance_group, actual);
-                    }
-                  });
-                } else {
-                  print_version_match(instance_group, name);
-                };
-              });
-          }
-          VersionGroupVariant::SameRange => {
-            print_group_header(&group.selector.label);
-            group
-              .instance_groups_by_name
-              .iter()
-              .for_each(|(name, instance_group)| {
-                let mut mismatches: HashSet<String> = HashSet::new();
-                instance_group.unique_specifiers.iter().for_each(|a| {
-                  let range_a = a.parse::<Range>().unwrap();
-                  instance_group.unique_specifiers.iter().for_each(|b| {
-                    if a == b {
-                      return;
-                    }
-                    let range_b = b.parse::<Range>().unwrap();
-                    if range_a.allows_all(&range_b) {
-                      return;
-                    }
-                    mismatches.insert(format!(
-                      "      {} {} {} {} {}",
-                      "✘".red(),
-                      b.red(),
-                      "falls outside".red(),
-                      a.red(),
-                      "[SameRangeMismatch]".dimmed()
-                    ));
-                  })
-                });
-                if mismatches.len() == 0 {
-                  let count = render_count_column(instance_group.all.len());
-                  println!("{} {}", count, name);
-                } else {
-                  lint_is_valid = false;
-                  let count = render_count_column(instance_group.all.len());
-                  println!("{} {}", count, name.red());
-                  mismatches.iter().for_each(|message| {
-                    println!("{}", message);
-                  });
-                }
-              });
-          }
-          VersionGroupVariant::SnappedTo => {
-            print_group_header(&group.selector.label);
-            match &group.snap_to {
-              Some(snap_to) => {
-                group
-                  .instance_groups_by_name
-                  .iter()
-                  .for_each(|(name, instance_group)| {
-                    let mut mismatches: HashSet<String> = HashSet::new();
-                    snap_to.iter().any(|snapped_to_package_name| {
-                      let snappable_instance = &instances.iter().find(|instance| {
-                        instance.name == *name
-                          && match instance.package_json.get_prop("/name") {
-                            Some(instance_package_name) => {
-                              instance_package_name.as_str().unwrap().to_string()
-                                == *snapped_to_package_name
-                            }
-                            None => false,
-                          }
-                      });
-                      match snappable_instance {
-                        Some(instance) => {
-                          let expected = &instance.specifier;
-                          instance_group.unique_specifiers.iter().for_each(|actual| {
-                            if actual != expected {
-                              let icon = "✘".red();
-                              let arrow = "→".dimmed();
-                              mismatches.insert(format!(
-                                "      {} {} {} {} {}",
-                                icon,
-                                actual.red(),
-                                arrow,
-                                expected.green(),
-                                "[SnappedToMismatch]".dimmed()
-                              ));
-                            }
-                          });
-                          // stop searching if we found a match
-                          true
-                        }
-                        None => false,
-                      }
-                    });
-                    if mismatches.len() == 0 {
-                      let count = render_count_column(instance_group.all.len());
-                      println!("{} {}", count, name);
-                    } else {
-                      lint_is_valid = false;
-                      let count = render_count_column(instance_group.all.len());
-                      println!("{} {}", count, name.red());
-                      mismatches.iter().for_each(|message| {
-                        println!("{}", message);
-                      });
-                    }
-                  });
-              }
-              None => {
-                panic!("Failed to get snapTo property");
-              }
-            }
-          }
-          VersionGroupVariant::Standard => {
-            print_group_header(&group.selector.label);
-            group
-              .instance_groups_by_name
-              .iter()
-              .for_each(|(name, instance_group)| {
-                if has_mismatches(instance_group) {
-                  let count = render_count_column(instance_group.all.len());
-                  println!("{} {}", count, name.red());
-                  instance_group.unique_specifiers.iter().for_each(|actual| {
-                    if instance_group.is_mismatch(actual) {
-                      lint_is_valid = false;
-                      if instance_group.local.is_some() {
-                        print_local_version_mismatch(instance_group, actual);
-                      } else if instance_group.non_semver.len() > 0 {
-                        print_unsupported_mismatch(actual);
-                      } else if let Some(PreferVersion::LowestSemver) = group.prefer_version {
-                        print_lowest_version_mismatch(instance_group, actual);
-                      } else {
-                        print_highest_version_mismatch(instance_group, actual);
-                      }
-                    }
-                  });
-                } else {
-                  print_version_match(instance_group, name);
-                };
-              });
-          }
-        };
+        let group_is_valid = group.visit(&instances, &effects);
+        if !group_is_valid {
+          lint_is_valid = false;
+        }
       });
+
       lint_is_valid
     }
     Subcommand::Fix => {
@@ -336,119 +162,6 @@ fn lint_formatting(
   invalid.len() == 0
 }
 
-fn print_group_header(label: &String) {
-  let print_width = 80;
-  let header = format!("= {} ", label);
-  let divider = if header.len() < print_width {
-    "=".repeat(print_width - header.len())
-  } else {
-    "".to_string()
-  };
-  let full_header = format!("{}{}", header, divider);
-  println!("{}", full_header.blue());
-}
-
-fn print_banned(actual: &String) {
-  let icon = "✘".red();
-  println!("      {} {} {}", icon, actual.red(), "[Banned]".dimmed());
-}
-
-fn print_ignored(instance_group: &instance_group::InstanceGroup<'_>, name: &String) {
-  let count = render_count_column(instance_group.all.len());
-  println!("{} {} {}", count, name.dimmed(), "[Ignored]".dimmed());
-}
-
-fn print_version_match(instance_group: &instance_group::InstanceGroup<'_>, name: &String) {
-  let count = render_count_column(instance_group.all.len());
-  let version = &instance_group.unique_specifiers.iter().join(" ");
-  println!("{} {} {}", count, name, &version.dimmed());
-}
-
-fn print_pinned_version_mismatch(
-  instance_group: &instance_group::InstanceGroup<'_>,
-  actual: &String,
-) {
-  let icon = "✘".red();
-  let arrow = "→".dimmed();
-  let expected = instance_group.expected_version.as_ref().unwrap();
-  println!(
-    "      {} {} {} {} {}",
-    icon,
-    actual.red(),
-    arrow,
-    expected.green(),
-    "[PinnedMismatch]".dimmed()
-  );
-}
-
-fn print_local_version_mismatch(
-  instance_group: &instance_group::InstanceGroup<'_>,
-  actual: &String,
-) {
-  let icon = "✘".red();
-  let arrow = "→".dimmed();
-  let expected = instance_group.expected_version.as_ref().unwrap();
-  println!(
-    "      {} {} {} {} {}",
-    icon,
-    actual.red(),
-    arrow,
-    expected.green(),
-    "[LocalPackageMismatch]".dimmed()
-  );
-}
-
-fn print_lowest_version_mismatch(
-  instance_group: &instance_group::InstanceGroup<'_>,
-  actual: &String,
-) {
-  let icon = "✘".red();
-  let arrow = "→".dimmed();
-  let expected = instance_group.expected_version.as_ref().unwrap();
-  println!(
-    "      {} {} {} {} {}",
-    icon,
-    actual.red(),
-    arrow,
-    expected.green(),
-    "[LowestSemverMismatch]".dimmed()
-  );
-}
-
-fn print_highest_version_mismatch(
-  instance_group: &instance_group::InstanceGroup<'_>,
-  actual: &String,
-) {
-  let icon = "✘".red();
-  let arrow = "→".dimmed();
-  let expected = instance_group.expected_version.as_ref().unwrap();
-  println!(
-    "      {} {} {} {} {}",
-    icon,
-    actual.red(),
-    arrow,
-    expected.green(),
-    "[HighestSemverMismatch]".dimmed()
-  );
-}
-
-fn print_unsupported_mismatch(actual: &String) {
-  let icon = "✘".red();
-  let arrow = "→".dimmed();
-  println!(
-    "      {} {} {} {} {}",
-    icon,
-    actual.red(),
-    arrow,
-    "?".yellow(),
-    "[UnsupportedMismatch]".dimmed()
-  );
-}
-
-fn has_mismatches(instance_group: &instance_group::InstanceGroup<'_>) -> bool {
-  instance_group.unique_specifiers.len() > (1 as usize)
-}
-
 fn get_sources(
   cwd: &path::PathBuf,
   cli_options: &CliOptions,
@@ -502,14 +215,7 @@ fn get_packages(file_paths: &Vec<path::PathBuf>) -> io::Result<Vec<package_json:
 
 /// Get all package names, to be used by the `$LOCAL` alias
 fn get_local_package_names(packages: &Vec<package_json::PackageJson>) -> Vec<String> {
-  packages
-    .iter()
-    .flat_map(|package| {
-      package
-        .get_prop("/name")
-        .map(|package_name| package_name.as_str().unwrap().to_string())
-    })
-    .collect()
+  packages.iter().map(|package| package.get_name()).collect()
 }
 
 fn get_instances<'a>(

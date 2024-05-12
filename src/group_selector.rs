@@ -83,14 +83,11 @@ impl GroupSelector {
   }
 
   pub fn matches_packages(&self, instance: &Instance) -> bool {
-    match instance.package_json.get_prop("/name") {
-      Some(package_name) => matches_globs(
-        &package_name.as_str().unwrap().to_string(),
-        &self.include_packages,
-        &self.exclude_packages,
-      ),
-      None => false,
-    }
+    matches_globs(
+      &instance.package_json.get_name(),
+      &self.include_packages,
+      &self.exclude_packages,
+    )
   }
 
   pub fn matches_dependencies(&self, instance: &Instance) -> bool {
