@@ -100,11 +100,11 @@ fn main() -> io::Result<()> {
       (false, false) => effects.on_skip_ranges_and_versions(),
     };
 
-    version_groups.iter().for_each(|group| {
-      let group_is_valid = group.visit(&instances, &effects, &mut packages);
-    });
-
-    // @TODO: read indent from rcfile
+    if cli_options.ranges || cli_options.versions {
+      version_groups.iter().for_each(|group| {
+        let group_is_valid = group.visit(&instances, &effects, &mut packages);
+      });
+    }
 
     // write the changes to the package.json files
     packages.by_name.values_mut().for_each(|package| {
@@ -136,12 +136,14 @@ fn main() -> io::Result<()> {
         (false, false) => effects.on_skip_ranges_and_versions(),
       };
 
-      version_groups.iter().for_each(|group| {
-        let group_is_valid = group.visit(&instances, &effects, &mut packages);
-        if !group_is_valid {
-          lint_is_valid = false;
-        }
-      });
+      if cli_options.ranges || cli_options.versions {
+        version_groups.iter().for_each(|group| {
+          let group_is_valid = group.visit(&instances, &effects, &mut packages);
+          if !group_is_valid {
+            lint_is_valid = false;
+          }
+        });
+      }
 
       lint_is_valid
     }
