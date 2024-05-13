@@ -3,17 +3,19 @@
 
 use cli::CliOptions;
 use colored::*;
-use dependency_type::Strategy;
+use dependency_type::{DependencyType, Strategy};
 use effects_fix::FixEffects;
 use glob::glob;
+use instance::Instance;
 use json_file::read_json_file;
 use package_json::PackageJson;
 use regex::Regex;
+use serde_json::Value;
 use std::{io, path::PathBuf};
 
 use crate::{
   config::Rcfile, effects::Effects, effects_lint::LintEffects, format::LintResult,
-  instance::Instance, semver_group::SemverGroup, version_group::VersionGroup,
+  semver_group::SemverGroup, version_group::VersionGroup,
 };
 
 mod cli;
@@ -210,16 +212,15 @@ fn get_packages(file_paths: &Vec<PathBuf>) -> Packages {
 /// Get every instance of a dependency from every package.json file
 fn get_instances<'a>(
   packages: &'a Vec<PackageJson>,
-  dependency_types: &Vec<dependency_type::DependencyType>,
+  dependency_types: &Vec<DependencyType>,
   filter: &Regex,
-) -> Vec<instance::Instance> {
-  let mut instances: Vec<instance::Instance> = vec![];
-
+) -> Vec<Instance> {
+  let mut instances: Vec<Instance> = vec![];
   for package in packages {
     for dependency_type in dependency_types {
       match dependency_type.strategy {
         Strategy::NameAndVersionProps => {
-          if let (Some(serde_json::Value::String(name)), Some(serde_json::Value::String(version))) = (
+          if let (Some(Value::String(name)), Some(Value::String(version))) = (
             package.get_prop(&dependency_type.name_path.as_ref().unwrap()),
             package.get_prop(&dependency_type.path),
           ) {
@@ -234,9 +235,7 @@ fn get_instances<'a>(
           }
         }
         Strategy::NamedVersionString => {
-          if let Some(serde_json::Value::String(specifier)) =
-            package.get_prop(&dependency_type.path)
-          {
+          if let Some(Value::String(specifier)) = package.get_prop(&dependency_type.path) {
             if let Some((name, version)) = specifier.split_once('@') {
               if filter.is_match(name) {
                 instances.push(Instance::new(
@@ -250,8 +249,7 @@ fn get_instances<'a>(
           }
         }
         Strategy::UnnamedVersionString => {
-          if let Some(serde_json::Value::String(version)) = package.get_prop(&dependency_type.path)
-          {
+          if let Some(Value::String(version)) = package.get_prop(&dependency_type.path) {
             if filter.is_match(&dependency_type.name) {
               instances.push(Instance::new(
                 dependency_type.name.clone(),
@@ -263,12 +261,10 @@ fn get_instances<'a>(
           }
         }
         Strategy::VersionsByName => {
-          if let Some(serde_json::Value::Object(versions_by_name)) =
-            package.get_prop(&dependency_type.path)
-          {
+          if let Some(Value::Object(versions_by_name)) = package.get_prop(&dependency_type.path) {
             for (name, version) in versions_by_name {
               if filter.is_match(name) {
-                if let serde_json::Value::String(version) = version {
+                if let Value::String(version) = version {
                   instances.push(Instance::new(
                     name.to_string(),
                     version.to_string(),
@@ -281,17 +277,10 @@ fn get_instances<'a>(
           }
         }
         _ => {
-          panic!("unimplemented strategy")
+          panic!("unimplemented strategy");
         }
       };
-      //
     }
   }
-
   instances
-
-  // packages
-  //   .iter()
-  //   .flat_map(|package| package.get_instances(&dependency_types, &filter))
-  //   .collect()
 }
