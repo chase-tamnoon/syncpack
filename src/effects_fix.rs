@@ -1,11 +1,12 @@
 use std::path::PathBuf;
 
 use crate::{
+  dependency_type::Strategy,
   effects::Effects,
   group_selector::GroupSelector,
   instance::Instance,
   instance_group::{InstanceGroup, InstancesBySpecifier},
-  package_json::PackageJson,
+  package_json::{PackageJson, Packages},
 };
 
 pub struct FixEffects {}
@@ -63,12 +64,19 @@ impl Effects for FixEffects {
   // Instances
   // ===========================================================================
 
-  fn on_banned_instance(&self, specifier: &InstancesBySpecifier, instance_group: &InstanceGroup) {}
+  fn on_banned_instance(
+    &self,
+    specifier: &InstancesBySpecifier,
+    instance_group: &InstanceGroup,
+    packages: &mut Packages,
+  ) {
+  }
 
   fn on_pinned_version_mismatch(
     &self,
     specifier: &InstancesBySpecifier,
     instance_group: &InstanceGroup,
+    packages: &mut Packages,
   ) {
   }
 
@@ -77,6 +85,7 @@ impl Effects for FixEffects {
     specifier: &InstancesBySpecifier,
     mismatches_with: &InstancesBySpecifier,
     instance_group: &InstanceGroup,
+    packages: &mut Packages,
   ) {
   }
 
@@ -85,6 +94,7 @@ impl Effects for FixEffects {
     specifier: &InstancesBySpecifier,
     mismatches_with: &Instance,
     instance_group: &InstanceGroup,
+    packages: &mut Packages,
   ) {
   }
 
@@ -93,6 +103,7 @@ impl Effects for FixEffects {
     specifier: &InstancesBySpecifier,
     mismatches_with: &Instance,
     instance_group: &InstanceGroup,
+    packages: &mut Packages,
   ) {
   }
 
@@ -100,6 +111,7 @@ impl Effects for FixEffects {
     &self,
     specifier: &InstancesBySpecifier,
     instance_group: &InstanceGroup,
+    packages: &mut Packages,
   ) {
   }
 
@@ -107,6 +119,7 @@ impl Effects for FixEffects {
     &self,
     specifier: &InstancesBySpecifier,
     instance_group: &InstanceGroup,
+    packages: &mut Packages,
   ) {
   }
 
@@ -114,6 +127,28 @@ impl Effects for FixEffects {
     &self,
     specifier: &InstancesBySpecifier,
     instance_group: &InstanceGroup,
+    packages: &mut Packages,
   ) {
+    let (_, instances) = specifier;
+    let expected = &instance_group.expected_version.clone().unwrap();
+    instances
+      .iter()
+      .for_each(|instance| match instance.dependency_type.strategy {
+        Strategy::NameAndVersionProps => {
+          //
+        }
+        Strategy::NamedVersionString => {
+          //
+        }
+        Strategy::UnnamedVersionString => {
+          //
+        }
+        Strategy::VersionsByName => {
+          //
+        }
+        Strategy::InvalidConfig => {
+          panic!("unrecognised strategy");
+        }
+      });
   }
 }

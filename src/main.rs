@@ -8,10 +8,11 @@ use effects_fix::FixEffects;
 use glob::glob;
 use instance::Instance;
 use json_file::read_json_file;
-use package_json::PackageJson;
+use package_json::Packages;
 use regex::Regex;
-use serde_json::Value;
-use std::{io, path::PathBuf};
+use serde::Serialize;
+use serde_json::{ser::PrettyFormatter, Serializer, Value};
+use std::{collections::HashMap, fs, io, path::PathBuf};
 
 use crate::{
   config::Rcfile, effects::Effects, effects_lint::LintEffects, format::LintResult,
@@ -63,7 +64,7 @@ fn main() -> io::Result<()> {
   // all dependent on `packages`
   let packages = get_packages(&absolute_file_paths);
   let mut version_groups = VersionGroup::from_rcfile(&rcfile, &packages.all_names);
-  let instances = get_instances(&packages.all, &dependency_types, &filter);
+  let instances = get_instances(&packages, &dependency_types, &filter);
 
   // assign every instance to the first group it matches
   instances.iter().for_each(|instance| {
@@ -88,7 +89,7 @@ fn main() -> io::Result<()> {
 
     if cli_options.format {
       effects.on_begin_format();
-      let LintResult { valid, invalid } = format::lint(&rcfile, &mut packages.all);
+      let LintResult { valid, invalid } = format::lint(&rcfile, &mut packages);
       effects.on_formatted_packages(&valid, &cwd);
       effects.on_unformatted_packages(&invalid, &cwd);
     }
@@ -101,7 +102,27 @@ fn main() -> io::Result<()> {
     };
 
     version_groups.iter().for_each(|group| {
-      let group_is_valid = group.visit(&instances, &effects);
+      let group_is_valid = group.visit(&instances, &effects, &mut packages);
+    });
+
+    // @TODO: read indent from rcfile
+
+    // write the changes to the package.json files
+    packages.by_name.values_mut().for_each(|package| {
+      // Create a pretty JSON formatter
+      let formatter = PrettyFormatter::with_indent(b"\t");
+      let buffer = Vec::new();
+      let mut serializer = Serializer::with_formatter(buffer, formatter);
+      // Write pretty JSON to the buffer
+      package
+        .contents
+        .serialize(&mut serializer)
+        .expect("Failed to serialize package.json");
+      // Append a new line to the buffer
+      let mut writer = serializer.into_inner();
+      writer.extend(b"\n");
+      // Write the buffer to the file
+      fs::write(&package.file_path, writer).expect("Failed to write package.json");
     });
   }
 
@@ -114,7 +135,7 @@ fn main() -> io::Result<()> {
 
       if cli_options.format {
         effects.on_begin_format();
-        let LintResult { valid, invalid } = format::lint(&rcfile, &mut packages.all);
+        let LintResult { valid, invalid } = format::lint(&rcfile, &mut packages);
         effects.on_formatted_packages(&valid, &cwd);
         effects.on_unformatted_packages(&invalid, &cwd);
         if !invalid.is_empty() {
@@ -130,7 +151,7 @@ fn main() -> io::Result<()> {
       };
 
       version_groups.iter().for_each(|group| {
-        let group_is_valid = group.visit(&instances, &effects);
+        let group_is_valid = group.visit(&instances, &effects, &mut packages);
         if !group_is_valid {
           lint_is_valid = false;
         }
@@ -189,21 +210,17 @@ fn get_file_paths(cwd: &PathBuf, source_patterns: &Vec<String>) -> Vec<PathBuf> 
     .collect()
 }
 
-struct Packages {
-  all: Vec<PackageJson>,
-  all_names: Vec<String>,
-}
-
 /// Get every package.json file matched by the user's source patterns
 fn get_packages(file_paths: &Vec<PathBuf>) -> Packages {
   let mut packages = Packages {
-    all: vec![],
     all_names: vec![],
+    by_name: HashMap::new(),
   };
   for file_path in file_paths {
     if let Ok(file) = read_json_file(&file_path) {
-      packages.all_names.push(file.get_name());
-      packages.all.push(file);
+      let name = file.get_name();
+      packages.all_names.push(name.clone());
+      packages.by_name.insert(name.clone(), file);
     }
   }
   packages
@@ -211,12 +228,12 @@ fn get_packages(file_paths: &Vec<PathBuf>) -> Packages {
 
 /// Get every instance of a dependency from every package.json file
 fn get_instances<'a>(
-  packages: &'a Vec<PackageJson>,
+  packages: &'a Packages,
   dependency_types: &Vec<DependencyType>,
   filter: &Regex,
 ) -> Vec<Instance> {
   let mut instances: Vec<Instance> = vec![];
-  for package in packages {
+  for package in packages.by_name.values() {
     for dependency_type in dependency_types {
       match dependency_type.strategy {
         Strategy::NameAndVersionProps => {
@@ -276,8 +293,8 @@ fn get_instances<'a>(
             }
           }
         }
-        _ => {
-          panic!("unimplemented strategy");
+        Strategy::InvalidConfig => {
+          panic!("unrecognised strategy");
         }
       };
     }

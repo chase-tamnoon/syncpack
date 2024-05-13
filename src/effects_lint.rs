@@ -7,7 +7,7 @@ use crate::{
   group_selector::GroupSelector,
   instance::Instance,
   instance_group::{InstanceGroup, InstancesBySpecifier},
-  package_json::PackageJson,
+  package_json::{PackageJson, Packages},
 };
 
 pub struct LintEffects {}
@@ -143,7 +143,12 @@ impl Effects for LintEffects {
   // Instances
   // ===========================================================================
 
-  fn on_banned_instance(&self, specifier: &InstancesBySpecifier, instance_group: &InstanceGroup) {
+  fn on_banned_instance(
+    &self,
+    specifier: &InstancesBySpecifier,
+    instance_group: &InstanceGroup,
+    _packages: &mut Packages,
+  ) {
     let icon = "✘".red();
     println!(
       "      {} {} {}",
@@ -157,6 +162,7 @@ impl Effects for LintEffects {
     &self,
     specifier: &InstancesBySpecifier,
     instance_group: &InstanceGroup,
+    _packages: &mut Packages,
   ) {
     let icon = "✘".red();
     let arrow = "→".dimmed();
@@ -176,6 +182,7 @@ impl Effects for LintEffects {
     specifier: &InstancesBySpecifier,
     mismatches_with: &InstancesBySpecifier,
     instance_group: &InstanceGroup,
+    _packages: &mut Packages,
   ) {
     println!(
       "      {} {} {} {} {}",
@@ -192,6 +199,7 @@ impl Effects for LintEffects {
     specifier: &InstancesBySpecifier,
     mismatches_with: &Instance,
     instance_group: &InstanceGroup,
+    _packages: &mut Packages,
   ) {
     let icon = "✘".red();
     let arrow = "→".dimmed();
@@ -210,6 +218,7 @@ impl Effects for LintEffects {
     specifier: &InstancesBySpecifier,
     mismatches_with: &Instance,
     instance_group: &InstanceGroup,
+    _packages: &mut Packages,
   ) {
     let icon = "✘".red();
     let arrow = "→".dimmed();
@@ -228,6 +237,7 @@ impl Effects for LintEffects {
     &self,
     specifier: &InstancesBySpecifier,
     instance_group: &InstanceGroup,
+    _packages: &mut Packages,
   ) {
     let icon = "✘".red();
     let arrow = "→".dimmed();
@@ -245,6 +255,7 @@ impl Effects for LintEffects {
     &self,
     specifier: &InstancesBySpecifier,
     instance_group: &InstanceGroup,
+    _packages: &mut Packages,
   ) {
     let icon = "✘".red();
     let arrow = "→".dimmed();
@@ -263,6 +274,7 @@ impl Effects for LintEffects {
     &self,
     specifier: &InstancesBySpecifier,
     instance_group: &InstanceGroup,
+    _packages: &mut Packages,
   ) {
     let icon = "✘".red();
     let arrow = "→".dimmed();

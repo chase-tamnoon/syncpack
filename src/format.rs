@@ -3,7 +3,7 @@ use serde_json;
 use std::collections;
 
 use crate::config;
-use crate::package_json::PackageJson;
+use crate::package_json::{PackageJson, Packages};
 
 pub struct LintResult<'a> {
   pub invalid: Vec<&'a PackageJson>,
@@ -11,14 +11,14 @@ pub struct LintResult<'a> {
 }
 
 /// Check whether every package is formatted according to config
-pub fn lint<'a>(rcfile: &'a config::Rcfile, packages: &'a mut Vec<PackageJson>) -> LintResult<'a> {
+pub fn lint<'a>(rcfile: &'a config::Rcfile, packages: &'a mut Packages) -> LintResult<'a> {
   let mut lint_result = LintResult {
     invalid: Vec::new(),
     valid: Vec::new(),
   };
   // let mut invalid: Vec<&'a PackageJson> = Vec::new();
   // let mut valid: Vec<&'a PackageJson> = Vec::new();
-  packages.iter_mut().for_each(|package| {
+  packages.by_name.values_mut().for_each(|package| {
     // to lint, apply all configured formatting to the clone...
     fix_package(&rcfile, package);
     // ...and if it has changed we know it is invalid

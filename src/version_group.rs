@@ -10,6 +10,7 @@ use crate::effects::Effects;
 use crate::group_selector::GroupSelector;
 use crate::instance::Instance;
 use crate::instance_group::{InstanceGroup, InstancesBySpecifier};
+use crate::package_json::Packages;
 use crate::semver_group::SemverGroup;
 
 #[derive(Debug)]
@@ -259,7 +260,15 @@ impl<'a> VersionGroup<'a> {
     }
   }
 
-  pub fn visit(&self, all_instances: &Vec<Instance>, effects: &impl Effects) -> bool {
+  pub fn visit(
+    &self,
+    // needed by same range groups, every instance in the project
+    all_instances: &Vec<Instance>,
+    // chosen strategy to lint, fix, use different log output, etc
+    effects: &impl Effects,
+    // when fixing, we write to the package.json files
+    packages: &mut Packages,
+  ) -> bool {
     // @TODO: return a Vec of Result<GoodEnum, BadEnum>?
     let mut lint_is_valid = true;
     match self.variant {
@@ -284,7 +293,7 @@ impl<'a> VersionGroup<'a> {
               .iter()
               .for_each(|instances_by_specifier| {
                 lint_is_valid = false;
-                effects.on_banned_instance(&instances_by_specifier, instance_group);
+                effects.on_banned_instance(&instances_by_specifier, instance_group, packages);
               });
           });
       }
@@ -302,7 +311,7 @@ impl<'a> VersionGroup<'a> {
                 .for_each(|actual_specifier| {
                   if instance_group.is_mismatch(actual_specifier.0) {
                     lint_is_valid = false;
-                    effects.on_pinned_version_mismatch(&actual_specifier, instance_group);
+                    effects.on_pinned_version_mismatch(&actual_specifier, instance_group, packages);
                   }
                 });
             } else {
@@ -336,7 +345,12 @@ impl<'a> VersionGroup<'a> {
               lint_is_valid = false;
               effects.on_invalid_same_range_instance_group(instance_group);
               mismatches.iter().for_each(|(specifier, mismatches_with)| {
-                effects.on_same_range_mismatch(&specifier, &mismatches_with, instance_group);
+                effects.on_same_range_mismatch(
+                  &specifier,
+                  &mismatches_with,
+                  instance_group,
+                  packages,
+                );
               });
             }
           });
@@ -355,7 +369,12 @@ impl<'a> VersionGroup<'a> {
                 lint_is_valid = false;
                 effects.on_invalid_snap_to_instance_group(instance_group);
                 mismatches.iter().for_each(|(specifier, mismatches_with)| {
-                  effects.on_snap_to_mismatch(&specifier, &mismatches_with, instance_group);
+                  effects.on_snap_to_mismatch(
+                    &specifier,
+                    &mismatches_with,
+                    instance_group,
+                    packages,
+                  );
                 });
               }
             });
@@ -377,13 +396,14 @@ impl<'a> VersionGroup<'a> {
                       &actual,
                       instance_group.local.unwrap(),
                       instance_group,
+                      packages,
                     );
                   } else if instance_group.non_semver.len() > 0 {
-                    effects.on_unsupported_mismatch(&actual, instance_group);
+                    effects.on_unsupported_mismatch(&actual, instance_group, packages);
                   } else if let Some(PreferVersion::LowestSemver) = self.prefer_version {
-                    effects.on_lowest_version_mismatch(&actual, instance_group);
+                    effects.on_lowest_version_mismatch(&actual, instance_group, packages);
                   } else {
-                    effects.on_highest_version_mismatch(&actual, instance_group);
+                    effects.on_highest_version_mismatch(&actual, instance_group, packages);
                   }
                 }
               });

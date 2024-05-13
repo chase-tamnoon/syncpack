@@ -1,7 +1,11 @@
 use serde_json;
-use std::fs;
-use std::io;
+use std::collections::HashMap;
 use std::path::PathBuf;
+
+pub struct Packages {
+  pub all_names: Vec<String>,
+  pub by_name: HashMap<String, PackageJson>,
+}
 
 #[derive(Clone, Debug)]
 pub struct PackageJson {
@@ -43,11 +47,6 @@ impl PackageJson {
   /// Report whether the package in memory has changed from what's on disk
   pub fn has_changed(&self) -> bool {
     self.json != self.contents.to_string()
-  }
-
-  /// Write the parsed package.json to disk
-  pub fn write_to_disk(&self) -> io::Result<()> {
-    fs::write(&self.file_path, self.contents.to_string())
   }
 
   /// Return a short path for logging to the terminal

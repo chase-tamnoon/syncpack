@@ -4,7 +4,7 @@ use crate::{
   group_selector::GroupSelector,
   instance::Instance,
   instance_group::{InstanceGroup, InstancesBySpecifier},
-  package_json::PackageJson,
+  package_json::{PackageJson, Packages},
 };
 
 pub trait Effects {
@@ -95,7 +95,12 @@ pub trait Effects {
   // ===========================================================================
 
   /// An instance in a banned version group has been found
-  fn on_banned_instance(&self, specifier: &InstancesBySpecifier, instance_group: &InstanceGroup);
+  fn on_banned_instance(
+    &self,
+    specifier: &InstancesBySpecifier,
+    instance_group: &InstanceGroup,
+    packages: &mut Packages,
+  );
 
   /// An instance in a pinned version group has been found whose version is not
   /// the same as the `.pinVersion`
@@ -103,6 +108,7 @@ pub trait Effects {
     &self,
     specifier: &InstancesBySpecifier,
     instance_group: &InstanceGroup,
+    packages: &mut Packages,
   );
 
   /// An instance in a same range version group has been found which has a
@@ -116,6 +122,7 @@ pub trait Effects {
     // the range does not match, they will be reported separately)
     mismatches_with: &InstancesBySpecifier,
     instance_group: &InstanceGroup,
+    packages: &mut Packages,
   );
 
   /// An instance in a snapped to version group has been found which has a
@@ -128,6 +135,7 @@ pub trait Effects {
     // the snapped to instance which should be matched
     mismatches_with: &Instance,
     instance_group: &InstanceGroup,
+    packages: &mut Packages,
   );
 
   /// An instance in a standard version group has been found which is a
@@ -140,6 +148,7 @@ pub trait Effects {
     // the local instance which should be matched
     mismatches_with: &Instance,
     instance_group: &InstanceGroup,
+    packages: &mut Packages,
   );
 
   /// An instance in a standard version group has been found which has a version
@@ -150,6 +159,7 @@ pub trait Effects {
     &self,
     specifier: &InstancesBySpecifier,
     instance_group: &InstanceGroup,
+    packages: &mut Packages,
   );
 
   /// An instance in a standard version group has been found which has a semver
@@ -159,6 +169,7 @@ pub trait Effects {
     &self,
     specifier: &InstancesBySpecifier,
     instance_group: &InstanceGroup,
+    packages: &mut Packages,
   );
 
   /// An instance in a standard version group has been found which has a semver
@@ -168,5 +179,6 @@ pub trait Effects {
     &self,
     specifier: &InstancesBySpecifier,
     instance_group: &InstanceGroup,
+    packages: &mut Packages,
   );
 }
