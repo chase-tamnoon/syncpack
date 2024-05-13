@@ -18,21 +18,21 @@ impl Effects for LintEffects {
   // ===========================================================================
 
   fn on_begin_format(&self) {
-    println!("{}", "= FORMATTING".yellow());
+    println!("{}", "= FORMATTING".dimmed());
   }
 
   fn on_skip_ranges_and_versions(&self) {}
 
   fn on_begin_ranges_and_versions(&self) {
-    println!("{}", "= SEMVER RANGES AND VERSION MISMATCHES".yellow());
+    println!("{}", "= SEMVER RANGES AND VERSION MISMATCHES".dimmed());
   }
 
   fn on_begin_ranges_only(&self) {
-    println!("{}", "= SEMVER RANGES".yellow());
+    println!("{}", "= SEMVER RANGES".dimmed());
   }
 
   fn on_begin_versions_only(&self) {
-    println!("{}", "= VERSION MISMATCHES".yellow());
+    println!("{}", "= VERSION MISMATCHES".dimmed());
   }
 
   // ===========================================================================
