@@ -10,6 +10,7 @@
       "strategy": "name@version"
     }
   },
+  "source": ["**/package.json"],
   "semverGroups": [
     {
       "label": "Version compatibility workarounds should be used, or removed from syncpack.config.cjs if no longer needed.",
