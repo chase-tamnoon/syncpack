@@ -1,3 +1,5 @@
+use icu::collator::{Collator, CollatorOptions};
+use icu::locid::{locale, Locale};
 use regex::Regex;
 use serde_json;
 use std::collections;
@@ -129,23 +131,20 @@ fn sort_keys_with_priority(
   *obj = sorted_obj;
 }
 
-/// Sort an array or object alphabetically
+/// Sort an array or object alphabetically by EN locale
 fn sort_alphabetically(value: &mut serde_json::Value) {
+  let locale_en: Locale = locale!("en");
+  let options = CollatorOptions::new();
+  let collator: Collator = Collator::try_new(&locale_en.into(), options).unwrap();
   match value {
     serde_json::Value::Object(obj) => {
       let mut entries: Vec<_> = obj.iter().map(|(k, v)| (k.clone(), v.clone())).collect();
-      entries.sort_by(|a, b| a.0.cmp(&b.0));
+      entries.sort_by(|a, b| collator.compare(&a.0, &b.0));
       let sorted_obj: serde_json::Map<String, serde_json::Value> = entries.into_iter().collect();
-
       *value = serde_json::Value::Object(sorted_obj);
     }
     serde_json::Value::Array(arr) => {
-      arr.sort_by(|a, b| {
-        a.as_str()
-          .unwrap_or("")
-          .partial_cmp(b.as_str().unwrap_or(""))
-          .unwrap_or(std::cmp::Ordering::Equal)
-      });
+      arr.sort_by(|a, b| collator.compare(a.as_str().unwrap_or(""), b.as_str().unwrap_or("")));
     }
     _ => {}
   }
