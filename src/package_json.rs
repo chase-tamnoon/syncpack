@@ -1,4 +1,5 @@
-use serde_json;
+use serde::Serialize;
+use serde_json::{ser::PrettyFormatter, Serializer};
 use std::collections::HashMap;
 use std::path::PathBuf;
 
@@ -46,7 +47,37 @@ impl PackageJson {
 
   /// Report whether the package in memory has changed from what's on disk
   pub fn has_changed(&self) -> bool {
-    self.json != self.contents.to_string()
+    self.json != self.to_pretty_json(self.serialize())
+  }
+
+  /// Serialize the parsed JSON object back into pretty JSON as bytes
+  pub fn serialize(&self) -> Vec<u8> {
+    // Create a pretty JSON formatter
+    let formatter = PrettyFormatter::with_indent(b"\t");
+    let buffer = Vec::new();
+    let mut serializer = Serializer::with_formatter(buffer, formatter);
+    // Write pretty JSON to the buffer
+    self
+      .contents
+      .serialize(&mut serializer)
+      .expect("Failed to serialize package.json");
+    // Append a new line to the buffer
+    let mut writer = serializer.into_inner();
+    writer.extend(b"\n");
+    writer
+  }
+
+  /// Convert a buffer of pretty JSON as bytes to a pretty JSON string
+  pub fn to_pretty_json(&self, vec: Vec<u8>) -> String {
+    let from_utf8 = String::from_utf8(vec);
+    from_utf8.expect("Failed to convert JSON buffer to string")
+  }
+
+  /// Write the package.json to disk
+  pub fn write_to_disk(&mut self) {
+    let vec = self.serialize();
+    std::fs::write(&self.file_path, &vec).expect("Failed to write package.json to disk");
+    self.json = self.to_pretty_json(vec);
   }
 
   /// Return a short path for logging to the terminal

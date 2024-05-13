@@ -10,9 +10,8 @@ use instance::Instance;
 use json_file::read_json_file;
 use package_json::Packages;
 use regex::Regex;
-use serde::Serialize;
-use serde_json::{ser::PrettyFormatter, Serializer, Value};
-use std::{collections::HashMap, fs, io, path::PathBuf};
+use serde_json::Value;
+use std::{collections::HashMap, io, path::PathBuf};
 
 use crate::{
   config::Rcfile, effects::Effects, effects_lint::LintEffects, format::LintResult,
@@ -109,20 +108,7 @@ fn main() -> io::Result<()> {
 
     // write the changes to the package.json files
     packages.by_name.values_mut().for_each(|package| {
-      // Create a pretty JSON formatter
-      let formatter = PrettyFormatter::with_indent(b"\t");
-      let buffer = Vec::new();
-      let mut serializer = Serializer::with_formatter(buffer, formatter);
-      // Write pretty JSON to the buffer
-      package
-        .contents
-        .serialize(&mut serializer)
-        .expect("Failed to serialize package.json");
-      // Append a new line to the buffer
-      let mut writer = serializer.into_inner();
-      writer.extend(b"\n");
-      // Write the buffer to the file
-      fs::write(&package.file_path, writer).expect("Failed to write package.json");
+      package.write_to_disk();
     });
   }
 
