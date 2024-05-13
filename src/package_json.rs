@@ -46,14 +46,15 @@ impl PackageJson {
   }
 
   /// Report whether the package in memory has changed from what's on disk
-  pub fn has_changed(&self) -> bool {
-    self.json != self.to_pretty_json(self.serialize())
+  pub fn has_changed(&self, indent: &String) -> bool {
+    self.json != self.to_pretty_json(self.serialize(indent))
   }
 
   /// Serialize the parsed JSON object back into pretty JSON as bytes
-  pub fn serialize(&self) -> Vec<u8> {
+  pub fn serialize(&self, indent: &String) -> Vec<u8> {
     // Create a pretty JSON formatter
-    let formatter = PrettyFormatter::with_indent(b"\t");
+    let indent_with_fixed_tabs = &indent.clone().replace("\\t", "\t");
+    let formatter = PrettyFormatter::with_indent(indent_with_fixed_tabs.as_bytes());
     let buffer = Vec::new();
     let mut serializer = Serializer::with_formatter(buffer, formatter);
     // Write pretty JSON to the buffer
@@ -74,8 +75,8 @@ impl PackageJson {
   }
 
   /// Write the package.json to disk
-  pub fn write_to_disk(&mut self) {
-    let vec = self.serialize();
+  pub fn write_to_disk(&mut self, indent: &String) {
+    let vec = self.serialize(indent);
     std::fs::write(&self.file_path, &vec).expect("Failed to write package.json to disk");
     self.json = self.to_pretty_json(vec);
   }

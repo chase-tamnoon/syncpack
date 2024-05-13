@@ -108,7 +108,7 @@ fn main() -> io::Result<()> {
 
     // write the changes to the package.json files
     packages.by_name.values_mut().for_each(|package| {
-      package.write_to_disk();
+      package.write_to_disk(&rcfile.indent);
     });
   }
 

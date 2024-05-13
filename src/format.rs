@@ -22,7 +22,7 @@ pub fn lint<'a>(rcfile: &'a Rcfile, packages: &'a mut Packages) -> LintResult<'a
     // to lint, apply all configured formatting to the clone...
     fix_package(&rcfile, package);
     // ...and if it has changed we know it is invalid
-    if package.has_changed() {
+    if package.has_changed(&rcfile.indent) {
       lint_result.invalid.push(package);
     } else {
       lint_result.valid.push(package);
