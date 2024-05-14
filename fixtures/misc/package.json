@@ -95,6 +95,12 @@
   "type": "module",
   "name": "foopkg",
   "homepage": "https://github.com/JamieMason/foopkg#readme",
+  "B": "expect to be locale sorted",
+  "@B": "expect to be locale sorted",
+  "1B": "expect to be locale sorted",
+  "A": "expect to be locale sorted",
+  "@A": "expect to be locale sorted",
+  "1A": "expect to be locale sorted",
   "exports": {
     "./slim": {
       "development": "./dist-module/jquery.slim.module.js",

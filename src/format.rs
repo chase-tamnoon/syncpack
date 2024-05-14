@@ -112,7 +112,8 @@ fn sort_keys_with_priority(
     .collect();
 
   if sort_remaining_keys {
-    remaining_keys.sort();
+    let collator = get_locale_collator();
+    remaining_keys.sort_by(|a, b| collator.compare(a, b));
   }
 
   for key in order.iter() {
@@ -132,9 +133,7 @@ fn sort_keys_with_priority(
 
 /// Sort an array or object alphabetically by EN locale
 fn sort_alphabetically(value: &mut Value) {
-  let locale_en: Locale = locale!("en");
-  let options = CollatorOptions::new();
-  let collator: Collator = Collator::try_new(&locale_en.into(), options).unwrap();
+  let collator = get_locale_collator();
   match value {
     Value::Object(obj) => {
       let mut entries: Vec<_> = obj.clone().into_iter().collect();
@@ -152,6 +151,14 @@ fn sort_alphabetically(value: &mut Value) {
     }
     _ => {}
   }
+}
+
+/// Get a collator for the EN locale to sort strings
+fn get_locale_collator() -> Collator {
+  let locale_en: Locale = locale!("en");
+  let options = CollatorOptions::new();
+  let collator: Collator = Collator::try_new(&locale_en.into(), options).unwrap();
+  collator
 }
 
 /// Use a shorthand format for the bugs URL when possible
