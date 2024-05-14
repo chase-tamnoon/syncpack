@@ -4,6 +4,7 @@ use colored::*;
 
 use crate::{
   effects::Effects,
+  effects_lint::render_count_column,
   group_selector::GroupSelector,
   instance::Instance,
   instance_group::{InstanceGroup, InstancesBySpecifier},
@@ -35,31 +36,40 @@ impl Effects for FixEffects {
   // Version Groups
   // ===========================================================================
 
-  fn on_group(&self, selector: &GroupSelector) {}
+  fn on_group(&self, _selector: &GroupSelector) {}
 
   // ===========================================================================
   // Instance Groups
   // ===========================================================================
 
-  fn on_ignored_instance_group(&self, instance_group: &InstanceGroup) {}
+  fn on_ignored_instance_group(&self, _instance_group: &InstanceGroup) {}
 
-  fn on_banned_instance_group(&self, instance_group: &InstanceGroup) {}
+  fn on_banned_instance_group(&self, _instance_group: &InstanceGroup) {}
 
-  fn on_valid_pinned_instance_group(&self, instance_group: &InstanceGroup) {}
+  fn on_valid_pinned_instance_group(&self, _instance_group: &InstanceGroup) {}
 
-  fn on_invalid_pinned_instance_group(&self, instance_group: &InstanceGroup) {}
+  fn on_invalid_pinned_instance_group(&self, _instance_group: &InstanceGroup) {}
 
-  fn on_valid_same_range_instance_group(&self, instance_group: &InstanceGroup) {}
+  fn on_valid_same_range_instance_group(&self, _instance_group: &InstanceGroup) {}
 
-  fn on_invalid_same_range_instance_group(&self, instance_group: &InstanceGroup) {}
+  fn on_invalid_same_range_instance_group(&self, instance_group: &InstanceGroup) {
+    let count = render_count_column(instance_group.all.len());
+    println!("{} {}", count, instance_group.name.red());
+  }
 
-  fn on_valid_snap_to_instance_group(&self, instance_group: &InstanceGroup) {}
+  fn on_valid_snap_to_instance_group(&self, _instance_group: &InstanceGroup) {}
 
-  fn on_invalid_snap_to_instance_group(&self, instance_group: &InstanceGroup) {}
+  fn on_invalid_snap_to_instance_group(&self, _instance_group: &InstanceGroup) {}
 
-  fn on_valid_standard_instance_group(&self, instance_group: &InstanceGroup) {}
+  fn on_valid_standard_instance_group(&self, _instance_group: &InstanceGroup) {}
 
-  fn on_invalid_standard_instance_group(&self, instance_group: &InstanceGroup) {}
+  fn on_invalid_standard_instance_group(&self, instance_group: &InstanceGroup) {
+    // show name above unsupported mismatches
+    if !instance_group.non_semver.is_empty() {
+      let count = render_count_column(instance_group.all.len());
+      println!("{} {}", count, instance_group.name.red());
+    }
+  }
 
   // ===========================================================================
   // Instances
@@ -71,7 +81,12 @@ impl Effects for FixEffects {
     instance_group: &InstanceGroup,
     packages: &mut Packages,
   ) {
-    println!("@TODO: Implement on_banned_instance");
+    let (_, instances) = specifier;
+    instances.iter().for_each(|instance| {
+      if let Some(package) = packages.by_name.get_mut(&instance.package_name) {
+        instance.remove_from(package);
+      };
+    });
   }
 
   fn on_pinned_version_mismatch(
@@ -80,52 +95,69 @@ impl Effects for FixEffects {
     instance_group: &InstanceGroup,
     packages: &mut Packages,
   ) {
-    let (_, instances) = specifier;
-    set_all_instances_to_expected_version(instance_group, instances, packages);
+    if let Some(expected) = &instance_group.expected_version {
+      let (_, instances) = specifier;
+      set_every_instance_version_to(expected, instances, packages);
+    }
   }
 
   fn on_same_range_mismatch(
     &self,
     specifier: &InstancesBySpecifier,
     mismatches_with: &InstancesBySpecifier,
-    instance_group: &InstanceGroup,
-    packages: &mut Packages,
+    _instance_group: &InstanceGroup,
+    _packages: &mut Packages,
   ) {
-    let name = &instance_group.name;
-    let message = format!("{}", "SameRangeMismatch is not auto-fixable");
-    println!("{}", message.dimmed());
+    println!(
+      "      {} {} {} {} {}",
+      "✘".red(),
+      mismatches_with.0.red(),
+      "falls outside".red(),
+      specifier.0.red(),
+      "[SameRangeMismatch]".dimmed()
+    )
   }
 
   fn on_snap_to_mismatch(
     &self,
     specifier: &InstancesBySpecifier,
     mismatches_with: &Instance,
-    instance_group: &InstanceGroup,
+    _instance_group: &InstanceGroup,
     packages: &mut Packages,
   ) {
-    println!("@TODO: Implement on_snap_to_mismatch");
+    let expected = &mismatches_with.specifier;
+    let (_, instances) = specifier;
+    set_every_instance_version_to(expected, instances, packages);
   }
 
   fn on_local_version_mismatch(
     &self,
     specifier: &InstancesBySpecifier,
     mismatches_with: &Instance,
-    instance_group: &InstanceGroup,
+    _instance_group: &InstanceGroup,
     packages: &mut Packages,
   ) {
     let (_, instances) = specifier;
-    set_all_instances_to_expected_version(instance_group, instances, packages);
+    let expected = &mismatches_with.specifier;
+    set_every_instance_version_to(expected, instances, packages);
   }
 
   fn on_unsupported_mismatch(
     &self,
     specifier: &InstancesBySpecifier,
-    instance_group: &InstanceGroup,
-    packages: &mut Packages,
+    _instance_group: &InstanceGroup,
+    _packages: &mut Packages,
   ) {
-    let name = &instance_group.name;
-    let message = format!("{}", "UnsupportedMismatch is not auto-fixable");
-    println!("{}", message.dimmed());
+    let icon = "✘".red();
+    let arrow = "→".dimmed();
+    println!(
+      "      {} {} {} {} {}",
+      icon,
+      specifier.0.red(),
+      arrow,
+      "?".yellow(),
+      "[UnsupportedMismatch]".dimmed()
+    );
   }
 
   fn on_lowest_version_mismatch(
@@ -134,8 +166,10 @@ impl Effects for FixEffects {
     instance_group: &InstanceGroup,
     packages: &mut Packages,
   ) {
-    let (_, instances) = specifier;
-    set_all_instances_to_expected_version(instance_group, instances, packages);
+    if let Some(expected) = &instance_group.expected_version {
+      let (_, instances) = specifier;
+      set_every_instance_version_to(expected, instances, packages);
+    }
   }
 
   fn on_highest_version_mismatch(
@@ -144,21 +178,21 @@ impl Effects for FixEffects {
     instance_group: &InstanceGroup,
     packages: &mut Packages,
   ) {
-    let (_, instances) = specifier;
-    set_all_instances_to_expected_version(instance_group, instances, packages);
+    if let Some(expected) = &instance_group.expected_version {
+      let (_, instances) = specifier;
+      set_every_instance_version_to(expected, instances, packages);
+    }
   }
 }
 
-fn set_all_instances_to_expected_version(
-  instance_group: &InstanceGroup,
+fn set_every_instance_version_to(
+  expected: &String,
   instances: &Vec<&Instance>,
   packages: &mut Packages,
 ) {
-  if let Some(expected) = &instance_group.expected_version {
-    instances.iter().for_each(|instance| {
-      if let Some(package) = packages.by_name.get_mut(&instance.package_name) {
-        instance.set_version(package, expected.clone());
-      };
-    });
-  }
+  instances.iter().for_each(|instance| {
+    if let Some(package) = packages.by_name.get_mut(&instance.package_name) {
+      instance.set_version(package, expected.clone());
+    };
+  });
 }

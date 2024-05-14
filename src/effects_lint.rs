@@ -292,7 +292,7 @@ impl Effects for LintEffects {
 
 /// Return a right aligned column of a count of instances
 /// Example "    38x"
-fn render_count_column(count: usize) -> ColoredString {
+pub fn render_count_column(count: usize) -> ColoredString {
   format!("{: >4}x", count).dimmed()
 }
 

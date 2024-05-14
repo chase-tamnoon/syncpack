@@ -154,6 +154,8 @@ fn main() -> io::Result<()> {
     }
   };
 
+  // @TODO: when fixing and unfixable errors happen, explain them to the user
+
   if is_valid {
     println!("{} {}", "\n✓".green(), "syncpack found no errors");
     std::process::exit(0);

@@ -66,9 +66,40 @@ impl<'a> Instance {
       Strategy::VersionsByName => {
         let path_to_obj = &self.dependency_type.path;
         let name = &self.name;
-        let path_to_prop = format!("{}/{}", path_to_obj, name);
-        let path_to_prop_str = path_to_prop.as_str();
-        package.set_prop(path_to_prop_str, Value::String(value));
+        let path_to_obj_str = path_to_obj.as_str();
+        if let Some(obj) = package.contents.pointer_mut(path_to_obj_str) {
+          if let Value::Object(obj) = obj {
+            obj.insert(name.clone(), Value::String(value));
+          }
+        }
+      }
+      Strategy::InvalidConfig => {
+        panic!("unrecognised strategy");
+      }
+    };
+  }
+
+  /// Delete a version/dependency/instance from the package.json
+  pub fn remove_from(&self, package: &mut PackageJson) {
+    match self.dependency_type.strategy {
+      Strategy::NameAndVersionProps => {
+        //
+      }
+      Strategy::NamedVersionString => {
+        //
+      }
+      Strategy::UnnamedVersionString => {
+        //
+      }
+      Strategy::VersionsByName => {
+        let path_to_obj = &self.dependency_type.path;
+        let name = &self.name;
+        let path_to_obj_str = path_to_obj.as_str();
+        if let Some(value) = package.contents.pointer_mut(path_to_obj) {
+          if let Value::Object(obj) = value {
+            obj.remove(name);
+          }
+        }
       }
       Strategy::InvalidConfig => {
         panic!("unrecognised strategy");
