@@ -156,10 +156,9 @@ fn sort_alphabetically(value: &mut Value) {
 
 /// Use a shorthand format for the bugs URL when possible
 fn format_bugs(package: &mut PackageJson) {
-  let bugs_url = package.get_prop("/bugs/url");
-  if let Some(bugs_url) = bugs_url {
+  if let Some(bugs_url) = package.get_prop("/bugs/url") {
     package.set_prop("/bugs", bugs_url.clone());
-  }
+  };
 }
 
 /// Use a shorthand format for the repository URL when possible
