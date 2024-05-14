@@ -89,13 +89,6 @@ fn main() -> io::Result<()> {
       let effects = FixEffects {};
       let mut fix_is_valid = true;
 
-      if cli_options.format {
-        effects.on_begin_format();
-        let LintResult { valid, invalid } = format::lint(&rcfile, &mut packages);
-        effects.on_formatted_packages(&valid, &cwd);
-        effects.on_unformatted_packages(&invalid, &cwd);
-      }
-
       match (cli_options.ranges, cli_options.versions) {
         (true, true) => effects.on_begin_ranges_and_versions(),
         (true, false) => effects.on_begin_ranges_only(),
@@ -113,6 +106,13 @@ fn main() -> io::Result<()> {
         });
       }
 
+      if cli_options.format {
+        effects.on_begin_format();
+        let LintResult { valid, invalid } = format::lint(&rcfile, &mut packages);
+        effects.on_formatted_packages(&valid, &cwd);
+        effects.on_unformatted_packages(&invalid, &cwd);
+      }
+
       // write the changes to the package.json files
       packages.by_name.values_mut().for_each(|package| {
         package.write_to_disk(&rcfile.indent);
@@ -123,16 +123,6 @@ fn main() -> io::Result<()> {
     Subcommand::Lint => {
       let effects = LintEffects {};
       let mut lint_is_valid = true;
-
-      if cli_options.format {
-        effects.on_begin_format();
-        let LintResult { valid, invalid } = format::lint(&rcfile, &mut packages);
-        effects.on_formatted_packages(&valid, &cwd);
-        effects.on_unformatted_packages(&invalid, &cwd);
-        if !invalid.is_empty() {
-          lint_is_valid = false;
-        }
-      }
 
       match (cli_options.ranges, cli_options.versions) {
         (true, true) => effects.on_begin_ranges_and_versions(),
@@ -148,6 +138,16 @@ fn main() -> io::Result<()> {
             lint_is_valid = false;
           }
         });
+      }
+
+      if cli_options.format {
+        effects.on_begin_format();
+        let LintResult { valid, invalid } = format::lint(&rcfile, &mut packages);
+        effects.on_formatted_packages(&valid, &cwd);
+        effects.on_unformatted_packages(&invalid, &cwd);
+        if !invalid.is_empty() {
+          lint_is_valid = false;
+        }
       }
 
       lint_is_valid
