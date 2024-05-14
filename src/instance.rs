@@ -1,8 +1,9 @@
 use std::path::PathBuf;
 
 use log::debug;
+use serde_json::Value;
 
-use crate::dependency_type::DependencyType;
+use crate::dependency_type::{DependencyType, Strategy};
 use crate::package_json::PackageJson;
 use crate::specifier::Specifier;
 
@@ -41,6 +42,38 @@ impl<'a> Instance {
       specifier_type: Specifier::new(specifier.as_str()),
       specifier: sanitise_specifier(specifier),
     }
+  }
+
+  /// Write a version to the package.json
+  pub fn set_version(&self, package: &mut PackageJson, value: String) {
+    match self.dependency_type.strategy {
+      Strategy::NameAndVersionProps => {
+        let path_to_prop = &self.dependency_type.path;
+        let path_to_prop_str = path_to_prop.as_str();
+        package.set_prop(path_to_prop_str, Value::String(value));
+      }
+      Strategy::NamedVersionString => {
+        let path_to_prop = &self.dependency_type.path;
+        let path_to_prop_str = path_to_prop.as_str();
+        let full_value = format!("{}@{}", self.name, value);
+        package.set_prop(path_to_prop_str, Value::String(full_value));
+      }
+      Strategy::UnnamedVersionString => {
+        let path_to_prop = &self.dependency_type.path;
+        let path_to_prop_str = path_to_prop.as_str();
+        package.set_prop(path_to_prop_str, Value::String(value));
+      }
+      Strategy::VersionsByName => {
+        let path_to_obj = &self.dependency_type.path;
+        let name = &self.name;
+        let path_to_prop = format!("{}/{}", path_to_obj, name);
+        let path_to_prop_str = path_to_prop.as_str();
+        package.set_prop(path_to_prop_str, Value::String(value));
+      }
+      Strategy::InvalidConfig => {
+        panic!("unrecognised strategy");
+      }
+    };
   }
 }
 

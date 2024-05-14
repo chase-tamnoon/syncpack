@@ -1,7 +1,8 @@
 use std::path::PathBuf;
 
+use colored::*;
+
 use crate::{
-  dependency_type::Strategy,
   effects::Effects,
   group_selector::GroupSelector,
   instance::Instance,
@@ -70,6 +71,7 @@ impl Effects for FixEffects {
     instance_group: &InstanceGroup,
     packages: &mut Packages,
   ) {
+    println!("@TODO: Implement on_banned_instance");
   }
 
   fn on_pinned_version_mismatch(
@@ -78,6 +80,8 @@ impl Effects for FixEffects {
     instance_group: &InstanceGroup,
     packages: &mut Packages,
   ) {
+    let (_, instances) = specifier;
+    set_all_instances_to_expected_version(instance_group, instances, packages);
   }
 
   fn on_same_range_mismatch(
@@ -87,6 +91,9 @@ impl Effects for FixEffects {
     instance_group: &InstanceGroup,
     packages: &mut Packages,
   ) {
+    let name = &instance_group.name;
+    let message = format!("{}", "SameRangeMismatch is not auto-fixable");
+    println!("{}", message.dimmed());
   }
 
   fn on_snap_to_mismatch(
@@ -96,6 +103,7 @@ impl Effects for FixEffects {
     instance_group: &InstanceGroup,
     packages: &mut Packages,
   ) {
+    println!("@TODO: Implement on_snap_to_mismatch");
   }
 
   fn on_local_version_mismatch(
@@ -105,6 +113,8 @@ impl Effects for FixEffects {
     instance_group: &InstanceGroup,
     packages: &mut Packages,
   ) {
+    let (_, instances) = specifier;
+    set_all_instances_to_expected_version(instance_group, instances, packages);
   }
 
   fn on_unsupported_mismatch(
@@ -113,6 +123,9 @@ impl Effects for FixEffects {
     instance_group: &InstanceGroup,
     packages: &mut Packages,
   ) {
+    let name = &instance_group.name;
+    let message = format!("{}", "UnsupportedMismatch is not auto-fixable");
+    println!("{}", message.dimmed());
   }
 
   fn on_lowest_version_mismatch(
@@ -121,6 +134,8 @@ impl Effects for FixEffects {
     instance_group: &InstanceGroup,
     packages: &mut Packages,
   ) {
+    let (_, instances) = specifier;
+    set_all_instances_to_expected_version(instance_group, instances, packages);
   }
 
   fn on_highest_version_mismatch(
@@ -130,25 +145,20 @@ impl Effects for FixEffects {
     packages: &mut Packages,
   ) {
     let (_, instances) = specifier;
-    let expected = &instance_group.expected_version.clone().unwrap();
-    instances
-      .iter()
-      .for_each(|instance| match instance.dependency_type.strategy {
-        Strategy::NameAndVersionProps => {
-          //
-        }
-        Strategy::NamedVersionString => {
-          //
-        }
-        Strategy::UnnamedVersionString => {
-          //
-        }
-        Strategy::VersionsByName => {
-          //
-        }
-        Strategy::InvalidConfig => {
-          panic!("unrecognised strategy");
-        }
-      });
+    set_all_instances_to_expected_version(instance_group, instances, packages);
+  }
+}
+
+fn set_all_instances_to_expected_version(
+  instance_group: &InstanceGroup,
+  instances: &Vec<&Instance>,
+  packages: &mut Packages,
+) {
+  if let Some(expected) = &instance_group.expected_version {
+    instances.iter().for_each(|instance| {
+      if let Some(package) = packages.by_name.get_mut(&instance.package_name) {
+        instance.set_version(package, expected.clone());
+      };
+    });
   }
 }

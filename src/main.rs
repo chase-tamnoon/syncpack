@@ -80,42 +80,47 @@ fn main() -> io::Result<()> {
   // Switch version groups back to immutable
   let version_groups = version_groups;
 
+  // packages are mutated when linting formatting, but not written to disk
+  // everything is mutated and written when fixing
   let mut packages = packages;
 
-  // When fixing, we run the fixes first and then lint them
-  if matches!(command_name, Subcommand::Fix) {
-    let effects = FixEffects {};
-
-    if cli_options.format {
-      effects.on_begin_format();
-      let LintResult { valid, invalid } = format::lint(&rcfile, &mut packages);
-      effects.on_formatted_packages(&valid, &cwd);
-      effects.on_unformatted_packages(&invalid, &cwd);
-    }
-
-    match (cli_options.ranges, cli_options.versions) {
-      (true, true) => effects.on_begin_ranges_and_versions(),
-      (true, false) => effects.on_begin_ranges_only(),
-      (false, true) => effects.on_begin_versions_only(),
-      (false, false) => effects.on_skip_ranges_and_versions(),
-    };
-
-    if cli_options.ranges || cli_options.versions {
-      version_groups.iter().for_each(|group| {
-        let group_is_valid = group.visit(&instances, &effects, &mut packages);
-      });
-    }
-
-    // write the changes to the package.json files
-    packages.by_name.values_mut().for_each(|package| {
-      package.write_to_disk(&rcfile.indent);
-    });
-  }
-
-  // When fixing, we run the linter again to show what the fix did and if there
-  // were any unfixable issues left over
   let is_valid: bool = match command_name {
-    Subcommand::Fix | Subcommand::Lint => {
+    Subcommand::Fix => {
+      let effects = FixEffects {};
+      let mut fix_is_valid = true;
+
+      if cli_options.format {
+        effects.on_begin_format();
+        let LintResult { valid, invalid } = format::lint(&rcfile, &mut packages);
+        effects.on_formatted_packages(&valid, &cwd);
+        effects.on_unformatted_packages(&invalid, &cwd);
+      }
+
+      match (cli_options.ranges, cli_options.versions) {
+        (true, true) => effects.on_begin_ranges_and_versions(),
+        (true, false) => effects.on_begin_ranges_only(),
+        (false, true) => effects.on_begin_versions_only(),
+        (false, false) => effects.on_skip_ranges_and_versions(),
+      };
+
+      if cli_options.ranges || cli_options.versions {
+        version_groups.iter().for_each(|group| {
+          // @TODO: update effects to return a bool
+          let group_is_valid = group.visit(&instances, &effects, &mut packages);
+          if !group_is_valid {
+            fix_is_valid = false;
+          }
+        });
+      }
+
+      // write the changes to the package.json files
+      packages.by_name.values_mut().for_each(|package| {
+        package.write_to_disk(&rcfile.indent);
+      });
+
+      fix_is_valid
+    }
+    Subcommand::Lint => {
       let effects = LintEffects {};
       let mut lint_is_valid = true;
 
