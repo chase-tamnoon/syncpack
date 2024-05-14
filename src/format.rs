@@ -165,12 +165,14 @@ fn format_bugs(package: &mut PackageJson) {
 /// Use a shorthand format for the repository URL when possible
 fn format_repository(package: &mut PackageJson) {
   if package.get_prop("/repository/directory").is_none() {
-    if let Some(repository_url) = package.get_prop("/repository/url") {
-      if let Some(url) = repository_url.as_str() {
-        let re = Regex::new(r#".+github\.com/"#).unwrap();
-        let next_url = re.replace(&url, "").to_string();
-        package.set_prop("/repository", json!(next_url));
-      }
-    }
+    package
+      .get_prop("/repository/url")
+      .and_then(|repository_url| repository_url.as_str())
+      .and_then(|url| {
+        Regex::new(r#".+github\.com/"#)
+          .ok()
+          .map(|re| re.replace(url, "").to_string())
+      })
+      .map(|next_url| package.set_prop("/repository", json!(next_url)));
   }
 }
