@@ -2,6 +2,7 @@ use icu::collator::{Collator, CollatorOptions};
 use icu::locid::{locale, Locale};
 use regex::Regex;
 use serde_json::{self, json, Map, Value};
+use std::cmp::Ordering;
 use std::collections::HashSet;
 
 use crate::config::Rcfile;
@@ -136,13 +137,18 @@ fn sort_alphabetically(value: &mut Value) {
   let collator: Collator = Collator::try_new(&locale_en.into(), options).unwrap();
   match value {
     Value::Object(obj) => {
-      let mut entries: Vec<_> = obj.iter().map(|(k, v)| (k.clone(), v.clone())).collect();
+      let mut entries: Vec<_> = obj.clone().into_iter().collect();
       entries.sort_by(|a, b| collator.compare(&a.0, &b.0));
-      let sorted_obj: Map<String, Value> = entries.into_iter().collect();
-      *value = Value::Object(sorted_obj);
+      *value = Value::Object(Map::from_iter(entries.into_iter()));
     }
     Value::Array(arr) => {
-      arr.sort_by(|a, b| collator.compare(a.as_str().unwrap_or(""), b.as_str().unwrap_or("")));
+      arr.sort_by(|a, b| {
+        if let (Some(a), Some(b)) = (a.as_str(), b.as_str()) {
+          collator.compare(a, b)
+        } else {
+          Ordering::Equal
+        }
+      });
     }
     _ => {}
   }
