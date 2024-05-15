@@ -7,12 +7,18 @@ use dependency_type::{DependencyType, Strategy};
 use effects_fix::FixEffects;
 use glob::glob;
 use instance::Instance;
+use instance_group::InstancesById;
 use itertools::Itertools;
 use json_file::read_json_file;
 use package_json::Packages;
 use regex::Regex;
 use serde_json::Value;
-use std::{cmp::Ordering, collections::HashMap, io, path::PathBuf};
+use std::{
+  cmp::Ordering,
+  collections::{BTreeMap, HashMap},
+  io,
+  path::PathBuf,
+};
 use version_group::VersionGroupVariant;
 
 use crate::{
@@ -65,10 +71,10 @@ fn main() -> io::Result<()> {
   // all dependent on `packages`
   let packages = get_packages(&absolute_file_paths);
   let mut version_groups = VersionGroup::from_rcfile(&rcfile, &packages.all_names);
-  let instances = get_instances(&packages, &dependency_types, &filter);
+  let instances_by_id = get_all_instances(&packages, &dependency_types, &filter);
 
   // assign every instance to the first group it matches
-  instances.iter().for_each(|instance| {
+  instances_by_id.iter().for_each(|(_, instance)| {
     let semver_group = semver_groups
       .iter()
       .find(|semver_group| semver_group.selector.can_add(instance));
@@ -78,6 +84,8 @@ fn main() -> io::Result<()> {
       .unwrap()
       .add_instance(instance, semver_group);
   });
+
+  let mut instances_by_id = instances_by_id;
 
   // packages are mutated when linting formatting, but not written to disk
   // everything is mutated and written when fixing
@@ -111,7 +119,7 @@ fn main() -> io::Result<()> {
           })
           .for_each(|group| {
             // @TODO: update effects to return a bool
-            let group_is_valid = group.visit(&instances, &effects, &mut packages);
+            let group_is_valid = group.visit(&mut instances_by_id, &effects, &mut packages);
             if !group_is_valid {
               fix_is_valid = false;
             }
@@ -145,7 +153,7 @@ fn main() -> io::Result<()> {
 
       if cli_options.ranges || cli_options.versions {
         version_groups.iter().for_each(|group| {
-          let group_is_valid = group.visit(&instances, &effects, &mut packages);
+          let group_is_valid = group.visit(&mut instances_by_id, &effects, &mut packages);
           if !group_is_valid {
             lint_is_valid = false;
           }
@@ -234,12 +242,12 @@ fn get_packages(file_paths: &Vec<PathBuf>) -> Packages {
 }
 
 /// Get every instance of a dependency from every package.json file
-fn get_instances<'a>(
-  packages: &'a Packages,
+fn get_all_instances(
+  packages: &Packages,
   dependency_types: &Vec<DependencyType>,
   filter: &Regex,
-) -> Vec<Instance> {
-  let mut instances: Vec<Instance> = vec![];
+) -> InstancesById {
+  let mut instances_by_id: InstancesById = BTreeMap::new();
   for package in packages.by_name.values() {
     for dependency_type in dependency_types {
       match dependency_type.strategy {
@@ -249,12 +257,13 @@ fn get_instances<'a>(
             package.get_prop(&dependency_type.path),
           ) {
             if filter.is_match(name) {
-              instances.push(Instance::new(
+              let instance = Instance::new(
                 name.to_string(),
                 version.to_string(),
                 dependency_type.clone(),
                 &package,
-              ));
+              );
+              instances_by_id.insert(instance.id.clone(), instance);
             }
           }
         }
@@ -262,12 +271,13 @@ fn get_instances<'a>(
           if let Some(Value::String(specifier)) = package.get_prop(&dependency_type.path) {
             if let Some((name, version)) = specifier.split_once('@') {
               if filter.is_match(name) {
-                instances.push(Instance::new(
+                let instance = Instance::new(
                   name.to_string(),
                   version.to_string(),
                   dependency_type.clone(),
                   &package,
-                ));
+                );
+                instances_by_id.insert(instance.id.clone(), instance);
               }
             }
           }
@@ -275,12 +285,13 @@ fn get_instances<'a>(
         Strategy::UnnamedVersionString => {
           if let Some(Value::String(version)) = package.get_prop(&dependency_type.path) {
             if filter.is_match(&dependency_type.name) {
-              instances.push(Instance::new(
+              let instance = Instance::new(
                 dependency_type.name.clone(),
                 version.to_string(),
                 dependency_type.clone(),
                 &package,
-              ));
+              );
+              instances_by_id.insert(instance.id.clone(), instance);
             }
           }
         }
@@ -289,12 +300,13 @@ fn get_instances<'a>(
             for (name, version) in versions_by_name {
               if filter.is_match(name) {
                 if let Value::String(version) = version {
-                  instances.push(Instance::new(
+                  let instance = Instance::new(
                     name.to_string(),
                     version.to_string(),
                     dependency_type.clone(),
                     &package,
-                  ));
+                  );
+                  instances_by_id.insert(instance.id.clone(), instance);
                 }
               }
             }
@@ -306,5 +318,5 @@ fn get_instances<'a>(
       };
     }
   }
-  instances
+  instances_by_id
 }

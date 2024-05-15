@@ -24,7 +24,7 @@ impl PackageJson {
     self
       .get_prop("/name")
       .and_then(|name| name.as_str())
-      .unwrap_or("")
+      .expect("package.json file has no .name property")
       .to_string()
   }
 

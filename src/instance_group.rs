@@ -1,11 +1,14 @@
-use std::collections::HashMap;
+use std::collections::{BTreeMap, HashMap};
 use std::vec;
 
-use crate::instance::InstanceId;
+use crate::instance::{Instance, InstanceId};
 
 /// A reference to a group of instances of the same dependency which all have the
 /// same version specifier.
-pub type InstancesBySpecifier = (String, Vec<InstanceId>);
+pub type InstanceIdsBySpecifier = (String, Vec<InstanceId>);
+
+/// The location which owns all instances
+pub type InstancesById = BTreeMap<InstanceId, Instance>;
 
 #[derive(Debug)]
 pub struct InstanceGroup {

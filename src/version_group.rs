@@ -9,7 +9,7 @@ use crate::config;
 use crate::effects::{Effects, InstanceEvent};
 use crate::group_selector::GroupSelector;
 use crate::instance::Instance;
-use crate::instance_group::{InstanceGroup, InstancesBySpecifier};
+use crate::instance_group::{InstanceGroup, InstanceIdsBySpecifier, InstancesById};
 use crate::package_json::Packages;
 use crate::semver_group::SemverGroup;
 
@@ -260,7 +260,7 @@ impl VersionGroup {
   pub fn visit(
     &self,
     // needed by same range groups, every instance in the project
-    all_instances: &Vec<Instance>,
+    instances_by_id: &mut InstancesById,
     // chosen strategy to lint, fix, use different log output, etc
     effects: &impl Effects,
     // when fixing, we write to the package.json files
@@ -290,8 +290,10 @@ impl VersionGroup {
               .iter()
               .for_each(|instances_by_specifier| {
                 lint_is_valid = false;
-                effects.on_banned_instance(InstanceEvent {
+                effects.on_banned_instance(&mut InstanceEvent {
+                  instances_by_id,
                   instance_group,
+                  // @TODO: use None
                   mismatches_with: ("".to_string(), vec![]),
                   packages,
                   target: (
@@ -310,15 +312,17 @@ impl VersionGroup {
           .for_each(|instance_group| {
             if !instance_group.has_identical_specifiers() {
               effects.on_invalid_pinned_instance_group(instance_group);
+              let pinned_version = instance_group.expected_version.clone().unwrap();
               instance_group
                 .by_specifier
                 .iter()
                 .for_each(|instances_by_specifier| {
                   if instance_group.is_mismatch(&instances_by_specifier.0) {
                     lint_is_valid = false;
-                    effects.on_pinned_version_mismatch(InstanceEvent {
+                    effects.on_pinned_version_mismatch(&mut InstanceEvent {
+                      instances_by_id,
                       instance_group,
-                      mismatches_with: ("".to_string(), vec![]),
+                      mismatches_with: (pinned_version.clone(), vec![]),
                       packages,
                       target: (
                         instances_by_specifier.0.clone(),
@@ -338,7 +342,7 @@ impl VersionGroup {
           .instance_groups_by_name
           .values()
           .for_each(|instance_group| {
-            let mut mismatches: Vec<(InstancesBySpecifier, InstancesBySpecifier)> = vec![];
+            let mut mismatches: Vec<(InstanceIdsBySpecifier, InstanceIdsBySpecifier)> = vec![];
             instance_group.by_specifier.iter().for_each(|a| {
               let range_a = a.0.parse::<Range>().unwrap();
               instance_group.by_specifier.iter().for_each(|b| {
@@ -361,12 +365,13 @@ impl VersionGroup {
               effects.on_invalid_same_range_instance_group(instance_group);
               mismatches
                 .into_iter()
-                .for_each(|(target_instances, mismatches_with)| {
-                  effects.on_same_range_mismatch(InstanceEvent {
+                .for_each(|(target_instance_id, mismatches_with)| {
+                  effects.on_same_range_mismatch(&mut InstanceEvent {
+                    instances_by_id,
                     instance_group,
                     mismatches_with,
                     packages,
-                    target: target_instances,
+                    target: target_instance_id,
                   });
                 });
             }
@@ -379,7 +384,7 @@ impl VersionGroup {
             .instance_groups_by_name
             .values()
             .for_each(|instance_group| {
-              let mismatches = get_snap_to_mismatches(snap_to, all_instances, instance_group);
+              let mismatches = get_snap_to_mismatches(snap_to, instances_by_id, instance_group);
               if mismatches.len() == 0 {
                 effects.on_valid_snap_to_instance_group(instance_group);
               } else {
@@ -387,12 +392,13 @@ impl VersionGroup {
                 effects.on_invalid_snap_to_instance_group(instance_group);
                 mismatches
                   .into_iter()
-                  .for_each(|(target_instances, mismatches_with)| {
-                    effects.on_snap_to_mismatch(InstanceEvent {
+                  .for_each(|(target_instance_id, mismatches_with)| {
+                    effects.on_snap_to_mismatch(&mut InstanceEvent {
+                      instances_by_id,
                       instance_group,
                       mismatches_with,
                       packages,
-                      target: target_instances,
+                      target: target_instance_id,
                     });
                   });
               }
@@ -413,16 +419,20 @@ impl VersionGroup {
                 .for_each(|target_instances| {
                   if instance_group.is_mismatch(&target_instances.0) {
                     lint_is_valid = false;
-                    if let Some(local) = instance_group.local.clone() {
-                      effects.on_local_version_mismatch(InstanceEvent {
-                        instance_group: instance_group,
-                        mismatches_with: (local.specifier.clone(), vec![local]),
+                    if let Some(local_id) = instance_group.local.clone() {
+                      let local = instances_by_id.get(&local_id);
+                      let specifier = local.unwrap().specifier.clone();
+                      effects.on_local_version_mismatch(&mut InstanceEvent {
+                        instances_by_id,
+                        instance_group,
+                        mismatches_with: (specifier, vec![local_id]),
                         packages,
                         target: (target_instances.0.clone(), target_instances.1.clone()),
                       });
                     } else if instance_group.non_semver.len() > 0 {
-                      effects.on_unsupported_mismatch(InstanceEvent {
-                        instance_group: instance_group,
+                      effects.on_unsupported_mismatch(&mut InstanceEvent {
+                        instances_by_id,
+                        instance_group,
                         mismatches_with: ("".to_string(), vec![]),
                         packages,
                         target: (target_instances.0.clone(), target_instances.1.clone()),
@@ -432,8 +442,9 @@ impl VersionGroup {
                         if let Some(instances_with_expected) =
                           instance_group.by_specifier.get(&expected)
                         {
-                          effects.on_lowest_version_mismatch(InstanceEvent {
-                            instance_group: instance_group,
+                          effects.on_lowest_version_mismatch(&mut InstanceEvent {
+                            instances_by_id,
+                            instance_group,
                             mismatches_with: (
                               expected.clone(),
                               instances_with_expected.to_owned().clone(),
@@ -448,7 +459,8 @@ impl VersionGroup {
                         if let Some(instances_with_expected) =
                           instance_group.by_specifier.get(&expected)
                         {
-                          effects.on_highest_version_mismatch(InstanceEvent {
+                          effects.on_highest_version_mismatch(&mut InstanceEvent {
+                            instances_by_id,
                             instance_group: &instance_group,
                             mismatches_with: (
                               expected.clone(),
@@ -474,12 +486,12 @@ impl VersionGroup {
 
 /// Return the first instance from the packages which should be snapped to for a
 /// given dependency.
-fn get_snap_to_instance(
+fn get_snap_to_instance<'a>(
   snap_to: &Vec<String>,
   dependency_name: &String,
-  all_instances: &'a Vec<Instance>,
+  instances_by_id: &'a mut InstancesById,
 ) -> Option<&'a Instance> {
-  for instance in all_instances {
+  for (id, instance) in instances_by_id {
     if instance.name == *dependency_name {
       for snapped_to_package_name in snap_to {
         if instance.package_name == *snapped_to_package_name {
@@ -495,19 +507,20 @@ fn get_snap_to_instance(
 /// instance
 fn get_snap_to_mismatches(
   snap_to: &Vec<String>,
-  all_instances: &'a Vec<Instance>,
-  instance_group: &'a InstanceGroup,
-) -> Vec<(InstancesBySpecifier, InstancesBySpecifier)> {
-  let mut mismatches: Vec<(InstancesBySpecifier, InstancesBySpecifier)> = vec![];
+  instances_by_id: &mut InstancesById,
+  instance_group: &InstanceGroup,
+) -> Vec<(InstanceIdsBySpecifier, InstanceIdsBySpecifier)> {
+  let mut mismatches: Vec<(InstanceIdsBySpecifier, InstanceIdsBySpecifier)> = vec![];
   let dependency_name = &instance_group.name;
-  if let Some(snappable_instance) = get_snap_to_instance(snap_to, dependency_name, all_instances) {
+  if let Some(snappable_instance) = get_snap_to_instance(snap_to, dependency_name, instances_by_id)
+  {
     let expected = &snappable_instance.specifier;
     instance_group
       .by_specifier
       .iter()
       .filter(|(actual, _)| *actual != expected)
       .for_each(|target_instances| {
-        let mismatches_with = (expected.clone(), vec![snappable_instance]);
+        let mismatches_with = (expected.clone(), vec![snappable_instance.id.clone()]);
         let target_instances = (target_instances.0.clone(), target_instances.1.clone());
         mismatches.push((target_instances, mismatches_with));
       });

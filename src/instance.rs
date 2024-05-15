@@ -29,7 +29,7 @@ pub struct Instance {
   pub specifier: String,
 }
 
-impl<'a> Instance {
+impl Instance {
   pub fn new(
     name: String,
     specifier: String,
@@ -38,7 +38,7 @@ impl<'a> Instance {
   ) -> Instance {
     let package_name = package.get_name();
     Instance {
-      id: format!("{}|{}|{}", package_name, dependency_type.name, name),
+      id: format!("{}|{}|{}", name, dependency_type.name, package_name),
       dependency_type,
       file_path: package.file_path.clone(),
       is_local: package_name == name,
@@ -50,38 +50,44 @@ impl<'a> Instance {
   }
 
   /// Write a version to the package.json
-  pub fn set_version(&self, package: &mut PackageJson, value: String) {
+  pub fn set_version(&mut self, package: &mut PackageJson, next_value: String) {
     match self.dependency_type.strategy {
       Strategy::NameAndVersionProps => {
         let path_to_prop = &self.dependency_type.path;
         let path_to_prop_str = path_to_prop.as_str();
-        package.set_prop(path_to_prop_str, Value::String(value));
+        package.set_prop(path_to_prop_str, Value::String(next_value.clone()));
       }
       Strategy::NamedVersionString => {
         let path_to_prop = &self.dependency_type.path;
         let path_to_prop_str = path_to_prop.as_str();
-        let full_value = format!("{}@{}", self.name, value);
+        let full_value = format!("{}@{}", self.name, next_value);
         package.set_prop(path_to_prop_str, Value::String(full_value));
       }
       Strategy::UnnamedVersionString => {
         let path_to_prop = &self.dependency_type.path;
         let path_to_prop_str = path_to_prop.as_str();
-        package.set_prop(path_to_prop_str, Value::String(value));
+        package.set_prop(path_to_prop_str, Value::String(next_value.clone()));
       }
       Strategy::VersionsByName => {
         let path_to_obj = &self.dependency_type.path;
         let name = &self.name;
         let path_to_obj_str = path_to_obj.as_str();
-        if let Some(obj) = package.contents.pointer_mut(path_to_obj_str) {
-          if let Value::Object(obj) = obj {
-            obj.insert(name.clone(), Value::String(value));
-          }
-        }
+        let obj = package
+          .contents
+          .pointer_mut(path_to_obj_str)
+          .unwrap()
+          .as_object_mut()
+          .unwrap();
+        let value = obj.get_mut(name).unwrap();
+        *value = Value::String(next_value.clone());
       }
       Strategy::InvalidConfig => {
         panic!("unrecognised strategy");
       }
     };
+    // update in-memory state
+    self.specifier = next_value.clone();
+    self.specifier_type = Specifier::new(next_value.as_str());
   }
 
   /// Delete a version/dependency/instance from the package.json

@@ -6,9 +6,8 @@ use crate::{
   effects::{Effects, InstanceEvent},
   effects_lint::render_count_column,
   group_selector::GroupSelector,
-  instance::Instance,
   instance_group::InstanceGroup,
-  package_json::{PackageJson, Packages},
+  package_json::PackageJson,
 };
 
 pub struct FixEffects {}
@@ -75,23 +74,27 @@ impl Effects for FixEffects {
   // Instances
   // ===========================================================================
 
-  fn on_banned_instance(&self, event: InstanceEvent) {
-    let (_, target_instances) = event.target;
-    target_instances.iter().for_each(|instance| {
-      if let Some(package) = event.packages.by_name.get_mut(&instance.package_name) {
-        instance.remove_from(package);
+  fn on_banned_instance(&self, event: &mut InstanceEvent) {
+    let target_instance_ids = event.target.1.clone();
+    target_instance_ids.iter().for_each(|instance_id| {
+      if let Some(target_instance) = event.instances_by_id.get_mut(instance_id) {
+        if let Some(package) = event
+          .packages
+          .by_name
+          .get_mut(&target_instance.package_name)
+        {
+          target_instance.remove_from(package);
+        }
       };
     });
   }
 
-  fn on_pinned_version_mismatch(&self, event: InstanceEvent) {
-    if let Some(expected) = &event.instance_group.expected_version {
-      let (_, target_instances) = event.target;
-      set_every_instance_version_to(expected, &target_instances, event.packages);
-    }
+  fn on_pinned_version_mismatch(&self, event: &mut InstanceEvent) {
+    let pinned_specifier = &event.mismatches_with.0;
+    set_every_instance_version_to(pinned_specifier.clone(), event);
   }
 
-  fn on_same_range_mismatch(&self, event: InstanceEvent) {
+  fn on_same_range_mismatch(&self, event: &mut InstanceEvent) {
     println!(
       "      {} {} {} {} {}",
       "✘".red(),
@@ -102,27 +105,17 @@ impl Effects for FixEffects {
     )
   }
 
-  fn on_snap_to_mismatch(&self, event: InstanceEvent) {
-    let (_, target_instances) = event.target;
-    let (_, mismatches_with) = &event.mismatches_with;
-    // (there is only one member in this vec)
-    mismatches_with.iter().for_each(|snapped_to_instance| {
-      let expected = &snapped_to_instance.specifier;
-      set_every_instance_version_to(&expected, &target_instances, event.packages);
-    });
+  fn on_snap_to_mismatch(&self, event: &mut InstanceEvent) {
+    let snapped_to_specifier = &event.mismatches_with.0;
+    set_every_instance_version_to(snapped_to_specifier.clone(), event);
   }
 
-  fn on_local_version_mismatch(&self, event: InstanceEvent) {
-    let (_, target_instances) = event.target;
-    let (_, mismatches_with) = &event.mismatches_with;
-    // (there is only one member in this vec)
-    mismatches_with.iter().for_each(|local_instance| {
-      let expected = &local_instance.specifier;
-      set_every_instance_version_to(&expected, &target_instances, event.packages);
-    });
+  fn on_local_version_mismatch(&self, event: &mut InstanceEvent) {
+    let local_specifier = &event.mismatches_with.0;
+    set_every_instance_version_to(local_specifier.clone(), event);
   }
 
-  fn on_unsupported_mismatch(&self, event: InstanceEvent) {
+  fn on_unsupported_mismatch(&self, event: &mut InstanceEvent) {
     let icon = "✘".red();
     let arrow = "→".dimmed();
     println!(
@@ -135,29 +128,28 @@ impl Effects for FixEffects {
     );
   }
 
-  fn on_lowest_version_mismatch(&self, event: InstanceEvent) {
-    if let Some(expected) = &event.instance_group.expected_version {
-      let (_, target_instances) = event.target;
-      set_every_instance_version_to(expected, &target_instances, event.packages);
-    }
+  fn on_lowest_version_mismatch(&self, event: &mut InstanceEvent) {
+    let lowest_specifier = &event.mismatches_with.0;
+    set_every_instance_version_to(lowest_specifier.clone(), event);
   }
 
-  fn on_highest_version_mismatch(&self, event: InstanceEvent) {
-    if let Some(expected) = &event.instance_group.expected_version {
-      let (_, target_instances) = event.target;
-      set_every_instance_version_to(expected, &target_instances, event.packages);
-    }
+  fn on_highest_version_mismatch(&self, event: &mut InstanceEvent) {
+    let highest_specifier = &event.mismatches_with.0;
+    set_every_instance_version_to(highest_specifier.clone(), event);
   }
 }
 
-fn set_every_instance_version_to(
-  expected: &String,
-  instances: &Vec<&Instance>,
-  packages: &mut Packages,
-) {
-  instances.iter().for_each(|instance| {
-    if let Some(package) = packages.by_name.get_mut(&instance.package_name) {
-      instance.set_version(package, expected.clone());
+fn set_every_instance_version_to(expected: String, event: &mut InstanceEvent) {
+  let target_instance_ids = event.target.1.clone();
+  target_instance_ids.iter().for_each(|instance_id| {
+    if let Some(target_instance) = event.instances_by_id.get_mut(instance_id) {
+      if let Some(package) = event
+        .packages
+        .by_name
+        .get_mut(&target_instance.package_name)
+      {
+        target_instance.set_version(package, expected.clone());
+      }
     };
   });
 }

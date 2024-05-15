@@ -142,7 +142,7 @@ impl Effects for LintEffects {
   // Instances
   // ===========================================================================
 
-  fn on_banned_instance(&self, event: InstanceEvent) {
+  fn on_banned_instance(&self, event: &mut InstanceEvent) {
     let icon = "✘".red();
     println!(
       "      {} {} {}",
@@ -152,7 +152,7 @@ impl Effects for LintEffects {
     );
   }
 
-  fn on_pinned_version_mismatch(&self, event: InstanceEvent) {
+  fn on_pinned_version_mismatch(&self, event: &mut InstanceEvent) {
     let icon = "✘".red();
     let arrow = "→".dimmed();
     let expected = event.instance_group.expected_version.as_ref().unwrap();
@@ -166,7 +166,7 @@ impl Effects for LintEffects {
     );
   }
 
-  fn on_same_range_mismatch(&self, event: InstanceEvent) {
+  fn on_same_range_mismatch(&self, event: &mut InstanceEvent) {
     println!(
       "      {} {} {} {} {}",
       "✘".red(),
@@ -177,11 +177,10 @@ impl Effects for LintEffects {
     )
   }
 
-  fn on_snap_to_mismatch(&self, event: InstanceEvent) {
-    let (_, mismatches_with) = &event.mismatches_with;
+  fn on_snap_to_mismatch(&self, event: &mut InstanceEvent) {
+    let (expected, mismatches_with) = &event.mismatches_with;
     // (there is only one member in this vec)
-    mismatches_with.iter().for_each(|snapped_to_instance| {
-      let expected = &snapped_to_instance.specifier;
+    mismatches_with.iter().for_each(|snapped_to_instance_id| {
       let icon = "✘".red();
       let arrow = "→".dimmed();
       println!(
@@ -195,7 +194,7 @@ impl Effects for LintEffects {
     });
   }
 
-  fn on_local_version_mismatch(&self, event: InstanceEvent) {
+  fn on_local_version_mismatch(&self, event: &mut InstanceEvent) {
     let icon = "✘".red();
     let arrow = "→".dimmed();
     let expected = event.instance_group.expected_version.as_ref().unwrap();
@@ -209,7 +208,7 @@ impl Effects for LintEffects {
     );
   }
 
-  fn on_unsupported_mismatch(&self, event: InstanceEvent) {
+  fn on_unsupported_mismatch(&self, event: &mut InstanceEvent) {
     let icon = "✘".red();
     let arrow = "→".dimmed();
     println!(
@@ -222,7 +221,7 @@ impl Effects for LintEffects {
     );
   }
 
-  fn on_lowest_version_mismatch(&self, event: InstanceEvent) {
+  fn on_lowest_version_mismatch(&self, event: &mut InstanceEvent) {
     let icon = "✘".red();
     let arrow = "→".dimmed();
     let expected = event.instance_group.expected_version.as_ref().unwrap();
@@ -236,7 +235,7 @@ impl Effects for LintEffects {
     );
   }
 
-  fn on_highest_version_mismatch(&self, event: InstanceEvent) {
+  fn on_highest_version_mismatch(&self, event: &mut InstanceEvent) {
     let icon = "✘".red();
     let arrow = "→".dimmed();
     let expected = event.instance_group.expected_version.as_ref().unwrap();
@@ -257,7 +256,7 @@ pub fn render_count_column(count: usize) -> ColoredString {
   format!("{: >4}x", count).dimmed()
 }
 
-fn print_version_match(instance_group: &InstanceGroup<'_>) {
+fn print_version_match(instance_group: &InstanceGroup) {
   let count = render_count_column(instance_group.all.len());
   let (version, _) = instance_group.by_specifier.iter().next().unwrap();
   println!("{} {} {}", count, instance_group.name, &version.dimmed());
