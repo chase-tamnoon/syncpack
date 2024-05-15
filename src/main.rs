@@ -7,11 +7,13 @@ use dependency_type::{DependencyType, Strategy};
 use effects_fix::FixEffects;
 use glob::glob;
 use instance::Instance;
+use itertools::Itertools;
 use json_file::read_json_file;
 use package_json::Packages;
 use regex::Regex;
 use serde_json::Value;
-use std::{collections::HashMap, io, path::PathBuf};
+use std::{cmp::Ordering, collections::HashMap, io, path::PathBuf};
+use version_group::VersionGroupVariant;
 
 use crate::{
   config::Rcfile, effects::Effects, effects_lint::LintEffects, format::LintResult,
@@ -77,9 +79,6 @@ fn main() -> io::Result<()> {
       .add_instance(instance, semver_group);
   });
 
-  // Switch version groups back to immutable
-  let version_groups = version_groups;
-
   // packages are mutated when linting formatting, but not written to disk
   // everything is mutated and written when fixing
   let mut packages = packages;
@@ -97,13 +96,26 @@ fn main() -> io::Result<()> {
       };
 
       if cli_options.ranges || cli_options.versions {
-        version_groups.iter().for_each(|group| {
-          // @TODO: update effects to return a bool
-          let group_is_valid = group.visit(&instances, &effects, &mut packages);
-          if !group_is_valid {
-            fix_is_valid = false;
-          }
-        });
+        version_groups
+          .iter()
+          // fix snapped to groups last, so that the packages they're snapped to
+          // have had any fixes applied to them first.
+          .sorted_by(|a, b| {
+            if matches!(a.variant, VersionGroupVariant::SnappedTo) {
+              Ordering::Greater
+            } else if matches!(b.variant, VersionGroupVariant::SnappedTo) {
+              Ordering::Less
+            } else {
+              Ordering::Equal
+            }
+          })
+          .for_each(|group| {
+            // @TODO: update effects to return a bool
+            let group_is_valid = group.visit(&instances, &effects, &mut packages);
+            if !group_is_valid {
+              fix_is_valid = false;
+            }
+          });
       }
 
       if cli_options.format {
