@@ -1,4 +1,3 @@
 #!/usr/bin/env bash
 
-cd fixtures/misc
-RUST_BACKTRACE=1 cargo run -- lint --source 'package.json'
+(RUST_BACKTRACE=1 cd fixtures/misc && cargo run -- lint --source 'package.json')

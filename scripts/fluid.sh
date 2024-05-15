@@ -1,4 +1,3 @@
 #!/usr/bin/env bash
 
-cd fixtures/fluid-framework
-RUST_BACKTRACE=1 cargo run -- lint --versions
+(RUST_BACKTRACE=1  cd fixtures/fluid-framework && cargo run -- lint --versions)
