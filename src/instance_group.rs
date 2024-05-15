@@ -1,35 +1,35 @@
 use std::collections::HashMap;
 use std::vec;
 
-use crate::instance::Instance;
+use crate::instance::InstanceId;
 
 /// A reference to a group of instances of the same dependency which all have the
 /// same version specifier.
-pub type InstancesBySpecifier<'a> = (String, Vec<&'a Instance>);
+pub type InstancesBySpecifier = (String, Vec<InstanceId>);
 
 #[derive(Debug)]
-pub struct InstanceGroup<'a> {
+pub struct InstanceGroup {
   /// The name of the dependency
   pub name: String,
   /// Every instance of this dependency in this version group.
-  pub all: Vec<&'a Instance>,
+  pub all: Vec<InstanceId>,
   /// The version specifier which all instances in this group should have
   pub expected_version: Option<String>,
   /// If this dependency is a local package, this is the local instance.
-  pub local: Option<&'a Instance>,
+  pub local: Option<InstanceId>,
   /// All instances with `Specifier::NonSemver` versions
-  pub non_semver: Vec<&'a Instance>,
+  pub non_semver: Vec<InstanceId>,
   /// All instances with `Specifier::Semver` versions
-  pub semver: Vec<&'a Instance>,
+  pub semver: Vec<InstanceId>,
   /// Each key is a unique raw version specifier for each dependency. The values
   /// are each instance which has that version specifier.
   ///
   /// If there is more than one unique version, then we have mismatches
-  pub by_specifier: HashMap<String, Vec<&'a Instance>>,
+  pub by_specifier: HashMap<String, Vec<InstanceId>>,
 }
 
-impl<'a> InstanceGroup<'a> {
-  pub fn new(name: String) -> InstanceGroup<'a> {
+impl InstanceGroup {
+  pub fn new(name: String) -> InstanceGroup {
     InstanceGroup {
       name,
       all: vec![],

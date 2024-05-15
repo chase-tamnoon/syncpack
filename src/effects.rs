@@ -7,17 +7,17 @@ use crate::{
 };
 
 pub struct InstanceEvent<'a> {
-  pub instance_group: &'a InstanceGroup<'a>,
+  pub instance_group: &'a InstanceGroup,
   /// when same range mismatch: the range which was not satisfied by `invalid_range` (there may be others which this range does not match, they will be reported separately)
   /// when snapped to mismatch: the snapped to instance which should be matched
   /// when local mismatch: the local instance which should be matched
-  pub mismatches_with: InstancesBySpecifier<'a>,
+  pub mismatches_with: InstancesBySpecifier,
   /// all packages in the workspace
   pub packages: &'a mut Packages,
   /// when same range mismatch: the range which was found not to satisfy another
   /// when snapped to mismatch: the specifier which does not match the snapped to instance
   /// when local mismatch: the specifier which does not match the local instance
-  pub target: InstancesBySpecifier<'a>,
+  pub target: InstancesBySpecifier,
 }
 
 pub trait Effects {

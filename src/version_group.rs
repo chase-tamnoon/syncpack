@@ -30,13 +30,13 @@ pub enum VersionGroupVariant {
 }
 
 #[derive(Debug)]
-pub struct VersionGroup<'a> {
+pub struct VersionGroup {
   /// What behaviour has this group been configured to exhibit?
   pub variant: VersionGroupVariant,
   /// Data to determine which instances should be added to this group
   pub selector: GroupSelector,
   /// Group instances of each dependency together for comparison.
-  pub instance_groups_by_name: BTreeMap<String, InstanceGroup<'a>>,
+  pub instance_groups_by_name: BTreeMap<String, InstanceGroup>,
   /// Which version to use when variant is `Standard`
   pub prefer_version: Option<PreferVersion>,
   /// The version to pin all instances to when variant is `Pinned`
@@ -45,10 +45,10 @@ pub struct VersionGroup<'a> {
   pub snap_to: Option<Vec<String>>,
 }
 
-impl<'a> VersionGroup<'a> {
+impl VersionGroup {
   /// Add an instance to this version group if it is eligible, and return
   /// whether it was added.
-  pub fn add_instance(&mut self, instance: &'a Instance, semver_group: Option<&'a SemverGroup>) {
+  pub fn add_instance(&mut self, instance: &Instance, semver_group: Option<&SemverGroup>) {
     // Ensure that a group exists for this dependency name.
     if !self.instance_groups_by_name.contains_key(&instance.name) {
       self.instance_groups_by_name.insert(
@@ -64,7 +64,7 @@ impl<'a> VersionGroup<'a> {
       .unwrap();
 
     // Track/count instances
-    instance_group.all.push(instance);
+    instance_group.all.push(instance.id.clone());
 
     // Track/count unique version specifiers and which instances use them
     // 1. Ensure that a group exists for this specifier.
@@ -82,13 +82,13 @@ impl<'a> VersionGroup<'a> {
       .by_specifier
       .get_mut(&instance.specifier)
       .unwrap()
-      .push(&instance);
+      .push(instance.id.clone());
 
     // Track/count what specifier types we have encountered
     if instance.specifier_type.is_semver() {
-      instance_group.semver.push(instance);
+      instance_group.semver.push(instance.id.clone());
     } else {
-      instance_group.non_semver.push(instance);
+      instance_group.non_semver.push(instance.id.clone());
     }
 
     if matches!(self.variant, VersionGroupVariant::Pinned) {
@@ -100,7 +100,7 @@ impl<'a> VersionGroup<'a> {
       // If this is the original source of a locally-developed package, keep a
       // reference to it and set it as the preferred version
       if instance.dependency_type.name == "local" {
-        instance_group.local = Some(instance);
+        instance_group.local = Some(instance.id.clone());
         instance_group.expected_version = Some(instance.specifier.clone());
       }
 
@@ -144,7 +144,7 @@ impl<'a> VersionGroup<'a> {
   pub fn from_rcfile(
     rcfile: &config::Rcfile,
     local_package_names: &Vec<String>,
-  ) -> Vec<VersionGroup<'a>> {
+  ) -> Vec<VersionGroup> {
     let mut user_groups: Vec<VersionGroup> = rcfile
       .version_groups
       .iter()
@@ -169,10 +169,7 @@ impl<'a> VersionGroup<'a> {
   }
 
   /// Create a single version group from a config item from the rcfile.
-  pub fn from_config(
-    group: &AnyVersionGroup,
-    local_package_names: &Vec<String>,
-  ) -> VersionGroup<'a> {
+  pub fn from_config(group: &AnyVersionGroup, local_package_names: &Vec<String>) -> VersionGroup {
     let selector = GroupSelector::new(
       /*include_dependencies:*/
       with_resolved_keywords(&group.dependencies, local_package_names),
@@ -477,7 +474,7 @@ impl<'a> VersionGroup<'a> {
 
 /// Return the first instance from the packages which should be snapped to for a
 /// given dependency.
-fn get_snap_to_instance<'a>(
+fn get_snap_to_instance(
   snap_to: &Vec<String>,
   dependency_name: &String,
   all_instances: &'a Vec<Instance>,
@@ -496,12 +493,12 @@ fn get_snap_to_instance<'a>(
 
 /// Find all instances which have and do not match their corresponding snap_to
 /// instance
-fn get_snap_to_mismatches<'a>(
+fn get_snap_to_mismatches(
   snap_to: &Vec<String>,
   all_instances: &'a Vec<Instance>,
   instance_group: &'a InstanceGroup,
-) -> Vec<(InstancesBySpecifier<'a>, InstancesBySpecifier<'a>)> {
-  let mut mismatches: Vec<(InstancesBySpecifier<'a>, InstancesBySpecifier<'a>)> = vec![];
+) -> Vec<(InstancesBySpecifier, InstancesBySpecifier)> {
+  let mut mismatches: Vec<(InstancesBySpecifier, InstancesBySpecifier)> = vec![];
   let dependency_name = &instance_group.name;
   if let Some(snappable_instance) = get_snap_to_instance(snap_to, dependency_name, all_instances) {
     let expected = &snappable_instance.specifier;
