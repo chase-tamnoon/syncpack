@@ -3,11 +3,10 @@ use std::path::PathBuf;
 use colored::*;
 
 use crate::{
-  effects::Effects,
+  effects::{Effects, InstanceEvent},
   group_selector::GroupSelector,
-  instance::Instance,
-  instance_group::{InstanceGroup, InstancesBySpecifier},
-  package_json::{PackageJson, Packages},
+  instance_group::InstanceGroup,
+  package_json::PackageJson,
 };
 
 pub struct LintEffects {}
@@ -143,146 +142,108 @@ impl Effects for LintEffects {
   // Instances
   // ===========================================================================
 
-  fn on_banned_instance(
-    &self,
-    specifier: &InstancesBySpecifier,
-    instance_group: &InstanceGroup,
-    _packages: &mut Packages,
-  ) {
+  fn on_banned_instance(&self, event: InstanceEvent) {
     let icon = "✘".red();
     println!(
       "      {} {} {}",
       icon,
-      specifier.0.red(),
+      event.target.0.red(),
       "[Banned]".dimmed()
     );
   }
 
-  fn on_pinned_version_mismatch(
-    &self,
-    specifier: &InstancesBySpecifier,
-    instance_group: &InstanceGroup,
-    _packages: &mut Packages,
-  ) {
+  fn on_pinned_version_mismatch(&self, event: InstanceEvent) {
     let icon = "✘".red();
     let arrow = "→".dimmed();
-    let expected = instance_group.expected_version.as_ref().unwrap();
+    let expected = event.instance_group.expected_version.as_ref().unwrap();
     println!(
       "      {} {} {} {} {}",
       icon,
-      specifier.0.red(),
+      event.target.0.red(),
       arrow,
       expected.green(),
       "[PinnedMismatch]".dimmed()
     );
   }
 
-  fn on_same_range_mismatch(
-    &self,
-    specifier: &InstancesBySpecifier,
-    mismatches_with: &InstancesBySpecifier,
-    instance_group: &InstanceGroup,
-    _packages: &mut Packages,
-  ) {
+  fn on_same_range_mismatch(&self, event: InstanceEvent) {
     println!(
       "      {} {} {} {} {}",
       "✘".red(),
-      mismatches_with.0.red(),
+      event.mismatches_with.0.red(),
       "falls outside".red(),
-      specifier.0.red(),
+      event.target.0.red(),
       "[SameRangeMismatch]".dimmed()
     )
   }
 
-  fn on_snap_to_mismatch(
-    &self,
-    specifier: &InstancesBySpecifier,
-    mismatches_with: &Instance,
-    instance_group: &InstanceGroup,
-    _packages: &mut Packages,
-  ) {
-    let icon = "✘".red();
-    let arrow = "→".dimmed();
-    println!(
-      "      {} {} {} {} {}",
-      icon,
-      specifier.0.red(),
-      arrow,
-      mismatches_with.specifier.green(),
-      "[SnappedToMismatch]".dimmed()
-    );
+  fn on_snap_to_mismatch(&self, event: InstanceEvent) {
+    let (_, mismatches_with) = &event.mismatches_with;
+    // (there is only one member in this vec)
+    mismatches_with.iter().for_each(|snapped_to_instance| {
+      let expected = &snapped_to_instance.specifier;
+      let icon = "✘".red();
+      let arrow = "→".dimmed();
+      println!(
+        "      {} {} {} {} {}",
+        icon,
+        event.target.0.red(),
+        arrow,
+        expected.green(),
+        "[SnappedToMismatch]".dimmed()
+      );
+    });
   }
 
-  fn on_local_version_mismatch(
-    &self,
-    specifier: &InstancesBySpecifier,
-    mismatches_with: &Instance,
-    instance_group: &InstanceGroup,
-    _packages: &mut Packages,
-  ) {
+  fn on_local_version_mismatch(&self, event: InstanceEvent) {
     let icon = "✘".red();
     let arrow = "→".dimmed();
-    let expected = instance_group.expected_version.as_ref().unwrap();
+    let expected = event.instance_group.expected_version.as_ref().unwrap();
     println!(
       "      {} {} {} {} {}",
       icon,
-      specifier.0.red(),
+      event.target.0.red(),
       arrow,
       expected.green(),
       "[LocalPackageMismatch]".dimmed()
     );
   }
 
-  fn on_unsupported_mismatch(
-    &self,
-    specifier: &InstancesBySpecifier,
-    instance_group: &InstanceGroup,
-    _packages: &mut Packages,
-  ) {
+  fn on_unsupported_mismatch(&self, event: InstanceEvent) {
     let icon = "✘".red();
     let arrow = "→".dimmed();
     println!(
       "      {} {} {} {} {}",
       icon,
-      specifier.0.red(),
+      event.target.0.red(),
       arrow,
       "?".yellow(),
       "[UnsupportedMismatch]".dimmed()
     );
   }
 
-  fn on_lowest_version_mismatch(
-    &self,
-    specifier: &InstancesBySpecifier,
-    instance_group: &InstanceGroup,
-    _packages: &mut Packages,
-  ) {
+  fn on_lowest_version_mismatch(&self, event: InstanceEvent) {
     let icon = "✘".red();
     let arrow = "→".dimmed();
-    let expected = instance_group.expected_version.as_ref().unwrap();
+    let expected = event.instance_group.expected_version.as_ref().unwrap();
     println!(
       "      {} {} {} {} {}",
       icon,
-      specifier.0.red(),
+      event.target.0.red(),
       arrow,
       expected.green(),
       "[LowestSemverMismatch]".dimmed()
     );
   }
 
-  fn on_highest_version_mismatch(
-    &self,
-    specifier: &InstancesBySpecifier,
-    instance_group: &InstanceGroup,
-    _packages: &mut Packages,
-  ) {
+  fn on_highest_version_mismatch(&self, event: InstanceEvent) {
     let icon = "✘".red();
     let arrow = "→".dimmed();
-    let expected = instance_group.expected_version.as_ref().unwrap();
+    let expected = event.instance_group.expected_version.as_ref().unwrap();
     println!(
       "      {} {} {} {} {}",
       icon,
-      specifier.0.red(),
+      event.target.0.red(),
       arrow,
       expected.green(),
       "[HighestSemverMismatch]".dimmed()

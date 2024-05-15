@@ -6,7 +6,7 @@ use serde::Deserialize;
 use version_compare::{compare, Cmp};
 
 use crate::config;
-use crate::effects::Effects;
+use crate::effects::{Effects, InstanceEvent};
 use crate::group_selector::GroupSelector;
 use crate::instance::Instance;
 use crate::instance_group::{InstanceGroup, InstancesBySpecifier};
@@ -293,7 +293,15 @@ impl<'a> VersionGroup<'a> {
               .iter()
               .for_each(|instances_by_specifier| {
                 lint_is_valid = false;
-                effects.on_banned_instance(&instances_by_specifier, instance_group, packages);
+                effects.on_banned_instance(InstanceEvent {
+                  instance_group,
+                  mismatches_with: ("".to_string(), vec![]),
+                  packages,
+                  target: (
+                    instances_by_specifier.0.clone(),
+                    instances_by_specifier.1.clone(),
+                  ),
+                });
               });
           });
       }
@@ -308,10 +316,18 @@ impl<'a> VersionGroup<'a> {
               instance_group
                 .by_specifier
                 .iter()
-                .for_each(|actual_specifier| {
-                  if instance_group.is_mismatch(actual_specifier.0) {
+                .for_each(|instances_by_specifier| {
+                  if instance_group.is_mismatch(&instances_by_specifier.0) {
                     lint_is_valid = false;
-                    effects.on_pinned_version_mismatch(&actual_specifier, instance_group, packages);
+                    effects.on_pinned_version_mismatch(InstanceEvent {
+                      instance_group,
+                      mismatches_with: ("".to_string(), vec![]),
+                      packages,
+                      target: (
+                        instances_by_specifier.0.clone(),
+                        instances_by_specifier.1.clone(),
+                      ),
+                    });
                   }
                 });
             } else {
@@ -336,7 +352,9 @@ impl<'a> VersionGroup<'a> {
                 if range_a.allows_all(&range_b) {
                   return;
                 }
-                mismatches.push((a, b));
+                let target_instances = (a.0.clone(), a.1.clone());
+                let mismatches_with = (b.0.clone(), b.1.clone());
+                mismatches.push((target_instances, mismatches_with));
               })
             });
             if mismatches.len() == 0 {
@@ -344,14 +362,16 @@ impl<'a> VersionGroup<'a> {
             } else {
               lint_is_valid = false;
               effects.on_invalid_same_range_instance_group(instance_group);
-              mismatches.iter().for_each(|(specifier, mismatches_with)| {
-                effects.on_same_range_mismatch(
-                  &specifier,
-                  &mismatches_with,
-                  instance_group,
-                  packages,
-                );
-              });
+              mismatches
+                .into_iter()
+                .for_each(|(target_instances, mismatches_with)| {
+                  effects.on_same_range_mismatch(InstanceEvent {
+                    instance_group,
+                    mismatches_with,
+                    packages,
+                    target: target_instances,
+                  });
+                });
             }
           });
       }
@@ -368,14 +388,16 @@ impl<'a> VersionGroup<'a> {
               } else {
                 lint_is_valid = false;
                 effects.on_invalid_snap_to_instance_group(instance_group);
-                mismatches.iter().for_each(|(specifier, mismatches_with)| {
-                  effects.on_snap_to_mismatch(
-                    &specifier,
-                    &mismatches_with,
-                    instance_group,
-                    packages,
-                  );
-                });
+                mismatches
+                  .into_iter()
+                  .for_each(|(target_instances, mismatches_with)| {
+                    effects.on_snap_to_mismatch(InstanceEvent {
+                      instance_group,
+                      mismatches_with,
+                      packages,
+                      target: target_instances,
+                    });
+                  });
               }
             });
         }
@@ -388,25 +410,61 @@ impl<'a> VersionGroup<'a> {
           .for_each(|instance_group| {
             if !instance_group.has_identical_specifiers() {
               effects.on_invalid_standard_instance_group(instance_group);
-              instance_group.by_specifier.iter().for_each(|actual| {
-                if instance_group.is_mismatch(actual.0) {
-                  lint_is_valid = false;
-                  if instance_group.local.is_some() {
-                    effects.on_local_version_mismatch(
-                      &actual,
-                      instance_group.local.unwrap(),
-                      instance_group,
-                      packages,
-                    );
-                  } else if instance_group.non_semver.len() > 0 {
-                    effects.on_unsupported_mismatch(&actual, instance_group, packages);
-                  } else if let Some(PreferVersion::LowestSemver) = self.prefer_version {
-                    effects.on_lowest_version_mismatch(&actual, instance_group, packages);
-                  } else {
-                    effects.on_highest_version_mismatch(&actual, instance_group, packages);
+              instance_group
+                .by_specifier
+                .iter()
+                .for_each(|target_instances| {
+                  if instance_group.is_mismatch(&target_instances.0) {
+                    lint_is_valid = false;
+                    if let Some(local) = instance_group.local.clone() {
+                      effects.on_local_version_mismatch(InstanceEvent {
+                        instance_group: instance_group,
+                        mismatches_with: (local.specifier.clone(), vec![local]),
+                        packages,
+                        target: (target_instances.0.clone(), target_instances.1.clone()),
+                      });
+                    } else if instance_group.non_semver.len() > 0 {
+                      effects.on_unsupported_mismatch(InstanceEvent {
+                        instance_group: instance_group,
+                        mismatches_with: ("".to_string(), vec![]),
+                        packages,
+                        target: (target_instances.0.clone(), target_instances.1.clone()),
+                      });
+                    } else if let Some(PreferVersion::LowestSemver) = self.prefer_version {
+                      if let Some(expected) = instance_group.expected_version.clone() {
+                        if let Some(instances_with_expected) =
+                          instance_group.by_specifier.get(&expected)
+                        {
+                          effects.on_lowest_version_mismatch(InstanceEvent {
+                            instance_group: instance_group,
+                            mismatches_with: (
+                              expected.clone(),
+                              instances_with_expected.to_owned().clone(),
+                            ),
+                            packages,
+                            target: (target_instances.0.clone(), target_instances.1.clone()),
+                          });
+                        }
+                      }
+                    } else {
+                      if let Some(expected) = instance_group.expected_version.clone() {
+                        if let Some(instances_with_expected) =
+                          instance_group.by_specifier.get(&expected)
+                        {
+                          effects.on_highest_version_mismatch(InstanceEvent {
+                            instance_group: &instance_group,
+                            mismatches_with: (
+                              expected.clone(),
+                              instances_with_expected.to_owned().clone(),
+                            ),
+                            packages,
+                            target: (target_instances.0.clone(), target_instances.1.clone()),
+                          });
+                        }
+                      }
+                    }
                   }
-                }
-              });
+                });
             } else {
               effects.on_valid_standard_instance_group(instance_group);
             };
@@ -442,8 +500,8 @@ fn get_snap_to_mismatches<'a>(
   snap_to: &Vec<String>,
   all_instances: &'a Vec<Instance>,
   instance_group: &'a InstanceGroup,
-) -> Vec<(InstancesBySpecifier<'a>, &'a Instance)> {
-  let mut mismatches: Vec<(InstancesBySpecifier, &Instance)> = vec![];
+) -> Vec<(InstancesBySpecifier<'a>, InstancesBySpecifier<'a>)> {
+  let mut mismatches: Vec<(InstancesBySpecifier<'a>, InstancesBySpecifier<'a>)> = vec![];
   let dependency_name = &instance_group.name;
   if let Some(snappable_instance) = get_snap_to_instance(snap_to, dependency_name, all_instances) {
     let expected = &snappable_instance.specifier;
@@ -451,8 +509,10 @@ fn get_snap_to_mismatches<'a>(
       .by_specifier
       .iter()
       .filter(|(actual, _)| *actual != expected)
-      .for_each(|specifier| {
-        mismatches.push((specifier, &snappable_instance));
+      .for_each(|target_instances| {
+        let mismatches_with = (expected.clone(), vec![snappable_instance]);
+        let target_instances = (target_instances.0.clone(), target_instances.1.clone());
+        mismatches.push((target_instances, mismatches_with));
       });
   }
   mismatches

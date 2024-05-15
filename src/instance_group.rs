@@ -5,7 +5,7 @@ use crate::instance::Instance;
 
 /// A reference to a group of instances of the same dependency which all have the
 /// same version specifier.
-pub type InstancesBySpecifier<'a> = (&'a String, &'a Vec<&'a Instance>);
+pub type InstancesBySpecifier<'a> = (String, Vec<&'a Instance>);
 
 #[derive(Debug)]
 pub struct InstanceGroup<'a> {
