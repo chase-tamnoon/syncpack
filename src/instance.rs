@@ -7,8 +7,12 @@ use crate::dependency_type::{DependencyType, Strategy};
 use crate::package_json::PackageJson;
 use crate::specifier::Specifier;
 
+pub type InstanceId = String;
+
 #[derive(Debug)]
 pub struct Instance {
+  /// A unique identifier for this instance
+  pub id: InstanceId,
   /// The dependency type to use to read/write this instance
   pub dependency_type: DependencyType,
   /// The file path of the package.json file this instance belongs to
@@ -34,6 +38,7 @@ impl<'a> Instance {
   ) -> Instance {
     let package_name = package.get_name();
     Instance {
+      id: format!("{}|{}|{}", package_name, dependency_type.name, name),
       dependency_type,
       file_path: package.file_path.clone(),
       is_local: package_name == name,
