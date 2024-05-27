@@ -2,7 +2,34 @@ use clap::{
   builder::ValueParser, crate_description, crate_name, crate_version, Arg, ArgMatches, Command,
 };
 
-pub fn create() -> Command {
+#[derive(Debug)]
+pub enum Subcommand {
+  Lint,
+  Fix,
+}
+
+pub struct Cli {
+  pub command_name: Subcommand,
+  pub options: CliOptions,
+}
+
+pub fn parse_input() -> Cli {
+  match create().get_matches().subcommand() {
+    Some(("lint", matches)) => Cli {
+      command_name: Subcommand::Lint,
+      options: get_cli_options(matches),
+    },
+    Some(("fix", matches)) => Cli {
+      command_name: Subcommand::Fix,
+      options: get_cli_options(matches),
+    },
+    _ => {
+      std::process::exit(1);
+    }
+  }
+}
+
+fn create() -> Command {
   Command::new(crate_name!())
     .about(crate_description!())
     .version(crate_version!())
@@ -99,7 +126,7 @@ pub struct CliOptions {
 
 /// returns which steps to run. if none are true, then all of them are returned
 /// as true. if any of them are true, then only those are returned as true.
-pub fn get_cli_options(matches: &ArgMatches) -> CliOptions {
+fn get_cli_options(matches: &ArgMatches) -> CliOptions {
   let use_format = matches.get_flag("format");
   let use_ranges = matches.get_flag("ranges");
   let use_versions = matches.get_flag("versions");

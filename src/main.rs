@@ -1,6 +1,7 @@
 #![allow(dead_code)]
 #![allow(unused_variables)]
 
+use cli::Subcommand;
 use colored::*;
 use itertools::Itertools;
 use std::{cmp::Ordering, io};
@@ -27,28 +28,14 @@ mod semver_group;
 mod specifier;
 mod version_group;
 
-#[derive(Debug)]
-enum Subcommand {
-  Lint,
-  Fix,
-}
-
 fn main() -> io::Result<()> {
   env_logger::init();
 
-  let subcommand = match cli::create().get_matches().subcommand() {
-    Some(("lint", matches)) => (Subcommand::Lint, cli::get_cli_options(matches)),
-    Some(("fix", matches)) => (Subcommand::Fix, cli::get_cli_options(matches)),
-    _ => {
-      std::process::exit(1);
-    }
-  };
-
-  let (command_name, cli_options) = &subcommand;
+  let cli = cli::parse_input();
   let cwd = std::env::current_dir()?;
   let rcfile = config::get(&cwd);
   let semver_groups = rcfile.get_semver_groups();
-  let packages = get_packages(&cwd, &cli_options, &rcfile);
+  let packages = get_packages(&cwd, &cli.options, &rcfile);
   let instances_by_id = packages.get_all_instances(&rcfile);
 
   let mut version_groups = rcfile.get_version_groups(&packages.all_names);
@@ -71,19 +58,19 @@ fn main() -> io::Result<()> {
   // everything is mutated and written when fixing
   let mut packages = packages;
 
-  let is_valid: bool = match command_name {
+  let is_valid: bool = match cli.command_name {
     Subcommand::Fix => {
       let effects = FixEffects {};
       let mut fix_is_valid = true;
 
-      match (cli_options.ranges, cli_options.versions) {
+      match (cli.options.ranges, cli.options.versions) {
         (true, true) => effects.on_begin_ranges_and_versions(),
         (true, false) => effects.on_begin_ranges_only(),
         (false, true) => effects.on_begin_versions_only(),
         (false, false) => effects.on_skip_ranges_and_versions(),
       };
 
-      if cli_options.ranges || cli_options.versions {
+      if cli.options.ranges || cli.options.versions {
         version_groups
           .iter()
           // fix snapped to groups last, so that the packages they're snapped to
@@ -106,7 +93,7 @@ fn main() -> io::Result<()> {
           });
       }
 
-      if cli_options.format {
+      if cli.options.format {
         effects.on_begin_format();
         let LintResult { valid, invalid } = format::lint(&rcfile, &mut packages);
         effects.on_formatted_packages(&valid, &cwd);
@@ -124,14 +111,14 @@ fn main() -> io::Result<()> {
       let effects = LintEffects {};
       let mut lint_is_valid = true;
 
-      match (cli_options.ranges, cli_options.versions) {
+      match (cli.options.ranges, cli.options.versions) {
         (true, true) => effects.on_begin_ranges_and_versions(),
         (true, false) => effects.on_begin_ranges_only(),
         (false, true) => effects.on_begin_versions_only(),
         (false, false) => effects.on_skip_ranges_and_versions(),
       };
 
-      if cli_options.ranges || cli_options.versions {
+      if cli.options.ranges || cli.options.versions {
         version_groups.iter().for_each(|group| {
           let group_is_valid = group.visit(&mut instances_by_id, &effects, &mut packages);
           if !group_is_valid {
@@ -140,7 +127,7 @@ fn main() -> io::Result<()> {
         });
       }
 
-      if cli_options.format {
+      if cli.options.format {
         effects.on_begin_format();
         let LintResult { valid, invalid } = format::lint(&rcfile, &mut packages);
         effects.on_formatted_packages(&valid, &cwd);
