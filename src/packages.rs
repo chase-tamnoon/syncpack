@@ -1,11 +1,28 @@
 use glob::glob;
-use std::path::PathBuf;
+use std::{collections::HashMap, path::PathBuf};
 
-use crate::{cli::CliOptions, config::Rcfile};
+use crate::{cli::CliOptions, config::Rcfile, json_file::read_json_file, package_json::Packages};
+
+/// Get every package.json file matched by the user's source patterns
+pub fn get_packages(cwd: &PathBuf, cli_options: &CliOptions, rcfile: &Rcfile) -> Packages {
+  let file_paths = get_file_paths(&cwd, &cli_options, &rcfile);
+  let mut packages = Packages {
+    all_names: vec![],
+    by_name: HashMap::new(),
+  };
+  for file_path in file_paths {
+    if let Ok(file) = read_json_file(&file_path) {
+      let name = file.get_name();
+      packages.all_names.push(name.clone());
+      packages.by_name.insert(name.clone(), file);
+    }
+  }
+  packages
+}
 
 /// Resolve every source glob pattern into their absolute file paths of
 /// package.json files
-pub fn get_file_paths(cwd: &PathBuf, cli_options: &CliOptions, rcfile: &Rcfile) -> Vec<PathBuf> {
+fn get_file_paths(cwd: &PathBuf, cli_options: &CliOptions, rcfile: &Rcfile) -> Vec<PathBuf> {
   get_source_patterns(cli_options, rcfile)
     .iter()
     .map(|pattern| {

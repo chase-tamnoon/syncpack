@@ -5,18 +5,12 @@ use colored::*;
 use config::Rcfile;
 use itertools::Itertools;
 use serde_json::Value;
-use std::{
-  cmp::Ordering,
-  collections::{BTreeMap, HashMap},
-  io,
-  path::PathBuf,
-};
+use std::{cmp::Ordering, collections::BTreeMap, io};
 
 use crate::{
   dependency_type::Strategy, effects::Effects, effects_fix::FixEffects, effects_lint::LintEffects,
-  file_paths::get_file_paths, format::LintResult, instance::Instance,
-  instance_group::InstancesById, json_file::read_json_file, package_json::Packages,
-  version_group::VersionGroupVariant,
+  format::LintResult, instance::Instance, instance_group::InstancesById, package_json::Packages,
+  packages::get_packages, version_group::VersionGroupVariant,
 };
 
 mod cli;
@@ -25,13 +19,13 @@ mod dependency_type;
 mod effects;
 mod effects_fix;
 mod effects_lint;
-mod file_paths;
 mod format;
 mod group_selector;
 mod instance;
 mod instance_group;
 mod json_file;
 mod package_json;
+mod packages;
 mod semver_group;
 mod specifier;
 mod version_group;
@@ -56,11 +50,10 @@ fn main() -> io::Result<()> {
   let (command_name, cli_options) = &subcommand;
   let cwd = std::env::current_dir()?;
   let rcfile = config::get(&cwd);
-  let file_paths = get_file_paths(&cwd, &cli_options, &rcfile);
   let semver_groups = rcfile.get_semver_groups();
 
   // all dependent on `packages`
-  let packages = get_packages(&file_paths);
+  let packages = get_packages(&cwd, &cli_options, &rcfile);
   let mut version_groups = rcfile.get_version_groups(&packages.all_names);
   let instances_by_id = get_all_instances(&packages, &rcfile);
 
@@ -174,22 +167,6 @@ fn main() -> io::Result<()> {
     println!("{} {}", "\n✘".red(), "syncpack found errors");
     std::process::exit(1);
   }
-}
-
-/// Get every package.json file matched by the user's source patterns
-fn get_packages(file_paths: &Vec<PathBuf>) -> Packages {
-  let mut packages = Packages {
-    all_names: vec![],
-    by_name: HashMap::new(),
-  };
-  for file_path in file_paths {
-    if let Ok(file) = read_json_file(&file_path) {
-      let name = file.get_name();
-      packages.all_names.push(name.clone());
-      packages.by_name.insert(name.clone(), file);
-    }
-  }
-  packages
 }
 
 /// Get every instance of a dependency from every package.json file
