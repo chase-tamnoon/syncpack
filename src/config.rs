@@ -1,4 +1,5 @@
 use colored::*;
+use log::info;
 use regex::Regex;
 use serde::Deserialize;
 use std::{
@@ -293,7 +294,7 @@ pub fn get(cwd: &path::PathBuf) -> Rcfile {
   let file_path = cwd.join(short_path);
   fs::read_to_string(&file_path)
     .inspect_err(|_| {
-      println!(
+      info!(
         "{}",
         format!(
           "? using default config: {} not found",

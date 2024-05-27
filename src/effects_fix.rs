@@ -1,4 +1,5 @@
 use colored::*;
+use log::info;
 use std::path::PathBuf;
 
 use crate::{
@@ -52,7 +53,7 @@ impl Effects for FixEffects {
 
   fn on_invalid_same_range_instance_group(&self, instance_group: &InstanceGroup) {
     let count = render_count_column(instance_group.all.len());
-    println!("{} {}", count, instance_group.name.red());
+    info!("{} {}", count, instance_group.name.red());
   }
 
   fn on_valid_snap_to_instance_group(&self, _instance_group: &InstanceGroup) {}
@@ -65,7 +66,7 @@ impl Effects for FixEffects {
     // show name above unsupported mismatches
     if !instance_group.non_semver.is_empty() {
       let count = render_count_column(instance_group.all.len());
-      println!("{} {}", count, instance_group.name.red());
+      info!("{} {}", count, instance_group.name.red());
     }
   }
 
@@ -94,7 +95,7 @@ impl Effects for FixEffects {
   }
 
   fn on_same_range_mismatch(&self, event: &mut InstanceEvent) {
-    println!(
+    info!(
       "      {} {} {} {} {}",
       "✘".red(),
       event.mismatches_with.0.red(),
@@ -117,7 +118,7 @@ impl Effects for FixEffects {
   fn on_unsupported_mismatch(&self, event: &mut InstanceEvent) {
     let icon = "✘".red();
     let arrow = "→".dimmed();
-    println!(
+    info!(
       "      {} {} {} {} {}",
       icon,
       event.target.0.red(),

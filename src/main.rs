@@ -2,8 +2,14 @@
 #![allow(unused_variables)]
 
 use colored::*;
+use env_logger::Builder;
 use itertools::Itertools;
-use std::{cmp::Ordering, collections::BTreeMap, io};
+use log::{info, Level, LevelFilter};
+use std::{
+  cmp::Ordering,
+  collections::BTreeMap,
+  io::{self, Write},
+};
 
 use crate::{
   cli::Subcommand, effects::Effects, effects_fix::FixEffects, effects_lint::LintEffects,
@@ -29,7 +35,7 @@ mod specifier;
 mod version_group;
 
 fn main() -> io::Result<()> {
-  env_logger::init();
+  init_logger();
 
   let cli = cli::parse_input();
   let cwd = std::env::current_dir()?;
@@ -39,6 +45,8 @@ fn main() -> io::Result<()> {
 
   let mut version_groups = rcfile.get_version_groups(&packages.all_names);
   let mut instances_by_id: InstancesById = BTreeMap::new();
+
+  // @TODO add some debug!("{}", logs);
 
   packages.get_all_instances(&rcfile, |instance| {
     // assign every instance to the first group it matches
@@ -144,10 +152,26 @@ fn main() -> io::Result<()> {
   // @TODO: when fixing and unfixable errors happen, explain them to the user
 
   if is_valid {
-    println!("{} {}", "\n✓".green(), "syncpack found no errors");
+    info!("{} {}", "\n✓".green(), "syncpack found no errors");
     std::process::exit(0);
   } else {
-    println!("{} {}", "\n✘".red(), "syncpack found errors");
+    info!("{} {}", "\n✘".red(), "syncpack found errors");
     std::process::exit(1);
   }
+}
+
+fn init_logger() {
+  Builder::new()
+    // @TODO expose cli and rcfile options for log level
+    .filter_level(LevelFilter::Info)
+    .format(|buf, record| {
+      let level = record.level();
+      if level == Level::Info {
+        writeln!(buf, "{}", record.args())
+      } else {
+        // @TODO apply colours to log levels
+        writeln!(buf, "[{level}] {}", record.args())
+      }
+    })
+    .init();
 }

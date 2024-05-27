@@ -1,4 +1,5 @@
 use colored::*;
+use log::info;
 use std::path::PathBuf;
 
 use crate::{
@@ -16,21 +17,21 @@ impl Effects for LintEffects {
   // ===========================================================================
 
   fn on_begin_format(&self) {
-    println!("{}", "= FORMATTING".dimmed());
+    info!("{}", "= FORMATTING".dimmed());
   }
 
   fn on_skip_ranges_and_versions(&self) {}
 
   fn on_begin_ranges_and_versions(&self) {
-    println!("{}", "= SEMVER RANGES AND VERSION MISMATCHES".dimmed());
+    info!("{}", "= SEMVER RANGES AND VERSION MISMATCHES".dimmed());
   }
 
   fn on_begin_ranges_only(&self) {
-    println!("{}", "= SEMVER RANGES".dimmed());
+    info!("{}", "= SEMVER RANGES".dimmed());
   }
 
   fn on_begin_versions_only(&self) {
-    println!("{}", "= VERSION MISMATCHES".dimmed());
+    info!("{}", "= VERSION MISMATCHES".dimmed());
   }
 
   // ===========================================================================
@@ -39,7 +40,7 @@ impl Effects for LintEffects {
 
   fn on_formatted_packages(&self, valid_packages: &Vec<&PackageJson>, _cwd: &PathBuf) {
     if !valid_packages.is_empty() {
-      println!(
+      info!(
         "{} {} valid formatting",
         render_count_column(valid_packages.len()),
         "✓".green()
@@ -49,13 +50,13 @@ impl Effects for LintEffects {
 
   fn on_unformatted_packages(&self, invalid_packages: &Vec<&PackageJson>, cwd: &PathBuf) {
     if !invalid_packages.is_empty() {
-      println!(
+      info!(
         "{} {}",
         render_count_column(invalid_packages.len()),
         "invalid formatting".red()
       );
       invalid_packages.iter().for_each(|package| {
-        println!(
+        info!(
           "      {} {}",
           "✘".red(),
           package.get_relative_file_path(&cwd).red()
@@ -77,7 +78,7 @@ impl Effects for LintEffects {
       "".to_string()
     };
     let full_header = format!("{}{}", header, divider);
-    println!("{}", full_header.blue());
+    info!("{}", full_header.blue());
   }
 
   // ===========================================================================
@@ -86,7 +87,7 @@ impl Effects for LintEffects {
 
   fn on_ignored_instance_group(&self, instance_group: &InstanceGroup) {
     let count = render_count_column(instance_group.all.len());
-    println!(
+    info!(
       "{} {} {}",
       count,
       instance_group.name.dimmed(),
@@ -96,7 +97,7 @@ impl Effects for LintEffects {
 
   fn on_banned_instance_group(&self, instance_group: &InstanceGroup) {
     let count = render_count_column(instance_group.all.len());
-    println!("{} {}", count, instance_group.name.red());
+    info!("{} {}", count, instance_group.name.red());
   }
 
   fn on_valid_pinned_instance_group(&self, instance_group: &InstanceGroup) {
@@ -105,27 +106,27 @@ impl Effects for LintEffects {
 
   fn on_invalid_pinned_instance_group(&self, instance_group: &InstanceGroup) {
     let count = render_count_column(instance_group.all.len());
-    println!("{} {}", count, instance_group.name.red());
+    info!("{} {}", count, instance_group.name.red());
   }
 
   fn on_valid_same_range_instance_group(&self, instance_group: &InstanceGroup) {
     let count = render_count_column(instance_group.all.len());
-    println!("{} {}", count, instance_group.name);
+    info!("{} {}", count, instance_group.name);
   }
 
   fn on_invalid_same_range_instance_group(&self, instance_group: &InstanceGroup) {
     let count = render_count_column(instance_group.all.len());
-    println!("{} {}", count, instance_group.name.red());
+    info!("{} {}", count, instance_group.name.red());
   }
 
   fn on_valid_snap_to_instance_group(&self, instance_group: &InstanceGroup) {
     let count = render_count_column(instance_group.all.len());
-    println!("{} {}", count, instance_group.name);
+    info!("{} {}", count, instance_group.name);
   }
 
   fn on_invalid_snap_to_instance_group(&self, instance_group: &InstanceGroup) {
     let count = render_count_column(instance_group.all.len());
-    println!("{} {}", count, instance_group.name.red());
+    info!("{} {}", count, instance_group.name.red());
   }
 
   fn on_valid_standard_instance_group(&self, instance_group: &InstanceGroup) {
@@ -134,7 +135,7 @@ impl Effects for LintEffects {
 
   fn on_invalid_standard_instance_group(&self, instance_group: &InstanceGroup) {
     let count = render_count_column(instance_group.all.len());
-    println!("{} {}", count, instance_group.name.red());
+    info!("{} {}", count, instance_group.name.red());
   }
 
   // ===========================================================================
@@ -143,7 +144,7 @@ impl Effects for LintEffects {
 
   fn on_banned_instance(&self, event: &mut InstanceEvent) {
     let icon = "✘".red();
-    println!(
+    info!(
       "      {} {} {}",
       icon,
       event.target.0.red(),
@@ -155,7 +156,7 @@ impl Effects for LintEffects {
     let icon = "✘".red();
     let arrow = "→".dimmed();
     let expected = event.instance_group.expected_version.as_ref().unwrap();
-    println!(
+    info!(
       "      {} {} {} {} {}",
       icon,
       event.target.0.red(),
@@ -166,7 +167,7 @@ impl Effects for LintEffects {
   }
 
   fn on_same_range_mismatch(&self, event: &mut InstanceEvent) {
-    println!(
+    info!(
       "      {} {} {} {} {}",
       "✘".red(),
       event.mismatches_with.0.red(),
@@ -182,7 +183,7 @@ impl Effects for LintEffects {
     mismatches_with.iter().for_each(|snapped_to_instance_id| {
       let icon = "✘".red();
       let arrow = "→".dimmed();
-      println!(
+      info!(
         "      {} {} {} {} {}",
         icon,
         event.target.0.red(),
@@ -197,7 +198,7 @@ impl Effects for LintEffects {
     let icon = "✘".red();
     let arrow = "→".dimmed();
     let expected = event.instance_group.expected_version.as_ref().unwrap();
-    println!(
+    info!(
       "      {} {} {} {} {}",
       icon,
       event.target.0.red(),
@@ -210,7 +211,7 @@ impl Effects for LintEffects {
   fn on_unsupported_mismatch(&self, event: &mut InstanceEvent) {
     let icon = "✘".red();
     let arrow = "→".dimmed();
-    println!(
+    info!(
       "      {} {} {} {} {}",
       icon,
       event.target.0.red(),
@@ -224,7 +225,7 @@ impl Effects for LintEffects {
     let icon = "✘".red();
     let arrow = "→".dimmed();
     let expected = event.instance_group.expected_version.as_ref().unwrap();
-    println!(
+    info!(
       "      {} {} {} {} {}",
       icon,
       event.target.0.red(),
@@ -238,7 +239,7 @@ impl Effects for LintEffects {
     let icon = "✘".red();
     let arrow = "→".dimmed();
     let expected = event.instance_group.expected_version.as_ref().unwrap();
-    println!(
+    info!(
       "      {} {} {} {} {}",
       icon,
       event.target.0.red(),
@@ -258,5 +259,5 @@ pub fn render_count_column(count: usize) -> ColoredString {
 fn print_version_match(instance_group: &InstanceGroup) {
   let count = render_count_column(instance_group.all.len());
   let (version, _) = instance_group.by_specifier.iter().next().unwrap();
-  println!("{} {} {}", count, instance_group.name, &version.dimmed());
+  info!("{} {} {}", count, instance_group.name, &version.dimmed());
 }
