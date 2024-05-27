@@ -2,8 +2,8 @@
 #![allow(unused_variables)]
 
 use colored::*;
+use config::Rcfile;
 use itertools::Itertools;
-use regex::Regex;
 use serde_json::Value;
 use std::{
   cmp::Ordering,
@@ -13,16 +13,9 @@ use std::{
 };
 
 use crate::{
-  dependency_type::{DependencyType, Strategy},
-  effects::Effects,
-  effects_fix::FixEffects,
-  effects_lint::LintEffects,
-  file_paths::get_file_paths,
-  format::LintResult,
-  instance::Instance,
-  instance_group::InstancesById,
-  json_file::read_json_file,
-  package_json::Packages,
+  dependency_type::Strategy, effects::Effects, effects_fix::FixEffects, effects_lint::LintEffects,
+  file_paths::get_file_paths, format::LintResult, instance::Instance,
+  instance_group::InstancesById, json_file::read_json_file, package_json::Packages,
   version_group::VersionGroupVariant,
 };
 
@@ -63,15 +56,13 @@ fn main() -> io::Result<()> {
   let (command_name, cli_options) = &subcommand;
   let cwd = std::env::current_dir()?;
   let rcfile = config::get(&cwd);
-  let filter = rcfile.get_filter();
-  let dependency_types = rcfile.get_enabled_dependency_types();
   let file_paths = get_file_paths(&cwd, &cli_options, &rcfile);
   let semver_groups = rcfile.get_semver_groups();
 
   // all dependent on `packages`
   let packages = get_packages(&file_paths);
   let mut version_groups = rcfile.get_version_groups(&packages.all_names);
-  let instances_by_id = get_all_instances(&packages, &dependency_types, &filter);
+  let instances_by_id = get_all_instances(&packages, &rcfile);
 
   // assign every instance to the first group it matches
   instances_by_id.iter().for_each(|(_, instance)| {
@@ -202,11 +193,9 @@ fn get_packages(file_paths: &Vec<PathBuf>) -> Packages {
 }
 
 /// Get every instance of a dependency from every package.json file
-fn get_all_instances(
-  packages: &Packages,
-  dependency_types: &Vec<DependencyType>,
-  filter: &Regex,
-) -> InstancesById {
+fn get_all_instances(packages: &Packages, rcfile: &Rcfile) -> InstancesById {
+  let filter = &rcfile.get_filter();
+  let dependency_types = &rcfile.get_enabled_dependency_types();
   let mut instances_by_id: InstancesById = BTreeMap::new();
   for package in packages.by_name.values() {
     for dependency_type in dependency_types {
