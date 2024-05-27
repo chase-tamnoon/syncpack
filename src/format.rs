@@ -6,10 +6,7 @@ use regex::Regex;
 use serde_json::{self, json, Map, Value};
 use std::{cmp::Ordering, collections::HashSet};
 
-use crate::{
-  config::Rcfile,
-  package_json::{PackageJson, Packages},
-};
+use crate::{config::Rcfile, package_json::PackageJson, packages::Packages};
 
 pub struct LintResult<'a> {
   pub invalid: Vec<&'a PackageJson>,

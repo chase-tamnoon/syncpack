@@ -1,11 +1,6 @@
 use serde::Serialize;
 use serde_json::{ser::PrettyFormatter, Serializer};
-use std::{collections::HashMap, path::PathBuf};
-
-pub struct Packages {
-  pub all_names: Vec<String>,
-  pub by_name: HashMap<String, PackageJson>,
-}
+use std::path::PathBuf;
 
 #[derive(Clone, Debug)]
 pub struct PackageJson {

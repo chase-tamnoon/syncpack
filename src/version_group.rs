@@ -8,7 +8,7 @@ use crate::{
   group_selector::GroupSelector,
   instance::Instance,
   instance_group::{InstanceGroup, InstanceIdsBySpecifier, InstancesById},
-  package_json::Packages,
+  packages::Packages,
   semver_group::SemverGroup,
 };
 

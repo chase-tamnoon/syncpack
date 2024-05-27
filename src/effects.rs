@@ -3,7 +3,8 @@ use std::path::PathBuf;
 use crate::{
   group_selector::GroupSelector,
   instance_group::{InstanceGroup, InstanceIdsBySpecifier, InstancesById},
-  package_json::{PackageJson, Packages},
+  package_json::PackageJson,
+  packages::Packages,
 };
 
 pub struct InstanceEvent<'a> {

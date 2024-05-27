@@ -1,7 +1,99 @@
 use glob::glob;
-use std::{collections::HashMap, path::PathBuf};
+use serde_json::Value;
+use std::{
+  collections::{BTreeMap, HashMap},
+  path::PathBuf,
+};
 
-use crate::{cli::CliOptions, config::Rcfile, json_file::read_json_file, package_json::Packages};
+use crate::{
+  cli::CliOptions, config::Rcfile, dependency_type::Strategy, instance::Instance,
+  instance_group::InstancesById, json_file::read_json_file, package_json::PackageJson,
+};
+
+pub struct Packages {
+  pub all_names: Vec<String>,
+  pub by_name: HashMap<String, PackageJson>,
+}
+
+impl Packages {
+  /// Get every instance of a dependency from every package.json file
+  pub fn get_all_instances(&self, rcfile: &Rcfile) -> InstancesById {
+    let filter = &rcfile.get_filter();
+    let dependency_types = &rcfile.get_enabled_dependency_types();
+    let mut instances_by_id: InstancesById = BTreeMap::new();
+    for package in self.by_name.values() {
+      for dependency_type in dependency_types {
+        match dependency_type.strategy {
+          Strategy::NameAndVersionProps => {
+            if let (Some(Value::String(name)), Some(Value::String(version))) = (
+              package.get_prop(&dependency_type.name_path.as_ref().unwrap()),
+              package.get_prop(&dependency_type.path),
+            ) {
+              if filter.is_match(name) {
+                let instance = Instance::new(
+                  name.to_string(),
+                  version.to_string(),
+                  dependency_type.clone(),
+                  &package,
+                );
+                instances_by_id.insert(instance.id.clone(), instance);
+              }
+            }
+          }
+          Strategy::NamedVersionString => {
+            if let Some(Value::String(specifier)) = package.get_prop(&dependency_type.path) {
+              if let Some((name, version)) = specifier.split_once('@') {
+                if filter.is_match(name) {
+                  let instance = Instance::new(
+                    name.to_string(),
+                    version.to_string(),
+                    dependency_type.clone(),
+                    &package,
+                  );
+                  instances_by_id.insert(instance.id.clone(), instance);
+                }
+              }
+            }
+          }
+          Strategy::UnnamedVersionString => {
+            if let Some(Value::String(version)) = package.get_prop(&dependency_type.path) {
+              if filter.is_match(&dependency_type.name) {
+                let instance = Instance::new(
+                  dependency_type.name.clone(),
+                  version.to_string(),
+                  dependency_type.clone(),
+                  &package,
+                );
+                instances_by_id.insert(instance.id.clone(), instance);
+              }
+            }
+          }
+          Strategy::VersionsByName => {
+            if let Some(Value::Object(versions_by_name)) = package.get_prop(&dependency_type.path) {
+              for (name, version) in versions_by_name {
+                if filter.is_match(name) {
+                  if let Value::String(version) = version {
+                    let instance = Instance::new(
+                      name.to_string(),
+                      version.to_string(),
+                      dependency_type.clone(),
+                      &package,
+                    );
+                    instances_by_id.insert(instance.id.clone(), instance);
+                  }
+                }
+              }
+            }
+          }
+          Strategy::InvalidConfig => {
+            panic!("unrecognised strategy");
+          }
+        };
+      }
+    }
+    instances_by_id
+  }
+}
 
 /// Get every package.json file matched by the user's source patterns
 pub fn get_packages(cwd: &PathBuf, cli_options: &CliOptions, rcfile: &Rcfile) -> Packages {

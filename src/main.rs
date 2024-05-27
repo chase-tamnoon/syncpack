@@ -2,14 +2,11 @@
 #![allow(unused_variables)]
 
 use colored::*;
-use config::Rcfile;
 use itertools::Itertools;
-use serde_json::Value;
-use std::{cmp::Ordering, collections::BTreeMap, io};
+use std::{cmp::Ordering, io};
 
 use crate::{
-  dependency_type::Strategy, effects::Effects, effects_fix::FixEffects, effects_lint::LintEffects,
-  format::LintResult, instance::Instance, instance_group::InstancesById, package_json::Packages,
+  effects::Effects, effects_fix::FixEffects, effects_lint::LintEffects, format::LintResult,
   packages::get_packages, version_group::VersionGroupVariant,
 };
 
@@ -51,11 +48,10 @@ fn main() -> io::Result<()> {
   let cwd = std::env::current_dir()?;
   let rcfile = config::get(&cwd);
   let semver_groups = rcfile.get_semver_groups();
-
-  // all dependent on `packages`
   let packages = get_packages(&cwd, &cli_options, &rcfile);
+  let instances_by_id = packages.get_all_instances(&rcfile);
+
   let mut version_groups = rcfile.get_version_groups(&packages.all_names);
-  let instances_by_id = get_all_instances(&packages, &rcfile);
 
   // assign every instance to the first group it matches
   instances_by_id.iter().for_each(|(_, instance)| {
@@ -167,82 +163,4 @@ fn main() -> io::Result<()> {
     println!("{} {}", "\n✘".red(), "syncpack found errors");
     std::process::exit(1);
   }
-}
-
-/// Get every instance of a dependency from every package.json file
-fn get_all_instances(packages: &Packages, rcfile: &Rcfile) -> InstancesById {
-  let filter = &rcfile.get_filter();
-  let dependency_types = &rcfile.get_enabled_dependency_types();
-  let mut instances_by_id: InstancesById = BTreeMap::new();
-  for package in packages.by_name.values() {
-    for dependency_type in dependency_types {
-      match dependency_type.strategy {
-        Strategy::NameAndVersionProps => {
-          if let (Some(Value::String(name)), Some(Value::String(version))) = (
-            package.get_prop(&dependency_type.name_path.as_ref().unwrap()),
-            package.get_prop(&dependency_type.path),
-          ) {
-            if filter.is_match(name) {
-              let instance = Instance::new(
-                name.to_string(),
-                version.to_string(),
-                dependency_type.clone(),
-                &package,
-              );
-              instances_by_id.insert(instance.id.clone(), instance);
-            }
-          }
-        }
-        Strategy::NamedVersionString => {
-          if let Some(Value::String(specifier)) = package.get_prop(&dependency_type.path) {
-            if let Some((name, version)) = specifier.split_once('@') {
-              if filter.is_match(name) {
-                let instance = Instance::new(
-                  name.to_string(),
-                  version.to_string(),
-                  dependency_type.clone(),
-                  &package,
-                );
-                instances_by_id.insert(instance.id.clone(), instance);
-              }
-            }
-          }
-        }
-        Strategy::UnnamedVersionString => {
-          if let Some(Value::String(version)) = package.get_prop(&dependency_type.path) {
-            if filter.is_match(&dependency_type.name) {
-              let instance = Instance::new(
-                dependency_type.name.clone(),
-                version.to_string(),
-                dependency_type.clone(),
-                &package,
-              );
-              instances_by_id.insert(instance.id.clone(), instance);
-            }
-          }
-        }
-        Strategy::VersionsByName => {
-          if let Some(Value::Object(versions_by_name)) = package.get_prop(&dependency_type.path) {
-            for (name, version) in versions_by_name {
-              if filter.is_match(name) {
-                if let Value::String(version) = version {
-                  let instance = Instance::new(
-                    name.to_string(),
-                    version.to_string(),
-                    dependency_type.clone(),
-                    &package,
-                  );
-                  instances_by_id.insert(instance.id.clone(), instance);
-                }
-              }
-            }
-          }
-        }
-        Strategy::InvalidConfig => {
-          panic!("unrecognised strategy");
-        }
-      };
-    }
-  }
-  instances_by_id
 }
