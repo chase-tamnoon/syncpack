@@ -67,12 +67,11 @@ fn main() -> io::Result<()> {
   let rcfile = config::get(&cwd);
   let filter = rcfile.get_filter();
   let dependency_types = Rcfile::get_enabled_dependency_types(&rcfile);
-  let source_patterns = get_source_patterns(&cli_options, &rcfile);
-  let absolute_file_paths = get_file_paths(&cwd, &source_patterns);
+  let file_paths = get_file_paths(&cwd, &cli_options, &rcfile);
   let semver_groups = SemverGroup::from_rcfile(&rcfile);
 
   // all dependent on `packages`
-  let packages = get_packages(&absolute_file_paths);
+  let packages = get_packages(&file_paths);
   let mut version_groups = VersionGroup::from_rcfile(&rcfile, &packages.all_names);
   let instances_by_id = get_all_instances(&packages, &dependency_types, &filter);
 
@@ -188,6 +187,30 @@ fn main() -> io::Result<()> {
   }
 }
 
+/// Resolve every source glob pattern into their absolute file paths of
+/// package.json files
+fn get_file_paths(cwd: &PathBuf, cli_options: &CliOptions, rcfile: &Rcfile) -> Vec<PathBuf> {
+  get_source_patterns(cli_options, rcfile)
+    .iter()
+    .map(|pattern| {
+      if PathBuf::from(pattern).is_absolute() {
+        pattern.clone()
+      } else {
+        cwd.join(pattern).to_str().unwrap().to_string()
+      }
+    })
+    .flat_map(|pattern| glob(&pattern).ok())
+    .flat_map(|paths| {
+      paths
+        .filter_map(Result::ok)
+        .fold(vec![], |mut paths, path| {
+          paths.push(path.clone());
+          paths
+        })
+    })
+    .collect()
+}
+
 /// Based on the user's config file and command line `--source` options, return
 /// the source glob patterns which should be used to resolve package.json files
 fn get_source_patterns(cli_options: &CliOptions, rcfile: &Rcfile) -> Vec<String> {
@@ -238,30 +261,6 @@ fn get_default_patterns() -> Option<Vec<String>> {
     String::from("package.json"),
     String::from("packages/*/package.json"),
   ])
-}
-
-/// Resolve every source glob pattern into their absolute file paths of
-/// package.json files
-fn get_file_paths(cwd: &PathBuf, source_patterns: &Vec<String>) -> Vec<PathBuf> {
-  source_patterns
-    .iter()
-    .map(|pattern| {
-      if PathBuf::from(pattern).is_absolute() {
-        pattern.clone()
-      } else {
-        cwd.join(pattern).to_str().unwrap().to_string()
-      }
-    })
-    .flat_map(|pattern| glob(&pattern).ok())
-    .flat_map(|paths| {
-      paths
-        .filter_map(Result::ok)
-        .fold(vec![], |mut paths, path| {
-          paths.push(path.clone());
-          paths
-        })
-    })
-    .collect()
 }
 
 /// Get every package.json file matched by the user's source patterns
