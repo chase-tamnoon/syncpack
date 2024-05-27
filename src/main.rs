@@ -41,7 +41,7 @@ fn main() -> io::Result<()> {
   let mut version_groups = rcfile.get_version_groups(&packages.all_names);
 
   // assign every instance to the first group it matches
-  instances_by_id.iter().for_each(|(_, instance)| {
+  instances_by_id.values().for_each(|instance| {
     let semver_group = semver_groups
       .iter()
       .find(|semver_group| semver_group.selector.can_add(instance));
