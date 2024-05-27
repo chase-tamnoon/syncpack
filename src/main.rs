@@ -67,7 +67,7 @@ fn main() -> io::Result<()> {
   let rcfile = config::get(&cwd);
   let filter = rcfile.get_filter();
   let dependency_types = Rcfile::get_enabled_dependency_types(&rcfile);
-  let source_patterns = get_enabled_source_patterns(&cli_options, &rcfile);
+  let source_patterns = get_source_patterns(&cli_options, &rcfile);
   let absolute_file_paths = get_file_paths(&cwd, &source_patterns);
   let semver_groups = SemverGroup::from_rcfile(&rcfile);
 
@@ -190,18 +190,54 @@ fn main() -> io::Result<()> {
 
 /// Based on the user's config file and command line `--source` options, return
 /// the source glob patterns which should be used to resolve package.json files
-fn get_enabled_source_patterns(cli_options: &CliOptions, rcfile: &Rcfile) -> Vec<String> {
-  Some(cli_options.source.clone())
-    .filter(|list| !list.is_empty())
-    .or_else(|| Some(rcfile.source.clone()))
-    .filter(|list| !list.is_empty())
-    .or_else(|| {
-      Some(vec![
-        String::from("package.json"),
-        String::from("packages/*/package.json"),
-      ])
-    })
-    .unwrap_or(vec![])
+fn get_source_patterns(cli_options: &CliOptions, rcfile: &Rcfile) -> Vec<String> {
+  get_cli_patterns(cli_options)
+    .or_else(|| get_rcfile_patterns(rcfile))
+    .or_else(get_npm_patterns)
+    .or_else(get_pnpm_patterns)
+    .or_else(get_yarn_patterns)
+    .or_else(get_lerna_patterns)
+    .or_else(get_default_patterns)
+    .unwrap()
+}
+
+fn get_cli_patterns(cli_options: &CliOptions) -> Option<Vec<String>> {
+  if cli_options.source.is_empty() {
+    return None;
+  } else {
+    return Some(cli_options.source.clone());
+  }
+}
+
+fn get_rcfile_patterns(rcfile: &Rcfile) -> Option<Vec<String>> {
+  if rcfile.source.is_empty() {
+    return None;
+  } else {
+    return Some(rcfile.source.clone());
+  }
+}
+
+fn get_npm_patterns() -> Option<Vec<String>> {
+  None
+}
+
+fn get_pnpm_patterns() -> Option<Vec<String>> {
+  None
+}
+
+fn get_yarn_patterns() -> Option<Vec<String>> {
+  None
+}
+
+fn get_lerna_patterns() -> Option<Vec<String>> {
+  None
+}
+
+fn get_default_patterns() -> Option<Vec<String>> {
+  Some(vec![
+    String::from("package.json"),
+    String::from("packages/*/package.json"),
+  ])
 }
 
 /// Resolve every source glob pattern into their absolute file paths of
