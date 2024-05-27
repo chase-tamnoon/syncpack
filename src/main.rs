@@ -1,15 +1,14 @@
 #![allow(dead_code)]
 #![allow(unused_variables)]
 
-use cli::Subcommand;
 use colored::*;
-use instance_group::InstancesById;
 use itertools::Itertools;
 use std::{cmp::Ordering, collections::BTreeMap, io};
 
 use crate::{
-  effects::Effects, effects_fix::FixEffects, effects_lint::LintEffects, format::LintResult,
-  packages::get_packages, version_group::VersionGroupVariant,
+  cli::Subcommand, effects::Effects, effects_fix::FixEffects, effects_lint::LintEffects,
+  format::LintResult, instance_group::InstancesById, packages::get_packages,
+  version_group::VersionGroupVariant,
 };
 
 mod cli;
