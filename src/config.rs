@@ -109,11 +109,11 @@ impl Rcfile {
     Regex::new(&self.filter).expect("filter config value is not a valid Regex string")
   }
 
-  pub fn get_enabled_dependency_types(rcfile: &Rcfile) -> Vec<dependency_type::DependencyType> {
+  pub fn get_enabled_dependency_types(&self) -> Vec<dependency_type::DependencyType> {
     // Dependency type names referenced in the rcfile
-    let named_types = &rcfile.dependency_types;
+    let named_types = &self.dependency_types;
     // Custom dependency types defined in the rcfile
-    let custom_types = &rcfile.custom_types;
+    let custom_types = &self.custom_types;
     // Internal dependency types are also defined as custom types
     let default_types = get_default_dependency_types();
     // Collect which dependency types are enabled

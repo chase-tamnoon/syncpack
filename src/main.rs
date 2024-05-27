@@ -13,7 +13,6 @@ use std::{
 };
 
 use crate::{
-  config::Rcfile,
   dependency_type::{DependencyType, Strategy},
   effects::Effects,
   effects_fix::FixEffects,
@@ -66,7 +65,7 @@ fn main() -> io::Result<()> {
   let cwd = std::env::current_dir()?;
   let rcfile = config::get(&cwd);
   let filter = rcfile.get_filter();
-  let dependency_types = Rcfile::get_enabled_dependency_types(&rcfile);
+  let dependency_types = rcfile.get_enabled_dependency_types();
   let file_paths = get_file_paths(&cwd, &cli_options, &rcfile);
   let semver_groups = SemverGroup::from_rcfile(&rcfile);
 
