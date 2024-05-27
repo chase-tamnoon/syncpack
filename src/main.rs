@@ -23,7 +23,6 @@ use crate::{
   instance_group::InstancesById,
   json_file::read_json_file,
   package_json::Packages,
-  semver_group::SemverGroup,
   version_group::{VersionGroup, VersionGroupVariant},
 };
 
@@ -67,7 +66,7 @@ fn main() -> io::Result<()> {
   let filter = rcfile.get_filter();
   let dependency_types = rcfile.get_enabled_dependency_types();
   let file_paths = get_file_paths(&cwd, &cli_options, &rcfile);
-  let semver_groups = SemverGroup::from_rcfile(&rcfile);
+  let semver_groups = &rcfile.get_semver_groups();
 
   // all dependent on `packages`
   let packages = get_packages(&file_paths);

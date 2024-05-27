@@ -1,6 +1,6 @@
 use serde::Deserialize;
 
-use crate::{config, group_selector::GroupSelector};
+use crate::group_selector::GroupSelector;
 
 #[derive(Debug)]
 pub struct SemverGroup {
@@ -20,28 +20,6 @@ pub enum SemverGroupVariant {
 }
 
 impl SemverGroup {
-  /// Create every version group defined in the rcfile.
-  pub fn from_rcfile(rcfile: &config::Rcfile) -> Vec<SemverGroup> {
-    let mut user_groups: Vec<SemverGroup> = rcfile
-      .semver_groups
-      .iter()
-      .map(|group| SemverGroup::from_config(group))
-      .collect();
-    let catch_all_group = SemverGroup {
-      variant: SemverGroupVariant::WithRange,
-      selector: GroupSelector::new(
-        /*include_dependencies:*/ vec![],
-        /*include_dependency_types:*/ vec![],
-        /*label:*/ "Default Semver Group".to_string(),
-        /*include_packages:*/ vec![],
-        /*include_specifier_types:*/ vec![],
-      ),
-      range: Some("".to_string()),
-    };
-    user_groups.push(catch_all_group);
-    user_groups
-  }
-
   /// Create a single version group from a config item from the rcfile.
   pub fn from_config(group: &AnySemverGroup) -> SemverGroup {
     let selector = GroupSelector::new(

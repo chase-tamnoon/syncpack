@@ -3,7 +3,12 @@ use regex::Regex;
 use serde::Deserialize;
 use std::{collections::HashMap, fs, path};
 
-use crate::{dependency_type, semver_group, version_group};
+use crate::{
+  dependency_type,
+  group_selector::GroupSelector,
+  semver_group::{self, SemverGroup, SemverGroupVariant},
+  version_group,
+};
 
 fn empty_custom_types() -> HashMap<String, CustomType> {
   HashMap::new()
@@ -160,6 +165,28 @@ impl Rcfile {
     });
 
     dependency_types
+  }
+
+  /// Create every semver group defined in the rcfile.
+  pub fn get_semver_groups(&self) -> Vec<SemverGroup> {
+    let mut user_groups: Vec<SemverGroup> = self
+      .semver_groups
+      .iter()
+      .map(|group| SemverGroup::from_config(group))
+      .collect();
+    let catch_all_group = SemverGroup {
+      variant: SemverGroupVariant::WithRange,
+      selector: GroupSelector::new(
+        /*include_dependencies:*/ vec![],
+        /*include_dependency_types:*/ vec![],
+        /*label:*/ "Default Semver Group".to_string(),
+        /*include_packages:*/ vec![],
+        /*include_specifier_types:*/ vec![],
+      ),
+      range: Some("".to_string()),
+    };
+    user_groups.push(catch_all_group);
+    user_groups
   }
 }
 
