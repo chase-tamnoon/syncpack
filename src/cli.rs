@@ -2,10 +2,6 @@ use clap::{
   builder::ValueParser, crate_description, crate_name, crate_version, Arg, ArgMatches, Command,
 };
 
-extern crate glob;
-extern crate serde;
-extern crate serde_json;
-
 pub fn create() -> Command {
   Command::new(crate_name!())
     .about(crate_description!())

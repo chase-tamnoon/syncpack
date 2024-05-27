@@ -1,7 +1,6 @@
 use serde::Deserialize;
 
-use crate::config;
-use crate::group_selector::GroupSelector;
+use crate::{config, group_selector::GroupSelector};
 
 #[derive(Debug)]
 pub struct SemverGroup {

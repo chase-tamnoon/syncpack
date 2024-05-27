@@ -1,5 +1,7 @@
-use std::collections::{BTreeMap, HashMap};
-use std::vec;
+use std::{
+  collections::{BTreeMap, HashMap},
+  vec,
+};
 
 use crate::instance::{Instance, InstanceId};
 

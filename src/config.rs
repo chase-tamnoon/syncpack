@@ -1,13 +1,9 @@
 use colored::*;
 use regex::Regex;
 use serde::Deserialize;
-use std::collections::HashMap;
-use std::fs;
-use std::path;
+use std::{collections::HashMap, fs, path};
 
-use crate::dependency_type;
-use crate::semver_group;
-use crate::version_group;
+use crate::{dependency_type, semver_group, version_group};
 
 fn empty_custom_types() -> HashMap<String, CustomType> {
   HashMap::new()

@@ -1,6 +1,5 @@
-use std::path::PathBuf;
-
 use colored::*;
+use std::path::PathBuf;
 
 use crate::{
   effects::{Effects, InstanceEvent},

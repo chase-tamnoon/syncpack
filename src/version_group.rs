@@ -1,17 +1,17 @@
-use std::collections::BTreeMap;
-use std::vec;
-
 use node_semver::Range;
 use serde::Deserialize;
+use std::{collections::BTreeMap, vec};
 use version_compare::{compare, Cmp};
 
-use crate::config;
-use crate::effects::{Effects, InstanceEvent};
-use crate::group_selector::GroupSelector;
-use crate::instance::Instance;
-use crate::instance_group::{InstanceGroup, InstanceIdsBySpecifier, InstancesById};
-use crate::package_json::Packages;
-use crate::semver_group::SemverGroup;
+use crate::{
+  config,
+  effects::{Effects, InstanceEvent},
+  group_selector::GroupSelector,
+  instance::Instance,
+  instance_group::{InstanceGroup, InstanceIdsBySpecifier, InstancesById},
+  package_json::Packages,
+  semver_group::SemverGroup,
+};
 
 #[derive(Debug)]
 pub enum PreferVersion {

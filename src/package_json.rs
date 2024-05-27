@@ -1,7 +1,6 @@
 use serde::Serialize;
 use serde_json::{ser::PrettyFormatter, Serializer};
-use std::collections::HashMap;
-use std::path::PathBuf;
+use std::{collections::HashMap, path::PathBuf};
 
 pub struct Packages {
   pub all_names: Vec<String>,

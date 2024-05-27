@@ -1,12 +1,15 @@
-use icu::collator::{Collator, CollatorOptions};
-use icu::locid::{locale, Locale};
+use icu::{
+  collator::{Collator, CollatorOptions},
+  locid::{locale, Locale},
+};
 use regex::Regex;
 use serde_json::{self, json, Map, Value};
-use std::cmp::Ordering;
-use std::collections::HashSet;
+use std::{cmp::Ordering, collections::HashSet};
 
-use crate::config::Rcfile;
-use crate::package_json::{PackageJson, Packages};
+use crate::{
+  config::Rcfile,
+  package_json::{PackageJson, Packages},
+};
 
 pub struct LintResult<'a> {
   pub invalid: Vec<&'a PackageJson>,

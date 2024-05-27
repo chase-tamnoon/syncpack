@@ -1,7 +1,6 @@
 use globset::{Glob, GlobMatcher};
 
-use crate::instance::Instance;
-use crate::specifier;
+use crate::{instance::Instance, specifier};
 
 #[derive(Debug)]
 pub struct GroupSelector {

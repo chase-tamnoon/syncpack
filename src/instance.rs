@@ -1,11 +1,12 @@
-use std::path::PathBuf;
-
 use log::debug;
 use serde_json::Value;
+use std::path::PathBuf;
 
-use crate::dependency_type::{DependencyType, Strategy};
-use crate::package_json::PackageJson;
-use crate::specifier::Specifier;
+use crate::{
+  dependency_type::{DependencyType, Strategy},
+  package_json::PackageJson,
+  specifier::Specifier,
+};
 
 pub type InstanceId = String;
 

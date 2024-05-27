@@ -1,16 +1,9 @@
 #![allow(dead_code)]
 #![allow(unused_variables)]
 
-use cli::CliOptions;
 use colored::*;
-use dependency_type::{DependencyType, Strategy};
-use effects_fix::FixEffects;
 use glob::glob;
-use instance::Instance;
-use instance_group::InstancesById;
 use itertools::Itertools;
-use json_file::read_json_file;
-use package_json::Packages;
 use regex::Regex;
 use serde_json::Value;
 use std::{
@@ -19,11 +12,21 @@ use std::{
   io,
   path::PathBuf,
 };
-use version_group::VersionGroupVariant;
 
 use crate::{
-  config::Rcfile, effects::Effects, effects_lint::LintEffects, format::LintResult,
-  semver_group::SemverGroup, version_group::VersionGroup,
+  cli::CliOptions,
+  config::Rcfile,
+  dependency_type::{DependencyType, Strategy},
+  effects::Effects,
+  effects_fix::FixEffects,
+  effects_lint::LintEffects,
+  format::LintResult,
+  instance::Instance,
+  instance_group::InstancesById,
+  json_file::read_json_file,
+  package_json::Packages,
+  semver_group::SemverGroup,
+  version_group::{VersionGroup, VersionGroupVariant},
 };
 
 mod cli;
