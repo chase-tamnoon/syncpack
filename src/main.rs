@@ -3,8 +3,9 @@
 
 use cli::Subcommand;
 use colored::*;
+use instance_group::InstancesById;
 use itertools::Itertools;
-use std::{cmp::Ordering, io};
+use std::{cmp::Ordering, collections::BTreeMap, io};
 
 use crate::{
   effects::Effects, effects_fix::FixEffects, effects_lint::LintEffects, format::LintResult,
@@ -36,23 +37,23 @@ fn main() -> io::Result<()> {
   let rcfile = config::get(&cwd);
   let semver_groups = rcfile.get_semver_groups();
   let packages = get_packages(&cwd, &cli.options, &rcfile);
-  let instances_by_id = packages.get_all_instances(&rcfile);
 
   let mut version_groups = rcfile.get_version_groups(&packages.all_names);
+  let mut instances_by_id: InstancesById = BTreeMap::new();
 
-  // assign every instance to the first group it matches
-  instances_by_id.values().for_each(|instance| {
+  packages.get_all_instances(&rcfile, |instance| {
+    // assign every instance to the first group it matches
     let semver_group = semver_groups
       .iter()
-      .find(|semver_group| semver_group.selector.can_add(instance));
+      .find(|semver_group| semver_group.selector.can_add(&instance));
     version_groups
       .iter_mut()
-      .find(|version_group| version_group.selector.can_add(instance))
+      .find(|version_group| version_group.selector.can_add(&instance))
       .unwrap()
-      .add_instance(instance, semver_group);
+      .add_instance(&instance, semver_group);
+    // move instance to the lookup
+    instances_by_id.insert(instance.id.clone(), instance);
   });
-
-  let mut instances_by_id = instances_by_id;
 
   // packages are mutated when linting formatting, but not written to disk
   // everything is mutated and written when fixing
