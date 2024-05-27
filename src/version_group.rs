@@ -4,7 +4,6 @@ use std::{collections::BTreeMap, vec};
 use version_compare::{compare, Cmp};
 
 use crate::{
-  config,
   effects::{Effects, InstanceEvent},
   group_selector::GroupSelector,
   instance::Instance,
@@ -138,34 +137,6 @@ impl VersionGroup {
         }
       }
     }
-  }
-
-  /// Create every version group defined in the rcfile.
-  pub fn from_rcfile(
-    rcfile: &config::Rcfile,
-    local_package_names: &Vec<String>,
-  ) -> Vec<VersionGroup> {
-    let mut user_groups: Vec<VersionGroup> = rcfile
-      .version_groups
-      .iter()
-      .map(|group| VersionGroup::from_config(group, local_package_names))
-      .collect();
-    let catch_all_group = VersionGroup {
-      variant: VersionGroupVariant::Standard,
-      selector: GroupSelector::new(
-        /*include_dependencies:*/ vec![],
-        /*include_dependency_types:*/ vec![],
-        /*label:*/ "Default Version Group".to_string(),
-        /*include_packages:*/ vec![],
-        /*include_specifier_types:*/ vec![],
-      ),
-      instance_groups_by_name: BTreeMap::new(),
-      prefer_version: Some(PreferVersion::HighestSemver),
-      pin_version: None,
-      snap_to: None,
-    };
-    user_groups.push(catch_all_group);
-    user_groups
   }
 
   /// Create a single version group from a config item from the rcfile.

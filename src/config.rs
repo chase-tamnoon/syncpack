@@ -1,13 +1,16 @@
 use colored::*;
 use regex::Regex;
 use serde::Deserialize;
-use std::{collections::HashMap, fs, path};
+use std::{
+  collections::{BTreeMap, HashMap},
+  fs, path,
+};
 
 use crate::{
   dependency_type,
   group_selector::GroupSelector,
   semver_group::{self, SemverGroup, SemverGroupVariant},
-  version_group,
+  version_group::{self, PreferVersion, VersionGroup, VersionGroupVariant},
 };
 
 fn empty_custom_types() -> HashMap<String, CustomType> {
@@ -184,6 +187,31 @@ impl Rcfile {
         /*include_specifier_types:*/ vec![],
       ),
       range: Some("".to_string()),
+    };
+    user_groups.push(catch_all_group);
+    user_groups
+  }
+
+  /// Create every version group defined in the rcfile.
+  pub fn get_version_groups(&self, local_package_names: &Vec<String>) -> Vec<VersionGroup> {
+    let mut user_groups: Vec<VersionGroup> = self
+      .version_groups
+      .iter()
+      .map(|group| VersionGroup::from_config(group, local_package_names))
+      .collect();
+    let catch_all_group = VersionGroup {
+      variant: VersionGroupVariant::Standard,
+      selector: GroupSelector::new(
+        /*include_dependencies:*/ vec![],
+        /*include_dependency_types:*/ vec![],
+        /*label:*/ "Default Version Group".to_string(),
+        /*include_packages:*/ vec![],
+        /*include_specifier_types:*/ vec![],
+      ),
+      instance_groups_by_name: BTreeMap::new(),
+      prefer_version: Some(PreferVersion::HighestSemver),
+      pin_version: None,
+      snap_to: None,
     };
     user_groups.push(catch_all_group);
     user_groups

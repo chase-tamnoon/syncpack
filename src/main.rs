@@ -23,7 +23,7 @@ use crate::{
   instance_group::InstancesById,
   json_file::read_json_file,
   package_json::Packages,
-  version_group::{VersionGroup, VersionGroupVariant},
+  version_group::VersionGroupVariant,
 };
 
 mod cli;
@@ -66,11 +66,11 @@ fn main() -> io::Result<()> {
   let filter = rcfile.get_filter();
   let dependency_types = rcfile.get_enabled_dependency_types();
   let file_paths = get_file_paths(&cwd, &cli_options, &rcfile);
-  let semver_groups = &rcfile.get_semver_groups();
+  let semver_groups = rcfile.get_semver_groups();
 
   // all dependent on `packages`
   let packages = get_packages(&file_paths);
-  let mut version_groups = VersionGroup::from_rcfile(&rcfile, &packages.all_names);
+  let mut version_groups = rcfile.get_version_groups(&packages.all_names);
   let instances_by_id = get_all_instances(&packages, &dependency_types, &filter);
 
   // assign every instance to the first group it matches
