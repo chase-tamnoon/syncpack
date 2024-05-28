@@ -3,9 +3,9 @@ use log::info;
 use std::path::PathBuf;
 
 use crate::{
+  dependency::Dependency,
   effects::{Effects, InstanceEvent},
   group_selector::GroupSelector,
-  instance_group::InstanceGroup,
   package_json::PackageJson,
 };
 
@@ -85,57 +85,57 @@ impl Effects for LintEffects {
   // Instance Groups
   // ===========================================================================
 
-  fn on_ignored_instance_group(&self, instance_group: &InstanceGroup) {
-    let count = render_count_column(instance_group.all.len());
+  fn on_ignored_dependency(&self, dependency: &Dependency) {
+    let count = render_count_column(dependency.all.len());
     info!(
       "{} {} {}",
       count,
-      instance_group.name.dimmed(),
+      dependency.name.dimmed(),
       "[Ignored]".dimmed()
     );
   }
 
-  fn on_banned_instance_group(&self, instance_group: &InstanceGroup) {
-    let count = render_count_column(instance_group.all.len());
-    info!("{} {}", count, instance_group.name.red());
+  fn on_banned_dependency(&self, dependency: &Dependency) {
+    let count = render_count_column(dependency.all.len());
+    info!("{} {}", count, dependency.name.red());
   }
 
-  fn on_valid_pinned_instance_group(&self, instance_group: &InstanceGroup) {
-    print_version_match(instance_group);
+  fn on_valid_pinned_dependency(&self, dependency: &Dependency) {
+    print_version_match(dependency);
   }
 
-  fn on_invalid_pinned_instance_group(&self, instance_group: &InstanceGroup) {
-    let count = render_count_column(instance_group.all.len());
-    info!("{} {}", count, instance_group.name.red());
+  fn on_invalid_pinned_dependency(&self, dependency: &Dependency) {
+    let count = render_count_column(dependency.all.len());
+    info!("{} {}", count, dependency.name.red());
   }
 
-  fn on_valid_same_range_instance_group(&self, instance_group: &InstanceGroup) {
-    let count = render_count_column(instance_group.all.len());
-    info!("{} {}", count, instance_group.name);
+  fn on_valid_same_range_dependency(&self, dependency: &Dependency) {
+    let count = render_count_column(dependency.all.len());
+    info!("{} {}", count, dependency.name);
   }
 
-  fn on_invalid_same_range_instance_group(&self, instance_group: &InstanceGroup) {
-    let count = render_count_column(instance_group.all.len());
-    info!("{} {}", count, instance_group.name.red());
+  fn on_invalid_same_range_dependency(&self, dependency: &Dependency) {
+    let count = render_count_column(dependency.all.len());
+    info!("{} {}", count, dependency.name.red());
   }
 
-  fn on_valid_snap_to_instance_group(&self, instance_group: &InstanceGroup) {
-    let count = render_count_column(instance_group.all.len());
-    info!("{} {}", count, instance_group.name);
+  fn on_valid_snap_to_dependency(&self, dependency: &Dependency) {
+    let count = render_count_column(dependency.all.len());
+    info!("{} {}", count, dependency.name);
   }
 
-  fn on_invalid_snap_to_instance_group(&self, instance_group: &InstanceGroup) {
-    let count = render_count_column(instance_group.all.len());
-    info!("{} {}", count, instance_group.name.red());
+  fn on_invalid_snap_to_dependency(&self, dependency: &Dependency) {
+    let count = render_count_column(dependency.all.len());
+    info!("{} {}", count, dependency.name.red());
   }
 
-  fn on_valid_standard_instance_group(&self, instance_group: &InstanceGroup) {
-    print_version_match(instance_group);
+  fn on_valid_standard_dependency(&self, dependency: &Dependency) {
+    print_version_match(dependency);
   }
 
-  fn on_invalid_standard_instance_group(&self, instance_group: &InstanceGroup) {
-    let count = render_count_column(instance_group.all.len());
-    info!("{} {}", count, instance_group.name.red());
+  fn on_invalid_standard_dependency(&self, dependency: &Dependency) {
+    let count = render_count_column(dependency.all.len());
+    info!("{} {}", count, dependency.name.red());
   }
 
   // ===========================================================================
@@ -155,7 +155,7 @@ impl Effects for LintEffects {
   fn on_pinned_version_mismatch(&self, event: &mut InstanceEvent) {
     let icon = "✘".red();
     let arrow = "→".dimmed();
-    let expected = event.instance_group.expected_version.as_ref().unwrap();
+    let expected = event.dependency.expected_version.as_ref().unwrap();
     info!(
       "      {} {} {} {} {}",
       icon,
@@ -197,7 +197,7 @@ impl Effects for LintEffects {
   fn on_local_version_mismatch(&self, event: &mut InstanceEvent) {
     let icon = "✘".red();
     let arrow = "→".dimmed();
-    let expected = event.instance_group.expected_version.as_ref().unwrap();
+    let expected = event.dependency.expected_version.as_ref().unwrap();
     info!(
       "      {} {} {} {} {}",
       icon,
@@ -224,7 +224,7 @@ impl Effects for LintEffects {
   fn on_lowest_version_mismatch(&self, event: &mut InstanceEvent) {
     let icon = "✘".red();
     let arrow = "→".dimmed();
-    let expected = event.instance_group.expected_version.as_ref().unwrap();
+    let expected = event.dependency.expected_version.as_ref().unwrap();
     info!(
       "      {} {} {} {} {}",
       icon,
@@ -238,7 +238,7 @@ impl Effects for LintEffects {
   fn on_highest_version_mismatch(&self, event: &mut InstanceEvent) {
     let icon = "✘".red();
     let arrow = "→".dimmed();
-    let expected = event.instance_group.expected_version.as_ref().unwrap();
+    let expected = event.dependency.expected_version.as_ref().unwrap();
     info!(
       "      {} {} {} {} {}",
       icon,
@@ -256,8 +256,8 @@ pub fn render_count_column(count: usize) -> ColoredString {
   format!("{: >4}x", count).dimmed()
 }
 
-fn print_version_match(instance_group: &InstanceGroup) {
-  let count = render_count_column(instance_group.all.len());
-  let (version, _) = instance_group.by_specifier.iter().next().unwrap();
-  info!("{} {} {}", count, instance_group.name, &version.dimmed());
+fn print_version_match(dependency: &Dependency) {
+  let count = render_count_column(dependency.all.len());
+  let (version, _) = dependency.by_specifier.iter().next().unwrap();
+  info!("{} {} {}", count, dependency.name, &version.dimmed());
 }

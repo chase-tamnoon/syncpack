@@ -3,10 +3,10 @@ use log::info;
 use std::path::PathBuf;
 
 use crate::{
+  dependency::Dependency,
   effects::{Effects, InstanceEvent},
   effects_lint::render_count_column,
   group_selector::GroupSelector,
-  instance_group::InstanceGroup,
   package_json::PackageJson,
 };
 
@@ -41,32 +41,32 @@ impl Effects for FixEffects {
   // Instance Groups
   // ===========================================================================
 
-  fn on_ignored_instance_group(&self, _instance_group: &InstanceGroup) {}
+  fn on_ignored_dependency(&self, _dependency: &Dependency) {}
 
-  fn on_banned_instance_group(&self, _instance_group: &InstanceGroup) {}
+  fn on_banned_dependency(&self, _dependency: &Dependency) {}
 
-  fn on_valid_pinned_instance_group(&self, _instance_group: &InstanceGroup) {}
+  fn on_valid_pinned_dependency(&self, _dependency: &Dependency) {}
 
-  fn on_invalid_pinned_instance_group(&self, _instance_group: &InstanceGroup) {}
+  fn on_invalid_pinned_dependency(&self, _dependency: &Dependency) {}
 
-  fn on_valid_same_range_instance_group(&self, _instance_group: &InstanceGroup) {}
+  fn on_valid_same_range_dependency(&self, _dependency: &Dependency) {}
 
-  fn on_invalid_same_range_instance_group(&self, instance_group: &InstanceGroup) {
-    let count = render_count_column(instance_group.all.len());
-    info!("{} {}", count, instance_group.name.red());
+  fn on_invalid_same_range_dependency(&self, dependency: &Dependency) {
+    let count = render_count_column(dependency.all.len());
+    info!("{} {}", count, dependency.name.red());
   }
 
-  fn on_valid_snap_to_instance_group(&self, _instance_group: &InstanceGroup) {}
+  fn on_valid_snap_to_dependency(&self, _dependency: &Dependency) {}
 
-  fn on_invalid_snap_to_instance_group(&self, _instance_group: &InstanceGroup) {}
+  fn on_invalid_snap_to_dependency(&self, _dependency: &Dependency) {}
 
-  fn on_valid_standard_instance_group(&self, _instance_group: &InstanceGroup) {}
+  fn on_valid_standard_dependency(&self, _dependency: &Dependency) {}
 
-  fn on_invalid_standard_instance_group(&self, instance_group: &InstanceGroup) {
+  fn on_invalid_standard_dependency(&self, dependency: &Dependency) {
     // show name above unsupported mismatches
-    if !instance_group.non_semver.is_empty() {
-      let count = render_count_column(instance_group.all.len());
-      info!("{} {}", count, instance_group.name.red());
+    if !dependency.non_semver.is_empty() {
+      let count = render_count_column(dependency.all.len());
+      info!("{} {}", count, dependency.name.red());
     }
   }
 

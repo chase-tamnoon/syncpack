@@ -1,8 +1,8 @@
 use std::path::PathBuf;
 
 use crate::{
+  dependency::{Dependency, InstanceIdsBySpecifier, InstancesById},
   group_selector::GroupSelector,
-  instance_group::{InstanceGroup, InstanceIdsBySpecifier, InstancesById},
   package_json::PackageJson,
   packages::Packages,
 };
@@ -11,7 +11,7 @@ pub struct InstanceEvent<'a> {
   /// all instances in the workspace
   pub instances_by_id: &'a mut InstancesById,
   ///
-  pub instance_group: &'a InstanceGroup,
+  pub dependency: &'a Dependency,
   /// when same range mismatch: the range which was not satisfied by `invalid_range` (there may be others which this range does not match, they will be reported separately)
   /// when snapped to mismatch: the snapped to instance which should be matched
   /// when local mismatch: the local instance which should be matched
@@ -67,45 +67,45 @@ pub trait Effects {
   // Instance Groups
   // ===========================================================================
 
-  /// An instance group in an ignored version group has been found
-  fn on_ignored_instance_group(&self, instance_group: &InstanceGroup);
+  /// A dependency in an ignored version group has been found
+  fn on_ignored_dependency(&self, dependency: &Dependency);
 
-  /// An instance group in a banned version group has been found
-  fn on_banned_instance_group(&self, instance_group: &InstanceGroup);
+  /// A dependency in a banned version group has been found
+  fn on_banned_dependency(&self, dependency: &Dependency);
 
-  /// An instance group in a pinned version group has been found where all
+  /// A dependency in a pinned version group has been found where all
   /// instances are valid
-  fn on_valid_pinned_instance_group(&self, instance_group: &InstanceGroup);
+  fn on_valid_pinned_dependency(&self, dependency: &Dependency);
 
-  /// An instance group in a pinned version group has been found which has one
+  /// A dependency in a pinned version group has been found which has one
   /// or more instances with versions that are not the same as the `.pinVersion`
-  fn on_invalid_pinned_instance_group(&self, instance_group: &InstanceGroup);
+  fn on_invalid_pinned_dependency(&self, dependency: &Dependency);
 
-  /// An instance group in a same range version group has been found where all
+  /// A dependency in a same range version group has been found where all
   /// instances are valid
-  fn on_valid_same_range_instance_group(&self, instance_group: &InstanceGroup);
+  fn on_valid_same_range_dependency(&self, dependency: &Dependency);
 
-  /// An instance group in a same range version group has been found which has
+  /// A dependency in a same range version group has been found which has
   /// one or more instances with versions that are not a semver range which
   /// satisfies all of the other semver ranges in the group
-  fn on_invalid_same_range_instance_group(&self, instance_group: &InstanceGroup);
+  fn on_invalid_same_range_dependency(&self, dependency: &Dependency);
 
-  /// An instance group in a snapped to version group has been found where all
+  /// A dependency in a snapped to version group has been found where all
   /// instances are valid
-  fn on_valid_snap_to_instance_group(&self, instance_group: &InstanceGroup);
+  fn on_valid_snap_to_dependency(&self, dependency: &Dependency);
 
-  /// An instance group in a snapped to version group has been found which has
+  /// A dependency in a snapped to version group has been found which has
   /// one or more instances with versions that are not the same as those used
   /// by the packages named in the `.snapTo` config array
-  fn on_invalid_snap_to_instance_group(&self, instance_group: &InstanceGroup);
+  fn on_invalid_snap_to_dependency(&self, dependency: &Dependency);
 
-  /// An instance group in a standard version group has been found where all
+  /// A dependency in a standard version group has been found where all
   /// instances are valid
-  fn on_valid_standard_instance_group(&self, instance_group: &InstanceGroup);
+  fn on_valid_standard_dependency(&self, dependency: &Dependency);
 
-  /// An instance group in a standard version group has been found which has
+  /// A dependency in a standard version group has been found which has
   /// one or more instances with versions that are not the same as the others
-  fn on_invalid_standard_instance_group(&self, instance_group: &InstanceGroup);
+  fn on_invalid_standard_dependency(&self, dependency: &Dependency);
 
   // ===========================================================================
   // Instances

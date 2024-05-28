@@ -209,7 +209,7 @@ impl Rcfile {
         /*include_packages:*/ vec![],
         /*include_specifier_types:*/ vec![],
       ),
-      instance_groups_by_name: BTreeMap::new(),
+      dependencies_by_name: BTreeMap::new(),
       prefer_version: Some(PreferVersion::HighestSemver),
       pin_version: None,
       snap_to: None,

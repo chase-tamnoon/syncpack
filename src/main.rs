@@ -12,13 +12,14 @@ use std::{
 };
 
 use crate::{
-  cli::Subcommand, effects::Effects, effects_fix::FixEffects, effects_lint::LintEffects,
-  format::LintResult, instance_group::InstancesById, packages::get_packages,
+  cli::Subcommand, dependency::InstancesById, effects::Effects, effects_fix::FixEffects,
+  effects_lint::LintEffects, format::LintResult, packages::get_packages,
   version_group::VersionGroupVariant,
 };
 
 mod cli;
 mod config;
+mod dependency;
 mod dependency_type;
 mod effects;
 mod effects_fix;
@@ -26,7 +27,6 @@ mod effects_lint;
 mod format;
 mod group_selector;
 mod instance;
-mod instance_group;
 mod json_file;
 mod package_json;
 mod packages;

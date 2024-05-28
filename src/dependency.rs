@@ -13,7 +13,7 @@ pub type InstanceIdsBySpecifier = (String, Vec<InstanceId>);
 pub type InstancesById = BTreeMap<InstanceId, Instance>;
 
 #[derive(Debug)]
-pub struct InstanceGroup {
+pub struct Dependency {
   /// The name of the dependency
   pub name: String,
   /// Every instance of this dependency in this version group.
@@ -33,9 +33,9 @@ pub struct InstanceGroup {
   pub by_specifier: HashMap<String, Vec<InstanceId>>,
 }
 
-impl InstanceGroup {
-  pub fn new(name: String) -> InstanceGroup {
-    InstanceGroup {
+impl Dependency {
+  pub fn new(name: String) -> Dependency {
+    Dependency {
       name,
       all: vec![],
       expected_version: None,
