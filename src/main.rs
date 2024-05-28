@@ -40,9 +40,9 @@ fn main() -> io::Result<()> {
   let cli = cli::parse_input();
   let cwd = std::env::current_dir()?;
   let rcfile = config::get(&cwd);
-  let semver_groups = rcfile.get_semver_groups();
   let packages = get_packages(&cwd, &cli.options, &rcfile);
 
+  let semver_groups = rcfile.get_semver_groups();
   let mut version_groups = rcfile.get_version_groups(&packages.all_names);
   let mut instances_by_id: InstancesById = BTreeMap::new();
 
