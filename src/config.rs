@@ -2,16 +2,12 @@ use colored::*;
 use log::info;
 use regex::Regex;
 use serde::Deserialize;
-use std::{
-  collections::{BTreeMap, HashMap},
-  fs, path,
-};
+use std::{collections::HashMap, fs, path};
 
 use crate::{
   dependency_type,
-  group_selector::GroupSelector,
-  semver_group::{self, SemverGroup, SemverGroupVariant},
-  version_group::{self, PreferVersion, VersionGroup, VersionGroupVariant},
+  semver_group::{self, SemverGroup},
+  version_group::{self, VersionGroup},
 };
 
 fn empty_custom_types() -> HashMap<String, CustomType> {
@@ -178,18 +174,7 @@ impl Rcfile {
       .iter()
       .map(|group| SemverGroup::from_config(group))
       .collect();
-    let catch_all_group = SemverGroup {
-      variant: SemverGroupVariant::WithRange,
-      selector: GroupSelector::new(
-        /*include_dependencies:*/ vec![],
-        /*include_dependency_types:*/ vec![],
-        /*label:*/ "Default Semver Group".to_string(),
-        /*include_packages:*/ vec![],
-        /*include_specifier_types:*/ vec![],
-      ),
-      range: Some("".to_string()),
-    };
-    user_groups.push(catch_all_group);
+    user_groups.push(SemverGroup::get_catch_all());
     user_groups
   }
 
@@ -200,21 +185,7 @@ impl Rcfile {
       .iter()
       .map(|group| VersionGroup::from_config(group, local_package_names))
       .collect();
-    let catch_all_group = VersionGroup {
-      variant: VersionGroupVariant::Standard,
-      selector: GroupSelector::new(
-        /*include_dependencies:*/ vec![],
-        /*include_dependency_types:*/ vec![],
-        /*label:*/ "Default Version Group".to_string(),
-        /*include_packages:*/ vec![],
-        /*include_specifier_types:*/ vec![],
-      ),
-      dependencies_by_name: BTreeMap::new(),
-      prefer_version: Some(PreferVersion::HighestSemver),
-      pin_version: None,
-      snap_to: None,
-    };
-    user_groups.push(catch_all_group);
+    user_groups.push(VersionGroup::get_catch_all_group());
     user_groups
   }
 }

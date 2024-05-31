@@ -45,6 +45,24 @@ pub struct VersionGroup {
 }
 
 impl VersionGroup {
+  /// Create a default/catch-all group which would apply to any instance
+  pub fn get_catch_all_group() -> VersionGroup {
+    VersionGroup {
+      variant: VersionGroupVariant::Standard,
+      selector: GroupSelector::new(
+        /*include_dependencies:*/ vec![],
+        /*include_dependency_types:*/ vec![],
+        /*label:*/ "Default Version Group".to_string(),
+        /*include_packages:*/ vec![],
+        /*include_specifier_types:*/ vec![],
+      ),
+      dependencies_by_name: BTreeMap::new(),
+      prefer_version: Some(PreferVersion::HighestSemver),
+      pin_version: None,
+      snap_to: None,
+    }
+  }
+
   /// Add an instance to this version group if it is eligible, and return
   /// whether it was added.
   pub fn add_instance(&mut self, instance: &Instance, semver_group: Option<&SemverGroup>) {

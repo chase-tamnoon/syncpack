@@ -20,6 +20,21 @@ pub enum SemverGroupVariant {
 }
 
 impl SemverGroup {
+  /// Create a default/catch-all group which would apply to any instance
+  pub fn get_catch_all() -> SemverGroup {
+    SemverGroup {
+      variant: SemverGroupVariant::WithRange,
+      selector: GroupSelector::new(
+        /*include_dependencies:*/ vec![],
+        /*include_dependency_types:*/ vec![],
+        /*label:*/ "Default Semver Group".to_string(),
+        /*include_packages:*/ vec![],
+        /*include_specifier_types:*/ vec![],
+      ),
+      range: Some("".to_string()),
+    }
+  }
+
   /// Create a single version group from a config item from the rcfile.
   pub fn from_config(group: &AnySemverGroup) -> SemverGroup {
     let selector = GroupSelector::new(
