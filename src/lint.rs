@@ -3,11 +3,10 @@ use std::path::PathBuf;
 use crate::{
   cli::Cli,
   config::Rcfile,
-  dependency::InstancesById,
+  context::{get_context, Context},
   effects::Effects,
   format::{self, LintResult},
   packages::Packages,
-  version_group::VersionGroup,
 };
 
 pub fn lint<T: Effects>(
@@ -15,11 +14,13 @@ pub fn lint<T: Effects>(
   cli: &Cli,
   rcfile: &Rcfile,
   packages: &mut Packages,
-  instances_by_id: &mut InstancesById,
-  version_groups: &mut Vec<VersionGroup>,
   effects: &T,
 ) -> () {
   let mut is_valid = true;
+  let Context {
+    version_groups,
+    mut instances_by_id,
+  } = get_context(&rcfile, &packages);
 
   match (cli.options.ranges, cli.options.versions) {
     (true, true) => effects.on_begin_ranges_and_versions(),
@@ -30,7 +31,7 @@ pub fn lint<T: Effects>(
 
   if cli.options.ranges || cli.options.versions {
     version_groups.iter().for_each(|group| {
-      let group_is_valid = group.visit(instances_by_id, effects, packages);
+      let group_is_valid = group.visit(&mut instances_by_id, effects, packages);
       if !group_is_valid {
         is_valid = false;
       }
