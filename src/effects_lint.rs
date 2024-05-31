@@ -1,6 +1,6 @@
 use colored::*;
 use log::info;
-use std::path::PathBuf;
+use std::{path::PathBuf, process};
 
 use crate::{
   dependency::Dependency,
@@ -32,6 +32,21 @@ impl Effects for LintEffects {
 
   fn on_begin_versions_only(&self) {
     info!("{}", "= VERSION MISMATCHES".dimmed());
+  }
+
+  // ===========================================================================
+  // Tear Down
+  // ===========================================================================
+
+  /// Linting/fixing has completed
+  fn on_complete(&self, is_valid: bool) {
+    if is_valid {
+      info!("\n{} {}", "✓".green(), "valid");
+      process::exit(0);
+    } else {
+      info!("\n{} {}", "✘".red(), "invalid");
+      process::exit(1);
+    }
   }
 
   // ===========================================================================

@@ -1,19 +1,13 @@
 #![allow(dead_code)]
 #![allow(unused_variables)]
 
-use colored::*;
 use env_logger::Builder;
-use fix::fix;
-use lint::lint;
-use log::{info, Level, LevelFilter};
-use std::{
-  collections::BTreeMap,
-  io::{self, Write},
-};
+use log::{Level, LevelFilter};
+use std::{collections::BTreeMap, io::Write};
 
 use crate::{
   cli::Subcommand, dependency::InstancesById, effects_fix::FixEffects, effects_lint::LintEffects,
-  packages::get_packages,
+  fix::fix, lint::lint, packages::get_packages,
 };
 
 mod cli;
@@ -35,10 +29,10 @@ mod semver_group;
 mod specifier;
 mod version_group;
 
-fn main() -> io::Result<()> {
+fn main() -> () {
   init_logger();
 
-  let cwd = std::env::current_dir()?;
+  let cwd = std::env::current_dir().unwrap();
   let cli = cli::parse_input();
   let rcfile = config::get(&cwd);
   let packages = get_packages(&cwd, &cli.options, &rcfile);
@@ -63,7 +57,7 @@ fn main() -> io::Result<()> {
     instances_by_id.insert(instance.id.clone(), instance);
   });
 
-  let is_valid: bool = match cli.command_name {
+  match cli.command_name {
     Subcommand::Fix => {
       // everything is mutated and written when fixing
       let mut packages = packages;
@@ -91,16 +85,6 @@ fn main() -> io::Result<()> {
       )
     }
   };
-
-  // @TODO: when fixing and unfixable errors happen, explain them to the user
-
-  if is_valid {
-    info!("{} {}", "\n✓".green(), "syncpack found no errors");
-    std::process::exit(0);
-  } else {
-    info!("{} {}", "\n✘".red(), "syncpack found errors");
-    std::process::exit(1);
-  }
 }
 
 fn init_logger() {

@@ -19,7 +19,7 @@ pub fn fix<T: Effects>(
   instances_by_id: &mut InstancesById,
   version_groups: &mut Vec<VersionGroup>,
   effects: &T,
-) -> bool {
+) -> () {
   let mut is_valid = true;
 
   match (cli.options.ranges, cli.options.versions) {
@@ -64,5 +64,5 @@ pub fn fix<T: Effects>(
     package.write_to_disk(&rcfile.indent);
   });
 
-  is_valid
+  effects.on_complete(is_valid);
 }
