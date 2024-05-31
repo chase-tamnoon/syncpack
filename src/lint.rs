@@ -13,11 +13,11 @@ use crate::{
 pub fn lint<T: Effects>(
   cwd: &PathBuf,
   cli: &Cli,
-  effects: &T,
-  version_groups: &mut Vec<VersionGroup>,
-  instances_by_id: &mut InstancesById,
-  packages: &mut Packages,
   rcfile: &Rcfile,
+  packages: &mut Packages,
+  instances_by_id: &mut InstancesById,
+  version_groups: &mut Vec<VersionGroup>,
+  effects: &T,
 ) -> bool {
   let mut is_valid = true;
 
