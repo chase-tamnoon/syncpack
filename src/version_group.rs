@@ -240,12 +240,12 @@ impl VersionGroup {
     }
   }
 
-  pub fn visit(
+  pub fn visit<T: Effects>(
     &self,
     // needed by same range groups, every instance in the project
     instances_by_id: &mut InstancesById,
     // chosen strategy to lint, fix, use different log output, etc
-    effects: &impl Effects,
+    effects: &T,
     // when fixing, we write to the package.json files
     packages: &mut Packages,
   ) -> bool {

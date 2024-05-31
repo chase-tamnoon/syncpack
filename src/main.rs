@@ -4,6 +4,7 @@
 use colored::*;
 use env_logger::Builder;
 use itertools::Itertools;
+use lint::lint;
 use log::{info, Level, LevelFilter};
 use std::{
   cmp::Ordering,
@@ -28,6 +29,7 @@ mod format;
 mod group_selector;
 mod instance;
 mod json_file;
+mod lint;
 mod package_json;
 mod packages;
 mod semver_group;
@@ -115,38 +117,15 @@ fn main() -> io::Result<()> {
 
       fix_is_valid
     }
-    Subcommand::Lint => {
-      let effects = LintEffects {};
-      let mut lint_is_valid = true;
-
-      match (cli.options.ranges, cli.options.versions) {
-        (true, true) => effects.on_begin_ranges_and_versions(),
-        (true, false) => effects.on_begin_ranges_only(),
-        (false, true) => effects.on_begin_versions_only(),
-        (false, false) => effects.on_skip_ranges_and_versions(),
-      };
-
-      if cli.options.ranges || cli.options.versions {
-        version_groups.iter().for_each(|group| {
-          let group_is_valid = group.visit(&mut instances_by_id, &effects, &mut packages);
-          if !group_is_valid {
-            lint_is_valid = false;
-          }
-        });
-      }
-
-      if cli.options.format {
-        effects.on_begin_format();
-        let LintResult { valid, invalid } = format::lint(&rcfile, &mut packages);
-        effects.on_formatted_packages(&valid, &cwd);
-        effects.on_unformatted_packages(&invalid, &cwd);
-        if !invalid.is_empty() {
-          lint_is_valid = false;
-        }
-      }
-
-      lint_is_valid
-    }
+    Subcommand::Lint => lint(
+      &cwd,
+      &cli,
+      &LintEffects {},
+      &mut version_groups,
+      &mut instances_by_id,
+      &mut packages,
+      &rcfile,
+    ),
   };
 
   // @TODO: when fixing and unfixable errors happen, explain them to the user
