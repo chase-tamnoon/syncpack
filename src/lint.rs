@@ -20,7 +20,7 @@ pub fn lint<T: Effects>(
   let Context {
     version_groups,
     mut instances_by_id,
-  } = get_context(&rcfile, &packages);
+  } = get_context(&cli.options, &rcfile, &packages);
 
   match (cli.options.ranges, cli.options.versions) {
     (true, true) => effects.on_begin_ranges_and_versions(),

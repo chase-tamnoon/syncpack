@@ -1,8 +1,8 @@
 use std::collections::BTreeMap;
 
 use crate::{
-  config::Rcfile, dependency::InstancesById, instance::Instance, packages::Packages,
-  version_group::VersionGroup,
+  cli::CliOptions, config::Rcfile, dependency::InstancesById, instance::Instance,
+  packages::Packages, version_group::VersionGroup,
 };
 
 pub struct Context {
@@ -10,14 +10,14 @@ pub struct Context {
   pub instances_by_id: BTreeMap<String, Instance>,
 }
 
-pub fn get_context(rcfile: &Rcfile, packages: &Packages) -> Context {
+pub fn get_context(cli_options: &CliOptions, rcfile: &Rcfile, packages: &Packages) -> Context {
   let semver_groups = rcfile.get_semver_groups();
   let mut version_groups = rcfile.get_version_groups(&packages.all_names);
   let mut instances_by_id: InstancesById = BTreeMap::new();
 
   // @TODO add some debug!("{}", logs);
 
-  packages.get_all_instances(rcfile, |instance| {
+  packages.get_all_instances(cli_options, rcfile, |instance| {
     // assign every instance to the first group it matches
     let semver_group = semver_groups
       .iter()

@@ -1,6 +1,7 @@
 use clap::{
   builder::ValueParser, crate_description, crate_name, crate_version, Arg, ArgMatches, Command,
 };
+use regex::Regex;
 
 #[derive(Debug)]
 pub enum Subcommand {
@@ -64,6 +65,13 @@ fn create() -> Command {
             .action(clap::ArgAction::Append)
             .value_parser(ValueParser::new(validate_source))
             .help("a list of quoted glob patterns for package.json files to read from"),
+        )
+        .arg(
+          Arg::new("filter")
+            .long("filter")
+            .action(clap::ArgAction::Set)
+            .value_parser(ValueParser::new(validate_filter))
+            .help("only include dependencies whose name matches this regex"),
         ),
     )
     .subcommand(
@@ -97,20 +105,33 @@ fn create() -> Command {
             .action(clap::ArgAction::Append)
             .value_parser(ValueParser::new(validate_source))
             .help("a list of quoted glob patterns for package.json files to read from"),
+        )
+        .arg(
+          Arg::new("filter")
+            .long("filter")
+            .action(clap::ArgAction::Set)
+            .value_parser(ValueParser::new(validate_filter))
+            .help("only include dependencies whose name matches this regex"),
         ),
     )
+}
+
+fn validate_filter(value: &str) -> Result<Regex, String> {
+  Regex::new(value).map_err(|_| "not a valid Regex".to_string())
 }
 
 fn validate_source(value: &str) -> Result<String, String> {
   if value.ends_with("package.json") {
     Ok(value.to_string())
   } else {
-    Err("Source file must end with 'package.json'".to_string())
+    Err("must end with 'package.json'".to_string())
   }
 }
 
 #[derive(Debug)]
 pub struct CliOptions {
+  /// Optional regex to filter dependencies by name
+  pub filter: Option<Regex>,
   /// `true` when `--format` is passed or if none of `--format`, `--ranges`
   /// or `--versions` are passed
   pub format: bool,
@@ -136,8 +157,12 @@ fn get_cli_options(matches: &ArgMatches) -> CliOptions {
     .unwrap_or_default()
     .map(|source| source.to_owned())
     .collect::<Vec<_>>();
+  let filter = matches
+    .get_one::<Regex>("filter")
+    .map(|filter| filter.to_owned());
 
   CliOptions {
+    filter,
     format: use_all || use_format,
     ranges: use_all || use_ranges,
     versions: use_all || use_versions,

@@ -1,6 +1,5 @@
 use colored::*;
 use log::info;
-use regex::Regex;
 use serde::Deserialize;
 use std::{collections::HashMap, fs, path};
 
@@ -16,10 +15,6 @@ fn empty_custom_types() -> HashMap<String, CustomType> {
 
 fn default_true() -> bool {
   true
-}
-
-fn default_filter() -> String {
-  ".".to_string()
 }
 
 fn default_indent() -> String {
@@ -83,8 +78,6 @@ pub struct Rcfile {
   pub custom_types: HashMap<String, CustomType>,
   #[serde(default)]
   pub dependency_types: Vec<String>,
-  #[serde(default = "default_filter")]
-  pub filter: String,
   #[serde(default = "default_true")]
   pub format_bugs: bool,
   #[serde(default = "default_true")]
@@ -110,10 +103,6 @@ pub struct Rcfile {
 }
 
 impl Rcfile {
-  pub fn get_filter(&self) -> Regex {
-    Regex::new(&self.filter).expect("filter config value is not a valid Regex string")
-  }
-
   pub fn get_enabled_dependency_types(&self) -> Vec<dependency_type::DependencyType> {
     // Dependency type names referenced in the rcfile
     let named_types = &self.dependency_types;
