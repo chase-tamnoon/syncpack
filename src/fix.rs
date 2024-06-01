@@ -3,20 +3,15 @@ use std::cmp::Ordering;
 
 use crate::{
   config::Config,
-  context::{self, Context, RunState},
-  effects::Effects,
+  context::{self, Context},
+  effects::{Effects, Event},
   format::{self, InMemoryFormattingStatus},
   packages::Packages,
   version_group::VersionGroupVariant,
 };
 
-pub fn fix(
-  config: &Config,
-  packages: &mut Packages,
-  run_effect: fn(Effects) -> (),
-  state: &mut RunState,
-) {
-  run_effect(Effects::PackagesLoaded(&config, &packages, state));
+pub fn fix(config: &Config, packages: &mut Packages, effects: &mut impl Effects) {
+  effects.on_event(Event::PackagesLoaded(&config, &packages));
 
   let cli = &config.cli;
   let Context {
@@ -24,7 +19,7 @@ pub fn fix(
     version_groups,
   } = context::get(&config, &packages);
 
-  run_effect(Effects::EnterVersionsAndRanges(&config));
+  effects.on_event(Event::EnterVersionsAndRanges(&config));
 
   if cli.options.ranges || cli.options.versions {
     version_groups
@@ -41,11 +36,11 @@ pub fn fix(
         }
       })
       .for_each(|group| {
-        group.visit(&mut instances_by_id, packages, run_effect, state);
+        group.visit(&mut instances_by_id, packages, effects);
       });
   }
 
-  run_effect(Effects::EnterFormat(&config));
+  effects.on_event(Event::EnterFormat(&config));
 
   if cli.options.format {
     let InMemoryFormattingStatus {
@@ -53,12 +48,10 @@ pub fn fix(
       was_invalid: invalid,
     } = format::fix(&config, packages);
     if !valid.is_empty() {
-      run_effect(Effects::PackagesMatchFormatting(&valid, &config));
+      effects.on_event(Event::PackagesMatchFormatting(&valid, &config));
     }
     if !invalid.is_empty() {
-      run_effect(Effects::PackagesMismatchFormatting(
-        &invalid, &config, state,
-      ));
+      effects.on_event(Event::PackagesMismatchFormatting(&invalid, &config));
     }
   }
 
@@ -67,5 +60,5 @@ pub fn fix(
     package.write_to_disk(&config);
   });
 
-  run_effect(Effects::ExitCommand(state));
+  effects.on_event(Event::ExitCommand);
 }

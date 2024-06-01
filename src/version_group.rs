@@ -4,9 +4,8 @@ use std::{collections::BTreeMap, vec};
 use version_compare::{compare, Cmp};
 
 use crate::{
-  context::RunState,
   dependency::{Dependency, InstanceIdsBySpecifier, InstancesById},
-  effects::{Effects, InstanceEvent},
+  effects::{Effects, Event, InstanceEvent},
   group_selector::GroupSelector,
   instance::Instance,
   packages::Packages,
@@ -248,75 +247,67 @@ impl VersionGroup {
     // when fixing, we write to the package.json files
     packages: &mut Packages,
     // chosen strategy to lint, fix, use different log output, etc
-    run_effect: fn(Effects) -> (),
-    // track state of the run
-    state: &mut RunState,
+    effects: &mut impl Effects,
   ) {
     match self.variant {
       VersionGroupVariant::Ignored => {
-        run_effect(Effects::GroupVisited(&self.selector));
+        effects.on_event(Event::GroupVisited(&self.selector));
         self.dependencies_by_name.values().for_each(|dependency| {
-          run_effect(Effects::DependencyIgnored(dependency));
+          effects.on_event(Event::DependencyIgnored(dependency));
         });
       }
       VersionGroupVariant::Banned => {
-        run_effect(Effects::GroupVisited(&self.selector));
+        effects.on_event(Event::GroupVisited(&self.selector));
         self.dependencies_by_name.values().for_each(|dependency| {
-          run_effect(Effects::DependencyBanned(dependency));
+          effects.on_event(Event::DependencyBanned(dependency));
           dependency
             .by_specifier
             .iter()
             .for_each(|instances_by_specifier| {
-              run_effect(Effects::InstanceBanned(
-                &mut InstanceEvent {
-                  instances_by_id,
-                  dependency,
-                  // @TODO: use None
-                  mismatches_with: ("".to_string(), vec![]),
-                  packages,
-                  target: (
-                    instances_by_specifier.0.clone(),
-                    instances_by_specifier.1.clone(),
-                  ),
-                },
-                state,
-              ));
+              effects.on_event(Event::InstanceBanned(&mut InstanceEvent {
+                instances_by_id,
+                dependency,
+                // @TODO: use None
+                mismatches_with: ("".to_string(), vec![]),
+                packages,
+                target: (
+                  instances_by_specifier.0.clone(),
+                  instances_by_specifier.1.clone(),
+                ),
+              }));
             });
         });
       }
       VersionGroupVariant::Pinned => {
-        run_effect(Effects::GroupVisited(&self.selector));
+        effects.on_event(Event::GroupVisited(&self.selector));
         self.dependencies_by_name.values().for_each(|dependency| {
           if !dependency.has_identical_specifiers() {
-            run_effect(Effects::DependencyMismatchesPinnedVersion(dependency));
+            effects.on_event(Event::DependencyMismatchesPinnedVersion(dependency));
             let pinned_version = dependency.expected_version.clone().unwrap();
             dependency
               .by_specifier
               .iter()
               .for_each(|instances_by_specifier| {
                 if dependency.is_mismatch(&instances_by_specifier.0) {
-                  run_effect(Effects::InstanceMismatchesPinnedVersion(
-                    &mut InstanceEvent {
-                      instances_by_id,
-                      dependency,
-                      mismatches_with: (pinned_version.clone(), vec![]),
-                      packages,
-                      target: (
-                        instances_by_specifier.0.clone(),
-                        instances_by_specifier.1.clone(),
-                      ),
-                    },
-                    state,
-                  ));
+                  effects.on_event(Event::InstanceMismatchesPinnedVersion(&mut InstanceEvent {
+                    instances_by_id,
+                    dependency,
+                    mismatches_with: (pinned_version.clone(), vec![]),
+                    packages,
+                    target: (
+                      instances_by_specifier.0.clone(),
+                      instances_by_specifier.1.clone(),
+                    ),
+                  }));
                 }
               });
           } else {
-            run_effect(Effects::DependencyMatchesPinnedVersion(dependency));
+            effects.on_event(Event::DependencyMatchesPinnedVersion(dependency));
           };
         });
       }
       VersionGroupVariant::SameRange => {
-        run_effect(Effects::GroupVisited(&self.selector));
+        effects.on_event(Event::GroupVisited(&self.selector));
         self.dependencies_by_name.values().for_each(|dependency| {
           let mut mismatches: Vec<(InstanceIdsBySpecifier, InstanceIdsBySpecifier)> = vec![];
           dependency.by_specifier.iter().for_each(|a| {
@@ -335,88 +326,76 @@ impl VersionGroup {
             })
           });
           if mismatches.len() == 0 {
-            run_effect(Effects::DependencyMatchesRange(dependency));
+            effects.on_event(Event::DependencyMatchesRange(dependency));
           } else {
-            run_effect(Effects::DependencyMismatchesRange(dependency));
+            effects.on_event(Event::DependencyMismatchesRange(dependency));
             mismatches
               .into_iter()
               .for_each(|(target_instance_id, mismatches_with)| {
-                run_effect(Effects::InstanceMismatchesRange(
-                  &mut InstanceEvent {
-                    instances_by_id,
-                    dependency,
-                    mismatches_with,
-                    packages,
-                    target: target_instance_id,
-                  },
-                  state,
-                ));
+                effects.on_event(Event::InstanceMismatchesRange(&mut InstanceEvent {
+                  instances_by_id,
+                  dependency,
+                  mismatches_with,
+                  packages,
+                  target: target_instance_id,
+                }));
               });
           }
         });
       }
       VersionGroupVariant::SnappedTo => {
-        run_effect(Effects::GroupVisited(&self.selector));
+        effects.on_event(Event::GroupVisited(&self.selector));
         if let Some(snap_to) = &self.snap_to {
           self.dependencies_by_name.values().for_each(|dependency| {
             let mismatches = get_snap_to_mismatches(snap_to, instances_by_id, dependency);
             if mismatches.len() == 0 {
-              run_effect(Effects::DependencyMatchesSnapTo(dependency));
+              effects.on_event(Event::DependencyMatchesSnapTo(dependency));
             } else {
-              run_effect(Effects::DependencyMismatchesSnapTo(dependency));
+              effects.on_event(Event::DependencyMismatchesSnapTo(dependency));
               mismatches
                 .into_iter()
                 .for_each(|(target_instance_id, mismatches_with)| {
-                  run_effect(Effects::InstanceMismatchesSnapTo(
-                    &mut InstanceEvent {
-                      instances_by_id,
-                      dependency,
-                      mismatches_with,
-                      packages,
-                      target: target_instance_id,
-                    },
-                    state,
-                  ));
+                  effects.on_event(Event::InstanceMismatchesSnapTo(&mut InstanceEvent {
+                    instances_by_id,
+                    dependency,
+                    mismatches_with,
+                    packages,
+                    target: target_instance_id,
+                  }));
                 });
             }
           });
         }
       }
       VersionGroupVariant::Standard => {
-        run_effect(Effects::GroupVisited(&self.selector));
+        effects.on_event(Event::GroupVisited(&self.selector));
         self.dependencies_by_name.values().for_each(|dependency| {
           if !dependency.has_identical_specifiers() {
-            run_effect(Effects::DependencyMismatchesStandard(dependency));
+            effects.on_event(Event::DependencyMismatchesStandard(dependency));
             dependency.by_specifier.iter().for_each(|target_instances| {
               if dependency.is_mismatch(&target_instances.0) {
                 if let Some(local_id) = dependency.local.clone() {
                   let local = instances_by_id.get(&local_id);
                   let specifier = local.unwrap().specifier.clone();
-                  run_effect(Effects::InstanceMismatchesLocalVersion(
-                    &mut InstanceEvent {
-                      instances_by_id,
-                      dependency,
-                      mismatches_with: (specifier, vec![local_id]),
-                      packages,
-                      target: (target_instances.0.clone(), target_instances.1.clone()),
-                    },
-                    state,
-                  ));
+                  effects.on_event(Event::InstanceMismatchesLocalVersion(&mut InstanceEvent {
+                    instances_by_id,
+                    dependency,
+                    mismatches_with: (specifier, vec![local_id]),
+                    packages,
+                    target: (target_instances.0.clone(), target_instances.1.clone()),
+                  }));
                 } else if dependency.non_semver.len() > 0 {
-                  run_effect(Effects::InstanceUnsupportedMismatch(
-                    &mut InstanceEvent {
-                      instances_by_id,
-                      dependency,
-                      mismatches_with: ("".to_string(), vec![]),
-                      packages,
-                      target: (target_instances.0.clone(), target_instances.1.clone()),
-                    },
-                    state,
-                  ));
+                  effects.on_event(Event::InstanceUnsupportedMismatch(&mut InstanceEvent {
+                    instances_by_id,
+                    dependency,
+                    mismatches_with: ("".to_string(), vec![]),
+                    packages,
+                    target: (target_instances.0.clone(), target_instances.1.clone()),
+                  }));
                 } else if let Some(PreferVersion::LowestSemver) = self.prefer_version {
                   if let Some(expected) = dependency.expected_version.clone() {
                     if let Some(instances_with_expected) = dependency.by_specifier.get(&expected) {
-                      run_effect(Effects::InstanceMismatchesLowestVersion(
+                      effects.on_event(Event::InstanceMismatchesLowestVersion(
                         &mut InstanceEvent {
                           instances_by_id,
                           dependency,
@@ -427,14 +406,13 @@ impl VersionGroup {
                           packages,
                           target: (target_instances.0.clone(), target_instances.1.clone()),
                         },
-                        state,
                       ));
                     }
                   }
                 } else {
                   if let Some(expected) = dependency.expected_version.clone() {
                     if let Some(instances_with_expected) = dependency.by_specifier.get(&expected) {
-                      run_effect(Effects::InstanceMismatchesHighestVersion(
+                      effects.on_event(Event::InstanceMismatchesHighestVersion(
                         &mut InstanceEvent {
                           instances_by_id,
                           dependency: &dependency,
@@ -445,7 +423,6 @@ impl VersionGroup {
                           packages,
                           target: (target_instances.0.clone(), target_instances.1.clone()),
                         },
-                        state,
                       ));
                     }
                   }
@@ -453,7 +430,7 @@ impl VersionGroup {
               }
             });
           } else {
-            run_effect(Effects::DependencyMatchesStandard(dependency));
+            effects.on_event(Event::DependencyMatchesStandard(dependency));
           };
         });
       }

@@ -1,19 +1,13 @@
 use crate::{
   config::Config,
-  context::RunState,
   context::{self, Context},
-  effects::Effects,
+  effects::{Effects, Event},
   format::{self, InMemoryFormattingStatus},
   packages::Packages,
 };
 
-pub fn lint(
-  config: &Config,
-  packages: &mut Packages,
-  run_effect: fn(Effects) -> (),
-  state: &mut RunState,
-) {
-  run_effect(Effects::PackagesLoaded(&config, &packages, state));
+pub fn lint(config: &Config, packages: &mut Packages, effects: &mut impl Effects) {
+  effects.on_event(Event::PackagesLoaded(&config, &packages));
 
   let cli = &config.cli;
   let Context {
@@ -21,15 +15,15 @@ pub fn lint(
     version_groups,
   } = context::get(&config, &packages);
 
-  run_effect(Effects::EnterVersionsAndRanges(&config));
+  effects.on_event(Event::EnterVersionsAndRanges(&config));
 
   if cli.options.ranges || cli.options.versions {
     version_groups.iter().for_each(|group| {
-      group.visit(&mut instances_by_id, packages, run_effect, state);
+      group.visit(&mut instances_by_id, packages, effects);
     });
   }
 
-  run_effect(Effects::EnterFormat(&config));
+  effects.on_event(Event::EnterFormat(&config));
 
   if cli.options.format {
     let InMemoryFormattingStatus {
@@ -37,37 +31,45 @@ pub fn lint(
       was_invalid,
     } = format::fix(&config, packages);
     if !was_valid.is_empty() {
-      run_effect(Effects::PackagesMatchFormatting(&was_valid, &config));
+      effects.on_event(Event::PackagesMatchFormatting(&was_valid, &config));
     }
     if !was_invalid.is_empty() {
-      run_effect(Effects::PackagesMismatchFormatting(
-        &was_invalid,
-        &config,
-        state,
-      ));
+      effects.on_event(Event::PackagesMismatchFormatting(&was_invalid, &config));
     }
   }
 
-  run_effect(Effects::ExitCommand(state));
+  effects.on_event(Event::ExitCommand);
 }
 
 #[cfg(test)]
 mod tests {
   use super::*;
 
+  struct TestEffects {
+    pub is_valid: bool,
+  }
+
+  impl TestEffects {
+    pub fn new() -> Self {
+      TestEffects { is_valid: false }
+    }
+  }
+
+  impl Effects for TestEffects {
+    fn on_event(&mut self, event: Event) -> () {
+      if let Event::PackagesLoaded(config, packages) = event {
+        self.is_valid = true;
+      }
+    }
+  }
+
   #[test]
   fn run_effect_when_packages_loaded() {
     let config = Config::new();
     let mut packages = Packages::new();
-    let mut state = RunState { is_valid: false };
+    let mut effects = TestEffects::new();
 
-    fn effects(effect: Effects) -> () {
-      if let Effects::PackagesLoaded(config, packages, state) = effect {
-        state.is_valid = true;
-      }
-    }
-
-    lint(&config, &mut packages, effects, &mut state);
-    assert_eq!(state.is_valid, true);
+    lint(&config, &mut packages, &mut effects);
+    assert_eq!(effects.is_valid, true);
   }
 }

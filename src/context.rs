@@ -5,11 +5,6 @@ use crate::{
   version_group::VersionGroup,
 };
 
-#[derive(Debug)]
-pub struct RunState {
-  pub is_valid: bool,
-}
-
 pub struct Context {
   pub instances_by_id: BTreeMap<String, Instance>,
   pub version_groups: Vec<VersionGroup>,

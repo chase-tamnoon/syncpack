@@ -1,7 +1,8 @@
 #![allow(dead_code)]
 #![allow(unused_variables)]
 
-use context::RunState;
+use effects_fix::FixEffects;
+use effects_lint::LintEffects;
 use env_logger::Builder;
 use log::{Level, LevelFilter};
 use std::io::Write;
@@ -10,8 +11,6 @@ use std::{env::current_dir, process};
 use crate::{
   cli::{Cli, Subcommand},
   config::Config,
-  effects_fix::fix_effects,
-  effects_lint::lint_effects,
   fix::fix,
   lint::lint,
   packages::Packages,
@@ -44,24 +43,26 @@ fn main() -> () {
   let config = Config::from_cli(cwd, cli);
   let packages = Packages::from_config(&config);
 
-  let mut state = RunState { is_valid: true };
-
   match config.cli.command_name {
     Subcommand::Fix => {
       // everything is mutated and written when fixing
       let mut packages = packages;
-      fix(&config, &mut packages, fix_effects, &mut state);
+      let mut effects = FixEffects::new();
+      fix(&config, &mut packages, &mut effects);
+      if !effects.is_valid {
+        process::exit(1);
+      }
     }
     Subcommand::Lint => {
       // packages are mutated when linting formatting, but not written to disk
       let mut packages = packages;
-      lint(&config, &mut packages, lint_effects, &mut state);
+      let mut effects = LintEffects::new();
+      lint(&config, &mut packages, &mut effects);
+      if !effects.is_valid {
+        process::exit(1);
+      }
     }
   };
-
-  if !state.is_valid {
-    process::exit(1);
-  }
 }
 
 fn init_logger() {
