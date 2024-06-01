@@ -159,9 +159,9 @@ impl CliOptions {
   pub fn new() -> Self {
     Self {
       filter: None,
-      format: false,
-      ranges: false,
-      versions: false,
+      format: true,
+      ranges: true,
+      versions: true,
       source: vec![],
     }
   }
@@ -174,7 +174,7 @@ impl CliOptions {
     let use_ranges = matches.get_flag("ranges");
     let use_versions = matches.get_flag("versions");
     let use_all = !use_format && !use_ranges && !use_versions;
-    let sources = matches
+    let source = matches
       .get_many::<String>("source")
       .unwrap_or_default()
       .map(|source| source.to_owned())
@@ -188,7 +188,7 @@ impl CliOptions {
       format: use_all || use_format,
       ranges: use_all || use_ranges,
       versions: use_all || use_versions,
-      source: sources,
+      source,
     }
   }
 }
