@@ -8,7 +8,6 @@ use std::io::Write;
 
 use crate::{
   cli::Subcommand, effects_fix::FixEffects, effects_lint::LintEffects, fix::fix, lint::lint,
-  packages::get_packages,
 };
 
 mod cli;
@@ -37,7 +36,7 @@ fn main() -> () {
   let cwd = current_dir().unwrap();
   let cli = cli::parse_input();
   let config = config::get(cwd, cli);
-  let packages = get_packages(&config);
+  let packages = packages::get(&config);
 
   match config.cli.command_name {
     Subcommand::Fix => {

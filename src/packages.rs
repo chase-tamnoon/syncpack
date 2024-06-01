@@ -102,7 +102,7 @@ impl Packages {
 }
 
 /// Get every package.json file matched by the user's source patterns
-pub fn get_packages(config: &Config) -> Packages {
+pub fn get(config: &Config) -> Packages {
   let file_paths = get_file_paths(config);
   let mut packages = Packages {
     all_names: vec![],
