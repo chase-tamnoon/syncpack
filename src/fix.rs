@@ -3,7 +3,7 @@ use std::cmp::Ordering;
 
 use crate::{
   config::Config,
-  context::{self, Context},
+  context::Context,
   effects::{Effects, Event},
   format::{self, InMemoryFormattingStatus},
   packages::Packages,
@@ -17,7 +17,7 @@ pub fn fix(config: &Config, packages: &mut Packages, effects: &mut impl Effects)
   let Context {
     mut instances_by_id,
     version_groups,
-  } = context::get(&config, &packages);
+  } = Context::create(&config, &packages);
 
   effects.on_event(Event::EnterVersionsAndRanges(&config));
 
