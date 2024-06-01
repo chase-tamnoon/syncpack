@@ -26,15 +26,17 @@ pub fn lint(config: &Config, packages: &mut Packages, run_effect: fn(Effects) ->
 
   if cli_options.format {
     let InMemoryFormattingStatus {
-      was_valid: valid,
-      was_invalid: invalid,
+      was_valid,
+      was_invalid,
     } = format::fix(&config, packages);
-    if !valid.is_empty() {
-      run_effect(Effects::PackagesMatchFormatting(&valid, &config));
+    if !was_valid.is_empty() {
+      run_effect(Effects::PackagesMatchFormatting(&was_valid, &config));
     }
-    if !invalid.is_empty() {
+    if !was_invalid.is_empty() {
       run_effect(Effects::PackagesMismatchFormatting(
-        &invalid, &config, &mut state,
+        &was_invalid,
+        &config,
+        &mut state,
       ));
     }
   }
