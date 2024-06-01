@@ -1,11 +1,7 @@
-use colored::*;
-use log::info;
-use std::{path::PathBuf, process};
-
 use crate::{
+  config::Config,
   dependency::Dependency,
   effects::{Effects, InstanceEvent},
-  effects_lint::render_count_column,
   group_selector::GroupSelector,
   package_json::PackageJson,
 };
@@ -16,14 +12,15 @@ use crate::{
 pub struct NoopEffects {}
 
 impl Effects for NoopEffects {
+  fn on_no_packages(&self, config: &Config) {}
   fn on_begin_format(&self) {}
   fn on_skip_ranges_and_versions(&self) {}
   fn on_begin_ranges_and_versions(&self) {}
   fn on_begin_ranges_only(&self) {}
   fn on_begin_versions_only(&self) {}
   fn on_complete(&self, is_valid: bool) {}
-  fn on_formatted_packages(&self, valid_packages: &Vec<&PackageJson>, cwd: &PathBuf) {}
-  fn on_unformatted_packages(&self, invalid_packages: &Vec<&PackageJson>, cwd: &PathBuf) {}
+  fn on_formatted_packages(&self, valid_packages: &Vec<&PackageJson>, config: &Config) {}
+  fn on_unformatted_packages(&self, invalid_packages: &Vec<&PackageJson>, config: &Config) {}
   fn on_group(&self, selector: &GroupSelector) {}
   fn on_ignored_dependency(&self, dependency: &Dependency) {}
   fn on_banned_dependency(&self, dependency: &Dependency) {}

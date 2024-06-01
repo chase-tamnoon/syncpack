@@ -24,6 +24,7 @@ mod dependency_type;
 mod effects;
 mod effects_fix;
 mod effects_lint;
+mod effects_noop;
 mod fix;
 mod format;
 mod group_selector;
