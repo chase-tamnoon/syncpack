@@ -9,6 +9,7 @@ pub enum Subcommand {
   Fix,
 }
 
+#[derive(Debug)]
 pub struct Cli {
   pub command_name: Subcommand,
   pub options: CliOptions,

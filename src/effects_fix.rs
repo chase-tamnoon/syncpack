@@ -1,6 +1,5 @@
 use colored::*;
 use log::info;
-use std::process;
 
 use crate::{
   effects::{Effects, InstanceEvent},
@@ -9,7 +8,7 @@ use crate::{
 
 pub fn fix_effects(effect: Effects) -> () {
   match effect {
-    Effects::PackagesLoaded(_, _) => {
+    Effects::PackagesLoaded(_, _, _) => {
       lint_effects(effect);
     }
 
@@ -22,11 +21,9 @@ pub fn fix_effects(effect: Effects) -> () {
     Effects::ExitCommand(state) => {
       if state.is_valid {
         info!("\n{} {}", "✓".green(), "complete");
-        process::exit(0);
       } else {
         // @TODO: when fixing and unfixable errors happen, explain them to the user
         info!("\n{} {}", "✘".red(), "some issues were not autofixable");
-        process::exit(1);
       }
     }
 

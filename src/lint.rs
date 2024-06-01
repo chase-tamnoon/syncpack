@@ -1,30 +1,37 @@
 use crate::{
   config::Config,
+  context::RunState,
   context::{self, Context},
   effects::Effects,
   format::{self, InMemoryFormattingStatus},
   packages::Packages,
 };
 
-pub fn lint(config: &Config, packages: &mut Packages, run_effect: fn(Effects) -> ()) {
-  let cli_options = &config.cli.options;
+pub fn lint(
+  config: &Config,
+  packages: &mut Packages,
+  run_effect: fn(Effects) -> (),
+  state: &mut RunState,
+) {
+  run_effect(Effects::PackagesLoaded(&config, &packages, state));
+
+  let cli = &config.cli;
   let Context {
     mut instances_by_id,
-    mut state,
     version_groups,
   } = context::get(&config, &packages);
 
   run_effect(Effects::EnterVersionsAndRanges(&config));
 
-  if cli_options.ranges || cli_options.versions {
+  if cli.options.ranges || cli.options.versions {
     version_groups.iter().for_each(|group| {
-      group.visit(&mut instances_by_id, packages, run_effect, &mut state);
+      group.visit(&mut instances_by_id, packages, run_effect, state);
     });
   }
 
   run_effect(Effects::EnterFormat(&config));
 
-  if cli_options.format {
+  if cli.options.format {
     let InMemoryFormattingStatus {
       was_valid,
       was_invalid,
@@ -36,10 +43,10 @@ pub fn lint(config: &Config, packages: &mut Packages, run_effect: fn(Effects) ->
       run_effect(Effects::PackagesMismatchFormatting(
         &was_invalid,
         &config,
-        &mut state,
+        state,
       ));
     }
   }
 
-  run_effect(Effects::ExitCommand(&mut state));
+  run_effect(Effects::ExitCommand(state));
 }

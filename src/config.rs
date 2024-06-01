@@ -273,6 +273,7 @@ fn get_default_dependency_types() -> HashMap<String, CustomType> {
   ])
 }
 
+#[derive(Debug)]
 pub struct Config {
   pub cli: Cli,
   pub cwd: PathBuf,

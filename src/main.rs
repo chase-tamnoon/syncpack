@@ -1,11 +1,11 @@
 #![allow(dead_code)]
 #![allow(unused_variables)]
 
-use effects::Effects;
+use context::RunState;
 use env_logger::Builder;
 use log::{Level, LevelFilter};
-use std::env::current_dir;
 use std::io::Write;
+use std::{env::current_dir, process};
 
 use crate::{
   cli::{Cli, Subcommand},
@@ -44,20 +44,24 @@ fn main() -> () {
   let config = Config::from_cli(cwd, cli);
   let packages = Packages::from_config(&config);
 
+  let mut state = RunState { is_valid: true };
+
   match config.cli.command_name {
     Subcommand::Fix => {
-      fix_effects(Effects::PackagesLoaded(&config, &packages));
       // everything is mutated and written when fixing
       let mut packages = packages;
-      fix(&config, &mut packages, fix_effects);
+      fix(&config, &mut packages, fix_effects, &mut state);
     }
     Subcommand::Lint => {
-      lint_effects(Effects::PackagesLoaded(&config, &packages));
       // packages are mutated when linting formatting, but not written to disk
       let mut packages = packages;
-      lint(&config, &mut packages, lint_effects);
+      lint(&config, &mut packages, lint_effects, &mut state);
     }
   };
+
+  if !state.is_valid {
+    process::exit(1);
+  }
 }
 
 fn init_logger() {

@@ -3,24 +3,30 @@ use std::cmp::Ordering;
 
 use crate::{
   config::Config,
-  context::{self, Context},
+  context::{self, Context, RunState},
   effects::Effects,
   format::{self, InMemoryFormattingStatus},
   packages::Packages,
   version_group::VersionGroupVariant,
 };
 
-pub fn fix(config: &Config, packages: &mut Packages, run_effect: fn(Effects) -> ()) {
-  let cli_options = &config.cli.options;
+pub fn fix(
+  config: &Config,
+  packages: &mut Packages,
+  run_effect: fn(Effects) -> (),
+  state: &mut RunState,
+) {
+  run_effect(Effects::PackagesLoaded(&config, &packages, state));
+
+  let cli = &config.cli;
   let Context {
     mut instances_by_id,
-    mut state,
     version_groups,
   } = context::get(&config, &packages);
 
   run_effect(Effects::EnterVersionsAndRanges(&config));
 
-  if cli_options.ranges || cli_options.versions {
+  if cli.options.ranges || cli.options.versions {
     version_groups
       .iter()
       // fix snapped to groups last, so that the packages they're snapped to
@@ -35,13 +41,13 @@ pub fn fix(config: &Config, packages: &mut Packages, run_effect: fn(Effects) -> 
         }
       })
       .for_each(|group| {
-        group.visit(&mut instances_by_id, packages, run_effect, &mut state);
+        group.visit(&mut instances_by_id, packages, run_effect, state);
       });
   }
 
   run_effect(Effects::EnterFormat(&config));
 
-  if cli_options.format {
+  if cli.options.format {
     let InMemoryFormattingStatus {
       was_valid: valid,
       was_invalid: invalid,
@@ -51,7 +57,7 @@ pub fn fix(config: &Config, packages: &mut Packages, run_effect: fn(Effects) -> 
     }
     if !invalid.is_empty() {
       run_effect(Effects::PackagesMismatchFormatting(
-        &invalid, &config, &mut state,
+        &invalid, &config, state,
       ));
     }
   }
@@ -61,5 +67,5 @@ pub fn fix(config: &Config, packages: &mut Packages, run_effect: fn(Effects) -> 
     package.write_to_disk(&config);
   });
 
-  run_effect(Effects::ExitCommand(&mut state));
+  run_effect(Effects::ExitCommand(state));
 }

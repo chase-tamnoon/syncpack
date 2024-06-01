@@ -7,6 +7,7 @@ use crate::{
   packages::Packages,
 };
 
+#[derive(Debug)]
 pub struct InstanceEvent<'a> {
   /// all instances in the workspace
   pub instances_by_id: &'a mut InstancesById,
@@ -24,9 +25,10 @@ pub struct InstanceEvent<'a> {
   pub target: InstanceIdsBySpecifier,
 }
 
+#[derive(Debug)]
 pub enum Effects<'a, 'b> {
   /// All package.json files have been read from the workspace
-  PackagesLoaded(&'a Config, &'a Packages),
+  PackagesLoaded(&'a Config, &'a Packages, &'a mut RunState),
 
   /// Syncpack is about to lint/fix versions/ranges, if enabled
   EnterVersionsAndRanges(&'a Config),

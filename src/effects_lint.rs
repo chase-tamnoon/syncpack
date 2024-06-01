@@ -1,15 +1,14 @@
 use colored::*;
 use log::info;
-use std::process;
 
 use crate::{dependency::Dependency, effects::Effects};
 
 pub fn lint_effects(effect: Effects) -> () {
   match effect {
-    Effects::PackagesLoaded(config, packages) => {
+    Effects::PackagesLoaded(config, packages, state) => {
       if packages.all_names.is_empty() {
         info!("\n{} {}", "✘".red(), "No packages found");
-        process::exit(1);
+        state.is_valid = false;
       }
     }
 
@@ -35,10 +34,8 @@ pub fn lint_effects(effect: Effects) -> () {
     Effects::ExitCommand(state) => {
       if state.is_valid {
         info!("\n{} {}", "✓".green(), "valid");
-        process::exit(0);
       } else {
         info!("\n{} {}", "✘".red(), "invalid");
-        process::exit(1);
       }
     }
 

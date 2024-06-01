@@ -5,13 +5,13 @@ use crate::{
   version_group::VersionGroup,
 };
 
+#[derive(Debug)]
 pub struct RunState {
   pub is_valid: bool,
 }
 
 pub struct Context {
   pub instances_by_id: BTreeMap<String, Instance>,
-  pub state: RunState,
   pub version_groups: Vec<VersionGroup>,
 }
 
@@ -38,7 +38,6 @@ pub fn get(config: &Config, packages: &Packages) -> Context {
 
   Context {
     instances_by_id,
-    state: RunState { is_valid: true },
     version_groups,
   }
 }

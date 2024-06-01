@@ -10,6 +10,7 @@ use crate::{
   package_json::PackageJson,
 };
 
+#[derive(Debug)]
 pub struct Packages {
   pub all_names: Vec<String>,
   pub by_name: HashMap<String, PackageJson>,
