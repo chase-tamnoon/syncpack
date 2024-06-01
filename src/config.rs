@@ -1,9 +1,10 @@
 use colored::*;
 use log::info;
 use serde::Deserialize;
-use std::{collections::HashMap, fs, path};
+use std::{collections::HashMap, fs, path::PathBuf};
 
 use crate::{
+  cli::Cli,
   dependency_type,
   semver_group::{self, SemverGroup},
   version_group::{self, VersionGroup},
@@ -247,12 +248,17 @@ fn get_default_dependency_types() -> HashMap<String, CustomType> {
   ])
 }
 
+pub struct Config {
+  pub cli: Cli,
+  pub cwd: PathBuf,
+  pub rcfile: Rcfile,
+}
+
 /// Try to read the rcfile from the current working directory and fall back to
 /// defaults if one is not found
-pub fn get(cwd: &path::PathBuf) -> Rcfile {
-  let short_path = ".syncpackrc.json";
-  let file_path = cwd.join(short_path);
-  fs::read_to_string(&file_path)
+pub fn get(cwd: PathBuf, cli: Cli) -> Config {
+  let file_path = cwd.join(".syncpackrc.json");
+  let rcfile = fs::read_to_string(&file_path)
     .inspect_err(|_| {
       info!(
         "{}",
@@ -265,5 +271,7 @@ pub fn get(cwd: &path::PathBuf) -> Rcfile {
     })
     .or_else(|_| Ok("{}".to_string()))
     .and_then(|json| serde_json::from_str::<Rcfile>(&json))
-    .unwrap()
+    .unwrap();
+
+  Config { cli, cwd, rcfile }
 }

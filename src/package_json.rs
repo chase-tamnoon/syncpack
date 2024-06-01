@@ -2,6 +2,8 @@ use serde::Serialize;
 use serde_json::{ser::PrettyFormatter, Serializer};
 use std::path::PathBuf;
 
+use crate::config::Config;
+
 #[derive(Clone, Debug)]
 pub struct PackageJson {
   /// The path to the package.json file
@@ -69,8 +71,8 @@ impl PackageJson {
   }
 
   /// Write the package.json to disk
-  pub fn write_to_disk(&mut self, indent: &String) {
-    let vec = self.serialize(indent);
+  pub fn write_to_disk(&mut self, config: &Config) {
+    let vec = self.serialize(&config.rcfile.indent);
     std::fs::write(&self.file_path, &vec).expect("Failed to write package.json to disk");
     self.json = self.to_pretty_json(vec);
   }

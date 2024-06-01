@@ -6,7 +6,11 @@ use regex::Regex;
 use serde_json::{self, json, Map, Value};
 use std::{cmp::Ordering, collections::HashSet};
 
-use crate::{config::Rcfile, package_json::PackageJson, packages::Packages};
+use crate::{
+  config::{Config, Rcfile},
+  package_json::PackageJson,
+  packages::Packages,
+};
 
 pub struct LintResult<'a> {
   pub invalid: Vec<&'a PackageJson>,
@@ -14,16 +18,16 @@ pub struct LintResult<'a> {
 }
 
 /// Check whether every package is formatted according to config
-pub fn lint<'a>(rcfile: &'a Rcfile, packages: &'a mut Packages) -> LintResult<'a> {
+pub fn lint<'a>(config: &'a Config, packages: &'a mut Packages) -> LintResult<'a> {
   let mut lint_result = LintResult {
     invalid: Vec::new(),
     valid: Vec::new(),
   };
   packages.by_name.values_mut().for_each(|package| {
     // to lint, apply all configured formatting to the clone...
-    fix_package(&rcfile, package);
+    fix_package(&config.rcfile, package);
     // ...and if it has changed we know it is invalid
-    if package.has_changed(&rcfile.indent) {
+    if package.has_changed(&config.rcfile.indent) {
       lint_result.invalid.push(package);
     } else {
       lint_result.valid.push(package);

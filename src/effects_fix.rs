@@ -1,8 +1,9 @@
 use colored::*;
 use log::info;
-use std::{path::PathBuf, process};
+use std::process;
 
 use crate::{
+  config::Config,
   dependency::Dependency,
   effects::{Effects, InstanceEvent},
   effects_lint::render_count_column,
@@ -14,13 +15,9 @@ pub struct FixEffects {}
 
 impl Effects for FixEffects {
   fn on_begin_format(&self) {}
-
   fn on_skip_ranges_and_versions(&self) {}
-
   fn on_begin_ranges_and_versions(&self) {}
-
   fn on_begin_ranges_only(&self) {}
-
   fn on_begin_versions_only(&self) {}
 
   // ===========================================================================
@@ -43,9 +40,8 @@ impl Effects for FixEffects {
   // Formatting
   // ===========================================================================
 
-  fn on_formatted_packages(&self, valid_packages: &Vec<&PackageJson>, _cwd: &PathBuf) {}
-
-  fn on_unformatted_packages(&self, invalid_packages: &Vec<&PackageJson>, cwd: &PathBuf) {}
+  fn on_formatted_packages(&self, _valid_packages: &Vec<&PackageJson>, _config: &Config) {}
+  fn on_unformatted_packages(&self, _invalid_packages: &Vec<&PackageJson>, _config: &Config) {}
 
   // ===========================================================================
   // Version Groups
@@ -58,13 +54,9 @@ impl Effects for FixEffects {
   // ===========================================================================
 
   fn on_ignored_dependency(&self, _dependency: &Dependency) {}
-
   fn on_banned_dependency(&self, _dependency: &Dependency) {}
-
   fn on_valid_pinned_dependency(&self, _dependency: &Dependency) {}
-
   fn on_invalid_pinned_dependency(&self, _dependency: &Dependency) {}
-
   fn on_valid_same_range_dependency(&self, _dependency: &Dependency) {}
 
   fn on_invalid_same_range_dependency(&self, dependency: &Dependency) {
@@ -73,9 +65,7 @@ impl Effects for FixEffects {
   }
 
   fn on_valid_snap_to_dependency(&self, _dependency: &Dependency) {}
-
   fn on_invalid_snap_to_dependency(&self, _dependency: &Dependency) {}
-
   fn on_valid_standard_dependency(&self, _dependency: &Dependency) {}
 
   fn on_invalid_standard_dependency(&self, dependency: &Dependency) {

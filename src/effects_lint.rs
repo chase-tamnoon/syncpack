@@ -1,8 +1,9 @@
 use colored::*;
 use log::info;
-use std::{path::PathBuf, process};
+use std::process;
 
 use crate::{
+  config::Config,
   dependency::Dependency,
   effects::{Effects, InstanceEvent},
   group_selector::GroupSelector,
@@ -53,7 +54,7 @@ impl Effects for LintEffects {
   // Formatting
   // ===========================================================================
 
-  fn on_formatted_packages(&self, valid_packages: &Vec<&PackageJson>, _cwd: &PathBuf) {
+  fn on_formatted_packages(&self, valid_packages: &Vec<&PackageJson>, _config: &Config) {
     if !valid_packages.is_empty() {
       info!(
         "{} {} valid formatting",
@@ -63,7 +64,7 @@ impl Effects for LintEffects {
     }
   }
 
-  fn on_unformatted_packages(&self, invalid_packages: &Vec<&PackageJson>, cwd: &PathBuf) {
+  fn on_unformatted_packages(&self, invalid_packages: &Vec<&PackageJson>, config: &Config) {
     if !invalid_packages.is_empty() {
       info!(
         "{} {}",
@@ -74,7 +75,7 @@ impl Effects for LintEffects {
         info!(
           "      {} {}",
           "✘".red(),
-          package.get_relative_file_path(&cwd).red()
+          package.get_relative_file_path(&config.cwd).red()
         );
       });
     }

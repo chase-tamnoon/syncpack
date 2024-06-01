@@ -1,6 +1,5 @@
-use std::path::PathBuf;
-
 use crate::{
+  config::Config,
   dependency::{Dependency, InstanceIdsBySpecifier, InstancesById},
   group_selector::GroupSelector,
   package_json::PackageJson,
@@ -56,12 +55,12 @@ pub trait Effects {
   // ===========================================================================
 
   /// Linting/fixing of formatting has completed and these packages were valid
-  fn on_formatted_packages(&self, valid_packages: &Vec<&PackageJson>, _cwd: &PathBuf);
+  fn on_formatted_packages(&self, valid_packages: &Vec<&PackageJson>, config: &Config);
 
   /// Linting/fixing of formatting has completed and these packages were
   /// initially invalid. In the case of fixing, they are now valid but were
   /// invalid beforehand.
-  fn on_unformatted_packages(&self, invalid_packages: &Vec<&PackageJson>, cwd: &PathBuf);
+  fn on_unformatted_packages(&self, invalid_packages: &Vec<&PackageJson>, config: &Config);
 
   // ===========================================================================
   // Version/Semver Groups

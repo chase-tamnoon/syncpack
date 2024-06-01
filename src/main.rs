@@ -3,6 +3,7 @@
 
 use env_logger::Builder;
 use log::{Level, LevelFilter};
+use std::env::current_dir;
 use std::io::Write;
 
 use crate::{
@@ -33,21 +34,21 @@ mod version_group;
 fn main() -> () {
   init_logger();
 
-  let cwd = std::env::current_dir().unwrap();
+  let cwd = current_dir().unwrap();
   let cli = cli::parse_input();
-  let rcfile = config::get(&cwd);
-  let packages = get_packages(&cwd, &cli.options, &rcfile);
+  let config = config::get(cwd, cli);
+  let packages = get_packages(&config);
 
-  match cli.command_name {
+  match config.cli.command_name {
     Subcommand::Fix => {
       // everything is mutated and written when fixing
       let mut packages = packages;
-      fix(&cwd, &cli, &rcfile, &mut packages, &FixEffects {})
+      fix(&config, &mut packages, &FixEffects {})
     }
     Subcommand::Lint => {
       // packages are mutated when linting formatting, but not written to disk
       let mut packages = packages;
-      lint(&cwd, &cli, &rcfile, &mut packages, &LintEffects {})
+      lint(&config, &mut packages, &LintEffects {})
     }
   };
 }

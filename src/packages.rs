@@ -3,8 +3,12 @@ use serde_json::Value;
 use std::{collections::HashMap, path::PathBuf};
 
 use crate::{
-  cli::CliOptions, config::Rcfile, dependency_type::Strategy, instance::Instance,
-  json_file::read_json_file, package_json::PackageJson,
+  cli::CliOptions,
+  config::{Config, Rcfile},
+  dependency_type::Strategy,
+  instance::Instance,
+  json_file::read_json_file,
+  package_json::PackageJson,
 };
 
 pub struct Packages {
@@ -14,12 +18,12 @@ pub struct Packages {
 
 impl Packages {
   /// Get every instance of a dependency from every package.json file
-  pub fn get_all_instances<F>(&self, cli_options: &CliOptions, rcfile: &Rcfile, mut on_instance: F)
+  pub fn get_all_instances<F>(&self, config: &Config, mut on_instance: F)
   where
     F: FnMut(Instance),
   {
-    let dependency_types = &rcfile.get_enabled_dependency_types();
-    let filter = &cli_options.filter;
+    let dependency_types = &config.rcfile.get_enabled_dependency_types();
+    let filter = &config.cli.options.filter;
     let matches_filter = |name: &str| -> bool {
       if let Some(filter) = filter {
         filter.is_match(name)
@@ -98,8 +102,8 @@ impl Packages {
 }
 
 /// Get every package.json file matched by the user's source patterns
-pub fn get_packages(cwd: &PathBuf, cli_options: &CliOptions, rcfile: &Rcfile) -> Packages {
-  let file_paths = get_file_paths(&cwd, &cli_options, &rcfile);
+pub fn get_packages(config: &Config) -> Packages {
+  let file_paths = get_file_paths(config);
   let mut packages = Packages {
     all_names: vec![],
     by_name: HashMap::new(),
@@ -116,14 +120,14 @@ pub fn get_packages(cwd: &PathBuf, cli_options: &CliOptions, rcfile: &Rcfile) ->
 
 /// Resolve every source glob pattern into their absolute file paths of
 /// package.json files
-fn get_file_paths(cwd: &PathBuf, cli_options: &CliOptions, rcfile: &Rcfile) -> Vec<PathBuf> {
-  get_source_patterns(cli_options, rcfile)
+fn get_file_paths(config: &Config) -> Vec<PathBuf> {
+  get_source_patterns(config)
     .iter()
     .map(|pattern| {
       if PathBuf::from(pattern).is_absolute() {
         pattern.clone()
       } else {
-        cwd.join(pattern).to_str().unwrap().to_string()
+        config.cwd.join(pattern).to_str().unwrap().to_string()
       }
     })
     .flat_map(|pattern| glob(&pattern).ok())
@@ -140,9 +144,9 @@ fn get_file_paths(cwd: &PathBuf, cli_options: &CliOptions, rcfile: &Rcfile) -> V
 
 /// Based on the user's config file and command line `--source` options, return
 /// the source glob patterns which should be used to resolve package.json files
-fn get_source_patterns(cli_options: &CliOptions, rcfile: &Rcfile) -> Vec<String> {
-  get_cli_patterns(cli_options)
-    .or_else(|| get_rcfile_patterns(rcfile))
+fn get_source_patterns(config: &Config) -> Vec<String> {
+  get_cli_patterns(&config.cli.options)
+    .or_else(|| get_rcfile_patterns(&config.rcfile))
     .or_else(get_npm_patterns)
     .or_else(get_pnpm_patterns)
     .or_else(get_yarn_patterns)

@@ -1,9 +1,8 @@
 use itertools::Itertools;
-use std::{cmp::Ordering, path::PathBuf};
+use std::cmp::Ordering;
 
 use crate::{
-  cli::Cli,
-  config::Rcfile,
+  config::Config,
   context::{get_context, Context},
   effects::Effects,
   format::{self, LintResult},
@@ -11,27 +10,22 @@ use crate::{
   version_group::VersionGroupVariant,
 };
 
-pub fn fix<T: Effects>(
-  cwd: &PathBuf,
-  cli: &Cli,
-  rcfile: &Rcfile,
-  packages: &mut Packages,
-  effects: &T,
-) -> () {
+pub fn fix<T: Effects>(config: &Config, packages: &mut Packages, effects: &T) -> () {
   let mut is_valid = true;
+  let cli_options = &config.cli.options;
   let Context {
     version_groups,
     mut instances_by_id,
-  } = get_context(&cli.options, &rcfile, &packages);
+  } = get_context(&config, &packages);
 
-  match (cli.options.ranges, cli.options.versions) {
+  match (cli_options.ranges, cli_options.versions) {
     (true, true) => effects.on_begin_ranges_and_versions(),
     (true, false) => effects.on_begin_ranges_only(),
     (false, true) => effects.on_begin_versions_only(),
     (false, false) => effects.on_skip_ranges_and_versions(),
   };
 
-  if cli.options.ranges || cli.options.versions {
+  if cli_options.ranges || cli_options.versions {
     version_groups
       .iter()
       // fix snapped to groups last, so that the packages they're snapped to
@@ -54,16 +48,16 @@ pub fn fix<T: Effects>(
       });
   }
 
-  if cli.options.format {
+  if cli_options.format {
     effects.on_begin_format();
-    let LintResult { valid, invalid } = format::lint(&rcfile, packages);
-    effects.on_formatted_packages(&valid, &cwd);
-    effects.on_unformatted_packages(&invalid, &cwd);
+    let LintResult { valid, invalid } = format::lint(&config, packages);
+    effects.on_formatted_packages(&valid, &config);
+    effects.on_unformatted_packages(&invalid, &config);
   }
 
   // write the changes to the package.json files
   packages.by_name.values_mut().for_each(|package| {
-    package.write_to_disk(&rcfile.indent);
+    package.write_to_disk(&config);
   });
 
   effects.on_complete(is_valid);
