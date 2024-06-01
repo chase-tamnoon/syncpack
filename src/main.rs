@@ -28,7 +28,6 @@ mod fix;
 mod format;
 mod group_selector;
 mod instance;
-mod json_file;
 mod lint;
 mod package_json;
 mod packages;

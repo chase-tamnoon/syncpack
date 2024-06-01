@@ -7,7 +7,6 @@ use crate::{
   config::{Config, Rcfile},
   dependency_type::Strategy,
   instance::Instance,
-  json_file::read_json_file,
   package_json::PackageJson,
 };
 
@@ -29,10 +28,10 @@ impl Packages {
   pub fn from_config(config: &Config) -> Self {
     let file_paths = get_file_paths(config);
     let mut packages = Self::new();
-    file_paths.into_iter().for_each(|file_path| {
-      if let Ok(package_json) = read_json_file(&file_path) {
+    file_paths.iter().for_each(|file_path| {
+      PackageJson::from_file(&file_path).map(|package_json| {
         packages.add_package(package_json);
-      }
+      });
     });
     packages
   }

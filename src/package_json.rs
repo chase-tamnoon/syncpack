@@ -1,6 +1,7 @@
+use log::error;
 use serde::Serialize;
 use serde_json::{ser::PrettyFormatter, Serializer};
-use std::path::PathBuf;
+use std::{fs, path::PathBuf};
 
 use crate::config::Config;
 
@@ -15,6 +16,33 @@ pub struct PackageJson {
 }
 
 impl PackageJson {
+  /// Read a package.json file from the given location
+  pub fn from_file(file_path: &PathBuf) -> Option<Self> {
+    fs::read_to_string(&file_path)
+      .inspect_err(|_| {
+        error!(
+          "package.json not readable at {}",
+          &file_path.to_str().unwrap()
+        );
+      })
+      .ok()
+      .and_then(|json| {
+        serde_json::from_str(&json)
+          .inspect_err(|_| {
+            error!(
+              "package.json not parseable JSON at {}",
+              &file_path.to_str().unwrap()
+            );
+          })
+          .map(|contents| Self {
+            file_path: file_path.clone(),
+            json,
+            contents,
+          })
+          .ok()
+      })
+  }
+
   /// Convenience method to get the name of the package
   pub fn get_name(&self) -> String {
     self

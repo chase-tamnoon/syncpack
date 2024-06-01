@@ -1,5 +1,5 @@
 use colored::*;
-use log::{info, warn};
+use log::{error, info, warn};
 use serde::Deserialize;
 use std::{collections::HashMap, env::current_dir, fs, path::PathBuf};
 
@@ -117,7 +117,16 @@ impl Rcfile {
         warn!("config file not found at {}", &file_path.to_str().unwrap());
       })
       .ok()
-      .and_then(|json| serde_json::from_str::<Self>(&json).ok())
+      .and_then(|json| {
+        serde_json::from_str::<Self>(&json)
+          .inspect_err(|_| {
+            error!(
+              "config file not parseable JSON at {}",
+              &file_path.to_str().unwrap()
+            );
+          })
+          .ok()
+      })
   }
 
   pub fn get_enabled_dependency_types(&self) -> Vec<dependency_type::DependencyType> {
