@@ -10,7 +10,7 @@ pub struct Context {
   pub instances_by_id: BTreeMap<String, Instance>,
 }
 
-pub fn get_context(config: &Config, packages: &Packages) -> Context {
+pub fn get(config: &Config, packages: &Packages) -> Context {
   let semver_groups = config.rcfile.get_semver_groups();
   let mut version_groups = config.rcfile.get_version_groups(&packages.all_names);
   let mut instances_by_id: InstancesById = BTreeMap::new();

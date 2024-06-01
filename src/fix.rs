@@ -3,7 +3,7 @@ use std::cmp::Ordering;
 
 use crate::{
   config::Config,
-  context::{get_context, Context},
+  context::{self, Context},
   effects::Effects,
   format::{self, InMemoryFormattingStatus},
   packages::Packages,
@@ -16,7 +16,7 @@ pub fn fix<T: Effects>(config: &Config, packages: &mut Packages, effects: &T) ->
   let Context {
     version_groups,
     mut instances_by_id,
-  } = get_context(&config, &packages);
+  } = context::get(&config, &packages);
 
   match (cli_options.ranges, cli_options.versions) {
     (true, true) => effects.on_begin_ranges_and_versions(),
