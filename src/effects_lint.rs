@@ -194,20 +194,17 @@ impl Effects for LintEffects {
   }
 
   fn on_snap_to_mismatch(&self, event: &mut InstanceEvent) {
-    let (expected, mismatches_with) = &event.mismatches_with;
-    // (there is only one member in this vec)
-    mismatches_with.iter().for_each(|snapped_to_instance_id| {
-      let icon = "✘".red();
-      let arrow = "→".dimmed();
-      info!(
-        "      {} {} {} {} {}",
-        icon,
-        event.target.0.red(),
-        arrow,
-        expected.green(),
-        "[SnappedToMismatch]".dimmed()
-      );
-    });
+    let (expected, _) = &event.mismatches_with;
+    let icon = "✘".red();
+    let arrow = "→".dimmed();
+    info!(
+      "      {} {} {} {} {}",
+      icon,
+      event.target.0.red(),
+      arrow,
+      expected.green(),
+      "[SnappedToMismatch]".dimmed()
+    );
   }
 
   fn on_local_version_mismatch(&self, event: &mut InstanceEvent) {

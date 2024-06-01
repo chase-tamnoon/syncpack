@@ -106,7 +106,6 @@ impl Instance {
       Strategy::VersionsByName => {
         let path_to_obj = &self.dependency_type.path;
         let name = &self.name;
-        let path_to_obj_str = path_to_obj.as_str();
         if let Some(value) = package.contents.pointer_mut(path_to_obj) {
           if let Value::Object(obj) = value {
             obj.remove(name);

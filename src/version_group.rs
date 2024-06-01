@@ -449,7 +449,7 @@ fn get_snap_to_instance<'a>(
   dependency_name: &String,
   instances_by_id: &'a mut InstancesById,
 ) -> Option<&'a Instance> {
-  for (id, instance) in instances_by_id {
+  for instance in instances_by_id.values() {
     if instance.name == *dependency_name {
       for snapped_to_package_name in snap_to {
         if instance.package_name == *snapped_to_package_name {
