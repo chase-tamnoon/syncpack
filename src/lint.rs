@@ -50,3 +50,24 @@ pub fn lint(
 
   run_effect(Effects::ExitCommand(state));
 }
+
+#[cfg(test)]
+mod tests {
+  use super::*;
+
+  #[test]
+  fn run_effect_when_packages_loaded() {
+    let config = Config::new();
+    let mut packages = Packages::new();
+    let mut state = RunState { is_valid: false };
+
+    fn effects(effect: Effects) -> () {
+      if let Effects::PackagesLoaded(config, packages, state) = effect {
+        state.is_valid = true;
+      }
+    }
+
+    lint(&config, &mut packages, effects, &mut state);
+    assert_eq!(state.is_valid, true);
+  }
+}
