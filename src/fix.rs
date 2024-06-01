@@ -5,7 +5,7 @@ use crate::{
   config::Config,
   context::{get_context, Context},
   effects::Effects,
-  format::{self, LintResult},
+  format::{self, InMemoryFormattingStatus},
   packages::Packages,
   version_group::VersionGroupVariant,
 };
@@ -50,7 +50,10 @@ pub fn fix<T: Effects>(config: &Config, packages: &mut Packages, effects: &T) ->
 
   if cli_options.format {
     effects.on_begin_format();
-    let LintResult { valid, invalid } = format::lint(&config, packages);
+    let InMemoryFormattingStatus {
+      was_valid: valid,
+      was_invalid: invalid,
+    } = format::fix(&config, packages);
     effects.on_formatted_packages(&valid, &config);
     effects.on_unformatted_packages(&invalid, &config);
   }

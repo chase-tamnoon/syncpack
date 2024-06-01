@@ -12,35 +12,32 @@ use crate::{
   packages::Packages,
 };
 
-pub struct LintResult<'a> {
-  pub invalid: Vec<&'a PackageJson>,
-  pub valid: Vec<&'a PackageJson>,
+/// Packages have been formatted in memory, but not written to disk. This struct
+/// describes what state each package was in prior to formatting.
+pub struct InMemoryFormattingStatus<'a> {
+  /// On disk, these packages have invalid formatting
+  pub was_invalid: Vec<&'a PackageJson>,
+  /// On disk, these packages have valid formatting
+  pub was_valid: Vec<&'a PackageJson>,
 }
 
-/// Check whether every package is formatted according to config
-pub fn lint<'a>(config: &'a Config, packages: &'a mut Packages) -> LintResult<'a> {
-  let mut lint_result = LintResult {
-    invalid: Vec::new(),
-    valid: Vec::new(),
+/// Fix the formatting of every package in-memory and report on their status
+pub fn fix<'a>(config: &'a Config, packages: &'a mut Packages) -> InMemoryFormattingStatus<'a> {
+  let mut status = InMemoryFormattingStatus {
+    was_invalid: Vec::new(),
+    was_valid: Vec::new(),
   };
   packages.by_name.values_mut().for_each(|package| {
     // to lint, apply all configured formatting to the clone...
     fix_package(&config.rcfile, package);
     // ...and if it has changed we know it is invalid
     if package.has_changed(&config.rcfile.indent) {
-      lint_result.invalid.push(package);
+      status.was_invalid.push(package);
     } else {
-      lint_result.valid.push(package);
+      status.was_valid.push(package);
     }
   });
-  lint_result
-}
-
-/// Format every package according to config
-pub fn fix(rcfile: &Rcfile, packages: &mut Vec<PackageJson>) {
-  packages.iter_mut().for_each(|package| {
-    fix_package(&rcfile, package);
-  });
+  status
 }
 
 fn fix_package(rcfile: &Rcfile, package: &mut PackageJson) {
