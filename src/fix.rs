@@ -10,20 +10,15 @@ use crate::{
   version_group::VersionGroupVariant,
 };
 
-pub fn fix<T: Effects>(config: &Config, packages: &mut Packages, effects: &T) -> () {
-  let mut is_valid = true;
+pub fn fix(config: &Config, packages: &mut Packages, run_effect: fn(Effects) -> ()) {
   let cli_options = &config.cli.options;
   let Context {
-    version_groups,
     mut instances_by_id,
+    mut state,
+    version_groups,
   } = context::get(&config, &packages);
 
-  match (cli_options.ranges, cli_options.versions) {
-    (true, true) => effects.on_begin_ranges_and_versions(),
-    (true, false) => effects.on_begin_ranges_only(),
-    (false, true) => effects.on_begin_versions_only(),
-    (false, false) => effects.on_skip_ranges_and_versions(),
-  };
+  run_effect(Effects::EnterVersionsAndRanges(&config));
 
   if cli_options.ranges || cli_options.versions {
     version_groups
@@ -40,22 +35,25 @@ pub fn fix<T: Effects>(config: &Config, packages: &mut Packages, effects: &T) ->
         }
       })
       .for_each(|group| {
-        // @TODO: update effects to return a bool
-        let group_is_valid = group.visit(&mut instances_by_id, effects, packages);
-        if !group_is_valid {
-          is_valid = false;
-        }
+        group.visit(&mut instances_by_id, packages, run_effect, &mut state);
       });
   }
 
+  run_effect(Effects::EnterFormat(&config));
+
   if cli_options.format {
-    effects.on_begin_format();
     let InMemoryFormattingStatus {
       was_valid: valid,
       was_invalid: invalid,
     } = format::fix(&config, packages);
-    effects.on_formatted_packages(&valid, &config);
-    effects.on_unformatted_packages(&invalid, &config);
+    if !valid.is_empty() {
+      run_effect(Effects::PackagesMatchFormatting(&valid, &config));
+    }
+    if !invalid.is_empty() {
+      run_effect(Effects::PackagesMismatchFormatting(
+        &invalid, &config, &mut state,
+      ));
+    }
   }
 
   // write the changes to the package.json files
@@ -63,5 +61,5 @@ pub fn fix<T: Effects>(config: &Config, packages: &mut Packages, effects: &T) ->
     package.write_to_disk(&config);
   });
 
-  effects.on_complete(is_valid);
+  run_effect(Effects::ExitCommand(&mut state));
 }

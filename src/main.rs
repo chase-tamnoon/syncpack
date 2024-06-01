@@ -1,6 +1,7 @@
 #![allow(dead_code)]
 #![allow(unused_variables)]
 
+use effects::Effects;
 use env_logger::Builder;
 use log::{Level, LevelFilter};
 use std::env::current_dir;
@@ -9,8 +10,8 @@ use std::io::Write;
 use crate::{
   cli::{Cli, Subcommand},
   config::Config,
-  effects_fix::FixEffects,
-  effects_lint::LintEffects,
+  effects_fix::fix_effects,
+  effects_lint::lint_effects,
   fix::fix,
   lint::lint,
   packages::Packages,
@@ -24,7 +25,6 @@ mod dependency_type;
 mod effects;
 mod effects_fix;
 mod effects_lint;
-mod effects_noop;
 mod fix;
 mod format;
 mod group_selector;
@@ -46,14 +46,16 @@ fn main() -> () {
 
   match config.cli.command_name {
     Subcommand::Fix => {
+      fix_effects(Effects::PackagesLoaded(&config, &packages));
       // everything is mutated and written when fixing
       let mut packages = packages;
-      fix(&config, &mut packages, &FixEffects {})
+      fix(&config, &mut packages, fix_effects);
     }
     Subcommand::Lint => {
+      lint_effects(Effects::PackagesLoaded(&config, &packages));
       // packages are mutated when linting formatting, but not written to disk
       let mut packages = packages;
-      lint(&config, &mut packages, &LintEffects {})
+      lint(&config, &mut packages, lint_effects);
     }
   };
 }
