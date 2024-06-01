@@ -17,6 +17,34 @@ pub struct Packages {
 }
 
 impl Packages {
+  /// Create an empty collection of package.json files
+  pub fn new() -> Self {
+    Self {
+      all_names: vec![],
+      by_name: HashMap::new(),
+    }
+  }
+
+  /// Get every package.json file matched by the user's source patterns
+  pub fn from_config(config: &Config) -> Self {
+    let file_paths = get_file_paths(config);
+    let mut packages = Self::new();
+    file_paths.into_iter().for_each(|file_path| {
+      if let Ok(package_json) = read_json_file(&file_path) {
+        packages.add_package(package_json);
+      }
+    });
+    packages
+  }
+
+  /// Add a package.json file to this collection
+  pub fn add_package(&mut self, package_json: PackageJson) -> &mut Self {
+    let name = package_json.get_name();
+    self.all_names.push(name.clone());
+    self.by_name.insert(name, package_json);
+    self
+  }
+
   /// Get every instance of a dependency from every package.json file
   pub fn get_all_instances<F>(&self, config: &Config, mut on_instance: F)
   where
@@ -99,23 +127,6 @@ impl Packages {
       }
     }
   }
-}
-
-/// Get every package.json file matched by the user's source patterns
-pub fn get(config: &Config) -> Packages {
-  let file_paths = get_file_paths(config);
-  let mut packages = Packages {
-    all_names: vec![],
-    by_name: HashMap::new(),
-  };
-  for file_path in file_paths {
-    if let Ok(file) = read_json_file(&file_path) {
-      let name = file.get_name();
-      packages.all_names.push(name.clone());
-      packages.by_name.insert(name.clone(), file);
-    }
-  }
-  packages
 }
 
 /// Resolve every source glob pattern into their absolute file paths of

@@ -7,7 +7,13 @@ use std::env::current_dir;
 use std::io::Write;
 
 use crate::{
-  cli::Subcommand, effects_fix::FixEffects, effects_lint::LintEffects, fix::fix, lint::lint,
+  cli::{Cli, Subcommand},
+  config::Config,
+  effects_fix::FixEffects,
+  effects_lint::LintEffects,
+  fix::fix,
+  lint::lint,
+  packages::Packages,
 };
 
 mod cli;
@@ -34,9 +40,9 @@ fn main() -> () {
   init_logger();
 
   let cwd = current_dir().unwrap();
-  let cli = cli::parse_input();
-  let config = config::get(cwd, cli);
-  let packages = packages::get(&config);
+  let cli = Cli::parse();
+  let config = Config::from_cli(cwd, cli);
+  let packages = Packages::from_config(&config);
 
   match config.cli.command_name {
     Subcommand::Fix => {

@@ -1,7 +1,7 @@
 use colored::*;
-use log::info;
+use log::{info, warn};
 use serde::Deserialize;
-use std::{collections::HashMap, fs, path::PathBuf};
+use std::{collections::HashMap, env::current_dir, fs, path::PathBuf};
 
 use crate::{
   cli::Cli,
@@ -104,6 +104,22 @@ pub struct Rcfile {
 }
 
 impl Rcfile {
+  /// Create a new Rcfile with default values
+  pub fn new() -> Self {
+    let empty_json = "{}".to_string();
+    serde_json::from_str::<Self>(&empty_json).unwrap()
+  }
+
+  /// Read a rcfile from the given location
+  pub fn from_file(file_path: &PathBuf) -> Option<Self> {
+    fs::read_to_string(&file_path)
+      .inspect_err(|_| {
+        warn!("config file not found at {}", &file_path.to_str().unwrap());
+      })
+      .ok()
+      .and_then(|json| serde_json::from_str::<Self>(&json).ok())
+  }
+
   pub fn get_enabled_dependency_types(&self) -> Vec<dependency_type::DependencyType> {
     // Dependency type names referenced in the rcfile
     let named_types = &self.dependency_types;
@@ -131,7 +147,7 @@ impl Rcfile {
         return true;
       }
       // Is explicitly disabled
-      if named_types.contains(&get_negated(type_name)) {
+      if named_types.contains(&negate_identifier(type_name)) {
         return false;
       }
       // Is implicitly enabled when another type is explicitly disabled and
@@ -181,7 +197,7 @@ impl Rcfile {
 }
 
 /// Adds "!" to the start of the String
-fn get_negated(str: &String) -> String {
+fn negate_identifier(str: &String) -> String {
   let mut negated_str = String::from("!");
   negated_str.push_str(&str);
   negated_str
@@ -254,24 +270,37 @@ pub struct Config {
   pub rcfile: Rcfile,
 }
 
-/// Try to read the rcfile from the current working directory and fall back to
-/// defaults if one is not found
-pub fn get(cwd: PathBuf, cli: Cli) -> Config {
-  let file_path = cwd.join(".syncpackrc.json");
-  let rcfile = fs::read_to_string(&file_path)
-    .inspect_err(|_| {
-      info!(
-        "{}",
-        format!(
-          "? using default config: {} not found",
-          &file_path.to_str().unwrap()
-        )
-        .dimmed()
-      );
-    })
-    .or_else(|_| Ok("{}".to_string()))
-    .and_then(|json| serde_json::from_str::<Rcfile>(&json))
-    .unwrap();
+impl Config {
+  /// Create an empty struct, for use in tests
+  pub fn new() -> Self {
+    Config {
+      cli: Cli::new(),
+      cwd: current_dir().unwrap(),
+      rcfile: Rcfile::new(),
+    }
+  }
 
-  Config { cli, cwd, rcfile }
+  /// Try to read the rcfile from the current working directory and fall back to
+  /// defaults if one is not found
+  pub fn from_cli(cwd: PathBuf, cli: Cli) -> Config {
+    let file_path = cwd.join(".syncpackrc.json");
+    let maybe_rcfile = Rcfile::from_file(&file_path);
+
+    let rcfile = fs::read_to_string(&file_path)
+      .inspect_err(|_| {
+        info!(
+          "{}",
+          format!(
+            "? using default config: {} not found",
+            &file_path.to_str().unwrap()
+          )
+          .dimmed()
+        );
+      })
+      .or_else(|_| Ok("{}".to_string()))
+      .and_then(|json| serde_json::from_str::<Rcfile>(&json))
+      .unwrap();
+
+    Config { cli, cwd, rcfile }
+  }
 }

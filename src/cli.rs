@@ -14,18 +14,27 @@ pub struct Cli {
   pub options: CliOptions,
 }
 
-pub fn parse_input() -> Cli {
-  match create().get_matches().subcommand() {
-    Some(("lint", matches)) => Cli {
+impl Cli {
+  pub fn new() -> Self {
+    Cli {
       command_name: Subcommand::Lint,
-      options: get_cli_options(matches),
-    },
-    Some(("fix", matches)) => Cli {
-      command_name: Subcommand::Fix,
-      options: get_cli_options(matches),
-    },
-    _ => {
-      std::process::exit(1);
+      options: CliOptions::new(),
+    }
+  }
+
+  pub fn parse() -> Cli {
+    match create().get_matches().subcommand() {
+      Some(("lint", matches)) => Cli {
+        command_name: Subcommand::Lint,
+        options: CliOptions::from_arg_matches(matches),
+      },
+      Some(("fix", matches)) => Cli {
+        command_name: Subcommand::Fix,
+        options: CliOptions::from_arg_matches(matches),
+      },
+      _ => {
+        std::process::exit(1);
+      }
     }
   }
 }
@@ -145,27 +154,41 @@ pub struct CliOptions {
   pub source: Vec<String>,
 }
 
-/// returns which steps to run. if none are true, then all of them are returned
-/// as true. if any of them are true, then only those are returned as true.
-fn get_cli_options(matches: &ArgMatches) -> CliOptions {
-  let use_format = matches.get_flag("format");
-  let use_ranges = matches.get_flag("ranges");
-  let use_versions = matches.get_flag("versions");
-  let use_all = !use_format && !use_ranges && !use_versions;
-  let sources = matches
-    .get_many::<String>("source")
-    .unwrap_or_default()
-    .map(|source| source.to_owned())
-    .collect::<Vec<_>>();
-  let filter = matches
-    .get_one::<Regex>("filter")
-    .map(|filter| filter.to_owned());
+impl CliOptions {
+  /// Create an empty struct, for use in tests
+  pub fn new() -> Self {
+    Self {
+      filter: None,
+      format: false,
+      ranges: false,
+      versions: false,
+      source: vec![],
+    }
+  }
 
-  CliOptions {
-    filter,
-    format: use_all || use_format,
-    ranges: use_all || use_ranges,
-    versions: use_all || use_versions,
-    source: sources,
+  /// Create a new `CliOptions` from CLI arguments provided by the user
+  pub fn from_arg_matches(matches: &ArgMatches) -> CliOptions {
+    // 1. if no command is true, then all of them are true
+    // 2. if any commands are true, then only those are true
+    let use_format = matches.get_flag("format");
+    let use_ranges = matches.get_flag("ranges");
+    let use_versions = matches.get_flag("versions");
+    let use_all = !use_format && !use_ranges && !use_versions;
+    let sources = matches
+      .get_many::<String>("source")
+      .unwrap_or_default()
+      .map(|source| source.to_owned())
+      .collect::<Vec<_>>();
+    let filter = matches
+      .get_one::<Regex>("filter")
+      .map(|filter| filter.to_owned());
+
+    CliOptions {
+      filter,
+      format: use_all || use_format,
+      ranges: use_all || use_ranges,
+      versions: use_all || use_versions,
+      source: sources,
+    }
   }
 }
