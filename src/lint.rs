@@ -54,6 +54,6 @@ mod tests {
     let mut effects = MockEffects::new();
 
     lint(&config, &mut packages, &mut effects);
-    assert_eq!(effects.packages_loaded, 1);
+    assert_eq!(effects.events.packages_loaded.len(), 1);
   }
 }

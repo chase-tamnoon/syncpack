@@ -2,61 +2,13 @@ use crate::effects::{Effects, Event};
 
 /// A mock implementation of a command's side effects for the purpose of testing
 pub struct MockEffects {
-  pub packages_loaded: i32,
-  pub enter_versions_and_ranges: i32,
-  pub enter_format: i32,
-  pub exit_command: i32,
-  pub packages_match_formatting: i32,
-  pub packages_mismatch_formatting: i32,
-  pub group_visited: i32,
-  pub dependency_ignored: i32,
-  pub dependency_banned: i32,
-  pub dependency_matches_pinned_version: i32,
-  pub dependency_mismatches_pinned_version: i32,
-  pub dependency_matches_range: i32,
-  pub dependency_mismatches_range: i32,
-  pub dependency_matches_snap_to: i32,
-  pub dependency_mismatches_snap_to: i32,
-  pub dependency_matches_standard: i32,
-  pub dependency_mismatches_standard: i32,
-  pub instance_banned: i32,
-  pub instance_mismatches_pinned_version: i32,
-  pub instance_mismatches_range: i32,
-  pub instance_mismatches_snap_to: i32,
-  pub instance_mismatches_local_version: i32,
-  pub instance_unsupported_mismatch: i32,
-  pub instance_mismatches_lowest_version: i32,
-  pub instance_mismatches_highest_version: i32,
+  pub events: EventsByType,
 }
 
 impl MockEffects {
   pub fn new() -> Self {
     Self {
-      packages_loaded: 0,
-      enter_versions_and_ranges: 0,
-      enter_format: 0,
-      exit_command: 0,
-      packages_match_formatting: 0,
-      packages_mismatch_formatting: 0,
-      group_visited: 0,
-      dependency_ignored: 0,
-      dependency_banned: 0,
-      dependency_matches_pinned_version: 0,
-      dependency_mismatches_pinned_version: 0,
-      dependency_matches_range: 0,
-      dependency_mismatches_range: 0,
-      dependency_matches_snap_to: 0,
-      dependency_mismatches_snap_to: 0,
-      dependency_matches_standard: 0,
-      dependency_mismatches_standard: 0,
-      instance_banned: 0,
-      instance_mismatches_pinned_version: 0,
-      instance_mismatches_range: 0,
-      instance_mismatches_snap_to: 0,
-      instance_mismatches_local_version: 0,
-      instance_unsupported_mismatch: 0,
-      instance_mismatches_lowest_version: 0,
-      instance_mismatches_highest_version: 0,
+      events: EventsByType::new(),
     }
   }
 }
@@ -65,85 +17,146 @@ impl Effects for MockEffects {
   fn on(&mut self, event: Event) -> () {
     match event {
       Event::PackagesLoaded(config, packages) => {
-        self.packages_loaded += 1;
+        self.events.packages_loaded.push(());
       }
 
       Event::EnterVersionsAndRanges(config) => {
-        self.enter_versions_and_ranges += 1;
+        self.events.enter_versions_and_ranges.push(());
       }
       Event::EnterFormat(config) => {
-        self.enter_format += 1;
+        self.events.enter_format.push(());
       }
       Event::ExitCommand => {
-        self.exit_command += 1;
+        self.events.exit_command.push(());
       }
 
       Event::PackagesMatchFormatting(valid_packages, config) => {
-        self.packages_match_formatting += 1;
+        self.events.packages_match_formatting.push(());
       }
       Event::PackagesMismatchFormatting(invalid_packages, config) => {
-        self.packages_mismatch_formatting += 1;
+        self.events.packages_mismatch_formatting.push(());
       }
 
       Event::GroupVisited(selector) => {
-        self.group_visited += 1;
+        self.events.group_visited.push(());
       }
 
       Event::DependencyIgnored(dependency) => {
-        self.dependency_ignored += 1;
+        self.events.dependency_ignored.push(());
       }
       Event::DependencyBanned(dependency) => {
-        self.dependency_banned += 1;
+        self.events.dependency_banned.push(());
       }
       Event::DependencyMatchesPinnedVersion(dependency) => {
-        self.dependency_matches_pinned_version += 1;
+        self.events.dependency_matches_pinned_version.push(());
       }
       Event::DependencyMismatchesPinnedVersion(dependency) => {
-        self.dependency_mismatches_pinned_version += 1;
+        self.events.dependency_mismatches_pinned_version.push(());
       }
       Event::DependencyMatchesRange(dependency) => {
-        self.dependency_matches_range += 1;
+        self.events.dependency_matches_range.push(());
       }
       Event::DependencyMismatchesRange(dependency) => {
-        self.dependency_mismatches_range += 1;
+        self.events.dependency_mismatches_range.push(());
       }
       Event::DependencyMatchesSnapTo(dependency) => {
-        self.dependency_matches_snap_to += 1;
+        self.events.dependency_matches_snap_to.push(());
       }
       Event::DependencyMismatchesSnapTo(dependency) => {
-        self.dependency_mismatches_snap_to += 1;
+        self.events.dependency_mismatches_snap_to.push(());
       }
       Event::DependencyMatchesStandard(dependency) => {
-        self.dependency_matches_standard += 1;
+        self.events.dependency_matches_standard.push(());
       }
       Event::DependencyMismatchesStandard(dependency) => {
-        self.dependency_mismatches_standard += 1;
+        self.events.dependency_mismatches_standard.push(());
       }
 
-      Event::InstanceBanned(event) => {
-        self.instance_banned += 1;
+      Event::InstanceBanned(_) => {
+        self.events.instance_banned.push(());
       }
-      Event::InstanceMismatchesPinnedVersion(event) => {
-        self.instance_mismatches_pinned_version += 1;
+      Event::InstanceMismatchesPinnedVersion(_) => {
+        self.events.instance_mismatches_pinned_version.push(());
       }
-      Event::InstanceMismatchesRange(event) => {
-        self.instance_mismatches_range += 1;
+      Event::InstanceMismatchesRange(_) => {
+        self.events.instance_mismatches_range.push(());
       }
-      Event::InstanceMismatchesSnapTo(event) => {
-        self.instance_mismatches_snap_to += 1;
+      Event::InstanceMismatchesSnapTo(_) => {
+        self.events.instance_mismatches_snap_to.push(());
       }
-      Event::InstanceMismatchesLocalVersion(event) => {
-        self.instance_mismatches_local_version += 1;
+      Event::InstanceMismatchesLocalVersion(_) => {
+        self.events.instance_mismatches_local_version.push(());
       }
-      Event::InstanceUnsupportedMismatch(event) => {
-        self.instance_unsupported_mismatch += 1;
+      Event::InstanceUnsupportedMismatch(_) => {
+        self.events.instance_unsupported_mismatch.push(());
       }
-      Event::InstanceMismatchesLowestVersion(event) => {
-        self.instance_mismatches_lowest_version += 1;
+      Event::InstanceMismatchesLowestVersion(_) => {
+        self.events.instance_mismatches_lowest_version.push(());
       }
-      Event::InstanceMismatchesHighestVersion(event) => {
-        self.instance_mismatches_highest_version += 1;
+      Event::InstanceMismatchesHighestVersion(_) => {
+        self.events.instance_mismatches_highest_version.push(());
       }
     };
+  }
+}
+
+// We'll store data later but for now use `Vec<()>` to keep a count of events
+pub struct EventsByType {
+  pub packages_loaded: Vec<()>,
+  pub enter_versions_and_ranges: Vec<()>,
+  pub enter_format: Vec<()>,
+  pub exit_command: Vec<()>,
+  pub packages_match_formatting: Vec<()>,
+  pub packages_mismatch_formatting: Vec<()>,
+  pub group_visited: Vec<()>,
+  pub dependency_ignored: Vec<()>,
+  pub dependency_banned: Vec<()>,
+  pub dependency_matches_pinned_version: Vec<()>,
+  pub dependency_mismatches_pinned_version: Vec<()>,
+  pub dependency_matches_range: Vec<()>,
+  pub dependency_mismatches_range: Vec<()>,
+  pub dependency_matches_snap_to: Vec<()>,
+  pub dependency_mismatches_snap_to: Vec<()>,
+  pub dependency_matches_standard: Vec<()>,
+  pub dependency_mismatches_standard: Vec<()>,
+  pub instance_banned: Vec<()>,
+  pub instance_mismatches_pinned_version: Vec<()>,
+  pub instance_mismatches_range: Vec<()>,
+  pub instance_mismatches_snap_to: Vec<()>,
+  pub instance_mismatches_local_version: Vec<()>,
+  pub instance_unsupported_mismatch: Vec<()>,
+  pub instance_mismatches_lowest_version: Vec<()>,
+  pub instance_mismatches_highest_version: Vec<()>,
+}
+
+impl EventsByType {
+  pub fn new() -> Self {
+    Self {
+      packages_loaded: vec![],
+      enter_versions_and_ranges: vec![],
+      enter_format: vec![],
+      exit_command: vec![],
+      packages_match_formatting: vec![],
+      packages_mismatch_formatting: vec![],
+      group_visited: vec![],
+      dependency_ignored: vec![],
+      dependency_banned: vec![],
+      dependency_matches_pinned_version: vec![],
+      dependency_mismatches_pinned_version: vec![],
+      dependency_matches_range: vec![],
+      dependency_mismatches_range: vec![],
+      dependency_matches_snap_to: vec![],
+      dependency_mismatches_snap_to: vec![],
+      dependency_matches_standard: vec![],
+      dependency_mismatches_standard: vec![],
+      instance_banned: vec![],
+      instance_mismatches_pinned_version: vec![],
+      instance_mismatches_range: vec![],
+      instance_mismatches_snap_to: vec![],
+      instance_mismatches_local_version: vec![],
+      instance_unsupported_mismatch: vec![],
+      instance_mismatches_lowest_version: vec![],
+      instance_mismatches_highest_version: vec![],
+    }
   }
 }
