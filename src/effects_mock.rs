@@ -1,6 +1,10 @@
-use crate::effects::{Effects, Event};
+use crate::{
+  dependency::InstanceIdsBySpecifier,
+  effects::{Effects, Event},
+};
 
 /// A mock implementation of a command's side effects for the purpose of testing
+#[derive(Debug)]
 pub struct MockEffects {
   pub events: EventsByType,
 }
@@ -93,14 +97,29 @@ impl Effects for MockEffects {
       Event::InstanceMismatchesLowestVersion(_) => {
         self.events.instance_mismatches_lowest_version.push(());
       }
-      Event::InstanceMismatchesHighestVersion(_) => {
-        self.events.instance_mismatches_highest_version.push(());
+      Event::InstanceMismatchesHighestVersion(instance_event) => {
+        self
+          .events
+          .instance_mismatches_highest_version
+          .push(InstanceEventCopy {
+            dependency_name: instance_event.dependency.name.clone(),
+            mismatches_with: instance_event.mismatches_with.clone(),
+            target: instance_event.target.clone(),
+          });
       }
     };
   }
 }
 
+#[derive(Debug)]
+pub struct InstanceEventCopy {
+  pub dependency_name: String,
+  pub mismatches_with: InstanceIdsBySpecifier,
+  pub target: InstanceIdsBySpecifier,
+}
+
 // We'll store data later but for now use `Vec<()>` to keep a count of events
+#[derive(Debug)]
 pub struct EventsByType {
   pub packages_loaded: Vec<()>,
   pub enter_versions_and_ranges: Vec<()>,
@@ -126,7 +145,7 @@ pub struct EventsByType {
   pub instance_mismatches_local_version: Vec<()>,
   pub instance_unsupported_mismatch: Vec<()>,
   pub instance_mismatches_lowest_version: Vec<()>,
-  pub instance_mismatches_highest_version: Vec<()>,
+  pub instance_mismatches_highest_version: Vec<InstanceEventCopy>,
 }
 
 impl EventsByType {

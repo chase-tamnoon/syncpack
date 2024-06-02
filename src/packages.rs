@@ -45,6 +45,13 @@ impl Packages {
     self
   }
 
+  #[cfg(test)]
+  pub fn add_mock_packages(&mut self, values: Vec<Value>) {
+    for value in values {
+      self.add_package(PackageJson::from_value(value));
+    }
+  }
+
   /// Get every instance of a dependency from every package.json file
   pub fn get_all_instances<F>(&self, config: &Config, mut on_instance: F)
   where

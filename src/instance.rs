@@ -39,7 +39,7 @@ impl Instance {
   ) -> Instance {
     let package_name = package.get_name();
     Instance {
-      id: format!("{}|{}|{}", name, dependency_type.name, package_name),
+      id: format!("{} in {} of {}", name, dependency_type.path, package_name),
       dependency_type,
       file_path: package.file_path.clone(),
       is_local: package_name == name,

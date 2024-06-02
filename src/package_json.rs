@@ -16,6 +16,15 @@ pub struct PackageJson {
 }
 
 impl PackageJson {
+  /// Parse a package.json string
+  pub fn from_value(contents: serde_json::Value) -> Self {
+    Self {
+      file_path: PathBuf::new(),
+      json: contents.to_string(),
+      contents,
+    }
+  }
+
   /// Read a package.json file from the given location
   pub fn from_file(file_path: &PathBuf) -> Option<Self> {
     fs::read_to_string(&file_path)
@@ -29,10 +38,7 @@ impl PackageJson {
       .and_then(|json| {
         serde_json::from_str(&json)
           .inspect_err(|_| {
-            error!(
-              "package.json not parseable JSON at {}",
-              &file_path.to_str().unwrap()
-            );
+            error!("file is not valid JSON at {}", &file_path.to_str().unwrap());
           })
           .map(|contents| Self {
             file_path: file_path.clone(),
