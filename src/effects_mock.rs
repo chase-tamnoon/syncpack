@@ -88,14 +88,28 @@ impl Effects for MockEffects {
       Event::InstanceMismatchesSnapTo(_) => {
         self.events.instance_mismatches_snap_to.push(());
       }
-      Event::InstanceMismatchesLocalVersion(_) => {
-        self.events.instance_mismatches_local_version.push(());
+      Event::InstanceMismatchesLocalVersion(instance_event) => {
+        self
+          .events
+          .instance_mismatches_local_version
+          .push(InstanceEventCopy {
+            dependency_name: instance_event.dependency.name.clone(),
+            mismatches_with: instance_event.mismatches_with.clone(),
+            target: instance_event.target.clone(),
+          });
       }
       Event::InstanceUnsupportedMismatch(_) => {
         self.events.instance_unsupported_mismatch.push(());
       }
-      Event::InstanceMismatchesLowestVersion(_) => {
-        self.events.instance_mismatches_lowest_version.push(());
+      Event::InstanceMismatchesLowestVersion(instance_event) => {
+        self
+          .events
+          .instance_mismatches_lowest_version
+          .push(InstanceEventCopy {
+            dependency_name: instance_event.dependency.name.clone(),
+            mismatches_with: instance_event.mismatches_with.clone(),
+            target: instance_event.target.clone(),
+          });
       }
       Event::InstanceMismatchesHighestVersion(instance_event) => {
         self
@@ -142,9 +156,9 @@ pub struct EventsByType {
   pub instance_mismatches_pinned_version: Vec<()>,
   pub instance_mismatches_range: Vec<()>,
   pub instance_mismatches_snap_to: Vec<()>,
-  pub instance_mismatches_local_version: Vec<()>,
+  pub instance_mismatches_local_version: Vec<InstanceEventCopy>,
   pub instance_unsupported_mismatch: Vec<()>,
-  pub instance_mismatches_lowest_version: Vec<()>,
+  pub instance_mismatches_lowest_version: Vec<InstanceEventCopy>,
   pub instance_mismatches_highest_version: Vec<InstanceEventCopy>,
 }
 
