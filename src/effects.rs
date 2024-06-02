@@ -14,7 +14,7 @@ use crate::{
 /// side effects are handled by the command-specific structs which implement
 /// this trait.
 pub trait Effects {
-  fn on_event(&mut self, event: Event) -> ();
+  fn on(&mut self, event: Event) -> ();
 }
 
 #[derive(Debug)]

@@ -18,7 +18,7 @@ impl FixEffects {
 }
 
 impl Effects for FixEffects {
-  fn on_event(&mut self, event: Event) -> () {
+  fn on(&mut self, event: Event) -> () {
     match event {
       Event::PackagesLoaded(_, _) => {
         // @TODO

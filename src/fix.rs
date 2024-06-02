@@ -11,7 +11,7 @@ use crate::{
 };
 
 pub fn fix(config: &Config, packages: &mut Packages, effects: &mut impl Effects) {
-  effects.on_event(Event::PackagesLoaded(&config, &packages));
+  effects.on(Event::PackagesLoaded(&config, &packages));
 
   let cli = &config.cli;
   let Context {
@@ -19,7 +19,7 @@ pub fn fix(config: &Config, packages: &mut Packages, effects: &mut impl Effects)
     version_groups,
   } = Context::create(&config, &packages);
 
-  effects.on_event(Event::EnterVersionsAndRanges(&config));
+  effects.on(Event::EnterVersionsAndRanges(&config));
 
   if cli.options.ranges || cli.options.versions {
     version_groups
@@ -40,7 +40,7 @@ pub fn fix(config: &Config, packages: &mut Packages, effects: &mut impl Effects)
       });
   }
 
-  effects.on_event(Event::EnterFormat(&config));
+  effects.on(Event::EnterFormat(&config));
 
   if cli.options.format {
     let InMemoryFormattingStatus {
@@ -48,10 +48,10 @@ pub fn fix(config: &Config, packages: &mut Packages, effects: &mut impl Effects)
       was_invalid: invalid,
     } = format::fix(&config, packages);
     if !valid.is_empty() {
-      effects.on_event(Event::PackagesMatchFormatting(&valid, &config));
+      effects.on(Event::PackagesMatchFormatting(&valid, &config));
     }
     if !invalid.is_empty() {
-      effects.on_event(Event::PackagesMismatchFormatting(&invalid, &config));
+      effects.on(Event::PackagesMismatchFormatting(&invalid, &config));
     }
   }
 
@@ -60,5 +60,5 @@ pub fn fix(config: &Config, packages: &mut Packages, effects: &mut impl Effects)
     package.write_to_disk(&config);
   });
 
-  effects.on_event(Event::ExitCommand);
+  effects.on(Event::ExitCommand);
 }

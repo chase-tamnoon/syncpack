@@ -18,7 +18,7 @@ impl LintEffects {
 }
 
 impl Effects for LintEffects {
-  fn on_event(&mut self, event: Event) -> () {
+  fn on(&mut self, event: Event) -> () {
     match event {
       Event::PackagesLoaded(config, packages) => {
         if packages.all_names.is_empty() {

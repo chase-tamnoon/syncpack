@@ -7,7 +7,7 @@ use crate::{
 };
 
 pub fn lint(config: &Config, packages: &mut Packages, effects: &mut impl Effects) {
-  effects.on_event(Event::PackagesLoaded(&config, &packages));
+  effects.on(Event::PackagesLoaded(&config, &packages));
 
   let cli = &config.cli;
   let Context {
@@ -15,7 +15,7 @@ pub fn lint(config: &Config, packages: &mut Packages, effects: &mut impl Effects
     version_groups,
   } = Context::create(&config, &packages);
 
-  effects.on_event(Event::EnterVersionsAndRanges(&config));
+  effects.on(Event::EnterVersionsAndRanges(&config));
 
   if cli.options.ranges || cli.options.versions {
     version_groups.iter().for_each(|group| {
@@ -23,7 +23,7 @@ pub fn lint(config: &Config, packages: &mut Packages, effects: &mut impl Effects
     });
   }
 
-  effects.on_event(Event::EnterFormat(&config));
+  effects.on(Event::EnterFormat(&config));
 
   if cli.options.format {
     let InMemoryFormattingStatus {
@@ -31,14 +31,14 @@ pub fn lint(config: &Config, packages: &mut Packages, effects: &mut impl Effects
       was_invalid,
     } = format::fix(&config, packages);
     if !was_valid.is_empty() {
-      effects.on_event(Event::PackagesMatchFormatting(&was_valid, &config));
+      effects.on(Event::PackagesMatchFormatting(&was_valid, &config));
     }
     if !was_invalid.is_empty() {
-      effects.on_event(Event::PackagesMismatchFormatting(&was_invalid, &config));
+      effects.on(Event::PackagesMismatchFormatting(&was_invalid, &config));
     }
   }
 
-  effects.on_event(Event::ExitCommand);
+  effects.on(Event::ExitCommand);
 }
 
 #[cfg(test)]

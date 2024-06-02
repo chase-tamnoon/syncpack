@@ -62,7 +62,7 @@ impl MockEffects {
 }
 
 impl Effects for MockEffects {
-  fn on_event(&mut self, event: Event) -> () {
+  fn on(&mut self, event: Event) -> () {
     match event {
       Event::PackagesLoaded(config, packages) => {
         self.packages_loaded += 1;
