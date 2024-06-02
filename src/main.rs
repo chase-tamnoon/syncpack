@@ -25,6 +25,7 @@ mod effects;
 mod effects_fix;
 mod effects_lint;
 mod effects_mock;
+mod expect;
 mod fix;
 mod format;
 mod group_selector;
