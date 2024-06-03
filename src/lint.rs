@@ -63,10 +63,8 @@ mod tests {
   #[test]
   fn highest_version_mismatch_in_same_file() {
     let config = Config::new();
-    let mut packages = Packages::new();
     let mut effects = MockEffects::new();
-
-    packages.add_mock_packages(vec![json!({
+    let mut packages = Packages::from_mocks(vec![json!({
       "name": "package-a",
       "dependencies": {
         "wat": "1.0.0",
@@ -89,10 +87,8 @@ mod tests {
   #[test]
   fn many_highest_version_mismatches_in_same_file() {
     let config = Config::new();
-    let mut packages = Packages::new();
     let mut effects = MockEffects::new();
-
-    packages.add_mock_packages(vec![json!({
+    let mut packages = Packages::from_mocks(vec![json!({
       "name": "package-a",
       "dependencies": {
         "wat": "0.1.0",
@@ -126,10 +122,8 @@ mod tests {
   #[test]
   fn highest_version_mismatch_in_multiple_files() {
     let config = Config::new();
-    let mut packages = Packages::new();
     let mut effects = MockEffects::new();
-
-    packages.add_mock_packages(vec![
+    let mut packages = Packages::from_mocks(vec![
       json!({
         "name": "package-a",
         "dependencies": {
@@ -157,10 +151,8 @@ mod tests {
   #[test]
   fn local_version_mismatch_in_multiple_files() {
     let config = Config::new();
-    let mut packages = Packages::new();
     let mut effects = MockEffects::new();
-
-    packages.add_mock_packages(vec![
+    let mut packages = Packages::from_mocks(vec![
       json!({
         "name": "package-a",
         "version": "1.0.0",

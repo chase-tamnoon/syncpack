@@ -25,6 +25,15 @@ impl Packages {
     }
   }
 
+  #[cfg(test)]
+  pub fn from_mocks(values: Vec<Value>) -> Self {
+    let mut packages = Self::new();
+    for value in values {
+      packages.add_package(PackageJson::from_value(value));
+    }
+    packages
+  }
+
   /// Get every package.json file matched by the user's source patterns
   pub fn from_config(config: &Config) -> Self {
     let file_paths = get_file_paths(config);
@@ -43,13 +52,6 @@ impl Packages {
     self.all_names.push(name.clone());
     self.by_name.insert(name, package_json);
     self
-  }
-
-  #[cfg(test)]
-  pub fn add_mock_packages(&mut self, values: Vec<Value>) {
-    for value in values {
-      self.add_package(PackageJson::from_value(value));
-    }
   }
 
   /// Get every instance of a dependency from every package.json file
