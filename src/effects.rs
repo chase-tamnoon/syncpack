@@ -70,40 +70,55 @@ pub enum Event<'a, 'b> {
   /// one or more instances with versions that are not the same as the others
   DependencyMismatchesStandard(&'a Dependency),
 
+  /// A valid instance in a standard version group has been found
+  InstanceMatchesStandard(&'a MatchEvent<'a>),
   /// An instance in a banned version group has been found
-  InstanceBanned(&'a mut InstanceEvent<'a>),
+  InstanceBanned(&'a mut MismatchEvent<'a>),
   /// An instance in a pinned version group has been found whose version is not
   /// the same as the `.pinVersion`
-  InstanceMismatchesPinnedVersion(&'a mut InstanceEvent<'a>),
+  InstanceMismatchesPinnedVersion(&'a mut MismatchEvent<'a>),
   /// An instance in a same range version group has been found which has a
   /// version which is not a semver range which satisfies all of the other
   /// semver ranges in the group
-  InstanceMismatchesRange(&'a mut InstanceEvent<'a>),
+  InstanceMismatchesRange(&'a mut MismatchEvent<'a>),
   /// An instance in a snapped to version group has been found which has a
   /// version that is not the same as those used by the packages named in the
   /// `.snapTo` config array
-  InstanceMismatchesSnapTo(&'a mut InstanceEvent<'a>),
+  InstanceMismatchesSnapTo(&'a mut MismatchEvent<'a>),
   /// An instance in a standard version group has been found which is a
   /// dependency developed in this repo, its version does not match the
   /// `.version` property of the package.json file for this package in the repo
-  InstanceMismatchesLocalVersion(&'a mut InstanceEvent<'a>),
+  InstanceMismatchesLocalVersion(&'a mut MismatchEvent<'a>),
   /// An instance in a standard version group has been found which has a version
   /// which is not identical to the others, but not all of the instances have
   /// valid or supported version specifiers, so it's impossible to know which
   /// should be preferred
-  InstanceUnsupportedMismatch(&'a mut InstanceEvent<'a>),
+  InstanceUnsupportedMismatch(&'a mut MismatchEvent<'a>),
   /// An instance in a standard version group has been found which has a semver
   /// version which is higher than the lowest semver version in the group, and
   /// `.preferVersion` is set to `lowestSemver`
-  InstanceMismatchesLowestVersion(&'a mut InstanceEvent<'a>),
+  InstanceMismatchesLowestVersion(&'a mut MismatchEvent<'a>),
   /// An instance in a standard version group has been found which has a semver
   /// version which is lower than the highest semver version in the group, and
   /// `.preferVersion` is set to `highestSemver`
-  InstanceMismatchesHighestVersion(&'a mut InstanceEvent<'a>),
+  InstanceMismatchesHighestVersion(&'a mut MismatchEvent<'a>),
 }
 
 #[derive(Debug)]
-pub struct InstanceEvent<'a> {
+pub struct MatchEvent<'a> {
+  ///
+  pub dependency: &'a Dependency,
+  /// 1. when same range mismatch: the range which was found not to satisfy
+  ///    another
+  /// 2. when snapped to mismatch: the specifier which does not match the
+  ///    snapped to instance
+  /// 3. when local mismatch: the specifier which does not match the local
+  ///    instance
+  pub target: InstanceIdsBySpecifier,
+}
+
+#[derive(Debug)]
+pub struct MismatchEvent<'a> {
   /// all instances in the workspace
   pub instances_by_id: &'a mut InstancesById,
   ///

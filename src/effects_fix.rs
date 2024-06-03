@@ -2,7 +2,7 @@ use colored::*;
 use log::info;
 
 use crate::{
-  effects::{Effects, Event, InstanceEvent},
+  effects::{Effects, Event, MismatchEvent},
   effects_lint::render_count_column,
 };
 
@@ -83,6 +83,9 @@ impl Effects for FixEffects {
         }
       }
 
+      Event::InstanceMatchesStandard(_) => {
+        //
+      }
       Event::InstanceBanned(event) => {
         let target_instance_ids = event.target.1.clone();
         target_instance_ids.iter().for_each(|instance_id| {
@@ -145,7 +148,7 @@ impl Effects for FixEffects {
   }
 }
 
-fn set_every_instance_version_to(expected: String, event: &mut InstanceEvent) {
+fn set_every_instance_version_to(expected: String, event: &mut MismatchEvent) {
   let target_instance_ids = event.target.1.clone();
   target_instance_ids.iter().for_each(|instance_id| {
     if let Some(target_instance) = event.instances_by_id.get_mut(instance_id) {

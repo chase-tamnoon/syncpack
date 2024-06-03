@@ -1,7 +1,7 @@
 use colored::*;
 use log::{error, info, warn};
 use serde::Deserialize;
-use std::{collections::HashMap, env::current_dir, fs, path::PathBuf};
+use std::{collections::HashMap, fs, path::PathBuf};
 
 use crate::{
   cli::Cli,
@@ -108,6 +108,11 @@ impl Rcfile {
   pub fn new() -> Self {
     let empty_json = "{}".to_string();
     serde_json::from_str::<Self>(&empty_json).unwrap()
+  }
+
+  #[cfg(test)]
+  pub fn from_mock(value: serde_json::Value) -> Self {
+    serde_json::from_value::<Self>(value).unwrap()
   }
 
   /// Read a rcfile from the given location
@@ -281,12 +286,23 @@ pub struct Config {
 }
 
 impl Config {
-  /// Create an empty struct, for use in tests
+  /// Create an empty struct
+  #[cfg(test)]
   pub fn new() -> Self {
-    Config {
+    Self {
       cli: Cli::new(),
-      cwd: current_dir().unwrap(),
+      cwd: std::env::current_dir().unwrap(),
       rcfile: Rcfile::new(),
+    }
+  }
+
+  /// Create a struct from a mocked .syncpackrc
+  #[cfg(test)]
+  pub fn from_mock(value: serde_json::Value) -> Self {
+    Self {
+      cli: Cli::new(),
+      cwd: std::env::current_dir().unwrap(),
+      rcfile: Rcfile::from_mock(value),
     }
   }
 

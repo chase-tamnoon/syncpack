@@ -133,6 +133,9 @@ impl Effects for LintEffects {
         info!("{} {}", count, dependency.name.red());
       }
 
+      Event::InstanceMatchesStandard(_) => {
+        //
+      }
       Event::InstanceBanned(event) => {
         let icon = "✘".red();
         info!(

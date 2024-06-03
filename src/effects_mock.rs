@@ -52,30 +52,48 @@ impl Effects for MockEffects {
         self.events.dependency_banned.push(());
       }
       Event::DependencyMatchesPinnedVersion(dependency) => {
-        self.events.dependency_matches_pinned_version.push(());
+        self
+          .events
+          .dependency_matches_pinned_version
+          .push(dependency.name.clone());
       }
       Event::DependencyMismatchesPinnedVersion(dependency) => {
         self.events.dependency_mismatches_pinned_version.push(());
       }
       Event::DependencyMatchesRange(dependency) => {
-        self.events.dependency_matches_range.push(());
+        self
+          .events
+          .dependency_matches_range
+          .push(dependency.name.clone());
       }
       Event::DependencyMismatchesRange(dependency) => {
         self.events.dependency_mismatches_range.push(());
       }
       Event::DependencyMatchesSnapTo(dependency) => {
-        self.events.dependency_matches_snap_to.push(());
+        self
+          .events
+          .dependency_matches_snap_to
+          .push(dependency.name.clone());
       }
       Event::DependencyMismatchesSnapTo(dependency) => {
         self.events.dependency_mismatches_snap_to.push(());
       }
       Event::DependencyMatchesStandard(dependency) => {
-        self.events.dependency_matches_standard.push(());
+        self
+          .events
+          .dependency_matches_standard
+          .push(dependency.name.clone());
       }
       Event::DependencyMismatchesStandard(dependency) => {
         self.events.dependency_mismatches_standard.push(());
       }
 
+      Event::InstanceMatchesStandard(instance_event) => {
+        self.events.instance_matches_standard.push(MatchEventCopy {
+          dependency_name: instance_event.dependency.name.clone(),
+          target: instance_event.target.clone(),
+        });
+      }
       Event::InstanceBanned(_) => {
         self.events.instance_banned.push(());
       }
@@ -92,7 +110,7 @@ impl Effects for MockEffects {
         self
           .events
           .instance_mismatches_local_version
-          .push(InstanceEventCopy {
+          .push(MismatchEventCopy {
             dependency_name: instance_event.dependency.name.clone(),
             mismatches_with: instance_event.mismatches_with.clone(),
             target: instance_event.target.clone(),
@@ -105,7 +123,7 @@ impl Effects for MockEffects {
         self
           .events
           .instance_mismatches_lowest_version
-          .push(InstanceEventCopy {
+          .push(MismatchEventCopy {
             dependency_name: instance_event.dependency.name.clone(),
             mismatches_with: instance_event.mismatches_with.clone(),
             target: instance_event.target.clone(),
@@ -115,7 +133,7 @@ impl Effects for MockEffects {
         self
           .events
           .instance_mismatches_highest_version
-          .push(InstanceEventCopy {
+          .push(MismatchEventCopy {
             dependency_name: instance_event.dependency.name.clone(),
             mismatches_with: instance_event.mismatches_with.clone(),
             target: instance_event.target.clone(),
@@ -126,7 +144,13 @@ impl Effects for MockEffects {
 }
 
 #[derive(Debug)]
-pub struct InstanceEventCopy {
+pub struct MatchEventCopy {
+  pub dependency_name: String,
+  pub target: InstanceIdsBySpecifier,
+}
+
+#[derive(Debug)]
+pub struct MismatchEventCopy {
   pub dependency_name: String,
   pub mismatches_with: InstanceIdsBySpecifier,
   pub target: InstanceIdsBySpecifier,
@@ -139,27 +163,32 @@ pub struct EventsByType {
   pub enter_versions_and_ranges: Vec<()>,
   pub enter_format: Vec<()>,
   pub exit_command: Vec<()>,
+
   pub packages_match_formatting: Vec<()>,
   pub packages_mismatch_formatting: Vec<()>,
+
   pub group_visited: Vec<()>,
+
   pub dependency_ignored: Vec<()>,
   pub dependency_banned: Vec<()>,
-  pub dependency_matches_pinned_version: Vec<()>,
+  pub dependency_matches_pinned_version: Vec<String>,
   pub dependency_mismatches_pinned_version: Vec<()>,
-  pub dependency_matches_range: Vec<()>,
+  pub dependency_matches_range: Vec<String>,
   pub dependency_mismatches_range: Vec<()>,
-  pub dependency_matches_snap_to: Vec<()>,
+  pub dependency_matches_snap_to: Vec<String>,
   pub dependency_mismatches_snap_to: Vec<()>,
-  pub dependency_matches_standard: Vec<()>,
+  pub dependency_matches_standard: Vec<String>,
   pub dependency_mismatches_standard: Vec<()>,
+
+  pub instance_matches_standard: Vec<MatchEventCopy>,
   pub instance_banned: Vec<()>,
   pub instance_mismatches_pinned_version: Vec<()>,
   pub instance_mismatches_range: Vec<()>,
   pub instance_mismatches_snap_to: Vec<()>,
-  pub instance_mismatches_local_version: Vec<InstanceEventCopy>,
+  pub instance_mismatches_local_version: Vec<MismatchEventCopy>,
   pub instance_unsupported_mismatch: Vec<()>,
-  pub instance_mismatches_lowest_version: Vec<InstanceEventCopy>,
-  pub instance_mismatches_highest_version: Vec<InstanceEventCopy>,
+  pub instance_mismatches_lowest_version: Vec<MismatchEventCopy>,
+  pub instance_mismatches_highest_version: Vec<MismatchEventCopy>,
 }
 
 impl EventsByType {
@@ -169,9 +198,12 @@ impl EventsByType {
       enter_versions_and_ranges: vec![],
       enter_format: vec![],
       exit_command: vec![],
+
       packages_match_formatting: vec![],
       packages_mismatch_formatting: vec![],
+
       group_visited: vec![],
+
       dependency_ignored: vec![],
       dependency_banned: vec![],
       dependency_matches_pinned_version: vec![],
@@ -182,6 +214,8 @@ impl EventsByType {
       dependency_mismatches_snap_to: vec![],
       dependency_matches_standard: vec![],
       dependency_mismatches_standard: vec![],
+
+      instance_matches_standard: vec![],
       instance_banned: vec![],
       instance_mismatches_pinned_version: vec![],
       instance_mismatches_range: vec![],

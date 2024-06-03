@@ -5,7 +5,7 @@ use version_compare::{compare, Cmp};
 
 use crate::{
   dependency::{Dependency, InstanceIdsBySpecifier, InstancesById},
-  effects::{Effects, Event, InstanceEvent},
+  effects::{Effects, Event, MatchEvent, MismatchEvent},
   group_selector::GroupSelector,
   instance::Instance,
   packages::Packages,
@@ -264,7 +264,7 @@ impl VersionGroup {
             .by_specifier
             .iter()
             .for_each(|instances_by_specifier| {
-              effects.on(Event::InstanceBanned(&mut InstanceEvent {
+              effects.on(Event::InstanceBanned(&mut MismatchEvent {
                 instances_by_id,
                 dependency,
                 // @TODO: use None
@@ -289,7 +289,7 @@ impl VersionGroup {
               .iter()
               .for_each(|instances_by_specifier| {
                 if dependency.is_mismatch(&instances_by_specifier.0) {
-                  effects.on(Event::InstanceMismatchesPinnedVersion(&mut InstanceEvent {
+                  effects.on(Event::InstanceMismatchesPinnedVersion(&mut MismatchEvent {
                     instances_by_id,
                     dependency,
                     mismatches_with: (pinned_version.clone(), vec![]),
@@ -332,7 +332,7 @@ impl VersionGroup {
             mismatches
               .into_iter()
               .for_each(|(target_instance_id, mismatches_with)| {
-                effects.on(Event::InstanceMismatchesRange(&mut InstanceEvent {
+                effects.on(Event::InstanceMismatchesRange(&mut MismatchEvent {
                   instances_by_id,
                   dependency,
                   mismatches_with,
@@ -355,7 +355,7 @@ impl VersionGroup {
               mismatches
                 .into_iter()
                 .for_each(|(target_instance_id, mismatches_with)| {
-                  effects.on(Event::InstanceMismatchesSnapTo(&mut InstanceEvent {
+                  effects.on(Event::InstanceMismatchesSnapTo(&mut MismatchEvent {
                     instances_by_id,
                     dependency,
                     mismatches_with,
@@ -377,7 +377,7 @@ impl VersionGroup {
                 if let Some(local_id) = dependency.local.clone() {
                   let local = instances_by_id.get(&local_id);
                   let specifier = local.unwrap().specifier.clone();
-                  effects.on(Event::InstanceMismatchesLocalVersion(&mut InstanceEvent {
+                  effects.on(Event::InstanceMismatchesLocalVersion(&mut MismatchEvent {
                     instances_by_id,
                     dependency,
                     mismatches_with: (specifier, vec![local_id]),
@@ -385,7 +385,7 @@ impl VersionGroup {
                     target: (target_instances.0.clone(), target_instances.1.clone()),
                   }));
                 } else if dependency.non_semver.len() > 0 {
-                  effects.on(Event::InstanceUnsupportedMismatch(&mut InstanceEvent {
+                  effects.on(Event::InstanceUnsupportedMismatch(&mut MismatchEvent {
                     instances_by_id,
                     dependency,
                     mismatches_with: ("".to_string(), vec![]),
@@ -395,7 +395,7 @@ impl VersionGroup {
                 } else if let Some(PreferVersion::LowestSemver) = self.prefer_version {
                   if let Some(expected) = dependency.expected_version.clone() {
                     if let Some(instances_with_expected) = dependency.by_specifier.get(&expected) {
-                      effects.on(Event::InstanceMismatchesLowestVersion(&mut InstanceEvent {
+                      effects.on(Event::InstanceMismatchesLowestVersion(&mut MismatchEvent {
                         instances_by_id,
                         dependency,
                         mismatches_with: (
@@ -411,7 +411,7 @@ impl VersionGroup {
                   if let Some(expected) = dependency.expected_version.clone() {
                     if let Some(instances_with_expected) = dependency.by_specifier.get(&expected) {
                       effects.on(Event::InstanceMismatchesHighestVersion(
-                        &mut InstanceEvent {
+                        &mut MismatchEvent {
                           instances_by_id,
                           dependency: &dependency,
                           mismatches_with: (
@@ -425,10 +425,21 @@ impl VersionGroup {
                     }
                   }
                 }
-              }
+              } else {
+                effects.on(Event::InstanceMatchesStandard(&MatchEvent {
+                  dependency,
+                  target: (target_instances.0.clone(), target_instances.1.clone()),
+                }));
+              };
             });
           } else {
             effects.on(Event::DependencyMatchesStandard(dependency));
+            dependency.by_specifier.iter().for_each(|target_instances| {
+              effects.on(Event::InstanceMatchesStandard(&MatchEvent {
+                dependency,
+                target: (target_instances.0.clone(), target_instances.1.clone()),
+              }));
+            });
           };
         });
       }

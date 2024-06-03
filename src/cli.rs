@@ -16,6 +16,7 @@ pub struct Cli {
 }
 
 impl Cli {
+  #[cfg(test)]
   pub fn new() -> Self {
     Cli {
       command_name: Subcommand::Lint,
@@ -156,11 +157,11 @@ pub struct CliOptions {
 }
 
 impl CliOptions {
-  /// Create an empty struct, for use in tests
+  #[cfg(test)]
   pub fn new() -> Self {
     Self {
       filter: None,
-      format: true,
+      format: false,
       ranges: true,
       versions: true,
       source: vec![],
