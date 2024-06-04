@@ -1,7 +1,8 @@
 use crate::{
   config::Config,
-  dependency::{Dependency, InstanceIdsBySpecifier, InstancesById},
+  dependency::{Dependency, InstancesById},
   group_selector::GroupSelector,
+  instance::InstanceId,
   package_json::PackageJson,
   packages::Packages,
 };
@@ -73,27 +74,30 @@ pub enum Event<'a, 'b> {
   /// A valid instance in a standard version group has been found
   InstanceMatchesStandard(&'a MatchEvent<'a>),
   /// An instance in a banned version group has been found
-  InstanceBanned(&'a mut MismatchEvent<'a>),
+  InstanceBanned(&'a mut BannedEvent<'a>),
   /// An instance in a pinned version group has been found whose version is not
   /// the same as the `.pinVersion`
   InstanceMismatchesPinnedVersion(&'a mut MismatchEvent<'a>),
   /// An instance in a same range version group has been found which has a
   /// version which is not a semver range which satisfies all of the other
   /// semver ranges in the group
-  InstanceMismatchesRange(&'a mut MismatchEvent<'a>),
+  InstanceMismatchesRange(&'a mut SameRangeMismatchEvent<'a>),
   /// An instance in a snapped to version group has been found which has a
   /// version that is not the same as those used by the packages named in the
   /// `.snapTo` config array
-  InstanceMismatchesSnapTo(&'a mut MismatchEvent<'a>),
+  InstanceMismatchesSnapTo(&'a mut SnapToMismatchEvent<'a>),
   /// An instance in a standard version group has been found which is a
   /// dependency developed in this repo, its version does not match the
   /// `.version` property of the package.json file for this package in the repo
   InstanceMismatchesLocalVersion(&'a mut MismatchEvent<'a>),
+  /// A misconfiguration by the user has resulted in the .version property of a
+  /// local package.json to be written to. Syncpack should refuse to do this.
+  InstanceMismatchCorruptsLocalVersion(&'a mut MismatchEvent<'a>),
   /// An instance in a standard version group has been found which has a version
   /// which is not identical to the others, but not all of the instances have
   /// valid or supported version specifiers, so it's impossible to know which
   /// should be preferred
-  InstanceUnsupportedMismatch(&'a mut MismatchEvent<'a>),
+  InstanceUnsupportedMismatch(&'a mut UnsupportedMismatchEvent<'a>),
   /// An instance in a standard version group has been found which has a semver
   /// version which is higher than the lowest semver version in the group, and
   /// `.preferVersion` is set to `lowestSemver`
@@ -104,39 +108,100 @@ pub enum Event<'a, 'b> {
   InstanceMismatchesHighestVersion(&'a mut MismatchEvent<'a>),
 }
 
+/// A single instance of a dependency was found, which is valid
 #[derive(Debug)]
 pub struct MatchEvent<'a> {
-  ///
+  /// all instances of this dependency (eg. "react") in this version group
   pub dependency: &'a Dependency,
-  /// 1. when same range mismatch: the range which was found not to satisfy
-  ///    another
-  /// 2. when snapped to mismatch: the specifier which does not match the
-  ///    snapped to instance
-  /// 3. when local mismatch: the specifier which does not match the local
-  ///    instance
-  pub target: InstanceIdsBySpecifier,
+  /// the unique identifier for the instance which was found
+  pub instance_id: InstanceId,
+  /// the version specifier on the instance which was found
+  pub specifier: String,
 }
 
+/// A single instance of a dependency was found, which is not valid
 #[derive(Debug)]
 pub struct MismatchEvent<'a> {
+  /// all instances of this dependency (eg. "react") in this version group
+  pub dependency: &'a Dependency,
+  /// the unique identifier for the instance which was found
+  pub instance_id: InstanceId,
+  /// the correct version specifier the instance should have had
+  pub expected_specifier: String,
+  /// the incorrect version specifier the instance actually has
+  pub actual_specifier: String,
+  /// other instances which do have the correct version specifier
+  pub matching_instance_ids: Vec<InstanceId>,
   /// all instances in the workspace
   pub instances_by_id: &'a mut InstancesById,
-  ///
-  pub dependency: &'a Dependency,
-  /// 1. when same range mismatch: the range which was not satisfied by
-  ///    `invalid_range` (there may be others which this range does not match,
-  ///    they will be reported separately)
-  /// 2. when snapped to mismatch: the snapped to instance which should be
-  ///    matched
-  /// 3. when local mismatch: the local instance which should be matched
-  pub mismatches_with: InstanceIdsBySpecifier,
   /// all packages in the workspace
   pub packages: &'a mut Packages,
-  /// 1. when same range mismatch: the range which was found not to satisfy
-  ///    another
-  /// 2. when snapped to mismatch: the specifier which does not match the
-  ///    snapped to instance
-  /// 3. when local mismatch: the specifier which does not match the local
-  ///    instance
-  pub target: InstanceIdsBySpecifier,
+}
+
+/// A single instance of a dependency was found, where or or one of the other
+/// instances of this dependency have a version specifier which is not
+/// understood by syncpack
+#[derive(Debug)]
+pub struct UnsupportedMismatchEvent<'a> {
+  /// all instances of this dependency (eg. "react") in this version group
+  pub dependency: &'a Dependency,
+  /// all instances in the workspace
+  pub instances_by_id: &'a mut InstancesById,
+  /// the unique identifier for the instance which was found
+  pub instance_id: InstanceId,
+  /// the incorrect version specifier the instance actually has
+  pub specifier: String,
+}
+
+/// A single instance of a dependency was found, which is not allowed
+#[derive(Debug)]
+pub struct BannedEvent<'a> {
+  /// all instances of this dependency (eg. "react") in this version group
+  pub dependency: &'a Dependency,
+  /// all instances in the workspace
+  pub instances_by_id: &'a mut InstancesById,
+  /// all packages in the workspace
+  pub packages: &'a mut Packages,
+  /// the unique identifier for the instance which was found
+  pub instance_id: InstanceId,
+  /// the version specifier the banned instance has
+  pub specifier: String,
+}
+
+/// A single instance of a dependency was found, which is not valid
+#[derive(Debug)]
+pub struct SameRangeMismatchEvent<'a> {
+  /// all instances of this dependency (eg. "react") in this version group
+  pub dependency: &'a Dependency,
+  /// all instances in the workspace
+  pub instances_by_id: &'a mut InstancesById,
+  /// all packages in the workspace
+  pub packages: &'a mut Packages,
+  /// the unique identifier for the instance which was found
+  pub instance_id: InstanceId,
+  /// the range specifier which does not match every other range
+  pub specifier: String,
+  /// another range specifier which is not matched by this instance
+  pub specifier_outside_range: String,
+  /// the instance IDs which have the specifier_outside_range
+  pub instance_ids_outside_range: Vec<InstanceId>,
+}
+
+/// A single instance of a dependency was found, which is not valid
+#[derive(Debug)]
+pub struct SnapToMismatchEvent<'a> {
+  /// all instances of this dependency (eg. "react") in this version group
+  pub dependency: &'a Dependency,
+  /// the unique identifier for the instance which was found
+  pub instance_id: InstanceId,
+  /// the correct version specifier the instance should have had
+  pub expected_specifier: String,
+  /// the incorrect version specifier the instance actually has
+  pub actual_specifier: String,
+  /// the instance with the version specifier to be snapped to
+  pub snap_to_instance_id: InstanceId,
+  /// all instances in the workspace
+  pub instances_by_id: &'a mut InstancesById,
+  /// all packages in the workspace
+  pub packages: &'a mut Packages,
 }

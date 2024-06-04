@@ -2,8 +2,10 @@ use colored::*;
 use log::info;
 
 use crate::{
-  effects::{Effects, Event, MismatchEvent},
+  dependency::InstancesById,
+  effects::{Effects, Event},
   effects_lint::render_count_column,
+  packages::Packages,
 };
 
 /// The implementation of the `fix` command's side effects
@@ -87,41 +89,61 @@ impl Effects for FixEffects {
         //
       }
       Event::InstanceBanned(event) => {
-        let target_instance_ids = event.target.1.clone();
-        target_instance_ids.iter().for_each(|instance_id| {
-          if let Some(target_instance) = event.instances_by_id.get_mut(instance_id) {
-            if let Some(package) = event
-              .packages
-              .by_name
-              .get_mut(&target_instance.package_name)
-            {
-              target_instance.remove_from(package);
-            }
-          };
-        });
+        let target_instance = event.instances_by_id.get_mut(&event.instance_id).unwrap();
+        let package = event
+          .packages
+          .by_name
+          .get_mut(&target_instance.package_name)
+          .unwrap();
+        target_instance.remove_from(package);
       }
       Event::InstanceMismatchesPinnedVersion(event) => {
-        let pinned_specifier = &event.mismatches_with.0;
-        set_every_instance_version_to(pinned_specifier.clone(), event);
+        set_instance_version_to(
+          event.instances_by_id,
+          event.packages,
+          &event.instance_id,
+          &event.expected_specifier,
+        );
       }
       Event::InstanceMismatchesRange(event) => {
         info!(
           "      {} {} {} {} {}",
           "✘".red(),
-          event.mismatches_with.0.red(),
+          event.specifier_outside_range.red(),
           "falls outside".red(),
-          event.target.0.red(),
+          event.specifier.red(),
           "[SameRangeMismatch]".dimmed()
         );
         self.is_valid = false;
       }
       Event::InstanceMismatchesSnapTo(event) => {
-        let snapped_to_specifier = &event.mismatches_with.0;
-        set_every_instance_version_to(snapped_to_specifier.clone(), event);
+        set_instance_version_to(
+          event.instances_by_id,
+          event.packages,
+          &event.instance_id,
+          &event.expected_specifier,
+        );
+      }
+      Event::InstanceMismatchCorruptsLocalVersion(event) => {
+        let icon = "!".red();
+        let arrow = "→".dimmed();
+        info!(
+          "      {} {} {} {} {}",
+          icon,
+          event.actual_specifier.green(),
+          arrow,
+          event.expected_specifier.red(),
+          "[RejectedLocalMismatch]".dimmed()
+        );
+        self.is_valid = false;
       }
       Event::InstanceMismatchesLocalVersion(event) => {
-        let local_specifier = &event.mismatches_with.0;
-        set_every_instance_version_to(local_specifier.clone(), event);
+        set_instance_version_to(
+          event.instances_by_id,
+          event.packages,
+          &event.instance_id,
+          &event.expected_specifier,
+        );
       }
       Event::InstanceUnsupportedMismatch(event) => {
         let icon = "✘".red();
@@ -129,7 +151,7 @@ impl Effects for FixEffects {
         info!(
           "      {} {} {} {} {}",
           icon,
-          event.target.0.red(),
+          event.specifier.red(),
           arrow,
           "?".yellow(),
           "[UnsupportedMismatch]".dimmed()
@@ -137,28 +159,35 @@ impl Effects for FixEffects {
         self.is_valid = false;
       }
       Event::InstanceMismatchesLowestVersion(event) => {
-        let lowest_specifier = &event.mismatches_with.0;
-        set_every_instance_version_to(lowest_specifier.clone(), event);
+        set_instance_version_to(
+          event.instances_by_id,
+          event.packages,
+          &event.instance_id,
+          &event.expected_specifier,
+        );
       }
       Event::InstanceMismatchesHighestVersion(event) => {
-        let highest_specifier = &event.mismatches_with.0;
-        set_every_instance_version_to(highest_specifier.clone(), event);
+        set_instance_version_to(
+          event.instances_by_id,
+          event.packages,
+          &event.instance_id,
+          &event.expected_specifier,
+        );
       }
     };
   }
 }
 
-fn set_every_instance_version_to(expected: String, event: &mut MismatchEvent) {
-  let target_instance_ids = event.target.1.clone();
-  target_instance_ids.iter().for_each(|instance_id| {
-    if let Some(target_instance) = event.instances_by_id.get_mut(instance_id) {
-      if let Some(package) = event
-        .packages
-        .by_name
-        .get_mut(&target_instance.package_name)
-      {
-        target_instance.set_version(package, expected.clone());
-      }
-    };
-  });
+fn set_instance_version_to(
+  instances_by_id: &mut InstancesById,
+  packages: &mut Packages,
+  instance_id: &String,
+  expected_specifier: &String,
+) {
+  let target_instance = instances_by_id.get_mut(instance_id).unwrap();
+  let package = packages
+    .by_name
+    .get_mut(&target_instance.package_name)
+    .unwrap();
+  target_instance.set_version(package, expected_specifier.clone());
 }

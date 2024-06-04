@@ -1,14 +1,167 @@
+#[cfg(test)]
 use crate::{
-  dependency::InstanceIdsBySpecifier,
   effects::{Effects, Event},
+  instance::InstanceId,
 };
 
+#[cfg(test)]
+#[derive(Debug)]
+pub struct PartialMatchEvent {
+  /// the instance that did match
+  pub instance_id: InstanceId,
+  /// eg. "react"
+  pub dependency_name: String,
+  /// the version specifier the instance has
+  pub specifier: String,
+}
+
+#[cfg(test)]
+#[derive(Debug)]
+pub struct PartialMismatchEvent {
+  /// the instance that was expected to match
+  pub instance_id: InstanceId,
+  /// eg. "react"
+  pub dependency_name: String,
+  /// the correct version specifier the instance should have had
+  pub expected_specifier: String,
+  /// the incorrect version specifier the instance actually has
+  pub actual_specifier: String,
+  /// other instances which do have the correct version specifier
+  pub matching_instance_ids: Vec<InstanceId>,
+}
+
+#[cfg(test)]
+#[derive(Debug)]
+pub struct PartialUnsupportedMismatchEvent {
+  /// the instance that should be banned
+  pub instance_id: InstanceId,
+  /// eg. "react"
+  pub dependency_name: String,
+  /// the incorrect version specifier the instance actually has
+  pub specifier: String,
+}
+
+#[cfg(test)]
+#[derive(Debug)]
+pub struct PartialBannedEvent {
+  /// the instance that should be banned
+  pub instance_id: InstanceId,
+  /// eg. "react"
+  pub dependency_name: String,
+}
+
+#[cfg(test)]
+#[derive(Debug)]
+pub struct PartialSameRangeMismatchEvent {
+  /// the instance that was expected to match
+  pub instance_id: InstanceId,
+  /// eg. "react"
+  pub dependency_name: String,
+  /// the range specifier which does not match every other range
+  pub specifier: String,
+  pub specifier_outside_range: String,
+  pub instance_ids_outside_range: Vec<InstanceId>,
+}
+
+#[cfg(test)]
+#[derive(Debug)]
+pub struct PartialSnapToMismatchEvent {
+  /// the unique identifier for the instance which was found
+  pub instance_id: InstanceId,
+  /// all instances of this dependency (eg. "react") in this version group
+  pub dependency_name: String,
+  /// the correct version specifier the instance should have had
+  pub expected_specifier: String,
+  /// the incorrect version specifier the instance actually has
+  pub actual_specifier: String,
+  /// the instance with the version specifier to be snapped to
+  pub snap_to_instance_id: InstanceId,
+}
+
+// We'll store data later but for now use `Vec<()>` to keep a count of events
+#[cfg(test)]
+#[derive(Debug)]
+pub struct EventsByType {
+  pub packages_loaded: Vec<()>,
+  pub enter_versions_and_ranges: Vec<()>,
+  pub enter_format: Vec<()>,
+  pub exit_command: Vec<()>,
+
+  pub packages_match_formatting: Vec<()>,
+  pub packages_mismatch_formatting: Vec<()>,
+
+  pub group_visited: Vec<()>,
+
+  pub dependency_ignored: Vec<()>,
+  pub dependency_banned: Vec<()>,
+  pub dependency_matches_pinned_version: Vec<String>,
+  pub dependency_mismatches_pinned_version: Vec<()>,
+  pub dependency_matches_range: Vec<String>,
+  pub dependency_mismatches_range: Vec<()>,
+  pub dependency_matches_snap_to: Vec<String>,
+  pub dependency_mismatches_snap_to: Vec<()>,
+  pub dependency_matches_standard: Vec<String>,
+  pub dependency_mismatches_standard: Vec<()>,
+
+  pub instance_matches_standard: Vec<PartialMatchEvent>,
+  pub instance_banned: Vec<PartialBannedEvent>,
+  pub instance_mismatches_pinned_version: Vec<PartialMismatchEvent>,
+  pub instance_mismatches_range: Vec<PartialSameRangeMismatchEvent>,
+  pub instance_mismatches_snap_to: Vec<PartialSnapToMismatchEvent>,
+  pub instance_mismatch_changes_local_version: Vec<PartialMismatchEvent>,
+  pub instance_mismatches_local_version: Vec<PartialMismatchEvent>,
+  pub instance_unsupported_mismatch: Vec<PartialUnsupportedMismatchEvent>,
+  pub instance_mismatches_lowest_version: Vec<PartialMismatchEvent>,
+  pub instance_mismatches_highest_version: Vec<PartialMismatchEvent>,
+}
+
+#[cfg(test)]
+impl EventsByType {
+  pub fn new() -> Self {
+    Self {
+      packages_loaded: vec![],
+      enter_versions_and_ranges: vec![],
+      enter_format: vec![],
+      exit_command: vec![],
+
+      packages_match_formatting: vec![],
+      packages_mismatch_formatting: vec![],
+
+      group_visited: vec![],
+
+      dependency_ignored: vec![],
+      dependency_banned: vec![],
+      dependency_matches_pinned_version: vec![],
+      dependency_mismatches_pinned_version: vec![],
+      dependency_matches_range: vec![],
+      dependency_mismatches_range: vec![],
+      dependency_matches_snap_to: vec![],
+      dependency_mismatches_snap_to: vec![],
+      dependency_matches_standard: vec![],
+      dependency_mismatches_standard: vec![],
+
+      instance_matches_standard: vec![],
+      instance_banned: vec![],
+      instance_mismatches_pinned_version: vec![],
+      instance_mismatches_range: vec![],
+      instance_mismatches_snap_to: vec![],
+      instance_mismatch_changes_local_version: vec![],
+      instance_mismatches_local_version: vec![],
+      instance_unsupported_mismatch: vec![],
+      instance_mismatches_lowest_version: vec![],
+      instance_mismatches_highest_version: vec![],
+    }
+  }
+}
+
 /// A mock implementation of a command's side effects for the purpose of testing
+#[cfg(test)]
 #[derive(Debug)]
 pub struct MockEffects {
   pub events: EventsByType,
 }
 
+#[cfg(test)]
 impl MockEffects {
   pub fn new() -> Self {
     Self {
@@ -17,6 +170,7 @@ impl MockEffects {
   }
 }
 
+#[cfg(test)]
 impl Effects for MockEffects {
   fn on(&mut self, event: Event) -> () {
     match event {
@@ -88,142 +242,116 @@ impl Effects for MockEffects {
         self.events.dependency_mismatches_standard.push(());
       }
 
-      Event::InstanceMatchesStandard(instance_event) => {
-        self.events.instance_matches_standard.push(MatchEventCopy {
-          dependency_name: instance_event.dependency.name.clone(),
-          target: instance_event.target.clone(),
+      Event::InstanceMatchesStandard(event) => {
+        self
+          .events
+          .instance_matches_standard
+          .push(PartialMatchEvent {
+            instance_id: event.instance_id.clone(),
+            dependency_name: event.dependency.name.clone(),
+            specifier: event.specifier.clone(),
+          });
+      }
+      Event::InstanceBanned(event) => {
+        self.events.instance_banned.push(PartialBannedEvent {
+          instance_id: event.instance_id.clone(),
+          dependency_name: event.dependency.name.clone(),
         });
       }
-      Event::InstanceBanned(_) => {
-        self.events.instance_banned.push(());
+      Event::InstanceMismatchesPinnedVersion(event) => {
+        self
+          .events
+          .instance_mismatches_pinned_version
+          .push(PartialMismatchEvent {
+            instance_id: event.instance_id.clone(),
+            dependency_name: event.dependency.name.clone(),
+            expected_specifier: event.expected_specifier.clone(),
+            matching_instance_ids: event.matching_instance_ids.clone(),
+            actual_specifier: event.actual_specifier.clone(),
+          });
       }
-      Event::InstanceMismatchesPinnedVersion(_) => {
-        self.events.instance_mismatches_pinned_version.push(());
+      Event::InstanceMismatchesRange(event) => {
+        self
+          .events
+          .instance_mismatches_range
+          .push(PartialSameRangeMismatchEvent {
+            instance_id: event.instance_id.clone(),
+            dependency_name: event.dependency.name.clone(),
+            specifier: event.specifier.clone(),
+            specifier_outside_range: event.specifier_outside_range.clone(),
+            instance_ids_outside_range: event.instance_ids_outside_range.clone(),
+          });
       }
-      Event::InstanceMismatchesRange(_) => {
-        self.events.instance_mismatches_range.push(());
+      Event::InstanceMismatchesSnapTo(event) => {
+        self
+          .events
+          .instance_mismatches_snap_to
+          .push(PartialSnapToMismatchEvent {
+            instance_id: event.instance_id.clone(),
+            dependency_name: event.dependency.name.clone(),
+            expected_specifier: event.expected_specifier.clone(),
+            actual_specifier: event.actual_specifier.clone(),
+            snap_to_instance_id: event.snap_to_instance_id.clone(),
+          });
       }
-      Event::InstanceMismatchesSnapTo(_) => {
-        self.events.instance_mismatches_snap_to.push(());
+      Event::InstanceMismatchCorruptsLocalVersion(event) => {
+        self
+          .events
+          .instance_mismatch_changes_local_version
+          .push(PartialMismatchEvent {
+            instance_id: event.instance_id.clone(),
+            dependency_name: event.dependency.name.clone(),
+            expected_specifier: event.expected_specifier.clone(),
+            matching_instance_ids: event.matching_instance_ids.clone(),
+            actual_specifier: event.actual_specifier.clone(),
+          });
       }
-      Event::InstanceMismatchesLocalVersion(instance_event) => {
+      Event::InstanceMismatchesLocalVersion(event) => {
         self
           .events
           .instance_mismatches_local_version
-          .push(MismatchEventCopy {
-            dependency_name: instance_event.dependency.name.clone(),
-            mismatches_with: instance_event.mismatches_with.clone(),
-            target: instance_event.target.clone(),
+          .push(PartialMismatchEvent {
+            instance_id: event.instance_id.clone(),
+            dependency_name: event.dependency.name.clone(),
+            expected_specifier: event.expected_specifier.clone(),
+            matching_instance_ids: event.matching_instance_ids.clone(),
+            actual_specifier: event.actual_specifier.clone(),
           });
       }
-      Event::InstanceUnsupportedMismatch(_) => {
-        self.events.instance_unsupported_mismatch.push(());
+      Event::InstanceUnsupportedMismatch(event) => {
+        self
+          .events
+          .instance_unsupported_mismatch
+          .push(PartialUnsupportedMismatchEvent {
+            instance_id: event.instance_id.clone(),
+            dependency_name: event.dependency.name.clone(),
+            specifier: event.specifier.clone(),
+          });
       }
-      Event::InstanceMismatchesLowestVersion(instance_event) => {
+      Event::InstanceMismatchesLowestVersion(event) => {
         self
           .events
           .instance_mismatches_lowest_version
-          .push(MismatchEventCopy {
-            dependency_name: instance_event.dependency.name.clone(),
-            mismatches_with: instance_event.mismatches_with.clone(),
-            target: instance_event.target.clone(),
+          .push(PartialMismatchEvent {
+            instance_id: event.instance_id.clone(),
+            dependency_name: event.dependency.name.clone(),
+            expected_specifier: event.expected_specifier.clone(),
+            matching_instance_ids: event.matching_instance_ids.clone(),
+            actual_specifier: event.actual_specifier.clone(),
           });
       }
-      Event::InstanceMismatchesHighestVersion(instance_event) => {
+      Event::InstanceMismatchesHighestVersion(event) => {
         self
           .events
           .instance_mismatches_highest_version
-          .push(MismatchEventCopy {
-            dependency_name: instance_event.dependency.name.clone(),
-            mismatches_with: instance_event.mismatches_with.clone(),
-            target: instance_event.target.clone(),
+          .push(PartialMismatchEvent {
+            instance_id: event.instance_id.clone(),
+            dependency_name: event.dependency.name.clone(),
+            expected_specifier: event.expected_specifier.clone(),
+            matching_instance_ids: event.matching_instance_ids.clone(),
+            actual_specifier: event.actual_specifier.clone(),
           });
       }
     };
-  }
-}
-
-#[derive(Debug)]
-pub struct MatchEventCopy {
-  pub dependency_name: String,
-  pub target: InstanceIdsBySpecifier,
-}
-
-#[derive(Debug)]
-pub struct MismatchEventCopy {
-  pub dependency_name: String,
-  pub mismatches_with: InstanceIdsBySpecifier,
-  pub target: InstanceIdsBySpecifier,
-}
-
-// We'll store data later but for now use `Vec<()>` to keep a count of events
-#[derive(Debug)]
-pub struct EventsByType {
-  pub packages_loaded: Vec<()>,
-  pub enter_versions_and_ranges: Vec<()>,
-  pub enter_format: Vec<()>,
-  pub exit_command: Vec<()>,
-
-  pub packages_match_formatting: Vec<()>,
-  pub packages_mismatch_formatting: Vec<()>,
-
-  pub group_visited: Vec<()>,
-
-  pub dependency_ignored: Vec<()>,
-  pub dependency_banned: Vec<()>,
-  pub dependency_matches_pinned_version: Vec<String>,
-  pub dependency_mismatches_pinned_version: Vec<()>,
-  pub dependency_matches_range: Vec<String>,
-  pub dependency_mismatches_range: Vec<()>,
-  pub dependency_matches_snap_to: Vec<String>,
-  pub dependency_mismatches_snap_to: Vec<()>,
-  pub dependency_matches_standard: Vec<String>,
-  pub dependency_mismatches_standard: Vec<()>,
-
-  pub instance_matches_standard: Vec<MatchEventCopy>,
-  pub instance_banned: Vec<()>,
-  pub instance_mismatches_pinned_version: Vec<()>,
-  pub instance_mismatches_range: Vec<()>,
-  pub instance_mismatches_snap_to: Vec<()>,
-  pub instance_mismatches_local_version: Vec<MismatchEventCopy>,
-  pub instance_unsupported_mismatch: Vec<()>,
-  pub instance_mismatches_lowest_version: Vec<MismatchEventCopy>,
-  pub instance_mismatches_highest_version: Vec<MismatchEventCopy>,
-}
-
-impl EventsByType {
-  pub fn new() -> Self {
-    Self {
-      packages_loaded: vec![],
-      enter_versions_and_ranges: vec![],
-      enter_format: vec![],
-      exit_command: vec![],
-
-      packages_match_formatting: vec![],
-      packages_mismatch_formatting: vec![],
-
-      group_visited: vec![],
-
-      dependency_ignored: vec![],
-      dependency_banned: vec![],
-      dependency_matches_pinned_version: vec![],
-      dependency_mismatches_pinned_version: vec![],
-      dependency_matches_range: vec![],
-      dependency_mismatches_range: vec![],
-      dependency_matches_snap_to: vec![],
-      dependency_mismatches_snap_to: vec![],
-      dependency_matches_standard: vec![],
-      dependency_mismatches_standard: vec![],
-
-      instance_matches_standard: vec![],
-      instance_banned: vec![],
-      instance_mismatches_pinned_version: vec![],
-      instance_mismatches_range: vec![],
-      instance_mismatches_snap_to: vec![],
-      instance_mismatches_local_version: vec![],
-      instance_unsupported_mismatch: vec![],
-      instance_mismatches_lowest_version: vec![],
-      instance_mismatches_highest_version: vec![],
-    }
   }
 }

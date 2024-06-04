@@ -141,7 +141,7 @@ impl Effects for LintEffects {
         info!(
           "      {} {} {}",
           icon,
-          event.target.0.red(),
+          event.specifier.red(),
           "[Banned]".dimmed()
         );
         self.is_valid = false;
@@ -149,13 +149,12 @@ impl Effects for LintEffects {
       Event::InstanceMismatchesPinnedVersion(event) => {
         let icon = "✘".red();
         let arrow = "→".dimmed();
-        let expected = event.dependency.expected_version.as_ref().unwrap();
         info!(
           "      {} {} {} {} {}",
           icon,
-          event.target.0.red(),
+          event.actual_specifier.red(),
           arrow,
-          expected.green(),
+          event.expected_specifier.green(),
           "[PinnedMismatch]".dimmed()
         );
         self.is_valid = false;
@@ -164,37 +163,48 @@ impl Effects for LintEffects {
         info!(
           "      {} {} {} {} {}",
           "✘".red(),
-          event.mismatches_with.0.red(),
+          event.specifier_outside_range.red(),
           "falls outside".red(),
-          event.target.0.red(),
+          event.specifier.red(),
           "[SameRangeMismatch]".dimmed()
         );
         self.is_valid = false;
       }
       Event::InstanceMismatchesSnapTo(event) => {
-        let (expected, _) = &event.mismatches_with;
         let icon = "✘".red();
         let arrow = "→".dimmed();
         info!(
           "      {} {} {} {} {}",
           icon,
-          event.target.0.red(),
+          event.actual_specifier.red(),
           arrow,
-          expected.green(),
+          event.expected_specifier.green(),
           "[SnappedToMismatch]".dimmed()
+        );
+        self.is_valid = false;
+      }
+      Event::InstanceMismatchCorruptsLocalVersion(event) => {
+        let icon = "!".red();
+        let arrow = "→".dimmed();
+        info!(
+          "      {} {} {} {} {}",
+          icon,
+          event.actual_specifier.green(),
+          arrow,
+          event.expected_specifier.red(),
+          "[RejectedLocalMismatch]".dimmed()
         );
         self.is_valid = false;
       }
       Event::InstanceMismatchesLocalVersion(event) => {
         let icon = "✘".red();
         let arrow = "→".dimmed();
-        let expected = event.dependency.expected_version.as_ref().unwrap();
         info!(
           "      {} {} {} {} {}",
           icon,
-          event.target.0.red(),
+          event.actual_specifier.red(),
           arrow,
-          expected.green(),
+          event.expected_specifier.green(),
           "[LocalPackageMismatch]".dimmed()
         );
         self.is_valid = false;
@@ -205,7 +215,7 @@ impl Effects for LintEffects {
         info!(
           "      {} {} {} {} {}",
           icon,
-          event.target.0.red(),
+          event.specifier.red(),
           arrow,
           "?".yellow(),
           "[UnsupportedMismatch]".dimmed()
@@ -215,13 +225,12 @@ impl Effects for LintEffects {
       Event::InstanceMismatchesLowestVersion(event) => {
         let icon = "✘".red();
         let arrow = "→".dimmed();
-        let expected = event.dependency.expected_version.as_ref().unwrap();
         info!(
           "      {} {} {} {} {}",
           icon,
-          event.target.0.red(),
+          event.actual_specifier.red(),
           arrow,
-          expected.green(),
+          event.expected_specifier.green(),
           "[LowestSemverMismatch]".dimmed()
         );
         self.is_valid = false;
@@ -229,13 +238,12 @@ impl Effects for LintEffects {
       Event::InstanceMismatchesHighestVersion(event) => {
         let icon = "✘".red();
         let arrow = "→".dimmed();
-        let expected = event.dependency.expected_version.as_ref().unwrap();
         info!(
           "      {} {} {} {} {}",
           icon,
-          event.target.0.red(),
+          event.actual_specifier.red(),
           arrow,
-          expected.green(),
+          event.expected_specifier.green(),
           "[HighestSemverMismatch]".dimmed()
         );
         self.is_valid = false;

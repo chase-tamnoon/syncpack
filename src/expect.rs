@@ -1,19 +1,19 @@
 #[cfg(test)]
-use crate::effects_mock::{MatchEventCopy, MismatchEventCopy, MockEffects};
+use crate::effects_mock::{MockEffects, PartialMatchEvent, PartialMismatchEvent};
 
 #[cfg(test)]
-pub struct ExpectedMatch<'a> {
+pub struct ExpectedMatchEvent<'a> {
   pub dependency_name: &'a str,
-  pub match_ids: Vec<&'a str>,
-  pub matching_version: &'a str,
+  pub instance_id: &'a str,
+  pub specifier: &'a str,
 }
 
 #[cfg(test)]
-pub struct ExpectedMismatch<'a> {
+pub struct ExpectedMismatchEvent<'a> {
   pub dependency_name: &'a str,
-  pub mismatch_ids: Vec<&'a str>,
-  pub mismatching_version: &'a str,
-  pub expected_version: &'a str,
+  pub instance_id: &'a str,
+  pub actual_specifier: &'a str,
+  pub expected_specifier: &'a str,
 }
 
 #[cfg(test)]
@@ -37,7 +37,7 @@ impl<'a> Expects<'a> {
     println!("{:#?}", self.effects);
   }
 
-  pub fn to_have_standard_version_group_matches(&self, expected_matches: Vec<ExpectedMatch>) {
+  pub fn to_have_standard_version_group_matches(&self, expected_matches: Vec<ExpectedMatchEvent>) {
     self.expect_instance_matches(
       "standard version group",
       &expected_matches,
@@ -45,7 +45,10 @@ impl<'a> Expects<'a> {
     );
   }
 
-  pub fn to_have_highest_version_mismatches(&self, expected_mismatches: Vec<ExpectedMismatch>) {
+  pub fn to_have_highest_version_mismatches(
+    &self,
+    expected_mismatches: Vec<ExpectedMismatchEvent>,
+  ) {
     self.expect_instance_mismatches(
       "highest semver",
       &expected_mismatches,
@@ -53,7 +56,18 @@ impl<'a> Expects<'a> {
     );
   }
 
-  pub fn to_have_local_version_mismatches(&self, expected_mismatches: Vec<ExpectedMismatch>) {
+  pub fn to_have_mismatches_changing_local_versions(
+    &self,
+    expected_mismatches: Vec<ExpectedMismatchEvent>,
+  ) {
+    self.expect_instance_mismatches(
+      "rejected local version",
+      &expected_mismatches,
+      &self.effects.events.instance_mismatch_changes_local_version,
+    );
+  }
+
+  pub fn to_have_local_version_mismatches(&self, expected_mismatches: Vec<ExpectedMismatchEvent>) {
     self.expect_instance_mismatches(
       "local version",
       &expected_mismatches,
@@ -61,11 +75,19 @@ impl<'a> Expects<'a> {
     );
   }
 
+  pub fn to_have_pinned_version_mismatches(&self, expected_mismatches: Vec<ExpectedMismatchEvent>) {
+    self.expect_instance_mismatches(
+      "highest semver",
+      &expected_mismatches,
+      &self.effects.events.instance_mismatches_pinned_version,
+    );
+  }
+
   fn expect_instance_matches(
     &self,
     label: &str,
-    expected_matches: &Vec<ExpectedMatch>,
-    actual_matches: &Vec<MatchEventCopy>,
+    expected_matches: &Vec<ExpectedMatchEvent>,
+    actual_matches: &Vec<PartialMatchEvent>,
   ) {
     if expected_matches.len() != actual_matches.len() {
       panic!(
@@ -78,24 +100,13 @@ impl<'a> Expects<'a> {
 
     'expected: for expected in expected_matches {
       let dependency_name = expected.dependency_name.to_string();
-      let match_ids = &expected
-        .match_ids
-        .iter()
-        .map(|str| str.to_string())
-        .collect::<Vec<String>>();
-      let matching_version = expected.matching_version.to_string();
+      let instance_id = expected.instance_id.to_string();
+      let specifier = expected.specifier.to_string();
 
-      for event in actual_matches {
-        if event.dependency_name == dependency_name
-          && event.target.0 == matching_version
-          && match_ids
-            .iter()
-            .all(|string| event.target.1.contains(&string))
-          && event
-            .target
-            .1
-            .iter()
-            .all(|string| match_ids.contains(&string))
+      for actual in actual_matches {
+        if actual.dependency_name == dependency_name
+          && actual.specifier == specifier
+          && actual.instance_id == instance_id
         {
           continue 'expected;
         }
@@ -103,10 +114,7 @@ impl<'a> Expects<'a> {
 
       panic!(
         "expected {} to be a {} match with {}\n{:#?}",
-        match_ids.join(" and "),
-        label,
-        matching_version,
-        actual_matches
+        instance_id, label, specifier, actual_matches
       );
     }
   }
@@ -114,8 +122,8 @@ impl<'a> Expects<'a> {
   fn expect_instance_mismatches(
     &self,
     label: &str,
-    expected_mismatches: &Vec<ExpectedMismatch>,
-    actual_mismatches: &Vec<MismatchEventCopy>,
+    expected_mismatches: &Vec<ExpectedMismatchEvent>,
+    actual_mismatches: &Vec<PartialMismatchEvent>,
   ) {
     if expected_mismatches.len() != actual_mismatches.len() {
       panic!(
@@ -128,26 +136,15 @@ impl<'a> Expects<'a> {
 
     'expected: for expected in expected_mismatches {
       let dependency_name = expected.dependency_name.to_string();
-      let mismatch_ids = expected
-        .mismatch_ids
-        .iter()
-        .map(|str| str.to_string())
-        .collect::<Vec<String>>();
-      let mismatch_version = expected.mismatching_version.to_string();
-      let expected_version = expected.expected_version.to_string();
+      let instance_id = expected.instance_id.to_string();
+      let actual_specifier = expected.actual_specifier.to_string();
+      let expected_specifier = expected.expected_specifier.to_string();
 
-      for event in actual_mismatches {
-        if event.dependency_name == dependency_name
-          && event.mismatches_with.0 == expected_version
-          && event.target.0 == mismatch_version
-          && mismatch_ids
-            .iter()
-            .all(|string| event.target.1.contains(&string))
-          && event
-            .target
-            .1
-            .iter()
-            .all(|string| mismatch_ids.contains(&string))
+      for actual in actual_mismatches {
+        if actual.dependency_name == dependency_name
+          && actual.expected_specifier == expected_specifier
+          && actual.actual_specifier == actual_specifier
+          && actual.expected_specifier == expected_specifier
         {
           continue 'expected;
         }
@@ -155,11 +152,7 @@ impl<'a> Expects<'a> {
 
       panic!(
         "expected {} mismatch for {} from {} to {}\n{:#?}",
-        label,
-        mismatch_ids.join(" and "),
-        mismatch_version,
-        expected_version,
-        actual_mismatches
+        label, instance_id, actual_specifier, expected_specifier, actual_mismatches
       );
     }
   }

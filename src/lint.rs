@@ -46,7 +46,7 @@ mod tests {
   use super::*;
   use crate::{
     effects_mock::MockEffects,
-    expect::{expect, ExpectedMatch, ExpectedMismatch},
+    expect::{expect, ExpectedMatchEvent, ExpectedMismatchEvent},
   };
   use serde_json::json;
 
@@ -76,11 +76,11 @@ mod tests {
 
     lint(&config, &mut packages, &mut effects);
 
-    expect(&effects).to_have_highest_version_mismatches(vec![ExpectedMismatch {
+    expect(&effects).to_have_highest_version_mismatches(vec![ExpectedMismatchEvent {
       dependency_name: "wat",
-      mismatch_ids: vec!["wat in /dependencies of package-a"],
-      mismatching_version: "1.0.0",
-      expected_version: "2.0.0",
+      instance_id: "wat in /dependencies of package-a",
+      actual_specifier: "1.0.0",
+      expected_specifier: "2.0.0",
     }])
   }
 
@@ -104,17 +104,17 @@ mod tests {
     lint(&config, &mut packages, &mut effects);
 
     expect(&effects).to_have_highest_version_mismatches(vec![
-      ExpectedMismatch {
+      ExpectedMismatchEvent {
         dependency_name: "wat",
-        mismatch_ids: vec!["wat in /dependencies of package-a"],
-        mismatching_version: "0.1.0",
-        expected_version: "0.3.0",
+        instance_id: "wat in /dependencies of package-a",
+        actual_specifier: "0.1.0",
+        expected_specifier: "0.3.0",
       },
-      ExpectedMismatch {
+      ExpectedMismatchEvent {
         dependency_name: "wat",
-        mismatch_ids: vec!["wat in /peerDependencies of package-a"],
-        mismatching_version: "0.2.0",
-        expected_version: "0.3.0",
+        instance_id: "wat in /peerDependencies of package-a",
+        actual_specifier: "0.2.0",
+        expected_specifier: "0.3.0",
       },
     ])
   }
@@ -140,11 +140,11 @@ mod tests {
 
     lint(&config, &mut packages, &mut effects);
 
-    expect(&effects).to_have_highest_version_mismatches(vec![ExpectedMismatch {
+    expect(&effects).to_have_highest_version_mismatches(vec![ExpectedMismatchEvent {
       dependency_name: "wat",
-      mismatch_ids: vec!["wat in /dependencies of package-a"],
-      mismatching_version: "1.0.0",
-      expected_version: "2.0.0",
+      instance_id: "wat in /dependencies of package-a",
+      actual_specifier: "1.0.0",
+      expected_specifier: "2.0.0",
     }]);
   }
 
@@ -177,21 +177,21 @@ mod tests {
     expect(&effects).to_have_highest_version_mismatches(vec![]);
 
     expect(&effects).to_have_standard_version_group_matches(vec![
-      ExpectedMatch {
+      ExpectedMatchEvent {
         dependency_name: "good",
-        match_ids: vec!["good in /dependencies of package-a"],
-        matching_version: "1.0.0",
+        instance_id: "good in /dependencies of package-a",
+        specifier: "1.0.0",
       },
-      ExpectedMatch {
+      ExpectedMatchEvent {
         dependency_name: "good",
-        match_ids: vec!["good in /dependencies of package-b"],
-        matching_version: "2.0.0",
+        instance_id: "good in /dependencies of package-b",
+        specifier: "2.0.0",
       },
     ]);
   }
 
   #[test]
-  fn local_version_mismatch() {
+  fn local_version_highest_version_mismatch() {
     let mut effects = MockEffects::new();
     let config = Config::new();
     let mut packages = Packages::from_mocks(vec![
@@ -213,19 +213,58 @@ mod tests {
     lint(&config, &mut packages, &mut effects);
 
     expect(&effects).to_have_local_version_mismatches(vec![
-      ExpectedMismatch {
+      ExpectedMismatchEvent {
         dependency_name: "package-a",
-        mismatch_ids: vec!["package-a in /dependencies of package-b"],
-        mismatching_version: "1.1.0",
-        expected_version: "1.0.0",
+        instance_id: "package-a in /dependencies of package-b",
+        actual_specifier: "1.1.0",
+        expected_specifier: "1.0.0",
       },
-      ExpectedMismatch {
+      ExpectedMismatchEvent {
         dependency_name: "package-a",
-        mismatch_ids: vec!["package-a in /devDependencies of package-b"],
-        mismatching_version: "workspace:*",
-        expected_version: "1.0.0",
+        instance_id: "package-a in /devDependencies of package-b",
+        actual_specifier: "workspace:*",
+        expected_specifier: "1.0.0",
       },
     ]);
+  }
+
+  #[test]
+  fn refuse_to_pin_local_version() {
+    let mut effects = MockEffects::new();
+    let config = Config::from_mock(json!({
+      "versionGroups": [{
+        "dependencies": ["package-a"],
+        "pinVersion": "1.2.0"
+      }]
+    }));
+    let mut packages = Packages::from_mocks(vec![
+      json!({
+        "name": "package-a",
+        "version": "1.0.0"
+      }),
+      json!({
+        "name": "package-b",
+        "dependencies": {
+          "package-a": "1.1.0"
+        }
+      }),
+    ]);
+
+    lint(&config, &mut packages, &mut effects);
+
+    expect(&effects).to_have_mismatches_changing_local_versions(vec![ExpectedMismatchEvent {
+      dependency_name: "package-a",
+      instance_id: "package-a in /version of package-a",
+      actual_specifier: "1.0.0",
+      expected_specifier: "1.2.0",
+    }]);
+
+    expect(&effects).to_have_pinned_version_mismatches(vec![ExpectedMismatchEvent {
+      dependency_name: "package-a",
+      instance_id: "package-a in /dependencies of package-b",
+      actual_specifier: "1.1.0",
+      expected_specifier: "1.2.0",
+    }]);
   }
 
   #[test]
@@ -255,27 +294,31 @@ mod tests {
 
     lint(&config, &mut packages, &mut effects);
 
-    expect(&effects).to_have_standard_version_group_matches(vec![ExpectedMatch {
-      dependency_name: "mix",
-      match_ids: vec![
-        "mix in /dependencies of package-a",
-        "mix in /devDependencies of package-b",
-      ],
-      matching_version: "0.3.0",
-    }]);
+    expect(&effects).to_have_standard_version_group_matches(vec![
+      ExpectedMatchEvent {
+        dependency_name: "mix",
+        instance_id: "mix in /dependencies of package-a",
+        specifier: "0.3.0",
+      },
+      ExpectedMatchEvent {
+        dependency_name: "mix",
+        instance_id: "mix in /devDependencies of package-b",
+        specifier: "0.3.0",
+      },
+    ]);
 
     expect(&effects).to_have_highest_version_mismatches(vec![
-      ExpectedMismatch {
+      ExpectedMismatchEvent {
         dependency_name: "mix",
-        mismatch_ids: vec!["mix in /devDependencies of package-a"],
-        mismatching_version: "0.1.0",
-        expected_version: "0.3.0",
+        instance_id: "mix in /devDependencies of package-a",
+        actual_specifier: "0.1.0",
+        expected_specifier: "0.3.0",
       },
-      ExpectedMismatch {
+      ExpectedMismatchEvent {
         dependency_name: "mix",
-        mismatch_ids: vec!["mix in /peerDependencies of package-a"],
-        mismatching_version: "0.2.0",
-        expected_version: "0.3.0",
+        instance_id: "mix in /peerDependencies of package-a",
+        actual_specifier: "0.2.0",
+        expected_specifier: "0.3.0",
       },
     ]);
   }
