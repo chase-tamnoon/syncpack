@@ -56,7 +56,7 @@ impl<'a> Expects<'a> {
     );
   }
 
-  pub fn to_have_mismatches_changing_local_versions(
+  pub fn to_have_rejected_local_version_mismatches(
     &self,
     expected_mismatches: Vec<ExpectedMismatchEvent>,
   ) {

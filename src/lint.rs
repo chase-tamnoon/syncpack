@@ -51,7 +51,7 @@ mod tests {
   use serde_json::json;
 
   #[test]
-  fn run_effect_when_packages_loaded() {
+  fn runs_effect_when_packages_loaded() {
     let mut effects = MockEffects::new();
     let config = Config::new();
     let mut packages = Packages::new();
@@ -61,7 +61,7 @@ mod tests {
   }
 
   #[test]
-  fn highest_version_mismatch_in_same_file() {
+  fn reports_one_highest_version_mismatch_in_one_file() {
     let mut effects = MockEffects::new();
     let config = Config::new();
     let mut packages = Packages::from_mocks(vec![json!({
@@ -85,7 +85,7 @@ mod tests {
   }
 
   #[test]
-  fn many_highest_version_mismatches_in_same_file() {
+  fn reports_many_highest_version_mismatches_in_one_file() {
     let mut effects = MockEffects::new();
     let config = Config::new();
     let mut packages = Packages::from_mocks(vec![json!({
@@ -120,7 +120,7 @@ mod tests {
   }
 
   #[test]
-  fn highest_version_mismatch_in_multiple_files() {
+  fn reports_highest_version_mismatches_in_many_files() {
     let mut effects = MockEffects::new();
     let config = Config::new();
     let mut packages = Packages::from_mocks(vec![
@@ -149,7 +149,7 @@ mod tests {
   }
 
   #[test]
-  fn highest_version_mismatch_in_different_version_groups() {
+  fn does_not_consider_instances_in_different_version_groups_a_highest_version_mismatch() {
     let mut effects = MockEffects::new();
     let config = Config::from_mock(json!({
       "versionGroups": [
@@ -191,7 +191,7 @@ mod tests {
   }
 
   #[test]
-  fn local_version_highest_version_mismatch() {
+  fn uses_local_version_when_an_instance_uses_a_higher_version() {
     let mut effects = MockEffects::new();
     let config = Config::new();
     let mut packages = Packages::from_mocks(vec![
@@ -229,7 +229,7 @@ mod tests {
   }
 
   #[test]
-  fn refuse_to_pin_local_version() {
+  fn rejects_pinned_version_when_it_would_replace_local_version() {
     let mut effects = MockEffects::new();
     let config = Config::from_mock(json!({
       "versionGroups": [{
@@ -252,7 +252,7 @@ mod tests {
 
     lint(&config, &mut packages, &mut effects);
 
-    expect(&effects).to_have_mismatches_changing_local_versions(vec![ExpectedMismatchEvent {
+    expect(&effects).to_have_rejected_local_version_mismatches(vec![ExpectedMismatchEvent {
       dependency_name: "package-a",
       instance_id: "package-a in /version of package-a",
       actual_specifier: "1.0.0",
@@ -268,7 +268,7 @@ mod tests {
   }
 
   #[test]
-  fn highest_version_matches_and_mismatches() {
+  fn does_not_combine_highest_version_matches_and_mismatches() {
     let mut effects = MockEffects::new();
     let config = Config::new();
     let mut packages = Packages::from_mocks(vec![
