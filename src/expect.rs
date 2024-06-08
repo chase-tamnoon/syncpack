@@ -105,7 +105,7 @@ impl<'a> Expects<'a> {
 
       for actual in actual_matches {
         if actual.dependency_name == dependency_name
-          && actual.specifier == specifier
+          && actual.specifier.unwrap().clone() == specifier
           && actual.instance_id == instance_id
         {
           continue 'expected;
@@ -142,9 +142,9 @@ impl<'a> Expects<'a> {
 
       for actual in actual_mismatches {
         if actual.dependency_name == dependency_name
-          && actual.expected_specifier == expected_specifier
-          && actual.actual_specifier == actual_specifier
-          && actual.expected_specifier == expected_specifier
+          && actual.expected_specifier.unwrap().clone() == expected_specifier
+          && actual.actual_specifier.unwrap().clone() == actual_specifier
+          && actual.expected_specifier.unwrap().clone() == expected_specifier
         {
           continue 'expected;
         }

@@ -73,14 +73,14 @@ impl Packages {
       for dependency_type in dependency_types {
         match dependency_type.strategy {
           Strategy::NameAndVersionProps => {
-            if let (Some(Value::String(name)), Some(Value::String(version))) = (
+            if let (Some(Value::String(name)), Some(Value::String(raw_specifier))) = (
               package.get_prop(&dependency_type.name_path.as_ref().unwrap()),
               package.get_prop(&dependency_type.path),
             ) {
               if matches_filter(name) {
                 on_instance(Instance::new(
                   name.to_string(),
-                  version.to_string(),
+                  raw_specifier.to_string(),
                   dependency_type.clone(),
                   &package,
                 ));
@@ -89,11 +89,11 @@ impl Packages {
           }
           Strategy::NamedVersionString => {
             if let Some(Value::String(specifier)) = package.get_prop(&dependency_type.path) {
-              if let Some((name, version)) = specifier.split_once('@') {
+              if let Some((name, raw_specifier)) = specifier.split_once('@') {
                 if matches_filter(name) {
                   on_instance(Instance::new(
                     name.to_string(),
-                    version.to_string(),
+                    raw_specifier.to_string(),
                     dependency_type.clone(),
                     &package,
                   ));
@@ -102,11 +102,11 @@ impl Packages {
             }
           }
           Strategy::UnnamedVersionString => {
-            if let Some(Value::String(version)) = package.get_prop(&dependency_type.path) {
+            if let Some(Value::String(raw_specifier)) = package.get_prop(&dependency_type.path) {
               if matches_filter(&dependency_type.name) {
                 on_instance(Instance::new(
                   dependency_type.name.clone(),
-                  version.to_string(),
+                  raw_specifier.to_string(),
                   dependency_type.clone(),
                   &package,
                 ));
@@ -115,9 +115,9 @@ impl Packages {
           }
           Strategy::VersionsByName => {
             if let Some(Value::Object(versions_by_name)) = package.get_prop(&dependency_type.path) {
-              for (name, version) in versions_by_name {
+              for (name, raw_specifier) in versions_by_name {
                 if matches_filter(name) {
-                  if let Value::String(version) = version {
+                  if let Value::String(version) = raw_specifier {
                     on_instance(Instance::new(
                       name.to_string(),
                       version.to_string(),

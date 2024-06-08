@@ -3,13 +3,16 @@ use std::{
   vec,
 };
 
-use crate::instance::{Instance, InstanceId};
+use crate::{
+  instance::{Instance, InstanceId},
+  specifier::Specifier,
+};
 
 /// A reference to a group of instances of the same dependency which all have the
 /// same version specifier.
 #[derive(Debug)]
 pub struct InstanceIdsBySpecifier {
-  pub specifier: String,
+  pub specifier: Specifier,
   pub instance_ids: Vec<InstanceId>,
 }
 
@@ -23,7 +26,7 @@ pub struct Dependency {
   /// Every instance of this dependency in this version group.
   pub all: Vec<InstanceId>,
   /// The version specifier which all instances in this group should have
-  pub expected_version: Option<String>,
+  pub expected_version: Option<Specifier>,
   /// If this dependency is a local package, this is the local instance.
   pub local: Option<InstanceId>,
   /// All instances with `Specifier::NonSemver` versions
@@ -34,7 +37,7 @@ pub struct Dependency {
   /// are each instance which has that version specifier.
   ///
   /// If there is more than one unique version, then we have mismatches
-  pub by_specifier: HashMap<String, Vec<InstanceId>>,
+  pub by_specifier: HashMap<Specifier, Vec<InstanceId>>,
 }
 
 impl Dependency {
@@ -67,7 +70,7 @@ impl Dependency {
   /// Iterate over every instance ID and its specifier in this group
   pub fn for_each_instance_id<F>(&self, mut handler: F)
   where
-    F: FnMut((&String, &InstanceId)),
+    F: FnMut((&Specifier, &InstanceId)),
   {
     self
       .by_specifier
@@ -82,7 +85,7 @@ impl Dependency {
   /// Iterate over every unique specifier and its instance IDs in this group
   pub fn for_each_specifier<F>(&self, mut handler: F)
   where
-    F: FnMut((&String, &Vec<InstanceId>)),
+    F: FnMut((&Specifier, &Vec<InstanceId>)),
   {
     self
       .by_specifier
@@ -107,7 +110,7 @@ impl Dependency {
     self.by_specifier.len() == (1 as usize)
   }
 
-  pub fn is_mismatch(&self, actual: &String) -> bool {
+  pub fn is_mismatch(&self, actual: &Specifier) -> bool {
     // if we determined an expected version... (such as the highest semver version,
     // the local dependency version, or a pinned version)
     match &self.expected_version {

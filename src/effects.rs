@@ -5,6 +5,7 @@ use crate::{
   instance::InstanceId,
   package_json::PackageJson,
   packages::Packages,
+  specifier::Specifier,
 };
 
 /// Side effects in Syncpack commands are handled by structs which implement
@@ -116,7 +117,7 @@ pub struct MatchEvent<'a> {
   /// the unique identifier for the instance which was found
   pub instance_id: InstanceId,
   /// the version specifier on the instance which was found
-  pub specifier: String,
+  pub specifier: Specifier,
 }
 
 /// A single instance of a dependency was found, which is not valid
@@ -127,9 +128,9 @@ pub struct MismatchEvent<'a> {
   /// the unique identifier for the instance which was found
   pub instance_id: InstanceId,
   /// the correct version specifier the instance should have had
-  pub expected_specifier: String,
+  pub expected_specifier: Specifier,
   /// the incorrect version specifier the instance actually has
-  pub actual_specifier: String,
+  pub actual_specifier: Specifier,
   /// other instances which do have the correct version specifier
   pub matching_instance_ids: Vec<InstanceId>,
   /// all instances in the workspace
@@ -150,7 +151,7 @@ pub struct UnsupportedMismatchEvent<'a> {
   /// the unique identifier for the instance which was found
   pub instance_id: InstanceId,
   /// the incorrect version specifier the instance actually has
-  pub specifier: String,
+  pub specifier: Specifier,
 }
 
 /// A single instance of a dependency was found, which is not allowed
@@ -165,7 +166,7 @@ pub struct BannedEvent<'a> {
   /// the unique identifier for the instance which was found
   pub instance_id: InstanceId,
   /// the version specifier the banned instance has
-  pub specifier: String,
+  pub specifier: Specifier,
 }
 
 /// A single instance of a dependency was found, which is not valid
@@ -180,9 +181,9 @@ pub struct SameRangeMismatchEvent<'a> {
   /// the unique identifier for the instance which was found
   pub instance_id: InstanceId,
   /// the range specifier which does not match every other range
-  pub specifier: String,
+  pub specifier: Specifier,
   /// another range specifier which is not matched by this instance
-  pub specifier_outside_range: String,
+  pub specifier_outside_range: Specifier,
   /// the instance IDs which have the specifier_outside_range
   pub instance_ids_outside_range: Vec<InstanceId>,
 }
@@ -195,9 +196,9 @@ pub struct SnapToMismatchEvent<'a> {
   /// the unique identifier for the instance which was found
   pub instance_id: InstanceId,
   /// the correct version specifier the instance should have had
-  pub expected_specifier: String,
+  pub expected_specifier: Specifier,
   /// the incorrect version specifier the instance actually has
-  pub actual_specifier: String,
+  pub actual_specifier: Specifier,
   /// the instance with the version specifier to be snapped to
   pub snap_to_instance_id: InstanceId,
   /// all instances in the workspace

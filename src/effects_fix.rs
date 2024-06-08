@@ -6,6 +6,7 @@ use crate::{
   effects::{Effects, Event},
   effects_lint::render_count_column,
   packages::Packages,
+  specifier::Specifier,
 };
 
 /// The implementation of the `fix` command's side effects
@@ -109,9 +110,9 @@ impl Effects for FixEffects {
         info!(
           "      {} {} {} {} {}",
           "✘".red(),
-          event.specifier_outside_range.red(),
+          event.specifier_outside_range.unwrap().red(),
           "falls outside".red(),
-          event.specifier.red(),
+          event.specifier.unwrap().red(),
           "[SameRangeMismatch]".dimmed()
         );
         self.is_valid = false;
@@ -130,9 +131,9 @@ impl Effects for FixEffects {
         info!(
           "      {} {} {} {} {}",
           icon,
-          event.actual_specifier.green(),
+          event.actual_specifier.unwrap().green(),
           arrow,
-          event.expected_specifier.red(),
+          event.expected_specifier.unwrap().red(),
           "[RejectedLocalMismatch]".dimmed()
         );
         self.is_valid = false;
@@ -151,7 +152,7 @@ impl Effects for FixEffects {
         info!(
           "      {} {} {} {} {}",
           icon,
-          event.specifier.red(),
+          event.specifier.unwrap().red(),
           arrow,
           "?".yellow(),
           "[UnsupportedMismatch]".dimmed()
@@ -182,12 +183,12 @@ fn set_instance_version_to(
   instances_by_id: &mut InstancesById,
   packages: &mut Packages,
   instance_id: &String,
-  expected_specifier: &String,
+  expected_specifier: &Specifier,
 ) {
   let target_instance = instances_by_id.get_mut(instance_id).unwrap();
   let package = packages
     .by_name
     .get_mut(&target_instance.package_name)
     .unwrap();
-  target_instance.set_version(package, expected_specifier.clone());
+  target_instance.set_specifier(package, expected_specifier);
 }

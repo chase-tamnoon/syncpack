@@ -6,8 +6,8 @@ use std::{collections::HashMap, fs, path::PathBuf};
 use crate::{
   cli::Cli,
   dependency_type,
-  semver_group::{self, SemverGroup},
-  version_group::{self, VersionGroup},
+  semver_group::{AnySemverGroup, SemverGroup},
+  version_group::{AnyVersionGroup, VersionGroup},
 };
 
 fn empty_custom_types() -> HashMap<String, CustomType> {
@@ -86,7 +86,7 @@ pub struct Rcfile {
   #[serde(default = "default_indent")]
   pub indent: String,
   #[serde(default)]
-  pub semver_groups: Vec<semver_group::AnySemverGroup>,
+  pub semver_groups: Vec<AnySemverGroup>,
   #[serde(default = "default_sort_az")]
   pub sort_az: Vec<String>,
   #[serde(default = "default_sort_exports")]
@@ -100,7 +100,7 @@ pub struct Rcfile {
   #[serde(default)]
   pub specifier_types: Vec<String>,
   #[serde(default)]
-  pub version_groups: Vec<version_group::AnyVersionGroup>,
+  pub version_groups: Vec<AnyVersionGroup>,
 }
 
 impl Rcfile {

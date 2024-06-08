@@ -2,6 +2,7 @@
 use crate::{
   effects::{Effects, Event},
   instance::InstanceId,
+  specifier::Specifier,
 };
 
 #[cfg(test)]
@@ -12,7 +13,7 @@ pub struct PartialMatchEvent {
   /// eg. "react"
   pub dependency_name: String,
   /// the version specifier the instance has
-  pub specifier: String,
+  pub specifier: Specifier,
 }
 
 #[cfg(test)]
@@ -23,9 +24,9 @@ pub struct PartialMismatchEvent {
   /// eg. "react"
   pub dependency_name: String,
   /// the correct version specifier the instance should have had
-  pub expected_specifier: String,
+  pub expected_specifier: Specifier,
   /// the incorrect version specifier the instance actually has
-  pub actual_specifier: String,
+  pub actual_specifier: Specifier,
   /// other instances which do have the correct version specifier
   pub matching_instance_ids: Vec<InstanceId>,
 }
@@ -38,7 +39,7 @@ pub struct PartialUnsupportedMismatchEvent {
   /// eg. "react"
   pub dependency_name: String,
   /// the incorrect version specifier the instance actually has
-  pub specifier: String,
+  pub specifier: Specifier,
 }
 
 #[cfg(test)]
@@ -58,8 +59,8 @@ pub struct PartialSameRangeMismatchEvent {
   /// eg. "react"
   pub dependency_name: String,
   /// the range specifier which does not match every other range
-  pub specifier: String,
-  pub specifier_outside_range: String,
+  pub specifier: Specifier,
+  pub specifier_outside_range: Specifier,
   pub instance_ids_outside_range: Vec<InstanceId>,
 }
 
@@ -71,9 +72,9 @@ pub struct PartialSnapToMismatchEvent {
   /// all instances of this dependency (eg. "react") in this version group
   pub dependency_name: String,
   /// the correct version specifier the instance should have had
-  pub expected_specifier: String,
+  pub expected_specifier: Specifier,
   /// the incorrect version specifier the instance actually has
-  pub actual_specifier: String,
+  pub actual_specifier: Specifier,
   /// the instance with the version specifier to be snapped to
   pub snap_to_instance_id: InstanceId,
 }

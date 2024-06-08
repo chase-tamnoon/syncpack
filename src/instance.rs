@@ -1,4 +1,3 @@
-use log::debug;
 use serde_json::Value;
 use std::path::PathBuf;
 
@@ -24,16 +23,14 @@ pub struct Instance {
   pub name: String,
   /// The `.name` of the package.json this file is in
   pub package_name: String,
-  /// The parsed dependency specifier
-  pub specifier_type: Specifier,
-  /// The raw dependency specifier eg. "16.8.0", "^16.8.0"
-  pub specifier: String,
+  /// eg. Specifier::Exact("16.8.0"), Specifier::Range("^16.8.0")
+  pub specifier: Specifier,
 }
 
 impl Instance {
   pub fn new(
     name: String,
-    specifier: String,
+    raw_specifier: String,
     dependency_type: DependencyType,
     package: &PackageJson,
   ) -> Instance {
@@ -45,29 +42,29 @@ impl Instance {
       is_local: package_name == name,
       name,
       package_name,
-      specifier_type: Specifier::new(specifier.as_str()),
-      specifier: sanitise_specifier(specifier),
+      specifier: Specifier::new(&raw_specifier),
     }
   }
 
   /// Write a version to the package.json
-  pub fn set_version(&mut self, package: &mut PackageJson, next_value: String) {
+  pub fn set_specifier(&mut self, package: &mut PackageJson, specifier: &Specifier) {
+    let raw_specifier = specifier.unwrap();
     match self.dependency_type.strategy {
       Strategy::NameAndVersionProps => {
         let path_to_prop = &self.dependency_type.path;
         let path_to_prop_str = path_to_prop.as_str();
-        package.set_prop(path_to_prop_str, Value::String(next_value.clone()));
+        package.set_prop(path_to_prop_str, Value::String(raw_specifier.clone()));
       }
       Strategy::NamedVersionString => {
         let path_to_prop = &self.dependency_type.path;
         let path_to_prop_str = path_to_prop.as_str();
-        let full_value = format!("{}@{}", self.name, next_value);
+        let full_value = format!("{}@{}", self.name, &raw_specifier);
         package.set_prop(path_to_prop_str, Value::String(full_value));
       }
       Strategy::UnnamedVersionString => {
         let path_to_prop = &self.dependency_type.path;
         let path_to_prop_str = path_to_prop.as_str();
-        package.set_prop(path_to_prop_str, Value::String(next_value.clone()));
+        package.set_prop(path_to_prop_str, Value::String(raw_specifier.clone()));
       }
       Strategy::VersionsByName => {
         let path_to_obj = &self.dependency_type.path;
@@ -80,15 +77,14 @@ impl Instance {
           .as_object_mut()
           .unwrap();
         let value = obj.get_mut(name).unwrap();
-        *value = Value::String(next_value.clone());
+        *value = Value::String(raw_specifier.clone());
       }
       Strategy::InvalidConfig => {
         panic!("unrecognised strategy");
       }
     };
     // update in-memory state
-    self.specifier = next_value.clone();
-    self.specifier_type = Specifier::new(next_value.as_str());
+    self.specifier = specifier.clone();
   }
 
   /// Delete a version/dependency/instance from the package.json
@@ -116,15 +112,5 @@ impl Instance {
         panic!("unrecognised strategy");
       }
     };
-  }
-}
-
-/// Convert non-semver specifiers to semver when behaviour is identical
-fn sanitise_specifier(specifier: String) -> String {
-  if specifier == "latest" || specifier == "x" {
-    debug!("Sanitising specifier: {} -> *", specifier);
-    "*".to_string()
-  } else {
-    specifier
   }
 }

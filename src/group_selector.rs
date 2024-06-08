@@ -1,6 +1,6 @@
 use globset::{Glob, GlobMatcher};
 
-use crate::{instance::Instance, specifier};
+use crate::instance::Instance;
 
 #[derive(Debug)]
 pub struct GroupSelector {
@@ -100,7 +100,7 @@ impl GroupSelector {
   pub fn matches_specifier_types(&self, instance: &Instance) -> bool {
     self.include_specifier_types.is_empty()
       || matches_identifiers(
-        &specifier::get_specifier_type_name(&instance.specifier_type),
+        &instance.specifier.get_type_name(),
         &self.include_specifier_types,
         &self.exclude_specifier_types,
       )

@@ -141,7 +141,7 @@ impl Effects for LintEffects {
         info!(
           "      {} {} {}",
           icon,
-          event.specifier.red(),
+          event.specifier.unwrap().red(),
           "[Banned]".dimmed()
         );
         self.is_valid = false;
@@ -152,9 +152,9 @@ impl Effects for LintEffects {
         info!(
           "      {} {} {} {} {}",
           icon,
-          event.actual_specifier.red(),
+          event.actual_specifier.unwrap().red(),
           arrow,
-          event.expected_specifier.green(),
+          event.expected_specifier.unwrap().green(),
           "[PinnedMismatch]".dimmed()
         );
         self.is_valid = false;
@@ -163,9 +163,9 @@ impl Effects for LintEffects {
         info!(
           "      {} {} {} {} {}",
           "✘".red(),
-          event.specifier_outside_range.red(),
+          event.specifier_outside_range.unwrap().red(),
           "falls outside".red(),
-          event.specifier.red(),
+          event.specifier.unwrap().red(),
           "[SameRangeMismatch]".dimmed()
         );
         self.is_valid = false;
@@ -176,9 +176,9 @@ impl Effects for LintEffects {
         info!(
           "      {} {} {} {} {}",
           icon,
-          event.actual_specifier.red(),
+          event.actual_specifier.unwrap().red(),
           arrow,
-          event.expected_specifier.green(),
+          event.expected_specifier.unwrap().green(),
           "[SnappedToMismatch]".dimmed()
         );
         self.is_valid = false;
@@ -189,9 +189,9 @@ impl Effects for LintEffects {
         info!(
           "      {} {} {} {} {}",
           icon,
-          event.actual_specifier.green(),
+          event.actual_specifier.unwrap().green(),
           arrow,
-          event.expected_specifier.red(),
+          event.expected_specifier.unwrap().red(),
           "[RejectedLocalMismatch]".dimmed()
         );
         self.is_valid = false;
@@ -202,9 +202,9 @@ impl Effects for LintEffects {
         info!(
           "      {} {} {} {} {}",
           icon,
-          event.actual_specifier.red(),
+          event.actual_specifier.unwrap().red(),
           arrow,
-          event.expected_specifier.green(),
+          event.expected_specifier.unwrap().green(),
           "[LocalPackageMismatch]".dimmed()
         );
         self.is_valid = false;
@@ -215,7 +215,7 @@ impl Effects for LintEffects {
         info!(
           "      {} {} {} {} {}",
           icon,
-          event.specifier.red(),
+          event.specifier.unwrap().red(),
           arrow,
           "?".yellow(),
           "[UnsupportedMismatch]".dimmed()
@@ -228,9 +228,9 @@ impl Effects for LintEffects {
         info!(
           "      {} {} {} {} {}",
           icon,
-          event.actual_specifier.red(),
+          event.actual_specifier.unwrap().red(),
           arrow,
-          event.expected_specifier.green(),
+          event.expected_specifier.unwrap().green(),
           "[LowestSemverMismatch]".dimmed()
         );
         self.is_valid = false;
@@ -241,9 +241,9 @@ impl Effects for LintEffects {
         info!(
           "      {} {} {} {} {}",
           icon,
-          event.actual_specifier.red(),
+          event.actual_specifier.unwrap().red(),
           arrow,
-          event.expected_specifier.green(),
+          event.expected_specifier.unwrap().green(),
           "[HighestSemverMismatch]".dimmed()
         );
         self.is_valid = false;
@@ -260,6 +260,11 @@ pub fn render_count_column(count: usize) -> ColoredString {
 
 fn print_version_match(dependency: &Dependency) {
   let count = render_count_column(dependency.all.len());
-  let (version, _) = dependency.by_specifier.iter().next().unwrap();
-  info!("{} {} {}", count, dependency.name, &version.dimmed());
+  let (specifier, _) = dependency.by_specifier.iter().next().unwrap();
+  info!(
+    "{} {} {}",
+    count,
+    dependency.name,
+    &specifier.unwrap().dimmed()
+  );
 }

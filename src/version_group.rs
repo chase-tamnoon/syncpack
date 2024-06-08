@@ -14,6 +14,7 @@ use crate::{
   instance::Instance,
   packages::Packages,
   semver_group::SemverGroup,
+  specifier::Specifier,
 };
 
 #[derive(Debug)]
@@ -43,7 +44,7 @@ pub struct VersionGroup {
   /// Which version to use when variant is `Standard`
   pub prefer_version: Option<PreferVersion>,
   /// The version to pin all instances to when variant is `Pinned`
-  pub pin_version: Option<String>,
+  pub pin_version: Option<Specifier>,
   /// `name` properties of package.json files developed in the monorepo when variant is `SnappedTo`
   pub snap_to: Option<Vec<String>>,
 }
@@ -106,7 +107,7 @@ impl VersionGroup {
     }
 
     // Track/count what specifier types we have encountered
-    if instance.specifier_type.is_semver() {
+    if instance.specifier.is_semver() {
       dependency.semver.push(instance.id.clone());
     } else {
       dependency.non_semver.push(instance.id.clone());
@@ -128,7 +129,7 @@ impl VersionGroup {
       // has not been found, we need to look at the usages of it for a preferred
       // version
       if dependency.local.is_none() {
-        if instance.specifier_type.is_semver() && dependency.non_semver.len() == 0 {
+        if instance.specifier.is_semver() && dependency.non_semver.len() == 0 {
           // Have we set a preferred version yet for these instances?
           match &mut dependency.expected_version {
             // No, this is the first candidate.
@@ -140,14 +141,17 @@ impl VersionGroup {
               let this_version = &instance.specifier;
               let prefer_lowest = matches!(&self.prefer_version, Some(PreferVersion::LowestSemver));
               let preferred_order = if prefer_lowest { Cmp::Lt } else { Cmp::Gt };
-              match compare(this_version, &expected_version) {
+              match compare(this_version.unwrap(), &expected_version.unwrap()) {
                 Ok(actual_order) => {
                   if preferred_order == actual_order {
                     dependency.expected_version = Some(instance.specifier.clone());
                   }
                 }
                 Err(_) => {
-                  panic!("Cannot compare {} and {}", &this_version, &expected_version);
+                  panic!(
+                    "Cannot compare {:?} and {:?}",
+                    &this_version, &expected_version
+                  );
                 }
               };
             }
@@ -197,7 +201,7 @@ impl VersionGroup {
         selector,
         dependencies_by_name: BTreeMap::new(),
         prefer_version: None,
-        pin_version: Some(pin_version.clone()),
+        pin_version: Some(Specifier::new(pin_version)),
         snap_to: None,
       };
     }
@@ -319,13 +323,13 @@ impl VersionGroup {
           let mut mismatches: Vec<(InstanceIdsBySpecifier, InstanceIdsBySpecifier)> = vec![];
           dependency.for_each_specifier(|a| {
             let (specifier_a, instance_ids_a) = a;
-            let range_a = specifier_a.parse::<Range>().unwrap();
+            let range_a = specifier_a.unwrap().parse::<Range>().unwrap();
             dependency.for_each_specifier(|b| {
               let (specifier_b, instance_ids_b) = b;
               if specifier_a == specifier_b {
                 return;
               }
-              let range_b = specifier_b.parse::<Range>().unwrap();
+              let range_b = specifier_b.unwrap().parse::<Range>().unwrap();
               if range_a.allows_all(&range_b) {
                 return;
               }
@@ -506,8 +510,8 @@ fn get_snap_to_instance<'a>(
 
 struct SnapToMismatches {
   pub instance_ids: Vec<String>,
-  pub actual_specifier: String,
-  pub expected_specifier: String,
+  pub actual_specifier: Specifier,
+  pub expected_specifier: Specifier,
   pub snap_to_instance_id: String,
 }
 
