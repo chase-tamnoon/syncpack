@@ -191,44 +191,6 @@ mod tests {
   }
 
   #[test]
-  fn uses_local_version_when_an_instance_uses_a_higher_version() {
-    let mut effects = MockEffects::new();
-    let config = Config::new();
-    let mut packages = Packages::from_mocks(vec![
-      json!({
-        "name": "package-a",
-        "version": "1.0.0"
-      }),
-      json!({
-        "name": "package-b",
-        "dependencies": {
-          "package-a": "1.1.0"
-        },
-        "devDependencies": {
-          "package-a": "workspace:*"
-        }
-      }),
-    ]);
-
-    lint(&config, &mut packages, &mut effects);
-
-    expect(&effects).to_have_local_version_mismatches(vec![
-      ExpectedMismatchEvent {
-        dependency_name: "package-a",
-        instance_id: "package-a in /dependencies of package-b",
-        actual_specifier: "1.1.0",
-        expected_specifier: "1.0.0",
-      },
-      ExpectedMismatchEvent {
-        dependency_name: "package-a",
-        instance_id: "package-a in /devDependencies of package-b",
-        actual_specifier: "workspace:*",
-        expected_specifier: "1.0.0",
-      },
-    ]);
-  }
-
-  #[test]
   fn rejects_pinned_version_when_it_would_replace_local_version() {
     let mut effects = MockEffects::new();
     let config = Config::from_mock(json!({
@@ -268,7 +230,7 @@ mod tests {
   }
 
   #[test]
-  fn does_not_combine_highest_version_matches_and_mismatches() {
+  fn does_not_confuse_highest_version_matches_and_mismatches() {
     let mut effects = MockEffects::new();
     let config = Config::new();
     let mut packages = Packages::from_mocks(vec![
@@ -321,5 +283,157 @@ mod tests {
         expected_specifier: "0.3.0",
       },
     ]);
+  }
+
+  #[test]
+  fn reports_local_version_mismatch_when_an_instance_uses_a_higher_version() {
+    let mut effects = MockEffects::new();
+    let config = Config::new();
+    let mut packages = Packages::from_mocks(vec![
+      json!({
+        "name": "package-a",
+        "version": "1.0.0"
+      }),
+      json!({
+        "name": "package-b",
+        "dependencies": {
+          "package-a": "1.1.0"
+        },
+        "devDependencies": {
+          "package-a": "workspace:*"
+        }
+      }),
+    ]);
+
+    lint(&config, &mut packages, &mut effects);
+
+    expect(&effects).to_have_local_version_mismatches(vec![
+      ExpectedMismatchEvent {
+        dependency_name: "package-a",
+        instance_id: "package-a in /dependencies of package-b",
+        actual_specifier: "1.1.0",
+        expected_specifier: "1.0.0",
+      },
+      ExpectedMismatchEvent {
+        dependency_name: "package-a",
+        instance_id: "package-a in /devDependencies of package-b",
+        actual_specifier: "workspace:*",
+        expected_specifier: "1.0.0",
+      },
+    ]);
+  }
+
+  #[test]
+  #[ignore]
+  fn instance_has_same_version_as_local_package_but_does_not_match_its_semver_group_and_syncpack_is_only_linting_ranges(
+  ) {
+    let mut effects = MockEffects::new();
+    let mut config = Config::from_mock(json!({
+      "semverGroups": [{
+        "range": "^"
+      }]
+    }));
+    config.cli.options.ranges = true;
+    config.cli.options.versions = false;
+    let mut packages = Packages::from_mocks(vec![
+      json!({
+        "name": "package-a",
+        "version": "1.0.0"
+      }),
+      json!({
+        "name": "package-b",
+        "dependencies": {
+          "package-a": "1.0.0"
+        }
+      }),
+    ]);
+
+    lint(&config, &mut packages, &mut effects);
+
+    panic!("@TODO - report what?");
+  }
+
+  #[test]
+  #[ignore]
+  fn instance_has_same_version_as_local_package_but_does_not_match_its_semver_group_and_syncpack_is_only_linting_versions(
+  ) {
+    let mut effects = MockEffects::new();
+    let mut config = Config::from_mock(json!({
+      "semverGroups": [{
+        "range": "^"
+      }]
+    }));
+    config.cli.options.ranges = true;
+    config.cli.options.versions = false;
+    let mut packages = Packages::from_mocks(vec![
+      json!({
+        "name": "package-a",
+        "version": "1.0.0"
+      }),
+      json!({
+        "name": "package-b",
+        "dependencies": {
+          "package-a": "1.0.0"
+        }
+      }),
+    ]);
+
+    lint(&config, &mut packages, &mut effects);
+
+    panic!("@TODO - report local and instance are both valid");
+  }
+
+  #[test]
+  #[ignore]
+  fn instance_has_same_version_as_local_package_but_does_not_match_its_semver_group_and_syncpack_is_linting_versions_and_ranges(
+  ) {
+    let mut effects = MockEffects::new();
+    let mut config = Config::from_mock(json!({
+      "semverGroups": [{
+        "range": "^"
+      }]
+    }));
+    config.cli.options.ranges = true;
+    config.cli.options.versions = true;
+    let mut packages = Packages::from_mocks(vec![
+      json!({
+        "name": "package-a",
+        "version": "1.0.0"
+      }),
+      json!({
+        "name": "package-b",
+        "dependencies": {
+          "package-a": "1.0.0"
+        }
+      }),
+    ]);
+
+    lint(&config, &mut packages, &mut effects);
+
+    panic!("@TODO - report what?");
+  }
+
+  #[test]
+  #[ignore]
+  fn reports_local_version_mismatch_when_an_instance_uses_workspace_protocol() {
+    panic!("@TODO");
+  }
+
+  #[test]
+  #[ignore]
+  fn reports_unfixable_local_version_mismatch_when_local_version_is_missing() {
+    panic!("@TODO");
+  }
+
+  #[test]
+  #[ignore]
+  fn reports_unfixable_local_version_mismatch_when_local_version_is_not_exact_semver() {
+    panic!("@TODO");
+  }
+
+  #[test]
+  #[ignore]
+  fn reports_local_version_mismatch_when_an_instance_has_same_version_but_different_range() {
+    panic!("@TODO");
   }
 }
