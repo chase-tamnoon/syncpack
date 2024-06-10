@@ -68,10 +68,14 @@ impl Effects for FixEffects {
 
       Event::DependencyIgnored(dependency) => {}
       Event::DependencyBanned(dependency) => {}
+      Event::DependencyMatchesWithRange(dependency) => {}
+      Event::DependencyMismatchesWithRange(_) => {
+        println!("@TODO: fix Event::DependencyMismatchesWithRange");
+      }
       Event::DependencyMatchesPinnedVersion(dependency) => {}
       Event::DependencyMismatchesPinnedVersion(dependency) => {}
-      Event::DependencyMatchesRange(dependency) => {}
-      Event::DependencyMismatchesRange(dependency) => {
+      Event::DependencyMatchesSameRange(dependency) => {}
+      Event::DependencyMismatchesSameRange(dependency) => {
         let count = render_count_column(dependency.all.len());
         info!("{} {}", count, dependency.name.red());
       }
@@ -97,6 +101,14 @@ impl Effects for FixEffects {
           .get_mut(&target_instance.package_name)
           .unwrap();
         target_instance.remove_from(package);
+      }
+      Event::InstanceMismatchesSemverRange(event) => {
+        set_instance_version_to(
+          event.instances_by_id,
+          event.packages,
+          &event.instance_id,
+          &event.expected_specifier,
+        );
       }
       Event::InstanceMismatchesPinnedVersion(event) => {
         set_instance_version_to(

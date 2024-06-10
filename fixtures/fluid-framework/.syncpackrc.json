@@ -85,7 +85,7 @@
       "range": ""
     },
     {
-      "label": "Must use tilde dependency ranges",
+      "label": "Must use caret dependency ranges",
       "dependencies": [
         "eslint-plugin-*",
         "eslint-config-prettier",
@@ -98,7 +98,7 @@
         "@cerner/duplicate-package-checker-webpack-plugin"
       ],
       "packages": ["**"],
-      "range": "~"
+      "range": "^"
     },
     {
       "label": "Dependencies should use caret dependency ranges",

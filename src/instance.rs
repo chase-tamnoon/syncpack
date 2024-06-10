@@ -23,18 +23,23 @@ pub struct Instance {
   pub name: String,
   /// The `.name` of the package.json this file is in
   pub package_name: String,
-  /// eg. Specifier::Exact("16.8.0"), Specifier::Range("^16.8.0")
+  /// The original version specifier, which should never be mutated.
+  /// eg. `Specifier::Exact("16.8.0")`, `Specifier::Range("^16.8.0")`
+  pub initial_specifier: Specifier,
+  /// The latest version specifier which is mutated by Syncpack
   pub specifier: Specifier,
 }
 
 impl Instance {
   pub fn new(
     name: String,
+    // The initial, unwrapped specifier (eg. "1.1.0") from the package.json file
     raw_specifier: String,
     dependency_type: DependencyType,
     package: &PackageJson,
   ) -> Instance {
     let package_name = package.get_name();
+    let specifier = Specifier::new(&raw_specifier);
     Instance {
       id: format!("{} in {} of {}", name, dependency_type.path, package_name),
       dependency_type,
@@ -42,7 +47,8 @@ impl Instance {
       is_local: package_name == name,
       name,
       package_name,
-      specifier: Specifier::new(&raw_specifier),
+      initial_specifier: specifier.clone(),
+      specifier,
     }
   }
 

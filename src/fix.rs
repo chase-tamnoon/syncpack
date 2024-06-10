@@ -16,12 +16,19 @@ pub fn fix(config: &Config, packages: &mut Packages, effects: &mut impl Effects)
   let cli = &config.cli;
   let Context {
     mut instances_by_id,
+    semver_groups,
     version_groups,
   } = Context::create(&config, &packages);
 
   effects.on(Event::EnterVersionsAndRanges(&config));
 
-  if cli.options.ranges || cli.options.versions {
+  if cli.options.ranges {
+    semver_groups.iter().for_each(|group| {
+      group.visit(config, &mut instances_by_id, packages, effects);
+    });
+  }
+
+  if cli.options.versions {
     version_groups
       .iter()
       // fix snapped to groups last, so that the packages they're snapped to
@@ -36,7 +43,7 @@ pub fn fix(config: &Config, packages: &mut Packages, effects: &mut impl Effects)
         }
       })
       .for_each(|group| {
-        group.visit(&mut instances_by_id, packages, effects);
+        group.visit(config, &mut instances_by_id, packages, effects);
       });
   }
 

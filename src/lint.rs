@@ -12,14 +12,21 @@ pub fn lint(config: &Config, packages: &mut Packages, effects: &mut impl Effects
   let cli = &config.cli;
   let Context {
     mut instances_by_id,
+    semver_groups,
     version_groups,
   } = Context::create(&config, &packages);
 
   effects.on(Event::EnterVersionsAndRanges(&config));
 
-  if cli.options.ranges || cli.options.versions {
+  if cli.options.ranges {
+    semver_groups.iter().for_each(|group| {
+      group.visit(config, &mut instances_by_id, packages, effects);
+    });
+  }
+
+  if cli.options.versions {
     version_groups.iter().for_each(|group| {
-      group.visit(&mut instances_by_id, packages, effects);
+      group.visit(config, &mut instances_by_id, packages, effects);
     });
   }
 
@@ -76,12 +83,17 @@ mod tests {
 
     lint(&config, &mut packages, &mut effects);
 
+    expect(&effects).to_have_standard_version_group_matches(vec![ExpectedMatchEvent {
+      dependency_name: "wat",
+      instance_id: "wat in /devDependencies of package-a",
+      specifier: "2.0.0",
+    }]);
     expect(&effects).to_have_highest_version_mismatches(vec![ExpectedMismatchEvent {
       dependency_name: "wat",
       instance_id: "wat in /dependencies of package-a",
       actual_specifier: "1.0.0",
       expected_specifier: "2.0.0",
-    }])
+    }]);
   }
 
   #[test]
@@ -103,6 +115,11 @@ mod tests {
 
     lint(&config, &mut packages, &mut effects);
 
+    expect(&effects).to_have_standard_version_group_matches(vec![ExpectedMatchEvent {
+      dependency_name: "wat",
+      instance_id: "wat in /devDependencies of package-a",
+      specifier: "0.3.0",
+    }]);
     expect(&effects).to_have_highest_version_mismatches(vec![
       ExpectedMismatchEvent {
         dependency_name: "wat",
@@ -116,7 +133,7 @@ mod tests {
         actual_specifier: "0.2.0",
         expected_specifier: "0.3.0",
       },
-    ])
+    ]);
   }
 
   #[test]
@@ -140,6 +157,11 @@ mod tests {
 
     lint(&config, &mut packages, &mut effects);
 
+    expect(&effects).to_have_standard_version_group_matches(vec![ExpectedMatchEvent {
+      dependency_name: "wat",
+      instance_id: "wat in /dependencies of package-b",
+      specifier: "2.0.0",
+    }]);
     expect(&effects).to_have_highest_version_mismatches(vec![ExpectedMismatchEvent {
       dependency_name: "wat",
       instance_id: "wat in /dependencies of package-a",
@@ -307,6 +329,11 @@ mod tests {
 
     lint(&config, &mut packages, &mut effects);
 
+    expect(&effects).to_have_standard_version_group_matches(vec![ExpectedMatchEvent {
+      dependency_name: "package-a",
+      instance_id: "package-a in /version of package-a",
+      specifier: "1.0.0",
+    }]);
     expect(&effects).to_have_local_version_mismatches(vec![
       ExpectedMismatchEvent {
         dependency_name: "package-a",
@@ -324,7 +351,6 @@ mod tests {
   }
 
   #[test]
-  #[ignore]
   fn instance_has_same_version_as_local_package_but_does_not_match_its_semver_group_and_syncpack_is_only_linting_ranges(
   ) {
     let mut effects = MockEffects::new();
@@ -350,7 +376,22 @@ mod tests {
 
     lint(&config, &mut packages, &mut effects);
 
-    panic!("@TODO - report what?");
+    expect(&effects).debug();
+
+    // refuse to break local package's version
+    expect(&effects).to_have_rejected_local_version_mismatches(vec![ExpectedMismatchEvent {
+      dependency_name: "package-a",
+      instance_id: "package-a in /version of package-a",
+      actual_specifier: "1.0.0",
+      expected_specifier: "^1.0.0",
+    }]);
+
+    expect(&effects).to_have_semver_range_mismatches(vec![ExpectedMismatchEvent {
+      dependency_name: "package-a",
+      instance_id: "package-a in /dependencies of package-b",
+      actual_specifier: "1.0.0",
+      expected_specifier: "^1.0.0",
+    }]);
   }
 
   #[test]

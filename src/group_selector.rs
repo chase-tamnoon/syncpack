@@ -2,7 +2,7 @@ use globset::{Glob, GlobMatcher};
 
 use crate::instance::Instance;
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct GroupSelector {
   /// Glob patterns to match against the installed dependency name.
   ///

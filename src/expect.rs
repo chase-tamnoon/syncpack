@@ -83,6 +83,14 @@ impl<'a> Expects<'a> {
     );
   }
 
+  pub fn to_have_semver_range_mismatches(&self, expected_mismatches: Vec<ExpectedMismatchEvent>) {
+    self.expect_instance_mismatches(
+      "semver range",
+      &expected_mismatches,
+      &self.effects.events.instance_mismatches_semver_range,
+    );
+  }
+
   fn expect_instance_matches(
     &self,
     label: &str,

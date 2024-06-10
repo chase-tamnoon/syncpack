@@ -98,6 +98,14 @@ impl Effects for LintEffects {
           "[Ignored]".dimmed()
         );
       }
+      Event::DependencyMatchesWithRange(dependency) => {
+        let count = render_count_column(dependency.all.len());
+        info!("{} {}", count, dependency.name);
+      }
+      Event::DependencyMismatchesWithRange(dependency) => {
+        let count = render_count_column(dependency.all.len());
+        info!("{} {}", count, dependency.name.red());
+      }
       Event::DependencyBanned(dependency) => {
         let count = render_count_column(dependency.all.len());
         info!("{} {}", count, dependency.name.red());
@@ -109,11 +117,11 @@ impl Effects for LintEffects {
         let count = render_count_column(dependency.all.len());
         info!("{} {}", count, dependency.name.red());
       }
-      Event::DependencyMatchesRange(dependency) => {
+      Event::DependencyMatchesSameRange(dependency) => {
         let count = render_count_column(dependency.all.len());
         info!("{} {}", count, dependency.name);
       }
-      Event::DependencyMismatchesRange(dependency) => {
+      Event::DependencyMismatchesSameRange(dependency) => {
         let count = render_count_column(dependency.all.len());
         info!("{} {}", count, dependency.name.red());
       }
@@ -133,8 +141,15 @@ impl Effects for LintEffects {
         info!("{} {}", count, dependency.name.red());
       }
 
-      Event::InstanceMatchesStandard(_) => {
-        //
+      Event::InstanceMatchesStandard(event) => {
+        let icon = "✓".green();
+        let arrow = "→".dimmed();
+        info!(
+          "      {} {} {}",
+          icon,
+          event.specifier.unwrap().green(),
+          "[Valid]".dimmed()
+        );
       }
       Event::InstanceBanned(event) => {
         let icon = "✘".red();
@@ -143,6 +158,19 @@ impl Effects for LintEffects {
           icon,
           event.specifier.unwrap().red(),
           "[Banned]".dimmed()
+        );
+        self.is_valid = false;
+      }
+      Event::InstanceMismatchesSemverRange(event) => {
+        let icon = "✘".red();
+        let arrow = "→".dimmed();
+        info!(
+          "      {} {} {} {} {}",
+          icon,
+          event.actual_specifier.unwrap().red(),
+          arrow,
+          event.expected_specifier.unwrap().green(),
+          "[SemverRangeMismatch]".dimmed()
         );
         self.is_valid = false;
       }

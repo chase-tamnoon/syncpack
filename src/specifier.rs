@@ -116,6 +116,43 @@ impl Specifier {
     .to_string()
   }
 
+  pub fn has_range(&self, expected_range: &String) -> bool {
+    let specifier = self.unwrap();
+    return expected_range == "^" && REGEX_CARET.is_match(specifier)
+      || expected_range == "~" && REGEX_TILDE.is_match(specifier)
+      || expected_range == ">=" && REGEX_GTE.is_match(specifier)
+      || expected_range == "<=" && REGEX_LTE.is_match(specifier)
+      || expected_range == ">" && REGEX_GT.is_match(specifier)
+      || expected_range == "<" && REGEX_LT.is_match(specifier)
+      || expected_range == "" && REGEX_EXACT.is_match(specifier);
+  }
+
+  pub fn with_range(&self, range: &String) -> Option<Self> {
+    if self.is_semver() {
+      let specifier = self.unwrap();
+      if specifier.starts_with("^") {
+        return Some(parse(&specifier.replace("^", &range), false));
+      }
+      if specifier.starts_with("~") {
+        return Some(parse(&specifier.replace("~", &range), false));
+      }
+      if specifier.starts_with(">=") {
+        return Some(parse(&specifier.replace(">=", &range), false));
+      }
+      if specifier.starts_with("<=") {
+        return Some(parse(&specifier.replace("<=", &range), false));
+      }
+      if specifier.starts_with(">") {
+        return Some(parse(&specifier.replace(">", &range), false));
+      }
+      if specifier.starts_with("<") {
+        return Some(parse(&specifier.replace("<", &range), false));
+      }
+      return Some(parse(&format!("{}{}", &range, &specifier), false));
+    }
+    return None;
+  }
+
   /// Get the raw specifier value
   pub fn unwrap(&self) -> &String {
     match &self {
@@ -517,6 +554,102 @@ mod tests {
         Specifier::RangeComplex(case.clone()),
         "{} should be range-complex",
         case
+      );
+    }
+  }
+
+  #[test]
+  fn change_semver_range() {
+    let cases: Vec<(&str, &str)> = vec![
+      ("^", "^1.2.3"),
+      ("~", "~1.2.3"),
+      (">=", ">=1.2.3"),
+      ("<=", "<=1.2.3"),
+      (">", ">1.2.3"),
+      ("<", "<1.2.3"),
+      ("", "1.2.3"),
+    ];
+    for (_, initial) in &cases {
+      let initial = initial.to_string();
+      for (range, expected) in &cases {
+        let range = range.to_string();
+        let expected = expected.to_string();
+        let parsed = Specifier::new(&initial);
+        assert_eq!(
+          parsed.with_range(&range),
+          Some(Specifier::new(&expected.clone())),
+          "{} + {} should produce {}",
+          initial,
+          range,
+          expected
+        );
+      }
+    }
+  }
+
+  #[test]
+  fn has_semver_range() {
+    let cases: Vec<(&str, &str, bool)> = vec![
+      ("^", "^1.2.3", true),
+      ("^", "~1.2.3", false),
+      ("^", ">=1.2.3", false),
+      ("^", "<=1.2.3", false),
+      ("^", ">1.2.3", false),
+      ("^", "<1.2.3", false),
+      ("^", "1.2.3", false),
+      ("~", "^1.2.3", false),
+      ("~", "~1.2.3", true),
+      ("~", ">=1.2.3", false),
+      ("~", "<=1.2.3", false),
+      ("~", ">1.2.3", false),
+      ("~", "<1.2.3", false),
+      ("~", "1.2.3", false),
+      (">=", "^1.2.3", false),
+      (">=", "~1.2.3", false),
+      (">=", ">=1.2.3", true),
+      (">=", "<=1.2.3", false),
+      (">=", ">1.2.3", false),
+      (">=", "<1.2.3", false),
+      (">=", "1.2.3", false),
+      ("<=", "^1.2.3", false),
+      ("<=", "~1.2.3", false),
+      ("<=", ">=1.2.3", false),
+      ("<=", "<=1.2.3", true),
+      ("<=", ">1.2.3", false),
+      ("<=", "<1.2.3", false),
+      ("<=", "1.2.3", false),
+      (">", "^1.2.3", false),
+      (">", "~1.2.3", false),
+      (">", ">=1.2.3", false),
+      (">", "<=1.2.3", false),
+      (">", ">1.2.3", true),
+      (">", "<1.2.3", false),
+      (">", "1.2.3", false),
+      ("<", "^1.2.3", false),
+      ("<", "~1.2.3", false),
+      ("<", ">=1.2.3", false),
+      ("<", "<=1.2.3", false),
+      ("<", ">1.2.3", false),
+      ("<", "<1.2.3", true),
+      ("<", "1.2.3", false),
+      ("", "^1.2.3", false),
+      ("", "~1.2.3", false),
+      ("", ">=1.2.3", false),
+      ("", "<=1.2.3", false),
+      ("", ">1.2.3", false),
+      ("", "<1.2.3", false),
+      ("", "1.2.3", true),
+    ];
+    for (range, specifier, expected) in cases {
+      let range = range.to_string();
+      let parsed = Specifier::new(&specifier.to_string());
+      assert_eq!(
+        parsed.has_range(&range),
+        expected,
+        "{} has range {} should be {}",
+        specifier,
+        range,
+        expected
       );
     }
   }

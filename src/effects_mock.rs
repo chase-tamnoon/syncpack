@@ -95,6 +95,8 @@ pub struct EventsByType {
 
   pub dependency_ignored: Vec<()>,
   pub dependency_banned: Vec<()>,
+  pub dependency_matches_with_range: Vec<String>,
+  pub dependency_mismatches_with_range: Vec<String>,
   pub dependency_matches_pinned_version: Vec<String>,
   pub dependency_mismatches_pinned_version: Vec<()>,
   pub dependency_matches_range: Vec<String>,
@@ -106,6 +108,7 @@ pub struct EventsByType {
 
   pub instance_matches_standard: Vec<PartialMatchEvent>,
   pub instance_banned: Vec<PartialBannedEvent>,
+  pub instance_mismatches_semver_range: Vec<PartialMismatchEvent>,
   pub instance_mismatches_pinned_version: Vec<PartialMismatchEvent>,
   pub instance_mismatches_range: Vec<PartialSameRangeMismatchEvent>,
   pub instance_mismatches_snap_to: Vec<PartialSnapToMismatchEvent>,
@@ -132,6 +135,8 @@ impl EventsByType {
 
       dependency_ignored: vec![],
       dependency_banned: vec![],
+      dependency_matches_with_range: vec![],
+      dependency_mismatches_with_range: vec![],
       dependency_matches_pinned_version: vec![],
       dependency_mismatches_pinned_version: vec![],
       dependency_matches_range: vec![],
@@ -143,6 +148,7 @@ impl EventsByType {
 
       instance_matches_standard: vec![],
       instance_banned: vec![],
+      instance_mismatches_semver_range: vec![],
       instance_mismatches_pinned_version: vec![],
       instance_mismatches_range: vec![],
       instance_mismatches_snap_to: vec![],
@@ -206,6 +212,18 @@ impl Effects for MockEffects {
       Event::DependencyBanned(dependency) => {
         self.events.dependency_banned.push(());
       }
+      Event::DependencyMatchesWithRange(dependency) => {
+        self
+          .events
+          .dependency_matches_with_range
+          .push(dependency.name.clone());
+      }
+      Event::DependencyMismatchesWithRange(dependency) => {
+        self
+          .events
+          .dependency_mismatches_with_range
+          .push(dependency.name.clone());
+      }
       Event::DependencyMatchesPinnedVersion(dependency) => {
         self
           .events
@@ -215,13 +233,13 @@ impl Effects for MockEffects {
       Event::DependencyMismatchesPinnedVersion(dependency) => {
         self.events.dependency_mismatches_pinned_version.push(());
       }
-      Event::DependencyMatchesRange(dependency) => {
+      Event::DependencyMatchesSameRange(dependency) => {
         self
           .events
           .dependency_matches_range
           .push(dependency.name.clone());
       }
-      Event::DependencyMismatchesRange(dependency) => {
+      Event::DependencyMismatchesSameRange(dependency) => {
         self.events.dependency_mismatches_range.push(());
       }
       Event::DependencyMatchesSnapTo(dependency) => {
@@ -258,6 +276,18 @@ impl Effects for MockEffects {
           instance_id: event.instance_id.clone(),
           dependency_name: event.dependency.name.clone(),
         });
+      }
+      Event::InstanceMismatchesSemverRange(event) => {
+        self
+          .events
+          .instance_mismatches_semver_range
+          .push(PartialMismatchEvent {
+            instance_id: event.instance_id.clone(),
+            dependency_name: event.dependency.name.clone(),
+            expected_specifier: event.expected_specifier.clone(),
+            matching_instance_ids: event.matching_instance_ids.clone(),
+            actual_specifier: event.actual_specifier.clone(),
+          });
       }
       Event::InstanceMismatchesPinnedVersion(event) => {
         self

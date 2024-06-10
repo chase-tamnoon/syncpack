@@ -205,7 +205,7 @@ impl Rcfile {
       .iter()
       .map(|group| VersionGroup::from_config(group, local_package_names))
       .collect();
-    user_groups.push(VersionGroup::get_catch_all_group());
+    user_groups.push(VersionGroup::get_catch_all());
     user_groups
   }
 }

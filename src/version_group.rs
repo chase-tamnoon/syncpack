@@ -5,6 +5,7 @@ use std::{collections::BTreeMap, vec};
 use version_compare::{compare, Cmp};
 
 use crate::{
+  config::Config,
   dependency::{Dependency, InstanceIdsBySpecifier, InstancesById},
   effects::{
     BannedEvent, Effects, Event, MatchEvent, MismatchEvent, SameRangeMismatchEvent,
@@ -13,7 +14,6 @@ use crate::{
   group_selector::GroupSelector,
   instance::Instance,
   packages::Packages,
-  semver_group::SemverGroup,
   specifier::Specifier,
 };
 
@@ -51,7 +51,7 @@ pub struct VersionGroup {
 
 impl VersionGroup {
   /// Create a default/catch-all group which would apply to any instance
-  pub fn get_catch_all_group() -> VersionGroup {
+  pub fn get_catch_all() -> VersionGroup {
     VersionGroup {
       variant: VersionGroupVariant::Standard,
       selector: GroupSelector::new(
@@ -68,9 +68,8 @@ impl VersionGroup {
     }
   }
 
-  /// Add an instance to this version group if it is eligible, and return
-  /// whether it was added.
-  pub fn add_instance(&mut self, instance: &Instance, semver_group: Option<&SemverGroup>) {
+  /// Add an instance to this version group
+  pub fn add_instance(&mut self, instance: &Instance) {
     // Ensure that a group exists for this dependency name.
     if !self.dependencies_by_name.contains_key(&instance.name) {
       self.dependencies_by_name.insert(
@@ -255,6 +254,7 @@ impl VersionGroup {
 
   pub fn visit(
     &self,
+    config: &Config,
     // needed by same range groups, every instance in the project
     instances_by_id: &mut InstancesById,
     // when fixing, we write to the package.json files
@@ -262,15 +262,18 @@ impl VersionGroup {
     // chosen strategy to lint, fix, use different log output, etc
     effects: &mut impl Effects,
   ) {
+    effects.on(Event::GroupVisited(&self.selector));
+
+    let lint_ranges = &config.cli.options.ranges;
+    let lint_versions = &config.cli.options.versions;
+
     match self.variant {
       VersionGroupVariant::Ignored => {
-        effects.on(Event::GroupVisited(&self.selector));
         self.dependencies_by_name.values().for_each(|dependency| {
           effects.on(Event::DependencyIgnored(dependency));
         });
       }
       VersionGroupVariant::Banned => {
-        effects.on(Event::GroupVisited(&self.selector));
         self.dependencies_by_name.values().for_each(|dependency| {
           effects.on(Event::DependencyBanned(dependency));
           dependency.for_each_instance_id(|(specifier, instance_id)| {
@@ -285,15 +288,14 @@ impl VersionGroup {
         });
       }
       VersionGroupVariant::Pinned => {
-        effects.on(Event::GroupVisited(&self.selector));
         self.dependencies_by_name.values().for_each(|dependency| {
           info!("TODO: versions could be identical but not match the pinVersion");
           if !dependency.has_identical_specifiers() {
             effects.on(Event::DependencyMismatchesPinnedVersion(dependency));
-            let expected_version = dependency.expected_version.clone().unwrap();
+            let expected_version = dependency.expected_version.as_ref().unwrap();
             let matching_instance_ids = dependency.get_matching_instance_ids();
             dependency.for_each_specifier(|(actual_specifier, instance_ids)| {
-              if dependency.is_mismatch(actual_specifier) {
+              if dependency.is_version_mismatch(actual_specifier) {
                 instance_ids.iter().for_each(|instance_id| {
                   let mismatch_event = &mut MismatchEvent {
                     instance_id: instance_id.clone(),
@@ -318,7 +320,6 @@ impl VersionGroup {
         });
       }
       VersionGroupVariant::SameRange => {
-        effects.on(Event::GroupVisited(&self.selector));
         self.dependencies_by_name.values().for_each(|dependency| {
           let mut mismatches: Vec<(InstanceIdsBySpecifier, InstanceIdsBySpecifier)> = vec![];
           dependency.for_each_specifier(|a| {
@@ -346,9 +347,9 @@ impl VersionGroup {
             })
           });
           if mismatches.len() == 0 {
-            effects.on(Event::DependencyMatchesRange(dependency));
+            effects.on(Event::DependencyMatchesSameRange(dependency));
           } else {
-            effects.on(Event::DependencyMismatchesRange(dependency));
+            effects.on(Event::DependencyMismatchesSameRange(dependency));
             mismatches.into_iter().for_each(
               |(
                 InstanceIdsBySpecifier {
@@ -379,7 +380,6 @@ impl VersionGroup {
         });
       }
       VersionGroupVariant::SnappedTo => {
-        effects.on(Event::GroupVisited(&self.selector));
         if let Some(snap_to) = &self.snap_to {
           self.dependencies_by_name.values().for_each(|dependency| {
             let mismatches = get_snap_to_mismatches(snap_to, instances_by_id, dependency);
@@ -405,7 +405,6 @@ impl VersionGroup {
         }
       }
       VersionGroupVariant::Standard => {
-        effects.on(Event::GroupVisited(&self.selector));
         self.dependencies_by_name.values().for_each(|dependency| {
           if dependency.has_identical_specifiers() {
             effects.on(Event::DependencyMatchesStandard(dependency));
@@ -419,7 +418,7 @@ impl VersionGroup {
           } else {
             effects.on(Event::DependencyMismatchesStandard(dependency));
             dependency.for_each_specifier(|(actual_specifier, instance_ids)| {
-              if !dependency.is_mismatch(actual_specifier) {
+              if !dependency.is_version_mismatch(actual_specifier) {
                 instance_ids.iter().for_each(|instance_id| {
                   effects.on(Event::InstanceMatchesStandard(&MatchEvent {
                     instance_id: instance_id.clone(),

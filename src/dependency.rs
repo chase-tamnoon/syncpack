@@ -33,8 +33,8 @@ pub struct Dependency {
   pub non_semver: Vec<InstanceId>,
   /// All instances with `Specifier::Semver` versions
   pub semver: Vec<InstanceId>,
-  /// Each key is a unique raw version specifier for each dependency. The values
-  /// are each instance which has that version specifier.
+  /// Each key is a unique raw version specifier for each dependency.
+  /// The values are each instance which has that version specifier.
   ///
   /// If there is more than one unique version, then we have mismatches
   pub by_specifier: HashMap<Specifier, Vec<InstanceId>>,
@@ -110,7 +110,7 @@ impl Dependency {
     self.by_specifier.len() == (1 as usize)
   }
 
-  pub fn is_mismatch(&self, actual: &Specifier) -> bool {
+  pub fn is_version_mismatch(&self, actual: &Specifier) -> bool {
     // if we determined an expected version... (such as the highest semver version,
     // the local dependency version, or a pinned version)
     match &self.expected_version {

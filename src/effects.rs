@@ -45,6 +45,13 @@ pub enum Event<'a, 'b> {
   DependencyIgnored(&'a Dependency),
   /// A dependency in a banned version group has been found
   DependencyBanned(&'a Dependency),
+  /// A dependency in a WithRange semver group has been found where all
+  /// instances are valid
+  DependencyMatchesWithRange(&'a Dependency),
+  /// A dependency in a WithRange semver group has been found where one or more
+  /// instances with semver versions with a semver range that are not the same
+  /// as the `.range`
+  DependencyMismatchesWithRange(&'a Dependency),
   /// A dependency in a pinned version group has been found where all
   /// instances are valid
   DependencyMatchesPinnedVersion(&'a Dependency),
@@ -53,11 +60,11 @@ pub enum Event<'a, 'b> {
   DependencyMismatchesPinnedVersion(&'a Dependency),
   /// A dependency in a same range version group has been found where all
   /// instances are valid
-  DependencyMatchesRange(&'a Dependency),
+  DependencyMatchesSameRange(&'a Dependency),
   /// A dependency in a same range version group has been found which has
   /// one or more instances with versions that are not a semver range which
   /// satisfies all of the other semver ranges in the group
-  DependencyMismatchesRange(&'a Dependency),
+  DependencyMismatchesSameRange(&'a Dependency),
   /// A dependency in a snapped to version group has been found where all
   /// instances are valid
   DependencyMatchesSnapTo(&'a Dependency),
@@ -76,6 +83,8 @@ pub enum Event<'a, 'b> {
   InstanceMatchesStandard(&'a MatchEvent<'a>),
   /// An instance in a banned version group has been found
   InstanceBanned(&'a mut BannedEvent<'a>),
+  /// An instance does not match its SemverGroup's version range
+  InstanceMismatchesSemverRange(&'a mut MismatchEvent<'a>),
   /// An instance in a pinned version group has been found whose version is not
   /// the same as the `.pinVersion`
   InstanceMismatchesPinnedVersion(&'a mut MismatchEvent<'a>),
