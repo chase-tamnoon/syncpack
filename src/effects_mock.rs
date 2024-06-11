@@ -108,6 +108,7 @@ pub struct EventsByType {
 
   pub instance_matches_standard: Vec<PartialMatchEvent>,
   pub instance_banned: Vec<PartialBannedEvent>,
+  pub instance_matches_semver_range: Vec<PartialMatchEvent>,
   pub instance_mismatches_semver_range: Vec<PartialMismatchEvent>,
   pub instance_mismatches_pinned_version: Vec<PartialMismatchEvent>,
   pub instance_mismatches_range: Vec<PartialSameRangeMismatchEvent>,
@@ -148,6 +149,7 @@ impl EventsByType {
 
       instance_matches_standard: vec![],
       instance_banned: vec![],
+      instance_matches_semver_range: vec![],
       instance_mismatches_semver_range: vec![],
       instance_mismatches_pinned_version: vec![],
       instance_mismatches_range: vec![],
@@ -181,24 +183,24 @@ impl MockEffects {
 impl Effects for MockEffects {
   fn on(&mut self, event: Event) -> () {
     match event {
-      Event::PackagesLoaded(config, packages) => {
+      Event::PackagesLoaded(packages) => {
         self.events.packages_loaded.push(());
       }
 
-      Event::EnterVersionsAndRanges(config) => {
+      Event::EnterVersionsAndRanges => {
         self.events.enter_versions_and_ranges.push(());
       }
-      Event::EnterFormat(config) => {
+      Event::EnterFormat => {
         self.events.enter_format.push(());
       }
       Event::ExitCommand => {
         self.events.exit_command.push(());
       }
 
-      Event::PackagesMatchFormatting(valid_packages, config) => {
+      Event::PackagesMatchFormatting(valid_packages) => {
         self.events.packages_match_formatting.push(());
       }
-      Event::PackagesMismatchFormatting(invalid_packages, config) => {
+      Event::PackagesMismatchFormatting(invalid_packages) => {
         self.events.packages_mismatch_formatting.push(());
       }
 
@@ -277,7 +279,17 @@ impl Effects for MockEffects {
           dependency_name: event.dependency.name.clone(),
         });
       }
-      Event::InstanceMismatchesSemverRange(event) => {
+      Event::InstanceMatchesWithRange(event) => {
+        self
+          .events
+          .instance_matches_semver_range
+          .push(PartialMatchEvent {
+            instance_id: event.instance_id.clone(),
+            dependency_name: event.dependency.name.clone(),
+            specifier: event.specifier.clone(),
+          });
+      }
+      Event::InstanceMismatchesWithRange(event) => {
         self
           .events
           .instance_mismatches_semver_range
@@ -301,7 +313,7 @@ impl Effects for MockEffects {
             actual_specifier: event.actual_specifier.clone(),
           });
       }
-      Event::InstanceMismatchesRange(event) => {
+      Event::InstanceMismatchesSameRange(event) => {
         self
           .events
           .instance_mismatches_range

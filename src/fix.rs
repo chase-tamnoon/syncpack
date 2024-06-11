@@ -11,7 +11,7 @@ use crate::{
 };
 
 pub fn fix(config: &Config, packages: &mut Packages, effects: &mut impl Effects) {
-  effects.on(Event::PackagesLoaded(&config, &packages));
+  effects.on(Event::PackagesLoaded(&packages));
 
   let cli = &config.cli;
   let Context {
@@ -20,7 +20,7 @@ pub fn fix(config: &Config, packages: &mut Packages, effects: &mut impl Effects)
     version_groups,
   } = Context::create(&config, &packages);
 
-  effects.on(Event::EnterVersionsAndRanges(&config));
+  effects.on(Event::EnterVersionsAndRanges);
 
   if cli.options.ranges {
     semver_groups.iter().for_each(|group| {
@@ -47,7 +47,7 @@ pub fn fix(config: &Config, packages: &mut Packages, effects: &mut impl Effects)
       });
   }
 
-  effects.on(Event::EnterFormat(&config));
+  effects.on(Event::EnterFormat);
 
   if cli.options.format {
     let InMemoryFormattingStatus {
@@ -55,10 +55,10 @@ pub fn fix(config: &Config, packages: &mut Packages, effects: &mut impl Effects)
       was_invalid: invalid,
     } = format::fix(&config, packages);
     if !valid.is_empty() {
-      effects.on(Event::PackagesMatchFormatting(&valid, &config));
+      effects.on(Event::PackagesMatchFormatting(&valid));
     }
     if !invalid.is_empty() {
-      effects.on(Event::PackagesMismatchFormatting(&invalid, &config));
+      effects.on(Event::PackagesMismatchFormatting(&invalid));
     }
   }
 

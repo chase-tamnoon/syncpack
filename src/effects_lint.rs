@@ -2,33 +2,41 @@ use colored::*;
 use log::info;
 
 use crate::{
+  config::Config,
   dependency::Dependency,
   effects::{Effects, Event},
 };
 
 /// The implementation of the `lint` command's side effects
-pub struct LintEffects {
+pub struct LintEffects<'a> {
   pub is_valid: bool,
+  pub config: &'a Config,
 }
 
-impl LintEffects {
-  pub fn new() -> Self {
-    Self { is_valid: true }
+impl<'a> LintEffects<'a> {
+  pub fn new(config: &'a Config) -> Self {
+    Self {
+      is_valid: true,
+      config,
+    }
   }
 }
 
-impl Effects for LintEffects {
+impl Effects for LintEffects<'_> {
   fn on(&mut self, event: Event) -> () {
     match event {
-      Event::PackagesLoaded(config, packages) => {
+      Event::PackagesLoaded(packages) => {
         if packages.all_names.is_empty() {
           info!("\n{} {}", "✘".red(), "No packages found");
           self.is_valid = false;
         }
       }
 
-      Event::EnterVersionsAndRanges(config) => {
-        match (config.cli.options.ranges, config.cli.options.versions) {
+      Event::EnterVersionsAndRanges => {
+        match (
+          self.config.cli.options.ranges,
+          self.config.cli.options.versions,
+        ) {
           (true, true) => {
             info!("{}", "= SEMVER RANGES AND VERSION MISMATCHES".dimmed());
           }
@@ -41,8 +49,8 @@ impl Effects for LintEffects {
           (false, false) => {}
         };
       }
-      Event::EnterFormat(config) => {
-        if config.cli.options.format {
+      Event::EnterFormat => {
+        if self.config.cli.options.format {
           info!("{}", "= FORMATTING".dimmed());
         }
       }
@@ -54,14 +62,14 @@ impl Effects for LintEffects {
         }
       }
 
-      Event::PackagesMatchFormatting(valid_packages, _config) => {
+      Event::PackagesMatchFormatting(valid_packages) => {
         info!(
           "{} {} valid formatting",
           render_count_column(valid_packages.len()),
           "✓".green()
         );
       }
-      Event::PackagesMismatchFormatting(invalid_packages, config) => {
+      Event::PackagesMismatchFormatting(invalid_packages) => {
         info!(
           "{} {}",
           render_count_column(invalid_packages.len()),
@@ -71,7 +79,7 @@ impl Effects for LintEffects {
           info!(
             "      {} {}",
             "✘".red(),
-            package.get_relative_file_path(&config.cwd).red()
+            package.get_relative_file_path(&self.config.cwd).red()
           );
         });
         self.is_valid = false;
@@ -99,49 +107,85 @@ impl Effects for LintEffects {
         );
       }
       Event::DependencyMatchesWithRange(dependency) => {
+        if !self.config.cli.options.ranges {
+          return;
+        }
         let count = render_count_column(dependency.all.len());
         info!("{} {}", count, dependency.name);
       }
       Event::DependencyMismatchesWithRange(dependency) => {
+        if !self.config.cli.options.ranges {
+          return;
+        }
         let count = render_count_column(dependency.all.len());
         info!("{} {}", count, dependency.name.red());
       }
       Event::DependencyBanned(dependency) => {
+        if !self.config.cli.options.versions {
+          return;
+        }
         let count = render_count_column(dependency.all.len());
         info!("{} {}", count, dependency.name.red());
       }
       Event::DependencyMatchesPinnedVersion(dependency) => {
+        if !self.config.cli.options.versions {
+          return;
+        }
         print_version_match(dependency);
       }
       Event::DependencyMismatchesPinnedVersion(dependency) => {
+        if !self.config.cli.options.versions {
+          return;
+        }
         let count = render_count_column(dependency.all.len());
         info!("{} {}", count, dependency.name.red());
       }
       Event::DependencyMatchesSameRange(dependency) => {
+        if !self.config.cli.options.versions {
+          return;
+        }
         let count = render_count_column(dependency.all.len());
         info!("{} {}", count, dependency.name);
       }
       Event::DependencyMismatchesSameRange(dependency) => {
+        if !self.config.cli.options.versions {
+          return;
+        }
         let count = render_count_column(dependency.all.len());
         info!("{} {}", count, dependency.name.red());
       }
       Event::DependencyMatchesSnapTo(dependency) => {
+        if !self.config.cli.options.versions {
+          return;
+        }
         let count = render_count_column(dependency.all.len());
         info!("{} {}", count, dependency.name);
       }
       Event::DependencyMismatchesSnapTo(dependency) => {
+        if !self.config.cli.options.versions {
+          return;
+        }
         let count = render_count_column(dependency.all.len());
         info!("{} {}", count, dependency.name.red());
       }
       Event::DependencyMatchesStandard(dependency) => {
+        if !self.config.cli.options.versions {
+          return;
+        }
         print_version_match(dependency);
       }
       Event::DependencyMismatchesStandard(dependency) => {
+        if !self.config.cli.options.versions {
+          return;
+        }
         let count = render_count_column(dependency.all.len());
         info!("{} {}", count, dependency.name.red());
       }
 
       Event::InstanceMatchesStandard(event) => {
+        if !self.config.cli.options.versions {
+          return;
+        }
         let icon = "✓".green();
         let arrow = "→".dimmed();
         info!(
@@ -152,6 +196,9 @@ impl Effects for LintEffects {
         );
       }
       Event::InstanceBanned(event) => {
+        if !self.config.cli.options.versions {
+          return;
+        }
         let icon = "✘".red();
         info!(
           "      {} {} {}",
@@ -161,7 +208,23 @@ impl Effects for LintEffects {
         );
         self.is_valid = false;
       }
-      Event::InstanceMismatchesSemverRange(event) => {
+      Event::InstanceMatchesWithRange(event) => {
+        if !self.config.cli.options.ranges {
+          return;
+        }
+        let icon = "✓".green();
+        let arrow = "→".dimmed();
+        info!(
+          "      {} {} {}",
+          icon,
+          event.specifier.unwrap().green(),
+          "[Valid]".dimmed(),
+        );
+      }
+      Event::InstanceMismatchesWithRange(event) => {
+        if !self.config.cli.options.ranges {
+          return;
+        }
         let icon = "✘".red();
         let arrow = "→".dimmed();
         info!(
@@ -170,11 +233,17 @@ impl Effects for LintEffects {
           event.actual_specifier.unwrap().red(),
           arrow,
           event.expected_specifier.unwrap().green(),
-          "[SemverRangeMismatch]".dimmed()
+          "[SemverRangeMismatch]".dimmed(),
         );
         self.is_valid = false;
+        let instance_id = &event.instance_id;
+        let instance = event.instances_by_id.get_mut(instance_id).unwrap();
+        instance.specifier = event.expected_specifier.clone();
       }
       Event::InstanceMismatchesPinnedVersion(event) => {
+        if !self.config.cli.options.versions {
+          return;
+        }
         let icon = "✘".red();
         let arrow = "→".dimmed();
         info!(
@@ -187,7 +256,10 @@ impl Effects for LintEffects {
         );
         self.is_valid = false;
       }
-      Event::InstanceMismatchesRange(event) => {
+      Event::InstanceMismatchesSameRange(event) => {
+        if !self.config.cli.options.versions {
+          return;
+        }
         info!(
           "      {} {} {} {} {}",
           "✘".red(),
@@ -199,6 +271,9 @@ impl Effects for LintEffects {
         self.is_valid = false;
       }
       Event::InstanceMismatchesSnapTo(event) => {
+        if !self.config.cli.options.versions {
+          return;
+        }
         let icon = "✘".red();
         let arrow = "→".dimmed();
         info!(
@@ -225,6 +300,9 @@ impl Effects for LintEffects {
         self.is_valid = false;
       }
       Event::InstanceMismatchesLocalVersion(event) => {
+        if !self.config.cli.options.versions {
+          return;
+        }
         let icon = "✘".red();
         let arrow = "→".dimmed();
         info!(
@@ -238,6 +316,9 @@ impl Effects for LintEffects {
         self.is_valid = false;
       }
       Event::InstanceUnsupportedMismatch(event) => {
+        if !self.config.cli.options.versions {
+          return;
+        }
         let icon = "✘".red();
         let arrow = "→".dimmed();
         info!(
@@ -251,6 +332,9 @@ impl Effects for LintEffects {
         self.is_valid = false;
       }
       Event::InstanceMismatchesLowestVersion(event) => {
+        if !self.config.cli.options.versions {
+          return;
+        }
         let icon = "✘".red();
         let arrow = "→".dimmed();
         info!(
@@ -264,6 +348,9 @@ impl Effects for LintEffects {
         self.is_valid = false;
       }
       Event::InstanceMismatchesHighestVersion(event) => {
+        if !self.config.cli.options.versions {
+          return;
+        }
         let icon = "✘".red();
         let arrow = "→".dimmed();
         info!(

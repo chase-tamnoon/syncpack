@@ -5,7 +5,7 @@ use serde::Deserialize;
 use crate::{
   config::Config,
   dependency::{Dependency, InstancesById},
-  effects::{Effects, Event, MismatchEvent},
+  effects::{Effects, Event, MatchEvent, MismatchEvent},
   group_selector::GroupSelector,
   instance::Instance,
   packages::Packages,
@@ -173,15 +173,18 @@ impl SemverGroup {
           dependency.for_each_specifier(|(actual_specifier, instance_ids)| {
             if actual_specifier.is_semver() {
               if actual_specifier.has_range(&expected_range) {
-                println!(
-                  "@TODO: {:?} matches range '{}'",
-                  actual_specifier, expected_range
-                );
+                instance_ids.iter().for_each(|instance_id| {
+                  effects.on(Event::InstanceMatchesWithRange(&MatchEvent {
+                    instance_id: instance_id.clone(),
+                    dependency,
+                    specifier: actual_specifier.clone(),
+                  }));
+                });
               } else {
                 let expected_specifier = actual_specifier.with_range(expected_range);
                 let expected_specifier = expected_specifier.unwrap();
                 instance_ids.iter().for_each(|instance_id| {
-                  effects.on(Event::InstanceMismatchesSemverRange(&mut MismatchEvent {
+                  let mismatch_event = &mut MismatchEvent {
                     instance_id: instance_id.clone(),
                     dependency,
                     expected_specifier: expected_specifier.clone(),
@@ -189,7 +192,12 @@ impl SemverGroup {
                     matching_instance_ids: vec![], // @TODO: not needed
                     instances_by_id,
                     packages,
-                  }));
+                  };
+                  if dependency.is_local_instance(instance_id) {
+                    effects.on(Event::InstanceMismatchCorruptsLocalVersion(mismatch_event));
+                  } else {
+                    effects.on(Event::InstanceMismatchesWithRange(mismatch_event));
+                  }
                 });
               }
             } else {

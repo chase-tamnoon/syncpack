@@ -362,7 +362,7 @@ impl VersionGroup {
                 },
               )| {
                 instance_ids.iter().for_each(|instance_id| {
-                  effects.on(Event::InstanceMismatchesRange(
+                  effects.on(Event::InstanceMismatchesSameRange(
                     &mut SameRangeMismatchEvent {
                       dependency,
                       instances_by_id,

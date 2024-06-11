@@ -2,6 +2,7 @@ use colored::*;
 use log::info;
 
 use crate::{
+  config::Config,
   dependency::InstancesById,
   effects::{Effects, Event},
   effects_lint::render_count_column,
@@ -10,29 +11,33 @@ use crate::{
 };
 
 /// The implementation of the `fix` command's side effects
-pub struct FixEffects {
+pub struct FixEffects<'a> {
   pub is_valid: bool,
+  pub config: &'a Config,
 }
 
-impl FixEffects {
-  pub fn new() -> Self {
-    Self { is_valid: true }
+impl<'a> FixEffects<'a> {
+  pub fn new(config: &'a Config) -> Self {
+    Self {
+      is_valid: true,
+      config,
+    }
   }
 }
 
-impl Effects for FixEffects {
+impl Effects for FixEffects<'_> {
   fn on(&mut self, event: Event) -> () {
     match event {
-      Event::PackagesLoaded(_, _) => {
+      Event::PackagesLoaded(_) => {
         // @TODO
         // lint_effects(event);
       }
 
-      Event::EnterVersionsAndRanges(_) => {
+      Event::EnterVersionsAndRanges => {
         // @TODO
         // lint_effects(event);
       }
-      Event::EnterFormat(_) => {
+      Event::EnterFormat => {
         // @TODO
         // lint_effects(event);
       }
@@ -45,8 +50,8 @@ impl Effects for FixEffects {
         }
       }
 
-      Event::PackagesMatchFormatting(valid_packages, config) => {}
-      Event::PackagesMismatchFormatting(invalid_packages, config) => {
+      Event::PackagesMatchFormatting(valid_packages) => {}
+      Event::PackagesMismatchFormatting(invalid_packages) => {
         info!(
           "{} {}",
           render_count_column(invalid_packages.len()),
@@ -56,7 +61,7 @@ impl Effects for FixEffects {
           info!(
             "      {} {}",
             "✓".green(),
-            package.get_relative_file_path(&config.cwd)
+            package.get_relative_file_path(&self.config.cwd)
           );
         });
       }
@@ -90,9 +95,7 @@ impl Effects for FixEffects {
         }
       }
 
-      Event::InstanceMatchesStandard(_) => {
-        //
-      }
+      Event::InstanceMatchesStandard(_) => {}
       Event::InstanceBanned(event) => {
         let target_instance = event.instances_by_id.get_mut(&event.instance_id).unwrap();
         let package = event
@@ -102,7 +105,8 @@ impl Effects for FixEffects {
           .unwrap();
         target_instance.remove_from(package);
       }
-      Event::InstanceMismatchesSemverRange(event) => {
+      Event::InstanceMatchesWithRange(_) => {}
+      Event::InstanceMismatchesWithRange(event) => {
         set_instance_version_to(
           event.instances_by_id,
           event.packages,
@@ -118,7 +122,7 @@ impl Effects for FixEffects {
           &event.expected_specifier,
         );
       }
-      Event::InstanceMismatchesRange(event) => {
+      Event::InstanceMismatchesSameRange(event) => {
         info!(
           "      {} {} {} {} {}",
           "✘".red(),

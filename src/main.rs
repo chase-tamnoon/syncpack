@@ -49,7 +49,7 @@ fn main() -> () {
     Subcommand::Fix => {
       // everything is mutated and written when fixing
       let mut packages = packages;
-      let mut effects = FixEffects::new();
+      let mut effects = FixEffects::new(&config);
       fix(&config, &mut packages, &mut effects);
       if !effects.is_valid {
         process::exit(1);
@@ -58,7 +58,7 @@ fn main() -> () {
     Subcommand::Lint => {
       // packages are mutated when linting formatting, but not written to disk
       let mut packages = packages;
-      let mut effects = LintEffects::new();
+      let mut effects = LintEffects::new(&config);
       lint(&config, &mut packages, &mut effects);
       if !effects.is_valid {
         process::exit(1);

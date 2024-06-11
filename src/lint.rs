@@ -7,7 +7,7 @@ use crate::{
 };
 
 pub fn lint(config: &Config, packages: &mut Packages, effects: &mut impl Effects) {
-  effects.on(Event::PackagesLoaded(&config, &packages));
+  effects.on(Event::PackagesLoaded(&packages));
 
   let cli = &config.cli;
   let Context {
@@ -16,7 +16,7 @@ pub fn lint(config: &Config, packages: &mut Packages, effects: &mut impl Effects
     version_groups,
   } = Context::create(&config, &packages);
 
-  effects.on(Event::EnterVersionsAndRanges(&config));
+  effects.on(Event::EnterVersionsAndRanges);
 
   if cli.options.ranges {
     semver_groups.iter().for_each(|group| {
@@ -30,7 +30,7 @@ pub fn lint(config: &Config, packages: &mut Packages, effects: &mut impl Effects
     });
   }
 
-  effects.on(Event::EnterFormat(&config));
+  effects.on(Event::EnterFormat);
 
   if cli.options.format {
     let InMemoryFormattingStatus {
@@ -38,10 +38,10 @@ pub fn lint(config: &Config, packages: &mut Packages, effects: &mut impl Effects
       was_invalid,
     } = format::fix(&config, packages);
     if !was_valid.is_empty() {
-      effects.on(Event::PackagesMatchFormatting(&was_valid, &config));
+      effects.on(Event::PackagesMatchFormatting(&was_valid));
     }
     if !was_invalid.is_empty() {
-      effects.on(Event::PackagesMismatchFormatting(&was_invalid, &config));
+      effects.on(Event::PackagesMismatchFormatting(&was_invalid));
     }
   }
 
@@ -375,8 +375,6 @@ mod tests {
     ]);
 
     lint(&config, &mut packages, &mut effects);
-
-    expect(&effects).debug();
 
     // refuse to break local package's version
     expect(&effects).to_have_rejected_local_version_mismatches(vec![ExpectedMismatchEvent {

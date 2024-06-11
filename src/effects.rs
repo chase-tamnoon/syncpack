@@ -1,5 +1,4 @@
 use crate::{
-  config::Config,
   dependency::{Dependency, InstancesById},
   group_selector::GroupSelector,
   instance::InstanceId,
@@ -22,21 +21,21 @@ pub trait Effects {
 #[derive(Debug)]
 pub enum Event<'a, 'b> {
   /// All package.json files have been read from the workspace
-  PackagesLoaded(&'a Config, &'a Packages),
+  PackagesLoaded(&'a Packages),
 
   /// Syncpack is about to lint/fix versions/ranges, if enabled
-  EnterVersionsAndRanges(&'a Config),
+  EnterVersionsAndRanges,
   /// Syncpack is about to lint/fix formatting, if enabled
-  EnterFormat(&'a Config),
+  EnterFormat,
   /// Linting/fixing has completed
   ExitCommand,
 
   /// Linting/fixing of formatting has completed and these packages were valid
-  PackagesMatchFormatting(&'b Vec<&'a PackageJson>, &'a Config),
+  PackagesMatchFormatting(&'b Vec<&'a PackageJson>),
   /// Linting/fixing of formatting has completed and these packages were
   /// initially invalid. In the case of fixing, they are now valid but were
   /// invalid beforehand.
-  PackagesMismatchFormatting(&'b Vec<&'a PackageJson>, &'a Config),
+  PackagesMismatchFormatting(&'b Vec<&'a PackageJson>),
 
   /// A version/semver group is next to be processed
   GroupVisited(&'a GroupSelector),
@@ -83,15 +82,17 @@ pub enum Event<'a, 'b> {
   InstanceMatchesStandard(&'a MatchEvent<'a>),
   /// An instance in a banned version group has been found
   InstanceBanned(&'a mut BannedEvent<'a>),
+  /// An instance matches its SemverGroup's version range
+  InstanceMatchesWithRange(&'a MatchEvent<'a>),
   /// An instance does not match its SemverGroup's version range
-  InstanceMismatchesSemverRange(&'a mut MismatchEvent<'a>),
+  InstanceMismatchesWithRange(&'a mut MismatchEvent<'a>),
   /// An instance in a pinned version group has been found whose version is not
   /// the same as the `.pinVersion`
   InstanceMismatchesPinnedVersion(&'a mut MismatchEvent<'a>),
   /// An instance in a same range version group has been found which has a
   /// version which is not a semver range which satisfies all of the other
   /// semver ranges in the group
-  InstanceMismatchesRange(&'a mut SameRangeMismatchEvent<'a>),
+  InstanceMismatchesSameRange(&'a mut SameRangeMismatchEvent<'a>),
   /// An instance in a snapped to version group has been found which has a
   /// version that is not the same as those used by the packages named in the
   /// `.snapTo` config array
