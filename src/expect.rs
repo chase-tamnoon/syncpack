@@ -37,58 +37,70 @@ impl<'a> Expects<'a> {
     println!("{:#?}", self.effects);
   }
 
-  pub fn to_have_standard_version_group_matches(&self, expected_matches: Vec<ExpectedMatchEvent>) {
+  pub fn to_have_standard_version_group_matches(
+    &self,
+    expected_matches: Vec<ExpectedMatchEvent>,
+  ) -> &Self {
     self.expect_instance_matches(
       "standard version group",
       &expected_matches,
       &self.effects.events.instance_matches_standard,
-    );
+    )
   }
 
   pub fn to_have_highest_version_mismatches(
     &self,
     expected_mismatches: Vec<ExpectedMismatchEvent>,
-  ) {
+  ) -> &Self {
     self.expect_instance_mismatches(
       "highest semver",
       &expected_mismatches,
       &self.effects.events.instance_mismatches_highest_version,
-    );
+    )
   }
 
   pub fn to_have_rejected_local_version_mismatches(
     &self,
     expected_mismatches: Vec<ExpectedMismatchEvent>,
-  ) {
+  ) -> &Self {
     self.expect_instance_mismatches(
       "rejected local version",
       &expected_mismatches,
       &self.effects.events.instance_mismatch_changes_local_version,
-    );
+    )
   }
 
-  pub fn to_have_local_version_mismatches(&self, expected_mismatches: Vec<ExpectedMismatchEvent>) {
+  pub fn to_have_local_version_mismatches(
+    &self,
+    expected_mismatches: Vec<ExpectedMismatchEvent>,
+  ) -> &Self {
     self.expect_instance_mismatches(
       "local version",
       &expected_mismatches,
       &self.effects.events.instance_mismatches_local_version,
-    );
+    )
   }
 
-  pub fn to_have_pinned_version_mismatches(&self, expected_mismatches: Vec<ExpectedMismatchEvent>) {
+  pub fn to_have_pinned_version_mismatches(
+    &self,
+    expected_mismatches: Vec<ExpectedMismatchEvent>,
+  ) -> &Self {
     self.expect_instance_mismatches(
       "highest semver",
       &expected_mismatches,
       &self.effects.events.instance_mismatches_pinned_version,
-    );
+    )
   }
 
-  pub fn to_have_semver_range_mismatches(&self, expected_mismatches: Vec<ExpectedMismatchEvent>) {
+  pub fn to_have_semver_range_mismatches(
+    &self,
+    expected_mismatches: Vec<ExpectedMismatchEvent>,
+  ) -> &Self {
     self.expect_instance_mismatches(
       "semver range",
       &expected_mismatches,
       &self.effects.events.instance_mismatches_semver_range,
-    );
+    )
   }
 
   fn expect_instance_matches(
@@ -96,7 +108,7 @@ impl<'a> Expects<'a> {
     label: &str,
     expected_matches: &Vec<ExpectedMatchEvent>,
     actual_matches: &Vec<PartialMatchEvent>,
-  ) {
+  ) -> &Self {
     if expected_matches.len() != actual_matches.len() {
       panic!(
         "expected {} {} matches but found {}",
@@ -125,6 +137,8 @@ impl<'a> Expects<'a> {
         instance_id, label, specifier, actual_matches
       );
     }
+
+    self
   }
 
   fn expect_instance_mismatches(
@@ -132,7 +146,7 @@ impl<'a> Expects<'a> {
     label: &str,
     expected_mismatches: &Vec<ExpectedMismatchEvent>,
     actual_mismatches: &Vec<PartialMismatchEvent>,
-  ) {
+  ) -> &Self {
     if expected_mismatches.len() != actual_mismatches.len() {
       panic!(
         "expected {} {} mismatches but found {}",
@@ -163,5 +177,7 @@ impl<'a> Expects<'a> {
         label, instance_id, actual_specifier, expected_specifier, actual_mismatches
       );
     }
+
+    self
   }
 }
