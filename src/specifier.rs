@@ -2,6 +2,8 @@ use lazy_static::lazy_static;
 use log::debug;
 use regex::Regex;
 
+use crate::semver_range::SemverRange;
+
 lazy_static! {
   /// "1.2.3"
   static ref REGEX_EXACT: Regex = Regex::new(r"^\d+\.\d+\.\d+$").unwrap();
@@ -116,41 +118,75 @@ impl Specifier {
     .to_string()
   }
 
-  pub fn has_range(&self, expected_range: &String) -> bool {
+  pub fn get_semver_range(&self) -> Option<SemverRange> {
     let specifier = self.unwrap();
-    return expected_range == "^" && REGEX_CARET.is_match(specifier)
-      || expected_range == "~" && REGEX_TILDE.is_match(specifier)
-      || expected_range == ">=" && REGEX_GTE.is_match(specifier)
-      || expected_range == "<=" && REGEX_LTE.is_match(specifier)
-      || expected_range == ">" && REGEX_GT.is_match(specifier)
-      || expected_range == "<" && REGEX_LT.is_match(specifier)
-      || expected_range == "" && REGEX_EXACT.is_match(specifier);
-  }
-
-  pub fn with_range(&self, range: &String) -> Option<Self> {
-    if self.is_semver() {
-      let specifier = self.unwrap();
-      if specifier.starts_with("^") {
-        return Some(parse(&specifier.replace("^", &range), false));
-      }
-      if specifier.starts_with("~") {
-        return Some(parse(&specifier.replace("~", &range), false));
-      }
-      if specifier.starts_with(">=") {
-        return Some(parse(&specifier.replace(">=", &range), false));
-      }
-      if specifier.starts_with("<=") {
-        return Some(parse(&specifier.replace("<=", &range), false));
-      }
-      if specifier.starts_with(">") {
-        return Some(parse(&specifier.replace(">", &range), false));
-      }
-      if specifier.starts_with("<") {
-        return Some(parse(&specifier.replace("<", &range), false));
-      }
-      return Some(parse(&format!("{}{}", &range, &specifier), false));
+    if specifier == "*" {
+      return Some(SemverRange::Any);
+    }
+    if REGEX_EXACT.is_match(specifier) {
+      return Some(SemverRange::Exact);
+    }
+    if REGEX_CARET.is_match(specifier) {
+      return Some(SemverRange::Caret);
+    }
+    if REGEX_TILDE.is_match(specifier) {
+      return Some(SemverRange::Tilde);
+    }
+    if REGEX_GT.is_match(specifier) {
+      return Some(SemverRange::Gt);
+    }
+    if REGEX_GTE.is_match(specifier) {
+      return Some(SemverRange::Gte);
+    }
+    if REGEX_LT.is_match(specifier) {
+      return Some(SemverRange::Lt);
+    }
+    if REGEX_LTE.is_match(specifier) {
+      return Some(SemverRange::Lte);
     }
     return None;
+  }
+
+  pub fn has_range(&self, expected_range: &SemverRange) -> bool {
+    self
+      .get_semver_range()
+      .map_or(false, |range| range == *expected_range)
+  }
+
+  pub fn with_semver_range(&self, range: &SemverRange) -> Option<Self> {
+    let replace = |current_range: &str| {
+      let specifier = self.unwrap();
+      let next_range = range.unwrap();
+      parse(&specifier.replace(current_range, &next_range), false)
+    };
+    match self.get_semver_range() {
+      Some(SemverRange::Exact) => {
+        let specifier = self.unwrap();
+        let next_range = range.unwrap();
+        return Some(parse(&format!("{}{}", &next_range, &specifier), false));
+      }
+      Some(SemverRange::Caret) => {
+        return Some(replace("^"));
+      }
+      Some(SemverRange::Tilde) => {
+        return Some(replace("~"));
+      }
+      Some(SemverRange::Gt) => {
+        return Some(replace(">"));
+      }
+      Some(SemverRange::Gte) => {
+        return Some(replace(">="));
+      }
+      Some(SemverRange::Lt) => {
+        return Some(replace("<"));
+      }
+      Some(SemverRange::Lte) => {
+        return Some(replace("<="));
+      }
+      Some(SemverRange::Any) | None => {
+        return None;
+      }
+    }
   }
 
   /// Get the raw specifier value
@@ -572,13 +608,13 @@ mod tests {
     for (_, initial) in &cases {
       let initial = initial.to_string();
       for (range, expected) in &cases {
-        let range = range.to_string();
+        let range = SemverRange::new(&range.to_string()).unwrap();
         let expected = expected.to_string();
         let parsed = Specifier::new(&initial);
         assert_eq!(
-          parsed.with_range(&range),
+          parsed.with_semver_range(&range),
           Some(Specifier::new(&expected.clone())),
-          "{} + {} should produce {}",
+          "{} + {:?} should produce {}",
           initial,
           range,
           expected
@@ -641,12 +677,12 @@ mod tests {
       ("", "1.2.3", true),
     ];
     for (range, specifier, expected) in cases {
-      let range = range.to_string();
+      let range = SemverRange::new(&range.to_string()).unwrap();
       let parsed = Specifier::new(&specifier.to_string());
       assert_eq!(
         parsed.has_range(&range),
         expected,
-        "{} has range {} should be {}",
+        "{} has range {:?} should be {}",
         specifier,
         range,
         expected

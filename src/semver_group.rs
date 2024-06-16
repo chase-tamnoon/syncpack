@@ -9,6 +9,7 @@ use crate::{
   group_selector::GroupSelector,
   instance::Instance,
   packages::Packages,
+  semver_range::SemverRange,
 };
 
 #[derive(Debug)]
@@ -27,7 +28,7 @@ pub struct SemverGroup {
   /// Group instances of each dependency together for comparison.
   pub dependencies_by_name: BTreeMap<String, Dependency>,
   /// The Semver Range which all instances in this group should use
-  pub range: Option<String>,
+  pub range: Option<SemverRange>,
 }
 
 impl SemverGroup {
@@ -121,7 +122,7 @@ impl SemverGroup {
         variant: SemverGroupVariant::WithRange,
         selector,
         dependencies_by_name: BTreeMap::new(),
-        range: Some(range.clone()),
+        range: SemverRange::new(range),
       }
     } else {
       panic!("Invalid semver group");
@@ -181,7 +182,7 @@ impl SemverGroup {
                   }));
                 });
               } else {
-                let expected_specifier = actual_specifier.with_range(expected_range);
+                let expected_specifier = actual_specifier.with_semver_range(expected_range);
                 let expected_specifier = expected_specifier.unwrap();
                 instance_ids.iter().for_each(|instance_id| {
                   let mismatch_event = &mut MismatchEvent {

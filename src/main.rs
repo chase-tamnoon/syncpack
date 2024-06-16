@@ -34,6 +34,7 @@ mod lint;
 mod package_json;
 mod packages;
 mod semver_group;
+mod semver_range;
 mod specifier;
 mod version_group;
 

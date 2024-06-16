@@ -402,8 +402,8 @@ mod tests {
         "range": "^"
       }]
     }));
-    config.cli.options.ranges = true;
-    config.cli.options.versions = false;
+    config.cli.options.ranges = false;
+    config.cli.options.versions = true;
     let mut packages = Packages::from_mocks(vec![
       json!({
         "name": "package-a",

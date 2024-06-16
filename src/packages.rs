@@ -81,7 +81,7 @@ impl Packages {
                 on_instance(Instance::new(
                   name.to_string(),
                   raw_specifier.to_string(),
-                  dependency_type.clone(),
+                  &dependency_type,
                   &package,
                 ));
               }
@@ -94,7 +94,7 @@ impl Packages {
                   on_instance(Instance::new(
                     name.to_string(),
                     raw_specifier.to_string(),
-                    dependency_type.clone(),
+                    &dependency_type,
                     &package,
                   ));
                 }
@@ -107,7 +107,7 @@ impl Packages {
                 on_instance(Instance::new(
                   dependency_type.name.clone(),
                   raw_specifier.to_string(),
-                  dependency_type.clone(),
+                  &dependency_type,
                   &package,
                 ));
               }
@@ -121,7 +121,7 @@ impl Packages {
                     on_instance(Instance::new(
                       name.to_string(),
                       version.to_string(),
-                      dependency_type.clone(),
+                      &dependency_type,
                       &package,
                     ));
                   }

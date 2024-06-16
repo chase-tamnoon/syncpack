@@ -4,6 +4,7 @@ use std::path::PathBuf;
 use crate::{
   dependency_type::{DependencyType, Strategy},
   package_json::PackageJson,
+  semver_range::SemverRange,
   specifier::Specifier,
 };
 
@@ -11,21 +12,23 @@ pub type InstanceId = String;
 
 #[derive(Debug)]
 pub struct Instance {
-  /// A unique identifier for this instance
-  pub id: InstanceId,
   /// The dependency type to use to read/write this instance
   pub dependency_type: DependencyType,
   /// The file path of the package.json file this instance belongs to
   pub file_path: PathBuf,
+  /// A unique identifier for this instance
+  pub id: InstanceId,
+  /// The original version specifier, which should never be mutated.
+  /// eg. `Specifier::Exact("16.8.0")`, `Specifier::Range("^16.8.0")`
+  pub initial_specifier: Specifier,
   /// Whether this is a package developed in this repo
   pub is_local: bool,
   /// The dependency name eg. "react", "react-dom"
   pub name: String,
   /// The `.name` of the package.json this file is in
   pub package_name: String,
-  /// The original version specifier, which should never be mutated.
-  /// eg. `Specifier::Exact("16.8.0")`, `Specifier::Range("^16.8.0")`
-  pub initial_specifier: Specifier,
+  /// If this instance belongs to a `WithRange` semver group, this is the range
+  pub prefer_range: Option<SemverRange>,
   /// The latest version specifier which is mutated by Syncpack
   pub specifier: Specifier,
 }
@@ -35,19 +38,20 @@ impl Instance {
     name: String,
     // The initial, unwrapped specifier (eg. "1.1.0") from the package.json file
     raw_specifier: String,
-    dependency_type: DependencyType,
+    dependency_type: &DependencyType,
     package: &PackageJson,
   ) -> Instance {
     let package_name = package.get_name();
     let specifier = Specifier::new(&raw_specifier);
     Instance {
-      id: format!("{} in {} of {}", name, dependency_type.path, package_name),
-      dependency_type,
+      dependency_type: dependency_type.clone(),
       file_path: package.file_path.clone(),
+      id: format!("{} in {} of {}", name, &dependency_type.path, package_name),
+      initial_specifier: specifier.clone(),
       is_local: package_name == name,
       name,
       package_name,
-      initial_specifier: specifier.clone(),
+      prefer_range: None,
       specifier,
     }
   }
@@ -97,13 +101,13 @@ impl Instance {
   pub fn remove_from(&self, package: &mut PackageJson) {
     match self.dependency_type.strategy {
       Strategy::NameAndVersionProps => {
-        //
+        println!("@TODO: remove instance for NameAndVersionProps");
       }
       Strategy::NamedVersionString => {
-        //
+        println!("@TODO: remove instance for NamedVersionString");
       }
       Strategy::UnnamedVersionString => {
-        //
+        println!("@TODO: remove instance for UnnamedVersionString");
       }
       Strategy::VersionsByName => {
         let path_to_obj = &self.dependency_type.path;
