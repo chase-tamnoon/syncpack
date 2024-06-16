@@ -33,20 +33,8 @@ impl Effects for LintEffects<'_> {
       }
 
       Event::EnterVersionsAndRanges => {
-        match (
-          self.config.cli.options.ranges,
-          self.config.cli.options.versions,
-        ) {
-          (true, true) => {
-            info!("{}", "= SEMVER RANGES AND VERSION MISMATCHES".dimmed());
-          }
-          (true, false) => {
-            info!("{}", "= SEMVER RANGES".dimmed());
-          }
-          (false, true) => {
-            info!("{}", "= VERSION MISMATCHES".dimmed());
-          }
-          (false, false) => {}
+        if self.config.cli.options.versions {
+          info!("{}", "= SEMVER RANGES AND VERSION MISMATCHES".dimmed());
         };
       }
       Event::EnterFormat => {
@@ -107,16 +95,10 @@ impl Effects for LintEffects<'_> {
         );
       }
       Event::DependencyMatchesWithRange(dependency) => {
-        if !self.config.cli.options.ranges {
-          return;
-        }
         let count = render_count_column(dependency.all.len());
         info!("{} {}", count, dependency.name);
       }
       Event::DependencyMismatchesWithRange(dependency) => {
-        if !self.config.cli.options.ranges {
-          return;
-        }
         let count = render_count_column(dependency.all.len());
         info!("{} {}", count, dependency.name.red());
       }
@@ -209,9 +191,6 @@ impl Effects for LintEffects<'_> {
         self.is_valid = false;
       }
       Event::InstanceMatchesWithRange(event) => {
-        if !self.config.cli.options.ranges {
-          return;
-        }
         let icon = "✓".green();
         let arrow = "→".dimmed();
         info!(
@@ -222,9 +201,6 @@ impl Effects for LintEffects<'_> {
         );
       }
       Event::InstanceMismatchesWithRange(event) => {
-        if !self.config.cli.options.ranges {
-          return;
-        }
         let icon = "✘".red();
         let arrow = "→".dimmed();
         info!(

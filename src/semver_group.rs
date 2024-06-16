@@ -145,7 +145,6 @@ impl SemverGroup {
   ) {
     effects.on(Event::GroupVisited(&self.selector));
 
-    let lint_ranges = &config.cli.options.ranges;
     let lint_versions = &config.cli.options.versions;
 
     match self.variant {

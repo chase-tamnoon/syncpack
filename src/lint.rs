@@ -18,12 +18,6 @@ pub fn lint(config: &Config, packages: &mut Packages, effects: &mut impl Effects
 
   effects.on(Event::EnterVersionsAndRanges);
 
-  if cli.options.ranges {
-    semver_groups.iter().for_each(|group| {
-      group.visit(config, &mut instances_by_id, packages, effects);
-    });
-  }
-
   if cli.options.versions {
     version_groups.iter().for_each(|group| {
       group.visit(config, &mut instances_by_id, packages, effects);
@@ -351,16 +345,13 @@ mod tests {
   }
 
   #[test]
-  fn instance_has_same_version_as_local_package_but_does_not_match_its_semver_group_and_syncpack_is_only_linting_ranges(
-  ) {
+  fn instance_has_same_version_as_local_package_but_does_not_match_its_semver_group() {
     let mut effects = MockEffects::new();
-    let mut config = Config::from_mock(json!({
+    let config = Config::from_mock(json!({
       "semverGroups": [{
         "range": "^"
       }]
     }));
-    config.cli.options.ranges = true;
-    config.cli.options.versions = false;
     let mut packages = Packages::from_mocks(vec![
       json!({
         "name": "package-a",
@@ -390,66 +381,6 @@ mod tests {
       actual_specifier: "1.0.0",
       expected_specifier: "^1.0.0",
     }]);
-  }
-
-  #[test]
-  #[ignore]
-  fn instance_has_same_version_as_local_package_but_does_not_match_its_semver_group_and_syncpack_is_only_linting_versions(
-  ) {
-    let mut effects = MockEffects::new();
-    let mut config = Config::from_mock(json!({
-      "semverGroups": [{
-        "range": "^"
-      }]
-    }));
-    config.cli.options.ranges = false;
-    config.cli.options.versions = true;
-    let mut packages = Packages::from_mocks(vec![
-      json!({
-        "name": "package-a",
-        "version": "1.0.0"
-      }),
-      json!({
-        "name": "package-b",
-        "dependencies": {
-          "package-a": "1.0.0"
-        }
-      }),
-    ]);
-
-    lint(&config, &mut packages, &mut effects);
-
-    panic!("@TODO - report local and instance are both valid");
-  }
-
-  #[test]
-  #[ignore]
-  fn instance_has_same_version_as_local_package_but_does_not_match_its_semver_group_and_syncpack_is_linting_versions_and_ranges(
-  ) {
-    let mut effects = MockEffects::new();
-    let mut config = Config::from_mock(json!({
-      "semverGroups": [{
-        "range": "^"
-      }]
-    }));
-    config.cli.options.ranges = true;
-    config.cli.options.versions = true;
-    let mut packages = Packages::from_mocks(vec![
-      json!({
-        "name": "package-a",
-        "version": "1.0.0"
-      }),
-      json!({
-        "name": "package-b",
-        "dependencies": {
-          "package-a": "1.0.0"
-        }
-      }),
-    ]);
-
-    lint(&config, &mut packages, &mut effects);
-
-    panic!("@TODO - report what?");
   }
 
   #[test]

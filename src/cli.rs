@@ -146,9 +146,6 @@ pub struct CliOptions {
   /// `true` when `--format` is passed or if none of `--format`, `--ranges`
   /// or `--versions` are passed
   pub format: bool,
-  /// `true` when `--ranges` is passed or if none of `--format`, `--ranges`
-  /// or `--versions` are passed
-  pub ranges: bool,
   /// `true` when `--versions` is passed or if none of `--format`, `--ranges`
   /// or `--versions` are passed
   pub versions: bool,
@@ -162,7 +159,6 @@ impl CliOptions {
     Self {
       filter: None,
       format: false,
-      ranges: true,
       versions: true,
       source: vec![],
     }
@@ -188,7 +184,6 @@ impl CliOptions {
     CliOptions {
       filter,
       format: use_all || use_format,
-      ranges: use_all || use_ranges,
       versions: use_all || use_versions,
       source,
     }
