@@ -19,13 +19,13 @@ impl Context {
 
     // @TODO add some debug!("{}", logs);
 
-    packages.get_all_instances(config, |instance| {
+    packages.get_all_instances(config, |mut instance| {
       // assign every instance to the first group it matches
       semver_groups
         .iter_mut()
         .find(|semver_group| semver_group.selector.can_add(&instance))
         .unwrap()
-        .add_instance(&instance);
+        .add_instance(&mut instance);
       // assign every instance to the first group it matches
       version_groups
         .iter_mut()

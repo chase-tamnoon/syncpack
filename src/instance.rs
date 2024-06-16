@@ -27,7 +27,9 @@ pub struct Instance {
   pub name: String,
   /// The `.name` of the package.json this file is in
   pub package_name: String,
-  /// If this instance belongs to a `WithRange` semver group, this is the range
+  /// If this instance belongs to a `WithRange` semver group, this is the range.
+  /// This is used by Version Groups while determining the preferred version,
+  /// to try to also satisfy any applicable semver group ranges
   pub prefer_range: Option<SemverRange>,
   /// The latest version specifier which is mutated by Syncpack
   pub specifier: Specifier,

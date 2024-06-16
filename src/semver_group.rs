@@ -49,7 +49,7 @@ impl SemverGroup {
   }
 
   /// Add an instance to this version group
-  pub fn add_instance(&mut self, instance: &Instance) {
+  pub fn add_instance(&mut self, instance: &mut Instance) {
     // Ensure that a group exists for this dependency name.
     if !self.dependencies_by_name.contains_key(&instance.name) {
       self.dependencies_by_name.insert(
@@ -90,6 +90,10 @@ impl SemverGroup {
       dependency.semver.push(instance.id.clone());
     } else {
       dependency.non_semver.push(instance.id.clone());
+    }
+
+    if matches!(self.variant, SemverGroupVariant::WithRange) {
+      instance.prefer_range = self.range.clone();
     }
   }
 
