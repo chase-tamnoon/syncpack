@@ -153,7 +153,7 @@ impl Specifier {
       .map_or(false, |range| range == *expected_range)
   }
 
-  pub fn with_semver_range(&self, range: &SemverRange) -> Option<Self> {
+  pub fn with_semver_range(&self, range: &SemverRange) -> Self {
     let replace = |current_range: &str| {
       let specifier = self.unwrap();
       let next_range = range.unwrap();
@@ -163,28 +163,34 @@ impl Specifier {
       Some(SemverRange::Exact) => {
         let specifier = self.unwrap();
         let next_range = range.unwrap();
-        return Some(parse(&format!("{}{}", &next_range, &specifier), false));
+        return parse(&format!("{}{}", &next_range, &specifier), false);
       }
       Some(SemverRange::Caret) => {
-        return Some(replace("^"));
+        return replace("^");
       }
       Some(SemverRange::Tilde) => {
-        return Some(replace("~"));
+        return replace("~");
       }
       Some(SemverRange::Gt) => {
-        return Some(replace(">"));
+        return replace(">");
       }
       Some(SemverRange::Gte) => {
-        return Some(replace(">="));
+        return replace(">=");
       }
       Some(SemverRange::Lt) => {
-        return Some(replace("<"));
+        return replace("<");
       }
       Some(SemverRange::Lte) => {
-        return Some(replace("<="));
+        return replace("<=");
       }
-      Some(SemverRange::Any) | None => {
-        return None;
+      Some(SemverRange::Any) => {
+        return Specifier::Latest("*".to_string());
+      }
+      None => {
+        panic!(
+          "Cannot set a semver range on a non-semver specifier: {:?}",
+          self
+        );
       }
     }
   }
@@ -613,7 +619,7 @@ mod tests {
         let parsed = Specifier::new(&initial);
         assert_eq!(
           parsed.with_semver_range(&range),
-          Some(Specifier::new(&expected.clone())),
+          Specifier::new(&expected.clone()),
           "{} + {:?} should produce {}",
           initial,
           range,

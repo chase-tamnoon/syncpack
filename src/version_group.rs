@@ -86,16 +86,19 @@ impl VersionGroup {
 
     // Track/count unique version specifiers and which instances use them
     // 1. Ensure that a group exists for this specifier.
-    if !dependency.by_specifier.contains_key(&instance.specifier) {
+    if !dependency
+      .by_initial_specifier
+      .contains_key(&instance.initial_specifier)
+    {
       dependency
-        .by_specifier
-        .insert(instance.specifier.clone(), vec![]);
+        .by_initial_specifier
+        .insert(instance.initial_specifier.clone(), vec![]);
     }
 
     // 2. Add this instance against its specifier
     dependency
-      .by_specifier
-      .get_mut(&instance.specifier)
+      .by_initial_specifier
+      .get_mut(&instance.initial_specifier)
       .unwrap()
       .push(instance.id.clone());
 
@@ -106,7 +109,7 @@ impl VersionGroup {
     }
 
     // Track/count what specifier types we have encountered
-    if instance.specifier.is_semver() {
+    if instance.initial_specifier.is_semver() {
       dependency.semver.push(instance.id.clone());
     } else {
       dependency.non_semver.push(instance.id.clone());
@@ -526,7 +529,7 @@ fn get_snap_to_mismatches(
   {
     let expected = &snappable_instance.specifier;
     dependency
-      .by_specifier
+      .by_initial_specifier
       .iter()
       .filter(|(actual, _)| *actual != expected)
       .for_each(|(specifier, instance_ids)| {

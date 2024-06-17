@@ -33,8 +33,9 @@ impl<'a> Expects<'a> {
   }
 
   /// Print internal test state for debugging
-  pub fn debug(&self) {
+  pub fn debug(&self) -> &Self {
     println!("{:#?}", self.effects);
+    self
   }
 
   pub fn to_have_standard_version_group_matches(

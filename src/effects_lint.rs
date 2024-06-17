@@ -351,7 +351,7 @@ pub fn render_count_column(count: usize) -> ColoredString {
 
 fn print_version_match(dependency: &Dependency) {
   let count = render_count_column(dependency.all.len());
-  let (specifier, _) = dependency.by_specifier.iter().next().unwrap();
+  let (specifier, _) = dependency.by_initial_specifier.iter().next().unwrap();
   info!(
     "{} {} {}",
     count,

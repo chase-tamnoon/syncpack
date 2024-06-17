@@ -373,6 +373,7 @@ mod tests {
 
     // refuse to break local package's version
     expect(&effects)
+      .debug()
       .to_have_rejected_local_version_mismatches(vec![ExpectedMismatchEvent {
         dependency_name: "package-a",
         instance_id: "package-a in /version of package-a",

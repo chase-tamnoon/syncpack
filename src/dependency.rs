@@ -37,7 +37,7 @@ pub struct Dependency {
   /// The values are each instance which has that version specifier.
   ///
   /// If there is more than one unique version, then we have mismatches
-  pub by_specifier: HashMap<Specifier, Vec<InstanceId>>,
+  pub by_initial_specifier: HashMap<Specifier, Vec<InstanceId>>,
 }
 
 impl Dependency {
@@ -49,7 +49,7 @@ impl Dependency {
       local: None,
       non_semver: vec![],
       semver: vec![],
-      by_specifier: HashMap::new(),
+      by_initial_specifier: HashMap::new(),
     }
   }
 
@@ -73,7 +73,7 @@ impl Dependency {
     F: FnMut((&Specifier, &InstanceId)),
   {
     self
-      .by_specifier
+      .by_initial_specifier
       .iter()
       .for_each(|(specifier, instance_ids)| {
         instance_ids.iter().for_each(|instance_id| {
@@ -88,7 +88,7 @@ impl Dependency {
     F: FnMut((&Specifier, &Vec<InstanceId>)),
   {
     self
-      .by_specifier
+      .by_initial_specifier
       .iter()
       .for_each(|(specifier, instance_ids)| {
         handler((specifier, instance_ids));
@@ -100,14 +100,14 @@ impl Dependency {
     self
       .expected_version
       .as_ref()
-      .and_then(|expected_version| self.by_specifier.get(expected_version))
+      .and_then(|expected_version| self.by_initial_specifier.get(expected_version))
       .map(|ids| ids.clone())
       .unwrap_or_else(|| vec![])
   }
 
   /// Is the exact same specifier used by all instances in this group?
   pub fn has_identical_specifiers(&self) -> bool {
-    self.by_specifier.len() == (1 as usize)
+    self.by_initial_specifier.len() == (1 as usize)
   }
 
   pub fn is_version_mismatch(&self, actual: &Specifier) -> bool {
