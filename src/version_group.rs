@@ -40,7 +40,7 @@ pub struct VersionGroup {
   /// Data to determine which instances should be added to this group
   pub selector: GroupSelector,
   /// Group instances of each dependency together for comparison.
-  pub dependencies_by_name: BTreeMap<String, Dependency>,
+  pub dependencies: BTreeMap<String, Dependency>,
   /// Which version to use when variant is `Standard`
   pub prefer_version: Option<PreferVersion>,
   /// The version to pin all instances to when variant is `Pinned`
@@ -61,7 +61,7 @@ impl VersionGroup {
         /*include_packages:*/ vec![],
         /*include_specifier_types:*/ vec![],
       ),
-      dependencies_by_name: BTreeMap::new(),
+      dependencies: BTreeMap::new(),
       prefer_version: Some(PreferVersion::HighestSemver),
       pin_version: None,
       snap_to: None,
@@ -71,15 +71,15 @@ impl VersionGroup {
   /// Add an instance to this version group
   pub fn add_instance(&mut self, instance: &Instance) {
     // Ensure that a group exists for this dependency name.
-    if !self.dependencies_by_name.contains_key(&instance.name) {
-      self.dependencies_by_name.insert(
+    if !self.dependencies.contains_key(&instance.name) {
+      self.dependencies.insert(
         instance.name.clone(),
         Dependency::new(instance.name.clone()),
       );
     }
 
     // Get the group for this dependency name.
-    let dependency = self.dependencies_by_name.get_mut(&instance.name).unwrap();
+    let dependency = self.dependencies.get_mut(&instance.name).unwrap();
 
     // Track/count instances
     dependency.all.push(instance.id.clone());
@@ -181,7 +181,7 @@ impl VersionGroup {
       return VersionGroup {
         variant: VersionGroupVariant::Banned,
         selector,
-        dependencies_by_name: BTreeMap::new(),
+        dependencies: BTreeMap::new(),
         prefer_version: None,
         pin_version: None,
         snap_to: None,
@@ -191,7 +191,7 @@ impl VersionGroup {
       return VersionGroup {
         variant: VersionGroupVariant::Ignored,
         selector,
-        dependencies_by_name: BTreeMap::new(),
+        dependencies: BTreeMap::new(),
         prefer_version: None,
         pin_version: None,
         snap_to: None,
@@ -201,7 +201,7 @@ impl VersionGroup {
       return VersionGroup {
         variant: VersionGroupVariant::Pinned,
         selector,
-        dependencies_by_name: BTreeMap::new(),
+        dependencies: BTreeMap::new(),
         prefer_version: None,
         pin_version: Some(Specifier::new(pin_version)),
         snap_to: None,
@@ -212,7 +212,7 @@ impl VersionGroup {
         return VersionGroup {
           variant: VersionGroupVariant::SameRange,
           selector,
-          dependencies_by_name: BTreeMap::new(),
+          dependencies: BTreeMap::new(),
           prefer_version: None,
           pin_version: None,
           snap_to: None,
@@ -225,7 +225,7 @@ impl VersionGroup {
       return VersionGroup {
         variant: VersionGroupVariant::SnappedTo,
         selector,
-        dependencies_by_name: BTreeMap::new(),
+        dependencies: BTreeMap::new(),
         prefer_version: None,
         pin_version: None,
         snap_to: Some(snap_to.clone()),
@@ -235,7 +235,7 @@ impl VersionGroup {
       return VersionGroup {
         variant: VersionGroupVariant::Standard,
         selector,
-        dependencies_by_name: BTreeMap::new(),
+        dependencies: BTreeMap::new(),
         prefer_version: Some(if prefer_version == "lowestSemver" {
           PreferVersion::LowestSemver
         } else {
@@ -248,7 +248,7 @@ impl VersionGroup {
     VersionGroup {
       variant: VersionGroupVariant::Standard,
       selector,
-      dependencies_by_name: BTreeMap::new(),
+      dependencies: BTreeMap::new(),
       prefer_version: Some(PreferVersion::HighestSemver),
       pin_version: None,
       snap_to: None,
@@ -271,12 +271,12 @@ impl VersionGroup {
 
     match self.variant {
       VersionGroupVariant::Ignored => {
-        self.dependencies_by_name.values().for_each(|dependency| {
+        self.dependencies.values().for_each(|dependency| {
           effects.on(Event::DependencyIgnored(dependency));
         });
       }
       VersionGroupVariant::Banned => {
-        self.dependencies_by_name.values().for_each(|dependency| {
+        self.dependencies.values().for_each(|dependency| {
           effects.on(Event::DependencyBanned(dependency));
           dependency.for_each_instance_id(|(specifier, instance_id)| {
             effects.on(Event::InstanceBanned(&mut BannedEvent {
@@ -290,7 +290,7 @@ impl VersionGroup {
         });
       }
       VersionGroupVariant::Pinned => {
-        self.dependencies_by_name.values().for_each(|dependency| {
+        self.dependencies.values().for_each(|dependency| {
           info!("TODO: versions could be identical but not match the pinVersion");
           if !dependency.has_identical_specifiers() {
             effects.on(Event::DependencyMismatchesPinnedVersion(dependency));
@@ -322,7 +322,7 @@ impl VersionGroup {
         });
       }
       VersionGroupVariant::SameRange => {
-        self.dependencies_by_name.values().for_each(|dependency| {
+        self.dependencies.values().for_each(|dependency| {
           let mut mismatches: Vec<(InstanceIdsBySpecifier, InstanceIdsBySpecifier)> = vec![];
           dependency.for_each_specifier(|a| {
             let (specifier_a, instance_ids_a) = a;
@@ -383,7 +383,7 @@ impl VersionGroup {
       }
       VersionGroupVariant::SnappedTo => {
         if let Some(snap_to) = &self.snap_to {
-          self.dependencies_by_name.values().for_each(|dependency| {
+          self.dependencies.values().for_each(|dependency| {
             let mismatches = get_snap_to_mismatches(snap_to, instances_by_id, dependency);
             if mismatches.len() == 0 {
               effects.on(Event::DependencyMatchesSnapTo(dependency));
@@ -407,7 +407,7 @@ impl VersionGroup {
         }
       }
       VersionGroupVariant::Standard => {
-        self.dependencies_by_name.values().for_each(|dependency| {
+        self.dependencies.values().for_each(|dependency| {
           if dependency.has_identical_specifiers() {
             effects.on(Event::DependencyMatchesStandard(dependency));
             dependency.for_each_instance_id(|(specifier, instance_id)| {

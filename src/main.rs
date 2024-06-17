@@ -1,8 +1,6 @@
 #![allow(dead_code)]
 #![allow(unused_variables)]
 
-use effects_fix::FixEffects;
-use effects_lint::LintEffects;
 use env_logger::Builder;
 use log::{Level, LevelFilter};
 use std::io::Write;
@@ -11,6 +9,8 @@ use std::{env::current_dir, process};
 use crate::{
   cli::{Cli, Subcommand},
   config::Config,
+  effects_fix::FixEffects,
+  effects_lint::LintEffects,
   fix::fix,
   lint::lint,
   packages::Packages,
