@@ -2,6 +2,7 @@ use std::{
   collections::{BTreeMap, HashMap},
   vec,
 };
+use version_compare::{compare, Cmp};
 
 use crate::{
   instance::{Instance, InstanceId},
@@ -32,15 +33,6 @@ pub struct Dependency {
   pub expected_version: Option<Specifier>,
   /// If this dependency is a local package, this is the local instance.
   pub local: Option<InstanceId>,
-  /// All instances with `Specifier::NonSemver` versions
-  pub non_semver: Vec<InstanceId>,
-  /// All instances with `Specifier::Semver` versions
-  pub semver: Vec<InstanceId>,
-  /// Each key is a unique raw version specifier for each dependency.
-  /// The values are each instance which has that version specifier.
-  ///
-  /// If there is more than one unique version, then we have mismatches
-  pub by_initial_specifier: HashMap<Specifier, Vec<InstanceId>>,
   /// The version to pin all instances to when variant is `Pinned`
   pub pin_version: Option<Specifier>,
   /// `name` properties of package.json files developed in the monorepo when variant is `SnappedTo`
@@ -48,44 +40,122 @@ pub struct Dependency {
 }
 
 impl Dependency {
-  pub fn new(group: &VersionGroup, name: String) -> Dependency {
+  pub fn new(
+    name: String,
+    variant: Variant,
+    pin_version: Option<Specifier>,
+    snap_to: Option<Vec<String>>,
+  ) -> Dependency {
     Dependency {
-      variant: group.variant.clone(),
-      name,
       all: vec![],
       expected_version: None,
       local: None,
-      non_semver: vec![],
-      semver: vec![],
-      by_initial_specifier: HashMap::new(),
-      pin_version: group.pin_version.clone(),
-      snap_to: group.snap_to.clone(),
+      name,
+      pin_version,
+      snap_to,
+      variant,
     }
+  }
+
+  pub fn get_instances<'a>(
+    &'a self,
+    instances_by_id: &'a InstancesById,
+  ) -> impl Iterator<Item = &'a Instance> {
+    self
+      .all
+      .iter()
+      .map(move |instance_id| instances_by_id.get(instance_id).unwrap())
+  }
+
+  pub fn all_are_semver(&self, instances_by_id: &InstancesById) -> bool {
+    self
+      .get_instances(instances_by_id)
+      .all(|instance| instance.specifier.is_semver())
+  }
+
+  pub fn get_highest_semver(&self, instances_by_id: &InstancesById) -> Option<Specifier> {
+    self.get_preferred_semver(instances_by_id, Cmp::Gt)
+  }
+
+  pub fn get_lowest_semver(&self, instances_by_id: &InstancesById) -> Option<Specifier> {
+    self.get_preferred_semver(instances_by_id, Cmp::Lt)
+  }
+
+  pub fn get_preferred_semver(
+    &self,
+    instances_by_id: &InstancesById,
+    preferred_order: Cmp,
+  ) -> Option<Specifier> {
+    self
+      .get_instances(instances_by_id)
+      .fold(None, |highest, instance| match highest {
+        None => Some(&instance.specifier),
+        Some(highest) => match compare(instance.specifier.unwrap(), highest.unwrap()) {
+          Ok(actual_order) => {
+            if actual_order == preferred_order {
+              Some(&instance.specifier)
+            } else {
+              Some(highest)
+            }
+          }
+          Err(_) => {
+            panic!(
+              "Cannot compare {:?} and {:?}",
+              &instance.specifier, &highest
+            );
+          }
+        },
+      })
+      .map(|specifier| specifier.clone())
+  }
+
+  /// Each key is a unique raw version specifier for each dependency.
+  /// The values are each instance which has that version specifier.
+  ///
+  /// If there is more than one unique version, then we have mismatches
+  pub fn group_by_specifier<'a>(
+    &'a self,
+    instances_by_id: &'a InstancesById,
+  ) -> HashMap<Specifier, Vec<&'a Instance>> {
+    self
+      .get_instances(instances_by_id)
+      .fold(HashMap::new(), |mut acc, instance| {
+        acc
+          .entry(instance.specifier.clone())
+          .or_insert_with(|| vec![])
+          .push(&instance);
+        acc
+      })
+  }
+
+  pub fn has_local_instance(&self) -> bool {
+    self.local.is_some()
+  }
+
+  pub fn get_local_specifier(&self, instances_by_id: &InstancesById) -> Option<Specifier> {
+    self
+      .get_instances(instances_by_id)
+      .find(|instance| instance.is_local)
+      .map(|instance| instance.specifier.clone())
   }
 
   pub fn add_instance(&mut self, instance: Instance) -> Instance {
     // Track/count all instances
     self.all.push(instance.id.clone());
-    // Store by initial specifier
-    self
-      .by_initial_specifier
-      .entry(instance.initial_specifier.clone())
-      .or_insert_with(|| vec![])
-      .push(instance.id.clone());
     // Set local instance
     if instance.is_local {
       self.local = Some(instance.id.clone());
     }
     // Track/count what specifier types we have encountered
-    if instance.initial_specifier.is_semver() {
-      self.semver.push(instance.id.clone());
-    } else {
-      self.non_semver.push(instance.id.clone());
-    }
+    // if instance.initial_specifier.is_semver() {
+    //   self.semver.push(instance.id.clone());
+    // } else {
+    //   self.non_semver.push(instance.id.clone());
+    // }
 
     if matches!(self.variant, Variant::Pinned) {
       self.expected_version = self.pin_version.clone();
-      return;
+      return instance;
     }
 
     if matches!(self.variant, Variant::Standard) {

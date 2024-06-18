@@ -17,6 +17,7 @@ use crate::{
   specifier::Specifier,
 };
 
+/// What behaviour has this group been configured to exhibit?
 #[derive(Clone, Debug)]
 pub enum Variant {
   Banned,
@@ -55,7 +56,6 @@ impl VersionGroup {
         /*include_specifier_types:*/ vec![],
       ),
       dependencies: BTreeMap::new(),
-      prefer_version: Some(PreferVersion::HighestSemver),
       pin_version: None,
       snap_to: None,
     }
@@ -66,96 +66,14 @@ impl VersionGroup {
     self
       .dependencies
       .entry(instance.name.clone())
-      .or_insert_with(|| Dependency::new(&self, instance.name.clone()))
-  }
-
-  /// Add an instance to this version group
-  pub fn add_instance(&mut self, instance: &Instance) {
-    // fn get_or_create_dependency<'a>(
-    //   dependencies: &'a mut BTreeMap<String, Dependency>,
-    //   instance: &'a Instance,
-    // ) -> &'a mut Dependency {
-    //   dependencies
-    //     .entry(instance.name.clone())
-    //     .or_insert_with(|| Dependency::new(instance.name.clone()))
-    // }
-
-    // fn add_by_initial_specifier(dependency: &mut Dependency, instance: &Instance) {
-    //   let key = &instance.initial_specifier;
-    //   let index = &mut dependency.by_initial_specifier;
-    //   let instances = index.entry(key.clone()).or_insert_with(|| vec![]);
-    //   instances.push(instance.id.clone());
-    // }
-
-    // let dependency = get_or_create_dependency(&mut self.dependencies, &instance);
-
-    // Track/count instances
-    // dependency.all.push(instance.id.clone());
-
-    // add_by_initial_specifier(dependency, instance);
-
-    // If this is the original source of a locally-developed package, keep a
-    // reference to it
-    // if &instance.dependency_type.name == "local" {
-    //   dependency.local = Some(instance.id.clone());
-    // }
-
-    // Track/count what specifier types we have encountered
-    // if instance.initial_specifier.is_semver() {
-    //   dependency.semver.push(instance.id.clone());
-    // } else {
-    //   dependency.non_semver.push(instance.id.clone());
-    // }
-
-    // if matches!(self.variant, Variant::Pinned) {
-    //   dependency.expected_version = self.pin_version.clone();
-    //   return;
-    // }
-
-    // if matches!(self.variant, Variant::Standard) {
-    //   // If this is the original source of a locally-developed package, set it
-    //   // as the preferred version
-    //   if &instance.dependency_type.name == "local" {
-    //     dependency.expected_version = Some(instance.specifier.clone());
-    //   }
-
-    //   // A locally-developed package version overrides every other, so if one
-    //   // has not been found, we need to look at the usages of it for a preferred
-    //   // version
-    //   if dependency.local.is_none() {
-    //     if instance.specifier.is_semver() && dependency.non_semver.len() == 0 {
-    //       // Have we set a preferred version yet for these instances?
-    //       match &mut dependency.expected_version {
-    //         // No, this is the first candidate.
-    //         None => {
-    //           dependency.expected_version = Some(instance.specifier.clone());
-    //         }
-    //         // Yes, compare this candidate with the previous one
-    //         Some(expected_version) => {
-    //           let this_version = &instance.specifier;
-    //           let prefer_lowest = matches!(&self.prefer_version, Some(PreferVersion::LowestSemver));
-    //           let preferred_order = if prefer_lowest { Cmp::Lt } else { Cmp::Gt };
-    //           match compare(this_version.unwrap(), &expected_version.unwrap()) {
-    //             Ok(actual_order) => {
-    //               if preferred_order == actual_order {
-    //                 dependency.expected_version = Some(instance.specifier.clone());
-    //               }
-    //             }
-    //             Err(_) => {
-    //               panic!(
-    //                 "Cannot compare {:?} and {:?}",
-    //                 &this_version, &expected_version
-    //               );
-    //             }
-    //           };
-    //         }
-    //       }
-    //     } else {
-    //       // clear any previous preferred version if we encounter a non-semver
-    //       dependency.expected_version = None;
-    //     }
-    //   }
-    // }
+      .or_insert_with(|| {
+        Dependency::new(
+          /*name:*/ instance.name.clone(),
+          /*variant:*/ self.variant.clone(),
+          /*pin_version:*/ self.pin_version.clone(),
+          /*snap_to:*/ self.snap_to.clone(),
+        )
+      })
   }
 
   /// Create a single version group from a config item from the rcfile.
