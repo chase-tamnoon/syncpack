@@ -1,4 +1,3 @@
-use itertools::Itertools;
 use std::{
   collections::{BTreeMap, HashMap},
   vec,
@@ -8,7 +7,7 @@ use version_compare::{compare, Cmp};
 use crate::{
   instance::{Instance, InstanceId},
   specifier::Specifier,
-  version_group::{Variant, VersionGroup},
+  version_group::Variant,
 };
 
 /// A reference to a group of instances of the same dependency which all have the
@@ -55,6 +54,16 @@ impl Dependency {
     }
   }
 
+  pub fn add_instance(&mut self, instance: Instance) -> Instance {
+    // Track/count all instances
+    self.all.push(instance.id.clone());
+    // Set local instance
+    if instance.is_local {
+      self.local_instance_id = Some(instance.id.clone());
+    }
+    instance
+  }
+
   pub fn get_instances<'a>(
     &'a self,
     instances_by_id: &'a InstancesById,
@@ -67,6 +76,12 @@ impl Dependency {
 
   pub fn has_local_instance(&self) -> bool {
     self.local_instance_id.is_some()
+  }
+
+  pub fn has_preferred_ranges(&self, instances_by_id: &InstancesById) -> bool {
+    self
+      .get_instances(instances_by_id)
+      .any(|instance| instance.prefer_range.is_some())
   }
 
   pub fn get_local_specifier(&self, instances_by_id: &InstancesById) -> Option<Specifier> {
@@ -83,14 +98,14 @@ impl Dependency {
   }
 
   pub fn get_highest_semver(&self, instances_by_id: &InstancesById) -> Option<Specifier> {
-    self.get_preferred_semver(instances_by_id, Cmp::Gt)
+    self.get_highest_or_lowest_semver(instances_by_id, Cmp::Gt)
   }
 
   pub fn get_lowest_semver(&self, instances_by_id: &InstancesById) -> Option<Specifier> {
-    self.get_preferred_semver(instances_by_id, Cmp::Lt)
+    self.get_highest_or_lowest_semver(instances_by_id, Cmp::Lt)
   }
 
-  pub fn get_preferred_semver(
+  fn get_highest_or_lowest_semver(
     &self,
     instances_by_id: &InstancesById,
     preferred_order: Cmp,
@@ -135,16 +150,6 @@ impl Dependency {
           .push(&instance);
         acc
       })
-  }
-
-  pub fn add_instance(&mut self, instance: Instance) -> Instance {
-    // Track/count all instances
-    self.all.push(instance.id.clone());
-    // Set local instance
-    if instance.is_local {
-      self.local_instance_id = Some(instance.id.clone());
-    }
-    instance
   }
 
   /// Does this group contain a package developed in this repo?

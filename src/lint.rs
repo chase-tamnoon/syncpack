@@ -4,6 +4,7 @@ use crate::{
   effects::{Effects, Event},
   format::{self, InMemoryFormattingStatus},
   packages::Packages,
+  version_group::Variant,
 };
 
 pub fn lint(config: &Config, packages: &mut Packages, effects: &mut impl Effects) {
@@ -20,7 +21,53 @@ pub fn lint(config: &Config, packages: &mut Packages, effects: &mut impl Effects
 
   if cli.options.versions {
     version_groups.iter().for_each(|group| {
-      group.visit(config, &mut instances_by_id, packages, effects);
+      group.dependencies.values().for_each(|dependency| {
+        match dependency.variant {
+          Variant::Banned => {
+            effects.on(Event::DependencyBanned(dependency));
+          }
+          Variant::HighestSemver => {
+            let instances = dependency.get_instances(&instances_by_id);
+
+            match dependency.get_local_specifier(&instances_by_id) {
+              Some(local_specifier) => {
+                // set all to local
+                instances.for_each(|instance| {
+                  if instance.matches(&local_specifier) {
+                    if instance.is_local {
+                      // [valid because is local source of truth]
+                    } else {
+                      if instance.has_range_mismatch() {
+                        //
+                      }
+                    }
+                  }
+                });
+              }
+              None => {
+                // set all to highest
+              }
+            }
+            // if dependency.all_are_semver(&instances_by_id)
+
+            // if has semver group
+            //   apply ranges to specifiers
+            // if has local
+            //   use local
+            //
+          }
+          Variant::Ignored => {
+            effects.on(Event::DependencyIgnored(dependency));
+          }
+          Variant::LowestSemver => {}
+          Variant::Pinned => {}
+          Variant::SameRange => {}
+          Variant::SnappedTo => {}
+        };
+        // dependency.visit(config, &mut instances_by_id, packages, effects);
+      });
+
+      // group.visit(config, &mut instances_by_id, packages, effects);
     });
   }
 

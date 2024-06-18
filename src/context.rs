@@ -24,19 +24,19 @@ impl Context {
         .iter_mut()
         .find(|vgroup| vgroup.selector.can_add(&instance))
         .inspect(|vgroup| {
-          instance.prefer_range = semver_groups
+          semver_groups
             .iter()
             .find(|sgroup| sgroup.selector.can_add(&instance))
-            .and_then(|sgroup| sgroup.range.clone());
+            .and_then(|sgroup| sgroup.range.clone())
+            .map(|prefer_range| {
+              if instance.specifier.is_semver() {
+                instance.prefer_range = Some(prefer_range.clone());
+                instance.specifier = instance.specifier.with_semver_range(&prefer_range);
+              }
+            });
         })
         .map(|vgroup| {
           let dependency = vgroup.get_or_create_dependency(&instance);
-
-          dependency.all.push(instance.id.clone());
-          if instance.is_local {
-            dependency.local_instance_id = Some(instance.id.clone());
-          }
-
           // let the dependency briefly own the instance
           let instance = dependency.add_instance(instance);
           // finally move the instance to the lookup

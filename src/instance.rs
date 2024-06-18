@@ -58,6 +58,19 @@ impl Instance {
     }
   }
 
+  /// Does this instance have this specifier?
+  pub fn matches(&self, specifier: &Specifier) -> bool {
+    self.specifier == *specifier
+  }
+
+  /// Does this instance's specifier mismatch the initial specifier only by its
+  /// semver group's semver range?
+  pub fn has_range_mismatch(&self) -> bool {
+    self.prefer_range.is_some()
+      && self.specifier.get_exact() == self.initial_specifier.get_exact()
+      && self.specifier.get_semver_range() != self.initial_specifier.get_semver_range()
+  }
+
   /// Write a version to the package.json
   pub fn set_specifier(&mut self, package: &mut PackageJson, specifier: &Specifier) {
     let raw_specifier = specifier.unwrap();

@@ -21,12 +21,12 @@ use crate::{
 #[derive(Clone, Debug)]
 pub enum Variant {
   Banned,
+  HighestSemver,
   Ignored,
+  LowestSemver,
   Pinned,
   SameRange,
   SnappedTo,
-  HighestSemver,
-  LowestSemver,
 }
 
 #[derive(Debug)]
@@ -181,9 +181,9 @@ impl VersionGroup {
 
     match self.variant {
       Variant::Ignored => {
-        self.dependencies.values().for_each(|dependency| {
-          effects.on(Event::DependencyIgnored(dependency));
-        });
+        // self.dependencies.values().for_each(|dependency| {
+        //   effects.on(Event::DependencyIgnored(dependency));
+        // });
       }
       Variant::Banned => {
         self.dependencies.values().for_each(|dependency| {

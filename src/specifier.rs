@@ -153,6 +153,10 @@ impl Specifier {
       .map_or(false, |range| range == *expected_range)
   }
 
+  pub fn get_exact(&self) -> Self {
+    self.with_semver_range(&SemverRange::Exact)
+  }
+
   pub fn with_semver_range(&self, range: &SemverRange) -> Self {
     let replace = |current_range: &str| {
       let specifier = self.unwrap();
