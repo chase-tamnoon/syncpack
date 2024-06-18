@@ -6,6 +6,7 @@ use std::{
 use crate::{
   instance::{Instance, InstanceId},
   specifier::Specifier,
+  version_group::{Variant, VersionGroup},
 };
 
 /// A reference to a group of instances of the same dependency which all have the
@@ -21,6 +22,8 @@ pub type InstancesById = BTreeMap<InstanceId, Instance>;
 
 #[derive(Debug)]
 pub struct Dependency {
+  /// What behaviour has this group been configured to exhibit?
+  pub variant: Variant,
   /// The name of the dependency
   pub name: String,
   /// Every instance of this dependency in this version group.
@@ -38,11 +41,16 @@ pub struct Dependency {
   ///
   /// If there is more than one unique version, then we have mismatches
   pub by_initial_specifier: HashMap<Specifier, Vec<InstanceId>>,
+  /// The version to pin all instances to when variant is `Pinned`
+  pub pin_version: Option<Specifier>,
+  /// `name` properties of package.json files developed in the monorepo when variant is `SnappedTo`
+  pub snap_to: Option<Vec<String>>,
 }
 
 impl Dependency {
-  pub fn new(name: String) -> Dependency {
+  pub fn new(group: &VersionGroup, name: String) -> Dependency {
     Dependency {
+      variant: group.variant.clone(),
       name,
       all: vec![],
       expected_version: None,
@@ -50,7 +58,82 @@ impl Dependency {
       non_semver: vec![],
       semver: vec![],
       by_initial_specifier: HashMap::new(),
+      pin_version: group.pin_version.clone(),
+      snap_to: group.snap_to.clone(),
     }
+  }
+
+  pub fn add_instance(&mut self, instance: Instance) -> Instance {
+    // Track/count all instances
+    self.all.push(instance.id.clone());
+    // Store by initial specifier
+    self
+      .by_initial_specifier
+      .entry(instance.initial_specifier.clone())
+      .or_insert_with(|| vec![])
+      .push(instance.id.clone());
+    // Set local instance
+    if instance.is_local {
+      self.local = Some(instance.id.clone());
+    }
+    // Track/count what specifier types we have encountered
+    if instance.initial_specifier.is_semver() {
+      self.semver.push(instance.id.clone());
+    } else {
+      self.non_semver.push(instance.id.clone());
+    }
+
+    if matches!(self.variant, Variant::Pinned) {
+      self.expected_version = self.pin_version.clone();
+      return;
+    }
+
+    if matches!(self.variant, Variant::Standard) {
+      // If this is the original source of a locally-developed package, set it
+      // as the preferred version
+      if &instance.dependency_type.name == "local" {
+        self.expected_version = Some(instance.specifier.clone());
+      }
+
+      // A locally-developed package version overrides every other, so if one
+      // has not been found, we need to look at the usages of it for a preferred
+      // version
+      if self.local.is_none() {
+        if instance.specifier.is_semver() && self.non_semver.len() == 0 {
+          // Have we set a preferred version yet for these instances?
+          match &mut self.expected_version {
+            // No, this is the first candidate.
+            None => {
+              self.expected_version = Some(instance.specifier.clone());
+            }
+            // Yes, compare this candidate with the previous one
+            Some(expected_version) => {
+              let this_version = &instance.specifier;
+              let prefer_lowest = matches!(&self.prefer_version, Some(PreferVersion::LowestSemver));
+              let preferred_order = if prefer_lowest { Cmp::Lt } else { Cmp::Gt };
+              match compare(this_version.unwrap(), &expected_version.unwrap()) {
+                Ok(actual_order) => {
+                  if preferred_order == actual_order {
+                    self.expected_version = Some(instance.specifier.clone());
+                  }
+                }
+                Err(_) => {
+                  panic!(
+                    "Cannot compare {:?} and {:?}",
+                    &this_version, &expected_version
+                  );
+                }
+              };
+            }
+          }
+        } else {
+          // clear any previous preferred version if we encounter a non-semver
+          self.expected_version = None;
+        }
+      }
+    }
+
+    instance
   }
 
   /// Does this group contain a package developed in this repo?

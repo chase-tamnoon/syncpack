@@ -17,32 +17,25 @@ use crate::{
   specifier::Specifier,
 };
 
-#[derive(Debug)]
-pub enum PreferVersion {
-  LowestSemver,
-  HighestSemver,
-}
-
-#[derive(Debug)]
-pub enum VersionGroupVariant {
+#[derive(Clone, Debug)]
+pub enum Variant {
   Banned,
   Ignored,
   Pinned,
   SameRange,
   SnappedTo,
-  Standard,
+  HighestSemver,
+  LowestSemver,
 }
 
 #[derive(Debug)]
 pub struct VersionGroup {
   /// What behaviour has this group been configured to exhibit?
-  pub variant: VersionGroupVariant,
+  pub variant: Variant,
   /// Data to determine which instances should be added to this group
   pub selector: GroupSelector,
   /// Group instances of each dependency together for comparison.
   pub dependencies: BTreeMap<String, Dependency>,
-  /// Which version to use when variant is `Standard`
-  pub prefer_version: Option<PreferVersion>,
   /// The version to pin all instances to when variant is `Pinned`
   pub pin_version: Option<Specifier>,
   /// `name` properties of package.json files developed in the monorepo when variant is `SnappedTo`
@@ -53,7 +46,7 @@ impl VersionGroup {
   /// Create a default/catch-all group which would apply to any instance
   pub fn get_catch_all() -> VersionGroup {
     VersionGroup {
-      variant: VersionGroupVariant::Standard,
+      variant: Variant::HighestSemver,
       selector: GroupSelector::new(
         /*include_dependencies:*/ vec![],
         /*include_dependency_types:*/ vec![],
@@ -68,93 +61,101 @@ impl VersionGroup {
     }
   }
 
+  ///
+  pub fn get_or_create_dependency(&mut self, instance: &Instance) -> &mut Dependency {
+    self
+      .dependencies
+      .entry(instance.name.clone())
+      .or_insert_with(|| Dependency::new(&self, instance.name.clone()))
+  }
+
   /// Add an instance to this version group
   pub fn add_instance(&mut self, instance: &Instance) {
-    fn get_or_create_dependency<'a>(
-      dependencies: &'a mut BTreeMap<String, Dependency>,
-      instance: &'a Instance,
-    ) -> &'a mut Dependency {
-      dependencies
-        .entry(instance.name.clone())
-        .or_insert_with(|| Dependency::new(instance.name.clone()))
-    }
+    // fn get_or_create_dependency<'a>(
+    //   dependencies: &'a mut BTreeMap<String, Dependency>,
+    //   instance: &'a Instance,
+    // ) -> &'a mut Dependency {
+    //   dependencies
+    //     .entry(instance.name.clone())
+    //     .or_insert_with(|| Dependency::new(instance.name.clone()))
+    // }
 
-    fn add_by_initial_specifier(dependency: &mut Dependency, instance: &Instance) {
-      let key = &instance.initial_specifier;
-      let index = &mut dependency.by_initial_specifier;
-      let instances = index.entry(key.clone()).or_insert_with(|| vec![]);
-      instances.push(instance.id.clone());
-    }
+    // fn add_by_initial_specifier(dependency: &mut Dependency, instance: &Instance) {
+    //   let key = &instance.initial_specifier;
+    //   let index = &mut dependency.by_initial_specifier;
+    //   let instances = index.entry(key.clone()).or_insert_with(|| vec![]);
+    //   instances.push(instance.id.clone());
+    // }
 
-    let dependency = get_or_create_dependency(&mut self.dependencies, &instance);
+    // let dependency = get_or_create_dependency(&mut self.dependencies, &instance);
 
     // Track/count instances
-    dependency.all.push(instance.id.clone());
+    // dependency.all.push(instance.id.clone());
 
-    add_by_initial_specifier(dependency, instance);
+    // add_by_initial_specifier(dependency, instance);
 
     // If this is the original source of a locally-developed package, keep a
     // reference to it
-    if &instance.dependency_type.name == "local" {
-      dependency.local = Some(instance.id.clone());
-    }
+    // if &instance.dependency_type.name == "local" {
+    //   dependency.local = Some(instance.id.clone());
+    // }
 
     // Track/count what specifier types we have encountered
-    if instance.initial_specifier.is_semver() {
-      dependency.semver.push(instance.id.clone());
-    } else {
-      dependency.non_semver.push(instance.id.clone());
-    }
+    // if instance.initial_specifier.is_semver() {
+    //   dependency.semver.push(instance.id.clone());
+    // } else {
+    //   dependency.non_semver.push(instance.id.clone());
+    // }
 
-    if matches!(self.variant, VersionGroupVariant::Pinned) {
-      dependency.expected_version = self.pin_version.clone();
-      return;
-    }
+    // if matches!(self.variant, Variant::Pinned) {
+    //   dependency.expected_version = self.pin_version.clone();
+    //   return;
+    // }
 
-    if matches!(self.variant, VersionGroupVariant::Standard) {
-      // If this is the original source of a locally-developed package, set it
-      // as the preferred version
-      if &instance.dependency_type.name == "local" {
-        dependency.expected_version = Some(instance.specifier.clone());
-      }
+    // if matches!(self.variant, Variant::Standard) {
+    //   // If this is the original source of a locally-developed package, set it
+    //   // as the preferred version
+    //   if &instance.dependency_type.name == "local" {
+    //     dependency.expected_version = Some(instance.specifier.clone());
+    //   }
 
-      // A locally-developed package version overrides every other, so if one
-      // has not been found, we need to look at the usages of it for a preferred
-      // version
-      if dependency.local.is_none() {
-        if instance.specifier.is_semver() && dependency.non_semver.len() == 0 {
-          // Have we set a preferred version yet for these instances?
-          match &mut dependency.expected_version {
-            // No, this is the first candidate.
-            None => {
-              dependency.expected_version = Some(instance.specifier.clone());
-            }
-            // Yes, compare this candidate with the previous one
-            Some(expected_version) => {
-              let this_version = &instance.specifier;
-              let prefer_lowest = matches!(&self.prefer_version, Some(PreferVersion::LowestSemver));
-              let preferred_order = if prefer_lowest { Cmp::Lt } else { Cmp::Gt };
-              match compare(this_version.unwrap(), &expected_version.unwrap()) {
-                Ok(actual_order) => {
-                  if preferred_order == actual_order {
-                    dependency.expected_version = Some(instance.specifier.clone());
-                  }
-                }
-                Err(_) => {
-                  panic!(
-                    "Cannot compare {:?} and {:?}",
-                    &this_version, &expected_version
-                  );
-                }
-              };
-            }
-          }
-        } else {
-          // clear any previous preferred version if we encounter a non-semver
-          dependency.expected_version = None;
-        }
-      }
-    }
+    //   // A locally-developed package version overrides every other, so if one
+    //   // has not been found, we need to look at the usages of it for a preferred
+    //   // version
+    //   if dependency.local.is_none() {
+    //     if instance.specifier.is_semver() && dependency.non_semver.len() == 0 {
+    //       // Have we set a preferred version yet for these instances?
+    //       match &mut dependency.expected_version {
+    //         // No, this is the first candidate.
+    //         None => {
+    //           dependency.expected_version = Some(instance.specifier.clone());
+    //         }
+    //         // Yes, compare this candidate with the previous one
+    //         Some(expected_version) => {
+    //           let this_version = &instance.specifier;
+    //           let prefer_lowest = matches!(&self.prefer_version, Some(PreferVersion::LowestSemver));
+    //           let preferred_order = if prefer_lowest { Cmp::Lt } else { Cmp::Gt };
+    //           match compare(this_version.unwrap(), &expected_version.unwrap()) {
+    //             Ok(actual_order) => {
+    //               if preferred_order == actual_order {
+    //                 dependency.expected_version = Some(instance.specifier.clone());
+    //               }
+    //             }
+    //             Err(_) => {
+    //               panic!(
+    //                 "Cannot compare {:?} and {:?}",
+    //                 &this_version, &expected_version
+    //               );
+    //             }
+    //           };
+    //         }
+    //       }
+    //     } else {
+    //       // clear any previous preferred version if we encounter a non-semver
+    //       dependency.expected_version = None;
+    //     }
+    //   }
+    // }
   }
 
   /// Create a single version group from a config item from the rcfile.
@@ -170,7 +171,7 @@ impl VersionGroup {
 
     if let Some(true) = group.is_banned {
       return VersionGroup {
-        variant: VersionGroupVariant::Banned,
+        variant: Variant::Banned,
         selector,
         dependencies: BTreeMap::new(),
         prefer_version: None,
@@ -180,7 +181,7 @@ impl VersionGroup {
     }
     if let Some(true) = group.is_ignored {
       return VersionGroup {
-        variant: VersionGroupVariant::Ignored,
+        variant: Variant::Ignored,
         selector,
         dependencies: BTreeMap::new(),
         prefer_version: None,
@@ -190,7 +191,7 @@ impl VersionGroup {
     }
     if let Some(pin_version) = &group.pin_version {
       return VersionGroup {
-        variant: VersionGroupVariant::Pinned,
+        variant: Variant::Pinned,
         selector,
         dependencies: BTreeMap::new(),
         prefer_version: None,
@@ -201,7 +202,7 @@ impl VersionGroup {
     if let Some(policy) = &group.policy {
       if policy == "sameRange" {
         return VersionGroup {
-          variant: VersionGroupVariant::SameRange,
+          variant: Variant::SameRange,
           selector,
           dependencies: BTreeMap::new(),
           prefer_version: None,
@@ -214,7 +215,7 @@ impl VersionGroup {
     }
     if let Some(snap_to) = &group.snap_to {
       return VersionGroup {
-        variant: VersionGroupVariant::SnappedTo,
+        variant: Variant::SnappedTo,
         selector,
         dependencies: BTreeMap::new(),
         prefer_version: None,
@@ -224,7 +225,7 @@ impl VersionGroup {
     }
     if let Some(prefer_version) = &group.prefer_version {
       return VersionGroup {
-        variant: VersionGroupVariant::Standard,
+        variant: Variant::Standard,
         selector,
         dependencies: BTreeMap::new(),
         prefer_version: Some(if prefer_version == "lowestSemver" {
@@ -237,7 +238,7 @@ impl VersionGroup {
       };
     }
     VersionGroup {
-      variant: VersionGroupVariant::Standard,
+      variant: Variant::Standard,
       selector,
       dependencies: BTreeMap::new(),
       prefer_version: Some(PreferVersion::HighestSemver),
@@ -261,12 +262,12 @@ impl VersionGroup {
     let lint_versions = &config.cli.options.versions;
 
     match self.variant {
-      VersionGroupVariant::Ignored => {
+      Variant::Ignored => {
         self.dependencies.values().for_each(|dependency| {
           effects.on(Event::DependencyIgnored(dependency));
         });
       }
-      VersionGroupVariant::Banned => {
+      Variant::Banned => {
         self.dependencies.values().for_each(|dependency| {
           effects.on(Event::DependencyBanned(dependency));
           dependency.for_each_instance_id(|(specifier, instance_id)| {
@@ -280,7 +281,7 @@ impl VersionGroup {
           });
         });
       }
-      VersionGroupVariant::Pinned => {
+      Variant::Pinned => {
         self.dependencies.values().for_each(|dependency| {
           info!("TODO: versions could be identical but not match the pinVersion");
           if !dependency.has_identical_specifiers() {
@@ -312,7 +313,7 @@ impl VersionGroup {
           };
         });
       }
-      VersionGroupVariant::SameRange => {
+      Variant::SameRange => {
         self.dependencies.values().for_each(|dependency| {
           let mut mismatches: Vec<(InstanceIdsBySpecifier, InstanceIdsBySpecifier)> = vec![];
           dependency.for_each_specifier(|a| {
@@ -372,7 +373,7 @@ impl VersionGroup {
           }
         });
       }
-      VersionGroupVariant::SnappedTo => {
+      Variant::SnappedTo => {
         if let Some(snap_to) = &self.snap_to {
           self.dependencies.values().for_each(|dependency| {
             let mismatches = get_snap_to_mismatches(snap_to, instances_by_id, dependency);
@@ -397,7 +398,7 @@ impl VersionGroup {
           });
         }
       }
-      VersionGroupVariant::Standard => {
+      Variant::Standard => {
         self.dependencies.values().for_each(|dependency| {
           if dependency.has_identical_specifiers() {
             effects.on(Event::DependencyMatchesStandard(dependency));

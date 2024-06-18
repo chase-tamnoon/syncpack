@@ -50,7 +50,7 @@ impl Instance {
       file_path: package.file_path.clone(),
       id: format!("{} in {} of {}", name, &dependency_type.path, package_name),
       initial_specifier: specifier.clone(),
-      is_local: package_name == name,
+      is_local: dependency_type.path == "/version",
       name,
       package_name,
       prefer_range: None,

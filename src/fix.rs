@@ -7,7 +7,7 @@ use crate::{
   effects::{Effects, Event},
   format::{self, InMemoryFormattingStatus},
   packages::Packages,
-  version_group::VersionGroupVariant,
+  version_group::Variant,
 };
 
 pub fn fix(config: &Config, packages: &mut Packages, effects: &mut impl Effects) {
@@ -28,9 +28,9 @@ pub fn fix(config: &Config, packages: &mut Packages, effects: &mut impl Effects)
       // fix snapped to groups last, so that the packages they're snapped to
       // have had any fixes applied to them first.
       .sorted_by(|a, b| {
-        if matches!(a.variant, VersionGroupVariant::SnappedTo) {
+        if matches!(a.variant, Variant::SnappedTo) {
           Ordering::Greater
-        } else if matches!(b.variant, VersionGroupVariant::SnappedTo) {
+        } else if matches!(b.variant, Variant::SnappedTo) {
           Ordering::Less
         } else {
           Ordering::Equal

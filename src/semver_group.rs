@@ -35,19 +35,6 @@ impl SemverGroup {
     }
   }
 
-  /// Add an instance to this version group
-  pub fn add_instance(&mut self, instance: &mut Instance) {
-    if matches!(self.variant, SemverGroupVariant::WithRange) {
-      instance.prefer_range = self.range.clone();
-      // apply the expected semver range. This updated value will be read
-      // further down the chain when it is visited by version groups
-      if instance.specifier.is_semver() {
-        let range = self.range.as_ref().unwrap();
-        instance.specifier = instance.specifier.with_semver_range(range);
-      }
-    }
-  }
-
   /// Create a single version group from a config item from the rcfile.
   pub fn from_config(group: &AnySemverGroup) -> SemverGroup {
     let selector = GroupSelector::new(

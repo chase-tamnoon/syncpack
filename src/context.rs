@@ -13,27 +13,35 @@ pub struct Context {
 
 impl Context {
   pub fn create(config: &Config, packages: &Packages) -> Self {
-    let mut semver_groups = config.rcfile.get_semver_groups();
+    let semver_groups = config.rcfile.get_semver_groups();
     let mut version_groups = config.rcfile.get_version_groups(&packages.all_names);
     let mut instances_by_id: InstancesById = BTreeMap::new();
 
     // @TODO add some debug!("{}", logs);
 
     packages.get_all_instances(config, |mut instance| {
-      // assign every instance to the first group it matches
-      semver_groups
-        .iter_mut()
-        .find(|semver_group| semver_group.selector.can_add(&instance))
-        .unwrap()
-        .add_instance(&mut instance);
-      // assign every instance to the first group it matches
       version_groups
         .iter_mut()
-        .find(|version_group| version_group.selector.can_add(&instance))
-        .unwrap()
-        .add_instance(&instance);
-      // move instance to the lookup
-      instances_by_id.insert(instance.id.clone(), instance);
+        .find(|vgroup| vgroup.selector.can_add(&instance))
+        .inspect(|vgroup| {
+          instance.prefer_range = semver_groups
+            .iter()
+            .find(|sgroup| sgroup.selector.can_add(&instance))
+            .and_then(|sgroup| sgroup.range.clone());
+        })
+        .map(|vgroup| {
+          let dependency = vgroup.get_or_create_dependency(&instance);
+
+          dependency.all.push(instance.id.clone());
+          if instance.is_local {
+            dependency.local = Some(instance.id.clone());
+          }
+
+          // let the dependency briefly own the instance
+          let instance = dependency.add_instance(instance);
+          // finally move the instance to the lookup
+          instances_by_id.insert(instance.id.clone(), instance);
+        });
     });
 
     Self {
