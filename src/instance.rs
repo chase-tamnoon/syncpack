@@ -12,15 +12,17 @@ pub type InstanceId = String;
 
 #[derive(Debug)]
 pub struct Instance {
+  /// The original version specifier, which should never be mutated.
+  /// eg. `Specifier::Exact("16.8.0")`, `Specifier::Range("^16.8.0")`
+  pub actual: Specifier,
   /// The dependency type to use to read/write this instance
   pub dependency_type: DependencyType,
+  /// The latest version specifier which is mutated by Syncpack
+  pub expected: Specifier,
   /// The file path of the package.json file this instance belongs to
   pub file_path: PathBuf,
   /// A unique identifier for this instance
   pub id: InstanceId,
-  /// The original version specifier, which should never be mutated.
-  /// eg. `Specifier::Exact("16.8.0")`, `Specifier::Range("^16.8.0")`
-  pub initial_specifier: Specifier,
   /// Whether this is a package developed in this repo
   pub is_local: bool,
   /// The dependency name eg. "react", "react-dom"
@@ -31,8 +33,6 @@ pub struct Instance {
   /// This is used by Version Groups while determining the preferred version,
   /// to try to also satisfy any applicable semver group ranges
   pub prefer_range: Option<SemverRange>,
-  /// The latest version specifier which is mutated by Syncpack
-  pub specifier: Specifier,
 }
 
 impl Instance {
@@ -46,29 +46,29 @@ impl Instance {
     let package_name = package.get_name();
     let specifier = Specifier::new(&raw_specifier);
     Instance {
+      actual: specifier.clone(),
       dependency_type: dependency_type.clone(),
+      expected: specifier,
       file_path: package.file_path.clone(),
       id: format!("{} in {} of {}", name, &dependency_type.path, package_name),
-      initial_specifier: specifier.clone(),
       is_local: dependency_type.path == "/version",
       name,
       package_name,
       prefer_range: None,
-      specifier,
     }
   }
 
   /// Does this instance have this specifier?
   pub fn matches(&self, specifier: &Specifier) -> bool {
-    self.specifier == *specifier
+    self.expected == *specifier
   }
 
   /// Does this instance's specifier mismatch the initial specifier only by its
   /// semver group's semver range?
   pub fn has_range_mismatch(&self) -> bool {
     self.prefer_range.is_some()
-      && self.specifier.get_exact() == self.initial_specifier.get_exact()
-      && self.specifier.get_semver_range() != self.initial_specifier.get_semver_range()
+      && self.expected.get_exact() == self.actual.get_exact()
+      && self.expected.get_semver_range() != self.actual.get_semver_range()
   }
 
   /// Write a version to the package.json
@@ -109,7 +109,7 @@ impl Instance {
       }
     };
     // update in-memory state
-    self.specifier = specifier.clone();
+    self.expected = specifier.clone();
   }
 
   /// Delete a version/dependency/instance from the package.json

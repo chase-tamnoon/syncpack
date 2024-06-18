@@ -214,7 +214,7 @@ impl Effects for LintEffects<'_> {
         self.is_valid = false;
         let instance_id = &event.instance_id;
         let instance = event.instances_by_id.get_mut(instance_id).unwrap();
-        instance.specifier = event.expected_specifier.clone();
+        instance.expected = event.expected_specifier.clone();
       }
       Event::InstanceMismatchesPinnedVersion(event) => {
         if !self.config.cli.options.versions {

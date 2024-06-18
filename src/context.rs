@@ -29,9 +29,9 @@ impl Context {
             .find(|sgroup| sgroup.selector.can_add(&instance))
             .and_then(|sgroup| sgroup.range.clone())
             .map(|prefer_range| {
-              if instance.specifier.is_semver() {
+              if instance.expected.is_semver() {
                 instance.prefer_range = Some(prefer_range.clone());
-                instance.specifier = instance.specifier.with_semver_range(&prefer_range);
+                instance.expected = instance.expected.with_semver_range(&prefer_range);
               }
             });
         })

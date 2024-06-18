@@ -88,13 +88,13 @@ impl Dependency {
     self
       .get_instances(instances_by_id)
       .find(|instance| instance.is_local)
-      .map(|instance| instance.specifier.clone())
+      .map(|instance| instance.expected.clone())
   }
 
   pub fn all_are_semver(&self, instances_by_id: &InstancesById) -> bool {
     self
       .get_instances(instances_by_id)
-      .all(|instance| instance.specifier.is_semver())
+      .all(|instance| instance.expected.is_semver())
   }
 
   pub fn get_highest_semver(&self, instances_by_id: &InstancesById) -> Option<Specifier> {
@@ -113,20 +113,17 @@ impl Dependency {
     self
       .get_instances(instances_by_id)
       .fold(None, |highest, instance| match highest {
-        None => Some(&instance.specifier),
-        Some(highest) => match compare(instance.specifier.unwrap(), highest.unwrap()) {
+        None => Some(&instance.expected),
+        Some(highest) => match compare(instance.expected.unwrap(), highest.unwrap()) {
           Ok(actual_order) => {
             if actual_order == preferred_order {
-              Some(&instance.specifier)
+              Some(&instance.expected)
             } else {
               Some(highest)
             }
           }
           Err(_) => {
-            panic!(
-              "Cannot compare {:?} and {:?}",
-              &instance.specifier, &highest
-            );
+            panic!("Cannot compare {:?} and {:?}", &instance.expected, &highest);
           }
         },
       })
@@ -145,7 +142,7 @@ impl Dependency {
       .get_instances(instances_by_id)
       .fold(HashMap::new(), |mut acc, instance| {
         acc
-          .entry(instance.specifier.clone())
+          .entry(instance.expected.clone())
           .or_insert_with(|| vec![])
           .push(&instance);
         acc
@@ -209,11 +206,11 @@ impl Dependency {
     let mut previous: Option<&Specifier> = None;
     for instance in self.get_instances(instances_by_id) {
       if let Some(value) = previous {
-        if *value != instance.specifier {
+        if *value != instance.expected {
           return false;
         }
       }
-      previous = Some(&instance.specifier);
+      previous = Some(&instance.expected);
     }
     return true;
   }

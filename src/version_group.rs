@@ -342,7 +342,7 @@ impl VersionGroup {
                 // local mismatch
                 if let Some(local_instance_id) = &dependency.local_instance_id {
                   let local_instance = instances_by_id.get(local_instance_id).unwrap();
-                  let expected_specifier = local_instance.specifier.clone();
+                  let expected_specifier = local_instance.expected.clone();
                   instance_ids.iter().for_each(|instance_id| {
                     effects.on(Event::InstanceMismatchesLocalVersion(&mut MismatchEvent {
                       instance_id: instance_id.clone(),
@@ -437,7 +437,7 @@ fn get_snap_to_mismatches(
   let dependency_name = &dependency.name;
   if let Some(snappable_instance) = get_snap_to_instance(snap_to, dependency_name, instances_by_id)
   {
-    let expected = &snappable_instance.specifier;
+    let expected = &snappable_instance.expected;
     dependency
       .by_initial_specifier
       .iter()
