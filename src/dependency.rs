@@ -98,21 +98,19 @@ impl Dependency {
       .all(|instance| instance.actual.is_semver())
   }
 
-
   /// Is the exact same specifier used by all instances in this group?
-pub fn all_are_identical(&self, instances_by_id: &InstancesById) -> bool {
+  pub fn all_are_identical(&self, instances_by_id: &InstancesById) -> bool {
     let mut previous: Option<&Specifier> = None;
     for instance in self.get_instances(instances_by_id) {
-    if let Some(value) = previous {
+      if let Some(value) = previous {
         if *value != instance.expected {
-        return false;
+          return false;
         }
-    }
-    previous = Some(&instance.expected);
+      }
+      previous = Some(&instance.expected);
     }
     return true;
-}
-
+  }
 
   pub fn get_highest_semver(&self, instances_by_id: &InstancesById) -> Option<Specifier> {
     self.get_highest_or_lowest_semver(instances_by_id, Cmp::Gt)
@@ -167,72 +165,4 @@ pub fn all_are_identical(&self, instances_by_id: &InstancesById) -> bool {
         acc
       })
   }
-
-  /// Does this group contain a package developed in this repo?
-  // pub fn is_local_package(&self, instance_id: &String) -> bool {
-  //   self.local_instance_id.is_some()
-  // }
-
-  // /// Is this instance the .version of a local package?
-  // pub fn is_local_instance(&self, instance_id: &String) -> bool {
-  //   self
-  //     .local_instance_id
-  //     .as_ref()
-  //     .filter(|local_id| *local_id == instance_id)
-  //     .is_some()
-  // }
-
-  /// Iterate over every instance ID and its specifier in this group
-  // pub fn for_each_instance_id<F>(&self, mut handler: F)
-  // where
-  //   F: FnMut((&Specifier, &InstanceId)),
-  // {
-  //   self
-  //     .by_initial_specifier
-  //     .iter()
-  //     .for_each(|(specifier, instance_ids)| {
-  //       instance_ids.iter().for_each(|instance_id| {
-  //         handler((specifier, instance_id));
-  //       });
-  //     });
-  // }
-
-  /// Iterate over every unique specifier and its instance IDs in this group
-  // pub fn for_each_specifier<F>(&self, mut handler: F)
-  // where
-  //   F: FnMut((&Specifier, &Vec<InstanceId>)),
-  // {
-  //   self
-  //     .by_initial_specifier
-  //     .iter()
-  //     .for_each(|(specifier, instance_ids)| {
-  //       handler((specifier, instance_ids));
-  //     });
-  // }
-
-  /// Get the IDs of all instances whose version specifier matches the expected
-  // pub fn get_matching_instance_ids(&self) -> Vec<InstanceId> {
-  //   self
-  //     .expected_version
-  //     .as_ref()
-  //     .and_then(|expected_version| self.by_initial_specifier.get(expected_version))
-  //     .map(|ids| ids.clone())
-  //     .unwrap_or_else(|| vec![])
-  // }
-
-  // pub fn is_version_mismatch(&self, actual: &Specifier) -> bool {
-  //   // if we determined an expected version... (such as the highest semver version,
-  //   // the local dependency version, or a pinned version)
-  //   match &self.expected_version {
-  //     // ...we can just check if this one matches it
-  //     Some(expected) => actual != expected,
-  //     // if no expected version was suggested, this is because...
-  //     None => match self.non_semver.len() {
-  //       // ...something went badly wrong
-  //       0 => panic!("An expected version was not set for a group with no non-semver versions"),
-  //       // ...or we have an `UnsupportedMismatch`
-  //       _ => true,
-  //     },
-  //   }
-  // }
 }
