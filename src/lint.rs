@@ -27,25 +27,53 @@ pub fn lint(config: &Config, packages: &mut Packages, effects: &mut impl Effects
             effects.on(Event::DependencyBanned(dependency));
           }
           Variant::HighestSemver => {
-            let instances = dependency.get_instances(&instances_by_id);
-
             match dependency.get_local_specifier(&instances_by_id) {
               Some(local_specifier) => {
-                // set all to local
-                instances.for_each(|instance| {
-                  if instance.matches(&local_specifier) {
+                dependency
+                  .get_instances(&instances_by_id)
+                  .iter_mut()
+                  .for_each(|instance| {
                     if instance.is_local {
-                      // [valid because is local source of truth]
-                    } else {
+                      // [VALID: is local source of truth]
+                    } else if instance.actual.matches(&local_specifier) {
                       if instance.has_range_mismatch() {
-                        //
+                        // [INVALID: matches local, mismatches range]
+                      } else {
+                        // [VALID: matches local AND semver group]
                       }
+                    } else {
+                      // [INVALID: does not match local]
                     }
-                  }
-                });
+                  });
               }
               None => {
-                // set all to highest
+                if dependency.all_are_semver(&instances_by_id) {
+                  match dependency.get_highest_semver(&instances_by_id) {
+                    Some(highest) => {
+                      dependency
+                        .get_instances(&instances_by_id)
+                        .iter_mut()
+                        .for_each(|instance| {
+                          if instance.actual.matches(&highest) {
+                            if instance.has_range_mismatch() {
+                              // [INVALID: matches highest semver, mismatches range]
+                            } else {
+                              // [VALID: matches highest semver]
+                            }
+                          } else {
+                            // [INVALID: does not match highest semver]
+                          }
+                        });
+                    }
+                    None => {
+                      panic!("No highest semver found for dependency {:?}", dependency);
+                    }
+                  }
+                } else if dependency.all_are_identical(&instances_by_id) {
+                  // [VALID: unsupported but all match]
+                } else {
+                  // [INVALID: unsupported and do not all match]
+                }
               }
             }
             // if dependency.all_are_semver(&instances_by_id)

@@ -58,11 +58,6 @@ impl Instance {
     }
   }
 
-  /// Does this instance have this specifier?
-  pub fn matches(&self, specifier: &Specifier) -> bool {
-    self.expected == *specifier
-  }
-
   /// Does this instance's specifier mismatch the initial specifier only by its
   /// semver group's semver range?
   pub fn has_range_mismatch(&self) -> bool {

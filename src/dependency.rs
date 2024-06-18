@@ -64,14 +64,12 @@ impl Dependency {
     instance
   }
 
-  pub fn get_instances<'a>(
-    &'a self,
-    instances_by_id: &'a InstancesById,
-  ) -> impl Iterator<Item = &'a Instance> {
+  pub fn get_instances<'a>(&'a self, instances_by_id: &'a InstancesById) -> Vec<&'a Instance> {
     self
       .all
       .iter()
       .map(move |instance_id| instances_by_id.get(instance_id).unwrap())
+      .collect()
   }
 
   pub fn has_local_instance(&self) -> bool {
@@ -81,21 +79,40 @@ impl Dependency {
   pub fn has_preferred_ranges(&self, instances_by_id: &InstancesById) -> bool {
     self
       .get_instances(instances_by_id)
+      .iter()
       .any(|instance| instance.prefer_range.is_some())
   }
 
   pub fn get_local_specifier(&self, instances_by_id: &InstancesById) -> Option<Specifier> {
     self
       .get_instances(instances_by_id)
+      .iter()
       .find(|instance| instance.is_local)
-      .map(|instance| instance.expected.clone())
+      .map(|instance| instance.actual.clone())
   }
 
   pub fn all_are_semver(&self, instances_by_id: &InstancesById) -> bool {
     self
       .get_instances(instances_by_id)
-      .all(|instance| instance.expected.is_semver())
+      .iter()
+      .all(|instance| instance.actual.is_semver())
   }
+
+
+  /// Is the exact same specifier used by all instances in this group?
+pub fn all_are_identical(&self, instances_by_id: &InstancesById) -> bool {
+    let mut previous: Option<&Specifier> = None;
+    for instance in self.get_instances(instances_by_id) {
+    if let Some(value) = previous {
+        if *value != instance.expected {
+        return false;
+        }
+    }
+    previous = Some(&instance.expected);
+    }
+    return true;
+}
+
 
   pub fn get_highest_semver(&self, instances_by_id: &InstancesById) -> Option<Specifier> {
     self.get_highest_or_lowest_semver(instances_by_id, Cmp::Gt)
@@ -112,6 +129,7 @@ impl Dependency {
   ) -> Option<Specifier> {
     self
       .get_instances(instances_by_id)
+      .iter()
       .fold(None, |highest, instance| match highest {
         None => Some(&instance.expected),
         Some(highest) => match compare(instance.expected.unwrap(), highest.unwrap()) {
@@ -140,6 +158,7 @@ impl Dependency {
   ) -> HashMap<Specifier, Vec<&'a Instance>> {
     self
       .get_instances(instances_by_id)
+      .iter()
       .fold(HashMap::new(), |mut acc, instance| {
         acc
           .entry(instance.expected.clone())
@@ -200,20 +219,6 @@ impl Dependency {
   //     .map(|ids| ids.clone())
   //     .unwrap_or_else(|| vec![])
   // }
-
-  /// Is the exact same specifier used by all instances in this group?
-  pub fn all_specifiers_are_identical(&self, instances_by_id: &InstancesById) -> bool {
-    let mut previous: Option<&Specifier> = None;
-    for instance in self.get_instances(instances_by_id) {
-      if let Some(value) = previous {
-        if *value != instance.expected {
-          return false;
-        }
-      }
-      previous = Some(&instance.expected);
-    }
-    return true;
-  }
 
   // pub fn is_version_mismatch(&self, actual: &Specifier) -> bool {
   //   // if we determined an expected version... (such as the highest semver version,

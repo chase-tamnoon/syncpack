@@ -202,7 +202,7 @@ impl VersionGroup {
       Variant::Pinned => {
         self.dependencies.values().for_each(|dependency| {
           info!("TODO: versions could be identical but not match the pinVersion");
-          if !dependency.all_specifiers_are_identical() {
+          if !dependency.all_are_identical() {
             effects.on(Event::DependencyMismatchesPinnedVersion(dependency));
             let expected_version = dependency.expected_version.as_ref().unwrap();
             let matching_instance_ids = dependency.get_matching_instance_ids();
@@ -318,7 +318,7 @@ impl VersionGroup {
       }
       Variant::Standard => {
         self.dependencies.values().for_each(|dependency| {
-          if dependency.all_specifiers_are_identical() {
+          if dependency.all_are_identical() {
             effects.on(Event::DependencyMatchesStandard(dependency));
             dependency.for_each_instance_id(|(specifier, instance_id)| {
               effects.on(Event::InstanceMatchesStandard(&MatchEvent {

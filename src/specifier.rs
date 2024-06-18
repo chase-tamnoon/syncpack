@@ -97,6 +97,10 @@ impl Specifier {
     parse(specifier, false)
   }
 
+  pub fn matches(&self, specifier: &Specifier) -> bool {
+    *self == *specifier
+  }
+
   /// Get the `specifier_type` name as used in config files.
   pub fn get_type_name(&self) -> String {
     match self {
