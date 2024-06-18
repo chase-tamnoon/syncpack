@@ -34,7 +34,7 @@ impl Context {
 
           dependency.all.push(instance.id.clone());
           if instance.is_local {
-            dependency.local = Some(instance.id.clone());
+            dependency.local_instance_id = Some(instance.id.clone());
           }
 
           // let the dependency briefly own the instance
