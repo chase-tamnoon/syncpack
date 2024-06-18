@@ -70,41 +70,32 @@ impl VersionGroup {
 
   /// Add an instance to this version group
   pub fn add_instance(&mut self, instance: &Instance) {
-    // Ensure that a group exists for this dependency name.
-    if !self.dependencies.contains_key(&instance.name) {
-      self.dependencies.insert(
-        instance.name.clone(),
-        Dependency::new(instance.name.clone()),
-      );
+    fn get_or_create_dependency<'a>(
+      dependencies: &'a mut BTreeMap<String, Dependency>,
+      instance: &'a Instance,
+    ) -> &'a mut Dependency {
+      dependencies
+        .entry(instance.name.clone())
+        .or_insert_with(|| Dependency::new(instance.name.clone()))
     }
 
-    // Get the group for this dependency name.
-    let dependency = self.dependencies.get_mut(&instance.name).unwrap();
+    fn add_by_initial_specifier(dependency: &mut Dependency, instance: &Instance) {
+      let key = &instance.initial_specifier;
+      let index = &mut dependency.by_initial_specifier;
+      let instances = index.entry(key.clone()).or_insert_with(|| vec![]);
+      instances.push(instance.id.clone());
+    }
+
+    let dependency = get_or_create_dependency(&mut self.dependencies, &instance);
 
     // Track/count instances
     dependency.all.push(instance.id.clone());
 
-    // Track/count unique version specifiers and which instances use them
-    // 1. Ensure that a group exists for this specifier.
-    if !dependency
-      .by_initial_specifier
-      .contains_key(&instance.initial_specifier)
-    {
-      dependency
-        .by_initial_specifier
-        .insert(instance.initial_specifier.clone(), vec![]);
-    }
-
-    // 2. Add this instance against its specifier
-    dependency
-      .by_initial_specifier
-      .get_mut(&instance.initial_specifier)
-      .unwrap()
-      .push(instance.id.clone());
+    add_by_initial_specifier(dependency, instance);
 
     // If this is the original source of a locally-developed package, keep a
     // reference to it
-    if instance.dependency_type.name == "local" {
+    if &instance.dependency_type.name == "local" {
       dependency.local = Some(instance.id.clone());
     }
 
@@ -123,7 +114,7 @@ impl VersionGroup {
     if matches!(self.variant, VersionGroupVariant::Standard) {
       // If this is the original source of a locally-developed package, set it
       // as the preferred version
-      if instance.dependency_type.name == "local" {
+      if &instance.dependency_type.name == "local" {
         dependency.expected_version = Some(instance.specifier.clone());
       }
 
