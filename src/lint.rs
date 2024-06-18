@@ -25,6 +25,12 @@ pub fn lint(config: &Config, packages: &mut Packages, effects: &mut impl Effects
         match dependency.variant {
           Variant::Banned => {
             effects.on(Event::DependencyBanned(dependency));
+            dependency
+              .get_instances(&instances_by_id)
+              .iter_mut()
+              .for_each(|instance| {
+                // [INVALID: banned]
+              });
           }
           Variant::HighestSemver => {
             match dependency.get_local_specifier(&instances_by_id) {
@@ -39,7 +45,7 @@ pub fn lint(config: &Config, packages: &mut Packages, effects: &mut impl Effects
                       if instance.has_range_mismatch() {
                         // [INVALID: matches local, mismatches range]
                       } else {
-                        // [VALID: matches local AND semver group]
+                        // [VALID: matches local AND range]
                       }
                     } else {
                       // [INVALID: does not match local]
@@ -58,7 +64,7 @@ pub fn lint(config: &Config, packages: &mut Packages, effects: &mut impl Effects
                             if instance.has_range_mismatch() {
                               // [INVALID: matches highest semver, mismatches range]
                             } else {
-                              // [VALID: matches highest semver]
+                              // [VALID: matches highest semver AND range]
                             }
                           } else {
                             // [INVALID: does not match highest semver]
@@ -76,21 +82,40 @@ pub fn lint(config: &Config, packages: &mut Packages, effects: &mut impl Effects
                 }
               }
             }
-            // if dependency.all_are_semver(&instances_by_id)
-
-            // if has semver group
-            //   apply ranges to specifiers
-            // if has local
-            //   use local
-            //
           }
           Variant::Ignored => {
             effects.on(Event::DependencyIgnored(dependency));
           }
           Variant::LowestSemver => {}
-          Variant::Pinned => {}
-          Variant::SameRange => {}
-          Variant::SnappedTo => {}
+          Variant::Pinned => {
+            match &dependency.pinned_specifier {
+              Some(pinned) => {
+                dependency
+                  .get_instances(&instances_by_id)
+                  .iter_mut()
+                  .for_each(|instance| {
+                    if instance.actual.matches(&pinned) {
+                      if instance.has_range_mismatch() {
+                        // [INVALID: matches pinned, mismatches range]
+                      } else {
+                        // [VALID: matches pinned AND range]
+                      }
+                    } else {
+                      // [INVALID: does not match pinned]
+                    }
+                  });
+              }
+              None => {
+                panic!("No pinned specifier found for dependency {:?}", dependency);
+              }
+            }
+          }
+          Variant::SameRange => {
+            // @TODO: implement this in Dependency
+          }
+          Variant::SnappedTo => {
+            // @TODO: implement this in Dependency
+          }
         };
         // dependency.visit(config, &mut instances_by_id, packages, effects);
       });
