@@ -82,19 +82,11 @@ impl GroupSelector {
   }
 
   pub fn matches_packages(&self, instance: &Instance) -> bool {
-    matches_globs(
-      &instance.package_name,
-      &self.include_packages,
-      &self.exclude_packages,
-    )
+    matches_globs(&instance.package_name, &self.include_packages, &self.exclude_packages)
   }
 
   pub fn matches_dependencies(&self, instance: &Instance) -> bool {
-    matches_globs(
-      &instance.name,
-      &self.include_dependencies,
-      &self.exclude_dependencies,
-    )
+    matches_globs(&instance.name, &self.include_dependencies, &self.exclude_dependencies)
   }
 
   pub fn matches_specifier_types(&self, instance: &Instance) -> bool {
@@ -132,9 +124,7 @@ fn matches_any_glob(value: &String, globs: &Vec<GlobMatcher>) -> bool {
 fn create_identifiers(is_include: bool, patterns: &Vec<String>) -> Vec<String> {
   patterns
     .iter()
-    .filter(|pattern| {
-      *pattern != "**" && *pattern != "$LOCAL" && pattern.starts_with("!") != is_include
-    })
+    .filter(|pattern| *pattern != "**" && *pattern != "$LOCAL" && pattern.starts_with("!") != is_include)
     .map(|pattern| pattern.replace("!", ""))
     .collect()
 }

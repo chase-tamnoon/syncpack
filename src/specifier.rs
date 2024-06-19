@@ -74,20 +74,12 @@ pub enum Specifier {
 impl Specifier {
   pub fn is_semver(&self) -> bool {
     match self {
-      Self::Exact(_)
-      | Self::Latest(_)
-      | Self::Major(_)
-      | Self::Minor(_)
-      | Self::Range(_)
-      | Self::RangeComplex(_)
-      | Self::RangeMinor(_) => true,
-      Self::Alias(_)
-      | Self::File(_)
-      | Self::Git(_)
-      | Self::Tag(_)
-      | Self::Unsupported(_)
-      | Self::Url(_)
-      | Self::WorkspaceProtocol(_) => false,
+      Self::Exact(_) | Self::Latest(_) | Self::Major(_) | Self::Minor(_) | Self::Range(_) | Self::RangeComplex(_) | Self::RangeMinor(_) => {
+        true
+      }
+      Self::Alias(_) | Self::File(_) | Self::Git(_) | Self::Tag(_) | Self::Unsupported(_) | Self::Url(_) | Self::WorkspaceProtocol(_) => {
+        false
+      }
     }
   }
 }
@@ -152,9 +144,7 @@ impl Specifier {
   }
 
   pub fn has_range(&self, expected_range: &SemverRange) -> bool {
-    self
-      .get_semver_range()
-      .map_or(false, |range| range == *expected_range)
+    self.get_semver_range().map_or(false, |range| range == *expected_range)
   }
 
   pub fn get_exact(&self) -> Self {
@@ -195,10 +185,7 @@ impl Specifier {
         return Specifier::Latest("*".to_string());
       }
       None => {
-        panic!(
-          "Cannot set a semver range on a non-semver specifier: {:?}",
-          self
-        );
+        panic!("Cannot set a semver range on a non-semver specifier: {:?}", self);
       }
     }
   }
@@ -322,12 +309,7 @@ mod tests {
     ]);
     for case in cases {
       let parsed = Specifier::new(&case);
-      assert_eq!(
-        parsed,
-        Specifier::Alias(case.to_string()),
-        "{} should be alias",
-        case
-      );
+      assert_eq!(parsed, Specifier::Alias(case.to_string()), "{} should be alias", case);
     }
   }
 
@@ -342,12 +324,7 @@ mod tests {
     ]);
     for case in cases {
       let parsed = Specifier::new(&case);
-      assert_eq!(
-        parsed,
-        Specifier::Exact(case.clone()),
-        "{} should be exact",
-        case
-      );
+      assert_eq!(parsed, Specifier::Exact(case.clone()), "{} should be exact", case);
     }
   }
 
@@ -374,12 +351,7 @@ mod tests {
     ]);
     for case in cases {
       let parsed = Specifier::new(&case);
-      assert_eq!(
-        parsed,
-        Specifier::File(case.clone()),
-        "{} should be file",
-        case
-      );
+      assert_eq!(parsed, Specifier::File(case.clone()), "{} should be file", case);
     }
   }
 
@@ -421,12 +393,7 @@ mod tests {
     ]);
     for case in cases {
       let parsed = Specifier::new(&case);
-      assert_eq!(
-        parsed,
-        Specifier::Git(case.clone()),
-        "{} should be git",
-        case
-      );
+      assert_eq!(parsed, Specifier::Git(case.clone()), "{} should be git", case);
     }
   }
 
@@ -435,12 +402,7 @@ mod tests {
     let cases: Vec<String> = to_strings(vec!["latest", "*"]);
     for case in cases {
       let parsed = Specifier::new(&case);
-      assert_eq!(
-        parsed,
-        Specifier::Latest("*".to_string()),
-        "{} should be latest",
-        case
-      );
+      assert_eq!(parsed, Specifier::Latest("*".to_string()), "{} should be latest", case);
     }
   }
 
@@ -449,12 +411,7 @@ mod tests {
     let cases: Vec<String> = to_strings(vec!["1"]);
     for case in cases {
       let parsed = Specifier::new(&case);
-      assert_eq!(
-        parsed,
-        Specifier::Major(case.clone()),
-        "{} should be major",
-        case
-      );
+      assert_eq!(parsed, Specifier::Major(case.clone()), "{} should be major", case);
     }
   }
 
@@ -463,12 +420,7 @@ mod tests {
     let cases: Vec<String> = to_strings(vec!["1.2"]);
     for case in cases {
       let parsed = Specifier::new(&case);
-      assert_eq!(
-        parsed,
-        Specifier::Minor(case.clone()),
-        "{} should be minor",
-        case
-      );
+      assert_eq!(parsed, Specifier::Minor(case.clone()), "{} should be minor", case);
     }
   }
 
@@ -486,12 +438,7 @@ mod tests {
     ]);
     for case in cases {
       let parsed = Specifier::new(&case);
-      assert_eq!(
-        parsed,
-        Specifier::Range(case.clone()),
-        "{} should be range",
-        case
-      );
+      assert_eq!(parsed, Specifier::Range(case.clone()), "{} should be range", case);
     }
   }
 
@@ -500,12 +447,7 @@ mod tests {
     let cases: Vec<String> = to_strings(vec!["^4.1", "~1.2", ">=5.0", "<=5.0", ">5.0", "<5.0"]);
     for case in cases {
       let parsed = Specifier::new(&case);
-      assert_eq!(
-        parsed,
-        Specifier::RangeMinor(case.clone()),
-        "{} should be range-minor",
-        case
-      );
+      assert_eq!(parsed, Specifier::RangeMinor(case.clone()), "{} should be range-minor", case);
     }
   }
 
@@ -514,12 +456,7 @@ mod tests {
     let cases: Vec<String> = to_strings(vec!["alpha", "canary", "foo"]);
     for case in cases {
       let parsed = Specifier::new(&case);
-      assert_eq!(
-        parsed,
-        Specifier::Tag(case.clone()),
-        "{} should be tag",
-        case
-      );
+      assert_eq!(parsed, Specifier::Tag(case.clone()), "{} should be tag", case);
     }
   }
 
@@ -544,12 +481,7 @@ mod tests {
     ]);
     for case in cases {
       let parsed = Specifier::new(&case);
-      assert_eq!(
-        parsed,
-        Specifier::Unsupported(case.clone()),
-        "{} should be unsupported",
-        case
-      );
+      assert_eq!(parsed, Specifier::Unsupported(case.clone()), "{} should be unsupported", case);
     }
   }
 
@@ -562,12 +494,7 @@ mod tests {
     ]);
     for case in cases {
       let parsed = Specifier::new(&case);
-      assert_eq!(
-        parsed,
-        Specifier::Url(case.clone()),
-        "{} should be url",
-        &case
-      );
+      assert_eq!(parsed, Specifier::Url(case.clone()), "{} should be url", &case);
     }
   }
 
@@ -599,12 +526,7 @@ mod tests {
     ]);
     for case in cases {
       let parsed = Specifier::new(&case);
-      assert_eq!(
-        parsed,
-        Specifier::RangeComplex(case.clone()),
-        "{} should be range-complex",
-        case
-      );
+      assert_eq!(parsed, Specifier::RangeComplex(case.clone()), "{} should be range-complex", case);
     }
   }
 

@@ -15,10 +15,7 @@ pub struct LintEffects<'a> {
 
 impl<'a> LintEffects<'a> {
   pub fn new(config: &'a Config) -> Self {
-    Self {
-      is_valid: true,
-      config,
-    }
+    Self { is_valid: true, config }
   }
 }
 

@@ -90,12 +90,7 @@ impl Instance {
         let path_to_obj = &self.dependency_type.path;
         let name = &self.name;
         let path_to_obj_str = path_to_obj.as_str();
-        let obj = package
-          .contents
-          .pointer_mut(path_to_obj_str)
-          .unwrap()
-          .as_object_mut()
-          .unwrap();
+        let obj = package.contents.pointer_mut(path_to_obj_str).unwrap().as_object_mut().unwrap();
         let value = obj.get_mut(name).unwrap();
         *value = Value::String(raw_specifier.clone());
       }

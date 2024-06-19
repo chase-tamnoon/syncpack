@@ -38,10 +38,7 @@ impl<'a> Expects<'a> {
     self
   }
 
-  pub fn to_have_standard_version_group_matches(
-    &self,
-    expected_matches: Vec<ExpectedMatchEvent>,
-  ) -> &Self {
+  pub fn to_have_standard_version_group_matches(&self, expected_matches: Vec<ExpectedMatchEvent>) -> &Self {
     self.expect_instance_matches(
       "standard version group",
       &expected_matches,
@@ -49,10 +46,7 @@ impl<'a> Expects<'a> {
     )
   }
 
-  pub fn to_have_highest_version_mismatches(
-    &self,
-    expected_mismatches: Vec<ExpectedMismatchEvent>,
-  ) -> &Self {
+  pub fn to_have_highest_version_mismatches(&self, expected_mismatches: Vec<ExpectedMismatchEvent>) -> &Self {
     self.expect_instance_mismatches(
       "highest semver",
       &expected_mismatches,
@@ -60,10 +54,7 @@ impl<'a> Expects<'a> {
     )
   }
 
-  pub fn to_have_rejected_local_version_mismatches(
-    &self,
-    expected_mismatches: Vec<ExpectedMismatchEvent>,
-  ) -> &Self {
+  pub fn to_have_rejected_local_version_mismatches(&self, expected_mismatches: Vec<ExpectedMismatchEvent>) -> &Self {
     self.expect_instance_mismatches(
       "rejected local version",
       &expected_mismatches,
@@ -71,10 +62,7 @@ impl<'a> Expects<'a> {
     )
   }
 
-  pub fn to_have_local_version_mismatches(
-    &self,
-    expected_mismatches: Vec<ExpectedMismatchEvent>,
-  ) -> &Self {
+  pub fn to_have_local_version_mismatches(&self, expected_mismatches: Vec<ExpectedMismatchEvent>) -> &Self {
     self.expect_instance_mismatches(
       "local version",
       &expected_mismatches,
@@ -82,10 +70,7 @@ impl<'a> Expects<'a> {
     )
   }
 
-  pub fn to_have_pinned_version_mismatches(
-    &self,
-    expected_mismatches: Vec<ExpectedMismatchEvent>,
-  ) -> &Self {
+  pub fn to_have_pinned_version_mismatches(&self, expected_mismatches: Vec<ExpectedMismatchEvent>) -> &Self {
     self.expect_instance_mismatches(
       "highest semver",
       &expected_mismatches,
@@ -93,10 +78,7 @@ impl<'a> Expects<'a> {
     )
   }
 
-  pub fn to_have_semver_range_mismatches(
-    &self,
-    expected_mismatches: Vec<ExpectedMismatchEvent>,
-  ) -> &Self {
+  pub fn to_have_semver_range_mismatches(&self, expected_mismatches: Vec<ExpectedMismatchEvent>) -> &Self {
     self.expect_instance_mismatches(
       "semver range",
       &expected_mismatches,
@@ -125,9 +107,7 @@ impl<'a> Expects<'a> {
       let specifier = expected.specifier.to_string();
 
       for actual in actual_matches {
-        if actual.dependency_name == dependency_name
-          && actual.specifier.unwrap().clone() == specifier
-          && actual.instance_id == instance_id
+        if actual.dependency_name == dependency_name && actual.specifier.unwrap().clone() == specifier && actual.instance_id == instance_id
         {
           continue 'expected;
         }

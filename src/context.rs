@@ -1,8 +1,7 @@
 use std::collections::BTreeMap;
 
 use crate::{
-  config::Config, dependency::InstancesById, instance::Instance, packages::Packages,
-  semver_group::SemverGroup, version_group::VersionGroup,
+  config::Config, dependency::InstancesById, instance::Instance, packages::Packages, semver_group::SemverGroup, version_group::VersionGroup,
 };
 
 pub struct Context {

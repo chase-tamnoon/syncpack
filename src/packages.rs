@@ -118,12 +118,7 @@ impl Packages {
               for (name, raw_specifier) in versions_by_name {
                 if matches_filter(name) {
                   if let Value::String(version) = raw_specifier {
-                    on_instance(Instance::new(
-                      name.to_string(),
-                      version.to_string(),
-                      &dependency_type,
-                      &package,
-                    ));
+                    on_instance(Instance::new(name.to_string(), version.to_string(), &dependency_type, &package));
                   }
                 }
               }
@@ -152,12 +147,10 @@ fn get_file_paths(config: &Config) -> Vec<PathBuf> {
     })
     .flat_map(|pattern| glob(&pattern).ok())
     .flat_map(|paths| {
-      paths
-        .filter_map(Result::ok)
-        .fold(vec![], |mut paths, path| {
-          paths.push(path.clone());
-          paths
-        })
+      paths.filter_map(Result::ok).fold(vec![], |mut paths, path| {
+        paths.push(path.clone());
+        paths
+      })
     })
     .collect()
 }
@@ -208,8 +201,5 @@ fn get_lerna_patterns() -> Option<Vec<String>> {
 }
 
 fn get_default_patterns() -> Option<Vec<String>> {
-  Some(vec![
-    String::from("package.json"),
-    String::from("packages/*/package.json"),
-  ])
+  Some(vec![String::from("package.json"), String::from("packages/*/package.json")])
 }

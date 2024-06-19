@@ -18,10 +18,7 @@ pub struct FixEffects<'a> {
 
 impl<'a> FixEffects<'a> {
   pub fn new(config: &'a Config) -> Self {
-    Self {
-      is_valid: true,
-      config,
-    }
+    Self { is_valid: true, config }
   }
 }
 
@@ -202,9 +199,6 @@ fn set_instance_version_to(
   expected_specifier: &Specifier,
 ) {
   let target_instance = instances_by_id.get_mut(instance_id).unwrap();
-  let package = packages
-    .by_name
-    .get_mut(&target_instance.package_name)
-    .unwrap();
+  let package = packages.by_name.get_mut(&target_instance.package_name).unwrap();
   target_instance.set_specifier(package, expected_specifier);
 }

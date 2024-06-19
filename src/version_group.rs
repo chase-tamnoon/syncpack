@@ -1,9 +1,7 @@
 use serde::Deserialize;
 use std::{collections::BTreeMap, vec};
 
-use crate::{
-  dependency::Dependency, group_selector::GroupSelector, instance::Instance, specifier::Specifier,
-};
+use crate::{dependency::Dependency, group_selector::GroupSelector, instance::Instance, specifier::Specifier};
 
 /// What behaviour has this group been configured to exhibit?
 #[derive(Clone, Debug)]
@@ -51,17 +49,14 @@ impl VersionGroup {
 
   ///
   pub fn get_or_create_dependency(&mut self, instance: &Instance) -> &mut Dependency {
-    self
-      .dependencies
-      .entry(instance.name.clone())
-      .or_insert_with(|| {
-        Dependency::new(
-          /*name:*/ instance.name.clone(),
-          /*variant:*/ self.variant.clone(),
-          /*pin_version:*/ self.pin_version.clone(),
-          /*snap_to:*/ self.snap_to.clone(),
-        )
-      })
+    self.dependencies.entry(instance.name.clone()).or_insert_with(|| {
+      Dependency::new(
+        /*name:*/ instance.name.clone(),
+        /*variant:*/ self.variant.clone(),
+        /*pin_version:*/ self.pin_version.clone(),
+        /*snap_to:*/ self.snap_to.clone(),
+      )
+    })
   }
 
   /// Create a single version group from a config item from the rcfile.
@@ -177,10 +172,7 @@ pub struct AnyVersionGroup {
 }
 
 /// Resolve keywords such as `$LOCAL` and `!$LOCAL` to their actual values.
-fn with_resolved_keywords(
-  dependency_names: &Vec<String>,
-  local_package_names: &Vec<String>,
-) -> Vec<String> {
+fn with_resolved_keywords(dependency_names: &Vec<String>, local_package_names: &Vec<String>) -> Vec<String> {
   let mut resolved_dependencies: Vec<String> = vec![];
   for dependency in dependency_names.iter() {
     match dependency.as_str() {

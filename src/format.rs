@@ -78,10 +78,7 @@ fn sort_exports(rcfile: &Rcfile, package: &mut PackageJson) {
 /// Sort the values of the given keys alphabetically
 fn sort_az(rcfile: &Rcfile, package: &mut PackageJson) {
   rcfile.sort_az.iter().for_each(|key| {
-    package
-      .contents
-      .pointer_mut(format!("/{}", key).as_str())
-      .map(sort_alphabetically);
+    package.contents.pointer_mut(format!("/{}", key).as_str()).map(sort_alphabetically);
   });
 }
 
@@ -99,18 +96,10 @@ fn sort_first(rcfile: &Rcfile, package: &mut PackageJson) {
 /// * `order`: The keys to sort first, in order.
 /// * `obj`: The JSON object to sort.
 /// * `sort_remaining_keys`: Whether to sort the remaining keys alphabetically.
-fn sort_keys_with_priority(
-  order: &Vec<String>,
-  obj: &mut Map<String, Value>,
-  sort_remaining_keys: bool,
-) {
+fn sort_keys_with_priority(order: &Vec<String>, obj: &mut Map<String, Value>, sort_remaining_keys: bool) {
   let order_set: HashSet<_> = order.into_iter().collect();
   let mut sorted_obj: Map<String, Value> = Map::new();
-  let mut remaining_keys: Vec<_> = obj
-    .keys()
-    .filter(|k| !order_set.contains(*k))
-    .cloned()
-    .collect();
+  let mut remaining_keys: Vec<_> = obj.keys().filter(|k| !order_set.contains(*k)).cloned().collect();
 
   if sort_remaining_keys {
     let collator = get_locale_collator();
@@ -175,11 +164,7 @@ fn format_repository(package: &mut PackageJson) {
     package
       .get_prop("/repository/url")
       .and_then(|repository_url| repository_url.as_str())
-      .and_then(|url| {
-        Regex::new(r#".+github\.com/"#)
-          .ok()
-          .map(|re| re.replace(url, "").to_string())
-      })
+      .and_then(|url| Regex::new(r#".+github\.com/"#).ok().map(|re| re.replace(url, "").to_string()))
       .map(|next_url| package.set_prop("/repository", json!(next_url)));
   }
 }

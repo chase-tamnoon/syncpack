@@ -41,10 +41,7 @@ pub struct DependencyType {
 impl DependencyType {
   pub fn new(name: &String, config: &config::CustomType) -> DependencyType {
     DependencyType {
-      name_path: config
-        .name_path
-        .as_ref()
-        .map(|name_path| normalize_path(&name_path)),
+      name_path: config.name_path.as_ref().map(|name_path| normalize_path(&name_path)),
       name: name.clone(),
       path: normalize_path(&config.path),
       strategy: Strategy::new(config.strategy.as_str()),

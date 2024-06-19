@@ -107,10 +107,7 @@ impl Dependency {
       .all(|instance| instance.actual.is_semver())
   }
 
-  pub fn get_unique_expected_and_actual_specifiers(
-    &self,
-    instances_by_id: &InstancesById,
-  ) -> HashSet<Specifier> {
+  pub fn get_unique_expected_and_actual_specifiers(&self, instances_by_id: &InstancesById) -> HashSet<Specifier> {
     self
       .get_instances(instances_by_id)
       .iter()
@@ -121,10 +118,7 @@ impl Dependency {
       })
   }
 
-  pub fn get_unique_expected_specifiers(
-    &self,
-    instances_by_id: &InstancesById,
-  ) -> HashSet<Specifier> {
+  pub fn get_unique_expected_specifiers(&self, instances_by_id: &InstancesById) -> HashSet<Specifier> {
     self
       .get_instances(instances_by_id)
       .iter()
@@ -160,11 +154,7 @@ impl Dependency {
   ///
   /// We compare the expected (not actual) specifier because we're looking for
   /// what we should suggest as the correct specifier once `fix` is applied
-  pub fn get_highest_or_lowest_semver(
-    &self,
-    instances_by_id: &InstancesById,
-    preferred_order: Cmp,
-  ) -> Option<Specifier> {
+  pub fn get_highest_or_lowest_semver(&self, instances_by_id: &InstancesById, preferred_order: Cmp) -> Option<Specifier> {
     self
       .get_instances(instances_by_id)
       .iter()
@@ -196,10 +186,7 @@ impl Dependency {
   ///
   /// We should compare the actual and expected specifier of each instance to
   /// determine what to do
-  pub fn get_same_range_mismatches<'a>(
-    &'a self,
-    instances_by_id: &'a InstancesById,
-  ) -> HashMap<Specifier, Vec<Specifier>> {
+  pub fn get_same_range_mismatches<'a>(&'a self, instances_by_id: &'a InstancesById) -> HashMap<Specifier, Vec<Specifier>> {
     let get_range = |specifier: &Specifier| specifier.unwrap().parse::<Range>().unwrap();
     let mut mismatches_by_specifier: HashMap<Specifier, Vec<Specifier>> = HashMap::new();
     let unique_semver_specifiers: Vec<Specifier> = self
@@ -235,10 +222,7 @@ impl Dependency {
   ///
   /// Even though the actual specifiers on disk might currently match, we should
   /// suggest it match what we the snapped to specifier should be once fixed
-  pub fn get_snapped_to_specifier<'a>(
-    &self,
-    instances_by_id: &'a InstancesById,
-  ) -> Option<Specifier> {
+  pub fn get_snapped_to_specifier<'a>(&self, instances_by_id: &'a InstancesById) -> Option<Specifier> {
     if let Some(snapped_to_package_names) = &self.snapped_to_package_names {
       for instance in instances_by_id.values() {
         if instance.name == *self.name {
@@ -257,18 +241,12 @@ impl Dependency {
   /// The values are each instance which has that version specifier.
   ///
   /// If there is more than one unique version, then we have mismatches
-  pub fn group_by_specifier<'a>(
-    &'a self,
-    instances_by_id: &'a InstancesById,
-  ) -> HashMap<Specifier, Vec<&'a Instance>> {
+  pub fn group_by_specifier<'a>(&'a self, instances_by_id: &'a InstancesById) -> HashMap<Specifier, Vec<&'a Instance>> {
     self
       .get_instances(instances_by_id)
       .iter()
       .fold(HashMap::new(), |mut acc, instance| {
-        acc
-          .entry(instance.actual.clone())
-          .or_insert_with(|| vec![])
-          .push(&instance);
+        acc.entry(instance.actual.clone()).or_insert_with(|| vec![]).push(&instance);
         acc
       })
   }

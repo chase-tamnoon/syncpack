@@ -215,63 +215,42 @@ impl Effects for MockEffects {
         self.events.dependency_banned.push(());
       }
       Event::DependencyMatchesWithRange(dependency) => {
-        self
-          .events
-          .dependency_matches_with_range
-          .push(dependency.name.clone());
+        self.events.dependency_matches_with_range.push(dependency.name.clone());
       }
       Event::DependencyMismatchesWithRange(dependency) => {
-        self
-          .events
-          .dependency_mismatches_with_range
-          .push(dependency.name.clone());
+        self.events.dependency_mismatches_with_range.push(dependency.name.clone());
       }
       Event::DependencyMatchesPinnedVersion(dependency) => {
-        self
-          .events
-          .dependency_matches_pinned_version
-          .push(dependency.name.clone());
+        self.events.dependency_matches_pinned_version.push(dependency.name.clone());
       }
       Event::DependencyMismatchesPinnedVersion(dependency) => {
         self.events.dependency_mismatches_pinned_version.push(());
       }
       Event::DependencyMatchesSameRange(dependency) => {
-        self
-          .events
-          .dependency_matches_range
-          .push(dependency.name.clone());
+        self.events.dependency_matches_range.push(dependency.name.clone());
       }
       Event::DependencyMismatchesSameRange(dependency) => {
         self.events.dependency_mismatches_range.push(());
       }
       Event::DependencyMatchesSnapTo(dependency) => {
-        self
-          .events
-          .dependency_matches_snap_to
-          .push(dependency.name.clone());
+        self.events.dependency_matches_snap_to.push(dependency.name.clone());
       }
       Event::DependencyMismatchesSnapTo(dependency) => {
         self.events.dependency_mismatches_snap_to.push(());
       }
       Event::DependencyMatchesStandard(dependency) => {
-        self
-          .events
-          .dependency_matches_standard
-          .push(dependency.name.clone());
+        self.events.dependency_matches_standard.push(dependency.name.clone());
       }
       Event::DependencyMismatchesStandard(dependency) => {
         self.events.dependency_mismatches_standard.push(());
       }
 
       Event::InstanceMatchesStandard(event) => {
-        self
-          .events
-          .instance_matches_standard
-          .push(PartialMatchEvent {
-            instance_id: event.instance_id.clone(),
-            dependency_name: event.dependency.name.clone(),
-            specifier: event.specifier.clone(),
-          });
+        self.events.instance_matches_standard.push(PartialMatchEvent {
+          instance_id: event.instance_id.clone(),
+          dependency_name: event.dependency.name.clone(),
+          specifier: event.specifier.clone(),
+        });
       }
       Event::InstanceBanned(event) => {
         self.events.instance_banned.push(PartialBannedEvent {
@@ -280,120 +259,90 @@ impl Effects for MockEffects {
         });
       }
       Event::InstanceMatchesWithRange(event) => {
-        self
-          .events
-          .instance_matches_semver_range
-          .push(PartialMatchEvent {
-            instance_id: event.instance_id.clone(),
-            dependency_name: event.dependency.name.clone(),
-            specifier: event.specifier.clone(),
-          });
+        self.events.instance_matches_semver_range.push(PartialMatchEvent {
+          instance_id: event.instance_id.clone(),
+          dependency_name: event.dependency.name.clone(),
+          specifier: event.specifier.clone(),
+        });
       }
       Event::InstanceMismatchesWithRange(event) => {
-        self
-          .events
-          .instance_mismatches_semver_range
-          .push(PartialMismatchEvent {
-            instance_id: event.instance_id.clone(),
-            dependency_name: event.dependency.name.clone(),
-            expected_specifier: event.expected_specifier.clone(),
-            matching_instance_ids: event.matching_instance_ids.clone(),
-            actual_specifier: event.actual_specifier.clone(),
-          });
+        self.events.instance_mismatches_semver_range.push(PartialMismatchEvent {
+          instance_id: event.instance_id.clone(),
+          dependency_name: event.dependency.name.clone(),
+          expected_specifier: event.expected_specifier.clone(),
+          matching_instance_ids: event.matching_instance_ids.clone(),
+          actual_specifier: event.actual_specifier.clone(),
+        });
       }
       Event::InstanceMismatchesPinnedVersion(event) => {
-        self
-          .events
-          .instance_mismatches_pinned_version
-          .push(PartialMismatchEvent {
-            instance_id: event.instance_id.clone(),
-            dependency_name: event.dependency.name.clone(),
-            expected_specifier: event.expected_specifier.clone(),
-            matching_instance_ids: event.matching_instance_ids.clone(),
-            actual_specifier: event.actual_specifier.clone(),
-          });
+        self.events.instance_mismatches_pinned_version.push(PartialMismatchEvent {
+          instance_id: event.instance_id.clone(),
+          dependency_name: event.dependency.name.clone(),
+          expected_specifier: event.expected_specifier.clone(),
+          matching_instance_ids: event.matching_instance_ids.clone(),
+          actual_specifier: event.actual_specifier.clone(),
+        });
       }
       Event::InstanceMismatchesSameRange(event) => {
-        self
-          .events
-          .instance_mismatches_range
-          .push(PartialSameRangeMismatchEvent {
-            instance_id: event.instance_id.clone(),
-            dependency_name: event.dependency.name.clone(),
-            specifier: event.specifier.clone(),
-            specifier_outside_range: event.specifier_outside_range.clone(),
-            instance_ids_outside_range: event.instance_ids_outside_range.clone(),
-          });
+        self.events.instance_mismatches_range.push(PartialSameRangeMismatchEvent {
+          instance_id: event.instance_id.clone(),
+          dependency_name: event.dependency.name.clone(),
+          specifier: event.specifier.clone(),
+          specifier_outside_range: event.specifier_outside_range.clone(),
+          instance_ids_outside_range: event.instance_ids_outside_range.clone(),
+        });
       }
       Event::InstanceMismatchesSnapTo(event) => {
-        self
-          .events
-          .instance_mismatches_snap_to
-          .push(PartialSnapToMismatchEvent {
-            instance_id: event.instance_id.clone(),
-            dependency_name: event.dependency.name.clone(),
-            expected_specifier: event.expected_specifier.clone(),
-            actual_specifier: event.actual_specifier.clone(),
-            snap_to_instance_id: event.snap_to_instance_id.clone(),
-          });
+        self.events.instance_mismatches_snap_to.push(PartialSnapToMismatchEvent {
+          instance_id: event.instance_id.clone(),
+          dependency_name: event.dependency.name.clone(),
+          expected_specifier: event.expected_specifier.clone(),
+          actual_specifier: event.actual_specifier.clone(),
+          snap_to_instance_id: event.snap_to_instance_id.clone(),
+        });
       }
       Event::InstanceMismatchCorruptsLocalVersion(event) => {
-        self
-          .events
-          .instance_mismatch_changes_local_version
-          .push(PartialMismatchEvent {
-            instance_id: event.instance_id.clone(),
-            dependency_name: event.dependency.name.clone(),
-            expected_specifier: event.expected_specifier.clone(),
-            matching_instance_ids: event.matching_instance_ids.clone(),
-            actual_specifier: event.actual_specifier.clone(),
-          });
+        self.events.instance_mismatch_changes_local_version.push(PartialMismatchEvent {
+          instance_id: event.instance_id.clone(),
+          dependency_name: event.dependency.name.clone(),
+          expected_specifier: event.expected_specifier.clone(),
+          matching_instance_ids: event.matching_instance_ids.clone(),
+          actual_specifier: event.actual_specifier.clone(),
+        });
       }
       Event::InstanceMismatchesLocalVersion(event) => {
-        self
-          .events
-          .instance_mismatches_local_version
-          .push(PartialMismatchEvent {
-            instance_id: event.instance_id.clone(),
-            dependency_name: event.dependency.name.clone(),
-            expected_specifier: event.expected_specifier.clone(),
-            matching_instance_ids: event.matching_instance_ids.clone(),
-            actual_specifier: event.actual_specifier.clone(),
-          });
+        self.events.instance_mismatches_local_version.push(PartialMismatchEvent {
+          instance_id: event.instance_id.clone(),
+          dependency_name: event.dependency.name.clone(),
+          expected_specifier: event.expected_specifier.clone(),
+          matching_instance_ids: event.matching_instance_ids.clone(),
+          actual_specifier: event.actual_specifier.clone(),
+        });
       }
       Event::InstanceUnsupportedMismatch(event) => {
-        self
-          .events
-          .instance_unsupported_mismatch
-          .push(PartialUnsupportedMismatchEvent {
-            instance_id: event.instance_id.clone(),
-            dependency_name: event.dependency.name.clone(),
-            specifier: event.specifier.clone(),
-          });
+        self.events.instance_unsupported_mismatch.push(PartialUnsupportedMismatchEvent {
+          instance_id: event.instance_id.clone(),
+          dependency_name: event.dependency.name.clone(),
+          specifier: event.specifier.clone(),
+        });
       }
       Event::InstanceMismatchesLowestVersion(event) => {
-        self
-          .events
-          .instance_mismatches_lowest_version
-          .push(PartialMismatchEvent {
-            instance_id: event.instance_id.clone(),
-            dependency_name: event.dependency.name.clone(),
-            expected_specifier: event.expected_specifier.clone(),
-            matching_instance_ids: event.matching_instance_ids.clone(),
-            actual_specifier: event.actual_specifier.clone(),
-          });
+        self.events.instance_mismatches_lowest_version.push(PartialMismatchEvent {
+          instance_id: event.instance_id.clone(),
+          dependency_name: event.dependency.name.clone(),
+          expected_specifier: event.expected_specifier.clone(),
+          matching_instance_ids: event.matching_instance_ids.clone(),
+          actual_specifier: event.actual_specifier.clone(),
+        });
       }
       Event::InstanceMismatchesHighestVersion(event) => {
-        self
-          .events
-          .instance_mismatches_highest_version
-          .push(PartialMismatchEvent {
-            instance_id: event.instance_id.clone(),
-            dependency_name: event.dependency.name.clone(),
-            expected_specifier: event.expected_specifier.clone(),
-            matching_instance_ids: event.matching_instance_ids.clone(),
-            actual_specifier: event.actual_specifier.clone(),
-          });
+        self.events.instance_mismatches_highest_version.push(PartialMismatchEvent {
+          instance_id: event.instance_id.clone(),
+          dependency_name: event.dependency.name.clone(),
+          expected_specifier: event.expected_specifier.clone(),
+          matching_instance_ids: event.matching_instance_ids.clone(),
+          actual_specifier: event.actual_specifier.clone(),
+        });
       }
     };
   }
