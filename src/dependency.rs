@@ -139,7 +139,7 @@ impl Dependency {
     self.get_highest_or_lowest_semver(instances_by_id, Cmp::Lt)
   }
 
-  fn get_highest_or_lowest_semver(
+  pub fn get_highest_or_lowest_semver(
     &self,
     instances_by_id: &InstancesById,
     preferred_order: Cmp,

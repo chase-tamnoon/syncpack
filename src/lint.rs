@@ -1,3 +1,5 @@
+use version_compare::Cmp;
+
 use crate::{
   config::Config,
   context::Context,
@@ -32,7 +34,10 @@ pub fn lint(config: &Config, packages: &mut Packages, effects: &mut impl Effects
                 // [INVALID: banned]
               });
           }
-          Variant::HighestSemver => {
+          Variant::HighestSemver | Variant::LowestSemver => {
+            let prefer_highest = matches!(dependency.variant, Variant::HighestSemver);
+            let preferred_order: Cmp = if prefer_highest { Cmp::Gt } else { Cmp::Lt };
+            let label: &str = if prefer_highest { "highest" } else { "lowest" };
             match dependency.get_local_specifier(&instances_by_id) {
               Some(local_specifier) => {
                 dependency
@@ -54,13 +59,13 @@ pub fn lint(config: &Config, packages: &mut Packages, effects: &mut impl Effects
               }
               None => {
                 if dependency.all_are_semver(&instances_by_id) {
-                  match dependency.get_highest_semver(&instances_by_id) {
-                    Some(highest) => {
+                  match dependency.get_highest_or_lowest_semver(&instances_by_id, preferred_order) {
+                    Some(preferred) => {
                       dependency
                         .get_instances(&instances_by_id)
                         .iter_mut()
                         .for_each(|instance| {
-                          if instance.actual.matches(&highest) {
+                          if instance.actual.matches(&preferred) {
                             if instance.has_range_mismatch() {
                               // [INVALID: matches highest semver, mismatches range]
                             } else {
@@ -72,7 +77,7 @@ pub fn lint(config: &Config, packages: &mut Packages, effects: &mut impl Effects
                         });
                     }
                     None => {
-                      panic!("No highest semver found for dependency {:?}", dependency);
+                      panic!("No {} semver found for dependency {:?}", label, dependency);
                     }
                   }
                 } else if dependency.all_are_identical(&instances_by_id) {
@@ -87,7 +92,6 @@ pub fn lint(config: &Config, packages: &mut Packages, effects: &mut impl Effects
           Variant::Ignored => {
             effects.on(Event::DependencyIgnored(dependency));
           }
-          Variant::LowestSemver => {}
           Variant::Pinned => {
             match &dependency.pinned_specifier {
               Some(pinned) => {
@@ -135,7 +139,6 @@ pub fn lint(config: &Config, packages: &mut Packages, effects: &mut impl Effects
             // @TODO: implement this in Dependency
           }
         };
-        // dependency.visit(config, &mut instances_by_id, packages, effects);
       });
     });
   }
