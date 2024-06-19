@@ -1,3 +1,5 @@
+use itertools::Itertools;
+use std::cmp::Ordering;
 use version_compare::Cmp;
 
 use crate::{
@@ -22,149 +24,163 @@ pub fn lint(config: &Config, packages: &mut Packages, effects: &mut impl Effects
   effects.on(Event::EnterVersionsAndRanges);
 
   if cli.options.versions {
-    version_groups.iter().for_each(|group| {
-      group.dependencies.values().for_each(|dependency| {
-        match dependency.variant {
-          Variant::Banned => {
-            effects.on(Event::DependencyBanned(dependency));
-            dependency
-              .get_instances(&instances_by_id)
-              .iter_mut()
-              .for_each(|instance| {
-                // [INVALID: banned]
-              });
-          }
-          Variant::HighestSemver | Variant::LowestSemver => {
-            let prefer_highest = matches!(dependency.variant, Variant::HighestSemver);
-            let preferred_order: Cmp = if prefer_highest { Cmp::Gt } else { Cmp::Lt };
-            let label: &str = if prefer_highest { "highest" } else { "lowest" };
-            match dependency.get_local_specifier(&instances_by_id) {
-              Some(local_specifier) => {
-                dependency
-                  .get_instances(&instances_by_id)
-                  .iter_mut()
-                  .for_each(|instance| {
-                    if instance.is_local {
-                      // [VALID: is local source of truth]
-                    } else if instance.actual.matches(&local_specifier) {
-                      if instance.has_range_mismatch() {
-                        // [INVALID: matches local, mismatches range]
-                      } else {
-                        // [VALID: matches local AND range]
-                      }
-                    } else {
-                      // [INVALID: does not match local]
-                    }
-                  });
-              }
-              None => {
-                if dependency.all_are_semver(&instances_by_id) {
-                  match dependency.get_highest_or_lowest_semver(&instances_by_id, preferred_order) {
-                    Some(preferred) => {
-                      dependency
-                        .get_instances(&instances_by_id)
-                        .iter_mut()
-                        .for_each(|instance| {
-                          if instance.actual.matches(&preferred) {
-                            if instance.has_range_mismatch() {
-                              // [INVALID: matches highest semver, mismatches range]
-                            } else {
-                              // [VALID: matches highest semver AND range]
-                            }
-                          } else {
-                            // [INVALID: does not match highest semver]
-                          }
-                        });
-                    }
-                    None => {
-                      panic!("No {} semver found for dependency {:?}", label, dependency);
-                    }
-                  }
-                } else if dependency.all_are_identical(&instances_by_id) {
-                  // [VALID: unsupported but all match]
-                } else {
-                  // [INVALID: unsupported and do not all match]
-                  // @TODO: fire a specific event which explains this scenario
-                }
-              }
-            }
-          }
-          Variant::Ignored => {
-            effects.on(Event::DependencyIgnored(dependency));
-          }
-          Variant::Pinned => {
-            match &dependency.pinned_specifier {
-              Some(pinned) => {
-                dependency
-                  .get_instances(&instances_by_id)
-                  .iter_mut()
-                  .for_each(|instance| {
-                    if instance.actual.matches(&pinned) {
-                      if instance.has_range_mismatch() {
-                        if instance.is_local {
-                          // [REFUSED: is local source of truth]
-                        } else {
-                          // [INVALID: matches pinned, mismatches range]
-                        }
-                      } else {
-                        // [VALID: matches pinned AND range]
-                      }
-                    } else if instance.is_local {
-                      // [REFUSED: is local source of truth]
-                    } else {
-                      // [INVALID: does not match pinned]
-                    }
-                  });
-              }
-              None => {
-                panic!("No pinned specifier found for dependency {:?}", dependency);
-              }
-            }
-          }
-          Variant::SameRange => {
-            if dependency.all_are_semver(&instances_by_id) {
-              let mismatches = dependency.get_same_range_mismatches(&instances_by_id);
+    version_groups
+      .iter()
+      // fix snapped to groups last, so that the packages they're snapped to
+      // have any fixes applied to them first
+      .sorted_by(|a, b| {
+        if matches!(a.variant, Variant::SnappedTo) {
+          Ordering::Greater
+        } else if matches!(b.variant, Variant::SnappedTo) {
+          Ordering::Less
+        } else {
+          Ordering::Equal
+        }
+      })
+      .for_each(|group| {
+        group.dependencies.values().for_each(|dependency| {
+          match dependency.variant {
+            Variant::Banned => {
+              effects.on(Event::DependencyBanned(dependency));
               dependency
                 .get_instances(&instances_by_id)
                 .iter_mut()
                 .for_each(|instance| {
-                  if instance.has_range_mismatch() {
-                    if mismatches.contains_key(&instance.actual) {
-                      if mismatches.contains_key(&instance.expected) {
-                        // [INVALID: range does not match 1-* others and still won't when range is fixed]
-                      } else {
-                        // [INVALID: range does not match 1-* others but will when range is fixed]
-                      }
-                    } else {
-                      if mismatches.contains_key(&instance.expected) {
-                        // [INVALID: range matches others but does not match its semver group, when
-                        // its semver range is fixed it will no longer match this same range group]
-                      } else {
-                        // [INVALID: range matches others and still will when fixed, but it does not
-                        // match its semver group]
-                      }
-                    }
-                  } else {
-                    if mismatches.contains_key(&instance.actual) {
-                      // [INVALID: range does not match 1-* others]
-                    } else {
-                      // [VALID: range matches all others and will when fixed]
-                    }
-                  }
+                  // [INVALID: banned]
                 });
-            } else if dependency.all_are_identical(&instances_by_id) {
-              // [VALID: unsupported but all match]
-            } else {
-              // [INVALID: unsupported and do not all match]
-              // @TODO: fire a specific event which explains this scenario
             }
-          }
-          Variant::SnappedTo => {
-            let snapped_to_specifier = dependency.get_snapped_to_specifier(&instances_by_id);
-          }
-        };
+            Variant::HighestSemver | Variant::LowestSemver => {
+              let prefer_highest = matches!(dependency.variant, Variant::HighestSemver);
+              let preferred_order: Cmp = if prefer_highest { Cmp::Gt } else { Cmp::Lt };
+              let label: &str = if prefer_highest { "highest" } else { "lowest" };
+              match dependency.get_local_specifier(&instances_by_id) {
+                Some(local_specifier) => {
+                  dependency
+                    .get_instances(&instances_by_id)
+                    .iter_mut()
+                    .for_each(|instance| {
+                      if instance.is_local {
+                        // [VALID: is local source of truth]
+                      } else if instance.actual.matches(&local_specifier) {
+                        if instance.has_range_mismatch() {
+                          // [INVALID: matches local, mismatches range]
+                        } else {
+                          // [VALID: matches local AND range]
+                        }
+                      } else {
+                        // [INVALID: does not match local]
+                      }
+                    });
+                }
+                None => {
+                  if dependency.all_are_semver(&instances_by_id) {
+                    match dependency.get_highest_or_lowest_semver(&instances_by_id, preferred_order)
+                    {
+                      Some(preferred) => {
+                        dependency
+                          .get_instances(&instances_by_id)
+                          .iter_mut()
+                          .for_each(|instance| {
+                            if instance.actual.matches(&preferred) {
+                              if instance.has_range_mismatch() {
+                                // [INVALID: matches highest semver, mismatches range]
+                              } else {
+                                // [VALID: matches highest semver AND range]
+                              }
+                            } else {
+                              // [INVALID: does not match highest semver]
+                            }
+                          });
+                      }
+                      None => {
+                        panic!("No {} semver found for dependency {:?}", label, dependency);
+                      }
+                    }
+                  } else if dependency.all_are_identical(&instances_by_id) {
+                    // [VALID: unsupported but all match]
+                  } else {
+                    // [INVALID: unsupported and do not all match]
+                    // @TODO: fire a specific event which explains this scenario
+                  }
+                }
+              }
+            }
+            Variant::Ignored => {
+              effects.on(Event::DependencyIgnored(dependency));
+            }
+            Variant::Pinned => {
+              match &dependency.pinned_specifier {
+                Some(pinned) => {
+                  dependency
+                    .get_instances(&instances_by_id)
+                    .iter_mut()
+                    .for_each(|instance| {
+                      if instance.actual.matches(&pinned) {
+                        if instance.has_range_mismatch() {
+                          if instance.is_local {
+                            // [REFUSED: is local source of truth]
+                          } else {
+                            // [INVALID: matches pinned, mismatches range]
+                          }
+                        } else {
+                          // [VALID: matches pinned AND range]
+                        }
+                      } else if instance.is_local {
+                        // [REFUSED: is local source of truth]
+                      } else {
+                        // [INVALID: does not match pinned]
+                      }
+                    });
+                }
+                None => {
+                  panic!("No pinned specifier found for dependency {:?}", dependency);
+                }
+              }
+            }
+            Variant::SameRange => {
+              if dependency.all_are_semver(&instances_by_id) {
+                let mismatches = dependency.get_same_range_mismatches(&instances_by_id);
+                dependency
+                  .get_instances(&instances_by_id)
+                  .iter_mut()
+                  .for_each(|instance| {
+                    if instance.has_range_mismatch() {
+                      if mismatches.contains_key(&instance.actual) {
+                        if mismatches.contains_key(&instance.expected) {
+                          // [INVALID: range does not match 1-* others and still won't when range is fixed]
+                        } else {
+                          // [INVALID: range does not match 1-* others but will when range is fixed]
+                        }
+                      } else {
+                        if mismatches.contains_key(&instance.expected) {
+                          // [INVALID: range matches others but does not match its semver group, when
+                          // its semver range is fixed it will no longer match this same range group]
+                        } else {
+                          // [INVALID: range matches others and still will when fixed, but it does not
+                          // match its semver group]
+                        }
+                      }
+                    } else {
+                      if mismatches.contains_key(&instance.actual) {
+                        // [INVALID: range does not match 1-* others]
+                      } else {
+                        // [VALID: range matches all others and will when fixed]
+                      }
+                    }
+                  });
+              } else if dependency.all_are_identical(&instances_by_id) {
+                // [VALID: unsupported but all match]
+              } else {
+                // [INVALID: unsupported and do not all match]
+                // @TODO: fire a specific event which explains this scenario
+              }
+            }
+            Variant::SnappedTo => {
+              let snapped_to_specifier = dependency.get_snapped_to_specifier(&instances_by_id);
+            }
+          };
+        });
       });
-    });
   }
 
   effects.on(Event::EnterFormat);

@@ -37,7 +37,7 @@ pub fn fix(config: &Config, packages: &mut Packages, effects: &mut impl Effects)
         }
       })
       .for_each(|group| {
-        group.visit(config, &mut instances_by_id, packages, effects);
+        // group.visit(config, &mut instances_by_id, packages, effects);
       });
   }
 
