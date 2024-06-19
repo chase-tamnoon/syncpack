@@ -117,15 +117,31 @@ pub fn lint(config: &Config, packages: &mut Packages, effects: &mut impl Effects
           }
           Variant::SameRange => {
             if dependency.all_are_semver(&instances_by_id) {
-              let same_range_mismatches = dependency.get_same_range_mismatches(&instances_by_id);
+              let mismatches = dependency.get_same_range_mismatches(&instances_by_id);
               dependency
                 .get_instances(&instances_by_id)
                 .iter_mut()
                 .for_each(|instance| {
-                  if same_range_mismatches.contains_key(&instance.actual) {
-                    // [INVALID: range does not match 1-* others]
+                  if instance.has_range_mismatch() {
+                    if mismatches.contains_key(&instance.actual) {
+                      if mismatches.contains_key(&instance.expected) {
+                        //
+                      } else {
+                        //
+                      }
+                    } else {
+                      if mismatches.contains_key(&instance.expected) {
+                        //
+                      } else {
+                        //
+                      }
+                    }
                   } else {
-                    // [VALID: range matches all others]
+                    if mismatches.contains_key(&instance.actual) {
+                      // [INVALID: range does not match 1-* others]
+                    } else {
+                      // [VALID: range matches all others and will when fixed]
+                    }
                   }
                 });
             } else if dependency.all_are_identical(&instances_by_id) {

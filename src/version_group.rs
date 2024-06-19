@@ -421,33 +421,33 @@ struct SnapToMismatches {
 
 /// Find all instances which have and do not match their corresponding snap_to
 /// instance
-fn get_snap_to_mismatches(
-  snap_to: &Vec<String>,
-  instances_by_id: &mut InstancesById,
-  dependency: &Dependency,
-) -> Vec<SnapToMismatches> {
-  let mut mismatches: Vec<SnapToMismatches> = vec![];
-  let dependency_name = &dependency.name;
-  if let Some(snappable_instance) = get_snap_to_instance(snap_to, dependency_name, instances_by_id)
-  {
-    let expected = &snappable_instance.expected;
-    dependency
-      .by_initial_specifier
-      .iter()
-      .filter(|(actual, _)| *actual != expected)
-      .for_each(|(specifier, instance_ids)| {
-        let mismatches_with = (expected.clone(), snappable_instance.id.clone());
-        let target_instances = (specifier.clone(), instance_ids.clone());
-        mismatches.push(SnapToMismatches {
-          instance_ids: instance_ids.clone(),
-          actual_specifier: specifier.clone(),
-          expected_specifier: expected.clone(),
-          snap_to_instance_id: snappable_instance.id.clone(),
-        });
-      });
-  }
-  mismatches
-}
+// fn get_snap_to_mismatches(
+//   snap_to: &Vec<String>,
+//   instances_by_id: &mut InstancesById,
+//   dependency: &Dependency,
+// ) -> Vec<SnapToMismatches> {
+//   let mut mismatches: Vec<SnapToMismatches> = vec![];
+//   let dependency_name = &dependency.name;
+//   if let Some(snappable_instance) = get_snap_to_instance(snap_to, dependency_name, instances_by_id)
+//   {
+//     let expected = &snappable_instance.expected;
+//     dependency
+//       .by_initial_specifier
+//       .iter()
+//       .filter(|(actual, _)| *actual != expected)
+//       .for_each(|(specifier, instance_ids)| {
+//         let mismatches_with = (expected.clone(), snappable_instance.id.clone());
+//         let target_instances = (specifier.clone(), instance_ids.clone());
+//         mismatches.push(SnapToMismatches {
+//           instance_ids: instance_ids.clone(),
+//           actual_specifier: specifier.clone(),
+//           expected_specifier: expected.clone(),
+//           snap_to_instance_id: snappable_instance.id.clone(),
+//         });
+//       });
+//   }
+//   mismatches
+// }
 
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]

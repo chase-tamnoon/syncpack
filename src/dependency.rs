@@ -107,7 +107,7 @@ impl Dependency {
       .all(|instance| instance.actual.is_semver())
   }
 
-  pub fn get_unique_actual_specifiers(
+  pub fn get_unique_expected_and_actual_specifiers(
     &self,
     instances_by_id: &InstancesById,
   ) -> HashSet<Specifier> {
@@ -116,6 +116,20 @@ impl Dependency {
       .iter()
       .fold(HashSet::new(), |mut uniques, instance| {
         uniques.insert(instance.actual.clone());
+        uniques.insert(instance.expected.clone());
+        uniques
+      })
+  }
+
+  pub fn get_unique_expected_specifiers(
+    &self,
+    instances_by_id: &InstancesById,
+  ) -> HashSet<Specifier> {
+    self
+      .get_instances(instances_by_id)
+      .iter()
+      .fold(HashSet::new(), |mut uniques, instance| {
+        uniques.insert(instance.expected.clone());
         uniques
       })
   }
@@ -175,8 +189,13 @@ impl Dependency {
   /// Get all semver specifiers which have a range that does not match all of
   /// the other semver specifiers
   ///
-  /// We compare the actual specifier because we can't fix a same range mismatch
-  /// and need to compare what is currently on disk
+  /// We compare the both expected and actual specifiers because we need to know
+  /// what is valid right now on disk, but also what would be still be valid or
+  /// become invalid once a `fix` is applied and semver group ranges have been
+  /// applied.
+  ///
+  /// We should compare the actual and expected specifier of each instance to
+  /// determine what to do
   pub fn get_same_range_mismatches<'a>(
     &'a self,
     instances_by_id: &'a InstancesById,
@@ -184,7 +203,7 @@ impl Dependency {
     let get_range = |specifier: &Specifier| specifier.unwrap().parse::<Range>().unwrap();
     let mut mismatches_by_specifier: HashMap<Specifier, Vec<Specifier>> = HashMap::new();
     let unique_semver_specifiers: Vec<Specifier> = self
-      .get_unique_actual_specifiers(&instances_by_id)
+      .get_unique_expected_and_actual_specifiers(&instances_by_id)
       .iter()
       .filter(|specifier| specifier.is_semver())
       .map(|specifier| specifier.clone())
