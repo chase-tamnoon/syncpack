@@ -198,6 +198,32 @@ impl Dependency {
     Some(mismatches).filter(|vec| !vec.is_empty())
   }
 
+  pub fn get_same_range_mismatches2<'a>(
+    &'a self,
+    instances_by_id: &'a InstancesById,
+  ) -> HashMap<Specifier, Vec<Specifier>> {
+    let mut mismatches_by_specifier: HashMap<Specifier, Vec<Specifier>> = HashMap::new();
+    let unique_specifiers = self.get_unique_specifiers(&instances_by_id);
+    let get_range = |specifier: &Specifier| specifier.unwrap().parse::<Range>().unwrap();
+    unique_specifiers.iter().for_each(|specifier_a| {
+      let range_a = get_range(specifier_a);
+      unique_specifiers.iter().for_each(|specifier_b| {
+        if specifier_a == specifier_b {
+          return;
+        }
+        let range_b = get_range(specifier_b);
+        if range_a.allows_all(&range_b) {
+          return;
+        }
+        mismatches_by_specifier
+          .entry(specifier_a.clone())
+          .or_insert(vec![])
+          .push(specifier_b.clone());
+      });
+    });
+    mismatches_by_specifier
+  }
+
   /// Each key is a unique raw version specifier for each dependency.
   /// The values are each instance which has that version specifier.
   ///
