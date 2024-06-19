@@ -165,16 +165,23 @@ impl Dependency {
       .map(|specifier| specifier.clone())
   }
 
+  /// Get all semver specifiers which have a range that does not match all of
+  /// the other semver specifiers
   pub fn get_same_range_mismatches<'a>(
     &'a self,
     instances_by_id: &'a InstancesById,
   ) -> HashMap<Specifier, Vec<Specifier>> {
-    let mut mismatches_by_specifier: HashMap<Specifier, Vec<Specifier>> = HashMap::new();
-    let unique_specifiers = self.get_unique_specifiers(&instances_by_id);
     let get_range = |specifier: &Specifier| specifier.unwrap().parse::<Range>().unwrap();
-    unique_specifiers.iter().for_each(|specifier_a| {
+    let mut mismatches_by_specifier: HashMap<Specifier, Vec<Specifier>> = HashMap::new();
+    let unique_semver_specifiers: Vec<Specifier> = self
+      .get_unique_specifiers(&instances_by_id)
+      .iter()
+      .filter(|specifier| specifier.is_semver())
+      .map(|specifier| specifier.clone())
+      .collect();
+    unique_semver_specifiers.iter().for_each(|specifier_a| {
       let range_a = get_range(specifier_a);
-      unique_specifiers.iter().for_each(|specifier_b| {
+      unique_semver_specifiers.iter().for_each(|specifier_b| {
         if specifier_a == specifier_b {
           return;
         }

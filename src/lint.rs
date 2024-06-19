@@ -79,6 +79,7 @@ pub fn lint(config: &Config, packages: &mut Packages, effects: &mut impl Effects
                   // [VALID: unsupported but all match]
                 } else {
                   // [INVALID: unsupported and do not all match]
+                  // @TODO: fire a specific event which explains this scenario
                 }
               }
             }
@@ -111,7 +112,24 @@ pub fn lint(config: &Config, packages: &mut Packages, effects: &mut impl Effects
             }
           }
           Variant::SameRange => {
-            // @TODO: implement this in Dependency
+            if dependency.all_are_semver(&instances_by_id) {
+              let same_range_mismatches = dependency.get_same_range_mismatches(&instances_by_id);
+              dependency
+                .get_instances(&instances_by_id)
+                .iter_mut()
+                .for_each(|instance| {
+                  if same_range_mismatches.contains_key(&instance.actual) {
+                    // [INVALID: range does not match 1-* others]
+                  } else {
+                    // [VALID: range matches all others]
+                  }
+                });
+            } else if dependency.all_are_identical(&instances_by_id) {
+              // [VALID: unsupported but all match]
+            } else {
+              // [INVALID: unsupported and do not all match]
+              // @TODO: fire a specific event which explains this scenario
+            }
           }
           Variant::SnappedTo => {
             // @TODO: implement this in Dependency
@@ -119,8 +137,6 @@ pub fn lint(config: &Config, packages: &mut Packages, effects: &mut impl Effects
         };
         // dependency.visit(config, &mut instances_by_id, packages, effects);
       });
-
-      // group.visit(config, &mut instances_by_id, packages, effects);
     });
   }
 
