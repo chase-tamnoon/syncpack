@@ -78,6 +78,51 @@ pub fn lint(config: &Config, packages: &mut Packages, effects: &mut impl Effects
     effects.on(Event::LocalInstanceMistakenlyMismatchesSemverGroup(instance));
   }
 
+  fn instance_matches_pinned_but_mismatches_semver_group(effects: &mut impl Effects, instance: &mut Instance) {
+    effects.on(Event::InstanceMatchesPinnedButMismatchesSemverGroup(instance));
+  }
+
+  fn instance_matches_pinned(effects: &mut impl Effects, instance: &mut Instance) {
+    effects.on(Event::InstanceMatchesPinned(instance));
+  }
+
+  /// Refuse to change local dependency specifiers
+  fn local_instance_mistakenly_mismatches_pinned(effects: &mut impl Effects, instance: &mut Instance) {
+    effects.on(Event::LocalInstanceMistakenlyMismatchesPinned(instance));
+  }
+
+  fn instance_mismatches_pinned(effects: &mut impl Effects, instance: &mut Instance) {
+    effects.on(Event::InstanceMismatchesPinned(instance));
+  }
+
+  /// ✘ Instance mismatches its same range group
+  /// ✘ Instance mismatches its semver group
+  /// ✘ If semver group is fixed, instance would still mismatch its same range group
+  fn instance_mismatches_both_same_range_and_conflicting_semver_groups(effects: &mut impl Effects, instance: &mut Instance) {
+    effects.on(Event::InstanceMismatchesBothSameRangeAndConflictingSemverGroups(instance));
+  }
+
+  /// ✘ Instance mismatches its same range group
+  /// ✘ Instance mismatches its semver group
+  /// ✓ If semver group is fixed, instance would match its same range group
+  fn instance_mismatches_both_same_range_and_compatible_semver_groups(effects: &mut impl Effects, instance: &mut Instance) {
+    effects.on(Event::InstanceMismatchesBothSameRangeAndCompatibleSemverGroups(instance));
+  }
+
+  /// ✓ Instance matches its same range group
+  /// ✘ Instance mismatches its semver group
+  /// ✘ If semver group is fixed, instance would then mismatch its same range group
+  fn instance_matches_same_range_group_but_mismatches_conflicting_semver_group(effects: &mut impl Effects, instance: &mut Instance) {
+    effects.on(Event::InstanceMatchesSameRangeGroupButMismatchesConflictingSemverGroup(instance));
+  }
+
+  /// ✓ Instance matches its same range group
+  /// ✘ Instance mismatches its semver group
+  /// ✓ If semver group is fixed, instance would still match its same range group
+  fn instance_matches_same_range_group_but_mismatches_compatible_semver_group(effects: &mut impl Effects, instance: &mut Instance) {
+    effects.on(Event::InstanceMatchesSameRangeGroupButMismatchesCompatibleSemverGroup(instance));
+  }
+
   if cli.options.versions {
     version_groups
       .iter()
@@ -169,18 +214,18 @@ pub fn lint(config: &Config, packages: &mut Packages, effects: &mut impl Effects
                     if instance.actual.matches(&pinned) {
                       if instance.has_range_mismatch() {
                         if instance.is_local {
-                          // [REFUSED: is local source of truth]
                           local_instance_mistakenly_mismatches_semver_group(effects, instance);
                         } else {
                           // [INVALID: matches pinned, mismatches range]
+                          instance_matches_pinned_but_mismatches_semver_group(effects, instance);
                         }
                       } else {
-                        // [VALID: matches pinned AND range]
+                        instance_matches_pinned(effects, instance);
                       }
                     } else if instance.is_local {
-                      // [REFUSED: is local source of truth]
+                      local_instance_mistakenly_mismatches_pinned(effects, instance);
                     } else {
-                      // [INVALID: does not match pinned]
+                      instance_mismatches_pinned(effects, instance);
                     }
                   });
                 }
@@ -196,17 +241,17 @@ pub fn lint(config: &Config, packages: &mut Packages, effects: &mut impl Effects
                   if instance.has_range_mismatch() {
                     if mismatches.contains_key(&instance.actual) {
                       if mismatches.contains_key(&instance.expected) {
-                        // [INVALID: range does not match 1-* others and still won't when range is fixed]
+                        instance_mismatches_both_same_range_and_conflicting_semver_groups(effects, instance);
                       } else {
-                        // [INVALID: range does not match 1-* others but will when range is fixed]
+                        instance_mismatches_both_same_range_and_compatible_semver_groups(effects, instance);
                       }
                     } else {
                       if mismatches.contains_key(&instance.expected) {
-                        // [INVALID: range matches others but does not match its semver group, when
-                        // its semver range is fixed it will no longer match this same range group]
+                        instance_matches_same_range_group_but_mismatches_conflicting_semver_group(effects, instance);
                       } else {
                         // [INVALID: range matches others and still will when fixed, but it does not
                         // match its semver group]
+                        instance_matches_same_range_group_but_mismatches_compatible_semver_group(effects, instance);
                       }
                     }
                   } else {
