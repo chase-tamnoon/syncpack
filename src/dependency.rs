@@ -168,39 +168,6 @@ impl Dependency {
   pub fn get_same_range_mismatches<'a>(
     &'a self,
     instances_by_id: &'a InstancesById,
-  ) -> Option<Vec<(InstancesBySpecifier, InstancesBySpecifier)>> {
-    let mut mismatches: Vec<(InstancesBySpecifier, InstancesBySpecifier)> = vec![];
-    let by_specifier = self.group_by_specifier(&instances_by_id);
-    by_specifier.iter().for_each(|a| {
-      let (specifier_a, instances_a) = a;
-      let range_a = specifier_a.unwrap().parse::<Range>().unwrap();
-      by_specifier.iter().for_each(|b| {
-        let (specifier_b, instances_b) = b;
-        if specifier_a == specifier_b {
-          return;
-        }
-        let range_b = specifier_b.unwrap().parse::<Range>().unwrap();
-        if range_a.allows_all(&range_b) {
-          return;
-        }
-        mismatches.push((
-          InstancesBySpecifier {
-            specifier: specifier_a.clone(),
-            instances: instances_a.clone(),
-          },
-          InstancesBySpecifier {
-            specifier: specifier_b.clone(),
-            instances: instances_b.clone(),
-          },
-        ));
-      })
-    });
-    Some(mismatches).filter(|vec| !vec.is_empty())
-  }
-
-  pub fn get_same_range_mismatches2<'a>(
-    &'a self,
-    instances_by_id: &'a InstancesById,
   ) -> HashMap<Specifier, Vec<Specifier>> {
     let mut mismatches_by_specifier: HashMap<Specifier, Vec<Specifier>> = HashMap::new();
     let unique_specifiers = self.get_unique_specifiers(&instances_by_id);
