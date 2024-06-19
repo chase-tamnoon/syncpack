@@ -125,15 +125,17 @@ pub fn lint(config: &Config, packages: &mut Packages, effects: &mut impl Effects
                   if instance.has_range_mismatch() {
                     if mismatches.contains_key(&instance.actual) {
                       if mismatches.contains_key(&instance.expected) {
-                        //
+                        // [INVALID: range does not match 1-* others and still won't when range is fixed]
                       } else {
-                        //
+                        // [INVALID: range does not match 1-* others but will when range is fixed]
                       }
                     } else {
                       if mismatches.contains_key(&instance.expected) {
-                        //
+                        // [INVALID: range matches others but does not match its semver group, when
+                        // its semver range is fixed it will no longer match this same range group]
                       } else {
-                        //
+                        // [INVALID: range matches others and still will when fixed, but it does not
+                        // match its semver group]
                       }
                     }
                   } else {
