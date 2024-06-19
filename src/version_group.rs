@@ -285,29 +285,29 @@ impl VersionGroup {
         // });
       }
       Variant::SnappedTo => {
-        if let Some(snap_to) = &self.snap_to {
-          self.dependencies.values().for_each(|dependency| {
-            let mismatches = get_snap_to_mismatches(snap_to, instances_by_id, dependency);
-            if mismatches.len() == 0 {
-              effects.on(Event::DependencyMatchesSnapTo(dependency));
-            } else {
-              effects.on(Event::DependencyMismatchesSnapTo(dependency));
-              mismatches.into_iter().for_each(|mismatch| {
-                mismatch.instance_ids.iter().for_each(|instance_id| {
-                  effects.on(Event::InstanceMismatchesSnapTo(&mut SnapToMismatchEvent {
-                    instance_id: instance_id.clone(),
-                    dependency,
-                    expected_specifier: mismatch.expected_specifier.clone(),
-                    actual_specifier: mismatch.actual_specifier.clone(),
-                    snap_to_instance_id: mismatch.snap_to_instance_id.clone(),
-                    instances_by_id,
-                    packages,
-                  }));
-                });
-              });
-            }
-          });
-        }
+        // if let Some(snap_to) = &self.snap_to {
+        //   self.dependencies.values().for_each(|dependency| {
+        //     let mismatches = get_snap_to_mismatches(snap_to, instances_by_id, dependency);
+        //     if mismatches.len() == 0 {
+        //       effects.on(Event::DependencyMatchesSnapTo(dependency));
+        //     } else {
+        //       effects.on(Event::DependencyMismatchesSnapTo(dependency));
+        //       mismatches.into_iter().for_each(|mismatch| {
+        //         mismatch.instance_ids.iter().for_each(|instance_id| {
+        //           effects.on(Event::InstanceMismatchesSnapTo(&mut SnapToMismatchEvent {
+        //             instance_id: instance_id.clone(),
+        //             dependency,
+        //             expected_specifier: mismatch.expected_specifier.clone(),
+        //             actual_specifier: mismatch.actual_specifier.clone(),
+        //             snap_to_instance_id: mismatch.snap_to_instance_id.clone(),
+        //             instances_by_id,
+        //             packages,
+        //           }));
+        //         });
+        //       });
+        //     }
+        //   });
+        // }
       }
       Variant::Standard => {
         // self.dependencies.values().for_each(|dependency| {
@@ -395,22 +395,22 @@ impl VersionGroup {
 
 /// Return the first instance from the packages which should be snapped to for a
 /// given dependency.
-fn get_snap_to_instance<'a>(
-  snap_to: &Vec<String>,
-  dependency_name: &String,
-  instances_by_id: &'a mut InstancesById,
-) -> Option<&'a Instance> {
-  for instance in instances_by_id.values() {
-    if instance.name == *dependency_name {
-      for snapped_to_package_name in snap_to {
-        if instance.package_name == *snapped_to_package_name {
-          return Some(instance);
-        }
-      }
-    }
-  }
-  return None;
-}
+// fn get_snap_to_instance<'a>(
+//   snap_to: &Vec<String>,
+//   dependency_name: &String,
+//   instances_by_id: &'a mut InstancesById,
+// ) -> Option<&'a Instance> {
+//   for instance in instances_by_id.values() {
+//     if instance.name == *dependency_name {
+//       for snapped_to_package_name in snap_to {
+//         if instance.package_name == *snapped_to_package_name {
+//           return Some(instance);
+//         }
+//       }
+//     }
+//   }
+//   return None;
+// }
 
 struct SnapToMismatches {
   pub instance_ids: Vec<String>,

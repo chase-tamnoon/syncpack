@@ -101,10 +101,16 @@ pub fn lint(config: &Config, packages: &mut Packages, effects: &mut impl Effects
                   .for_each(|instance| {
                     if instance.actual.matches(&pinned) {
                       if instance.has_range_mismatch() {
-                        // [INVALID: matches pinned, mismatches range]
+                        if instance.is_local {
+                          // [REFUSED: is local source of truth]
+                        } else {
+                          // [INVALID: matches pinned, mismatches range]
+                        }
                       } else {
                         // [VALID: matches pinned AND range]
                       }
+                    } else if instance.is_local {
+                      // [REFUSED: is local source of truth]
                     } else {
                       // [INVALID: does not match pinned]
                     }
