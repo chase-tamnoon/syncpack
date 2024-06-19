@@ -107,7 +107,10 @@ impl Dependency {
       .all(|instance| instance.actual.is_semver())
   }
 
-  pub fn get_unique_specifiers(&self, instances_by_id: &InstancesById) -> HashSet<Specifier> {
+  pub fn get_unique_actual_specifiers(
+    &self,
+    instances_by_id: &InstancesById,
+  ) -> HashSet<Specifier> {
     self
       .get_instances(instances_by_id)
       .iter()
@@ -139,6 +142,10 @@ impl Dependency {
     self.get_highest_or_lowest_semver(instances_by_id, Cmp::Lt)
   }
 
+  /// Get the highest or lowest semver specifier in this group.
+  ///
+  /// We compare the expected (not actual) specifier because we're looking for
+  /// what we should suggest as the correct specifier once `fix` is applied
   pub fn get_highest_or_lowest_semver(
     &self,
     instances_by_id: &InstancesById,
@@ -167,6 +174,9 @@ impl Dependency {
 
   /// Get all semver specifiers which have a range that does not match all of
   /// the other semver specifiers
+  ///
+  /// We compare the actual specifier because we can't fix a same range mismatch
+  /// and need to compare what is currently on disk
   pub fn get_same_range_mismatches<'a>(
     &'a self,
     instances_by_id: &'a InstancesById,
@@ -174,7 +184,7 @@ impl Dependency {
     let get_range = |specifier: &Specifier| specifier.unwrap().parse::<Range>().unwrap();
     let mut mismatches_by_specifier: HashMap<Specifier, Vec<Specifier>> = HashMap::new();
     let unique_semver_specifiers: Vec<Specifier> = self
-      .get_unique_specifiers(&instances_by_id)
+      .get_unique_actual_specifiers(&instances_by_id)
       .iter()
       .filter(|specifier| specifier.is_semver())
       .map(|specifier| specifier.clone())
@@ -198,6 +208,32 @@ impl Dependency {
     mismatches_by_specifier
   }
 
+  /// Return the first instance from the packages which should be snapped to for
+  /// a given dependency
+  ///
+  /// We compare the expected (not actual) specifier because we're looking for
+  /// what we should suggest as the correct specifier once `fix` is applied
+  ///
+  /// Even though the actual specifiers on disk might currently match, we should
+  /// suggest it match what we the snapped to specifier should be once fixed
+  pub fn get_snapped_to_specifier<'a>(
+    &self,
+    instances_by_id: &'a InstancesById,
+  ) -> Option<Specifier> {
+    if let Some(snapped_to_package_names) = &self.snapped_to_package_names {
+      for instance in instances_by_id.values() {
+        if instance.name == *self.name {
+          for snapped_to_package_name in snapped_to_package_names {
+            if instance.package_name == *snapped_to_package_name {
+              return Some(instance.expected.clone());
+            }
+          }
+        }
+      }
+    }
+    return None;
+  }
+
   /// Each key is a unique raw version specifier for each dependency.
   /// The values are each instance which has that version specifier.
   ///
@@ -211,7 +247,7 @@ impl Dependency {
       .iter()
       .fold(HashMap::new(), |mut acc, instance| {
         acc
-          .entry(instance.expected.clone())
+          .entry(instance.actual.clone())
           .or_insert_with(|| vec![])
           .push(&instance);
         acc

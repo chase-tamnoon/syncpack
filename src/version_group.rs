@@ -225,64 +225,64 @@ impl VersionGroup {
         // });
       }
       Variant::SameRange => {
-        self.dependencies.values().for_each(|dependency| {
-          let mut mismatches: Vec<(InstanceIdsBySpecifier, InstanceIdsBySpecifier)> = vec![];
-          dependency.for_each_specifier(|a| {
-            let (specifier_a, instance_ids_a) = a;
-            let range_a = specifier_a.unwrap().parse::<Range>().unwrap();
-            dependency.for_each_specifier(|b| {
-              let (specifier_b, instance_ids_b) = b;
-              if specifier_a == specifier_b {
-                return;
-              }
-              let range_b = specifier_b.unwrap().parse::<Range>().unwrap();
-              if range_a.allows_all(&range_b) {
-                return;
-              }
-              mismatches.push((
-                InstanceIdsBySpecifier {
-                  specifier: specifier_a.clone(),
-                  instance_ids: instance_ids_a.clone(),
-                },
-                InstanceIdsBySpecifier {
-                  specifier: specifier_b.clone(),
-                  instance_ids: instance_ids_b.clone(),
-                },
-              ));
-            })
-          });
-          if mismatches.len() == 0 {
-            effects.on(Event::DependencyMatchesSameRange(dependency));
-          } else {
-            effects.on(Event::DependencyMismatchesSameRange(dependency));
-            mismatches.into_iter().for_each(
-              |(
-                InstanceIdsBySpecifier {
-                  specifier,
-                  instance_ids,
-                },
-                InstanceIdsBySpecifier {
-                  specifier: specifier_outside_range,
-                  instance_ids: instance_ids_outside_range,
-                },
-              )| {
-                instance_ids.iter().for_each(|instance_id| {
-                  effects.on(Event::InstanceMismatchesSameRange(
-                    &mut SameRangeMismatchEvent {
-                      dependency,
-                      instances_by_id,
-                      packages,
-                      instance_id: instance_id.clone(),
-                      specifier: specifier.clone(),
-                      specifier_outside_range: specifier_outside_range.clone(),
-                      instance_ids_outside_range: instance_ids_outside_range.clone(),
-                    },
-                  ));
-                });
-              },
-            );
-          }
-        });
+        // self.dependencies.values().for_each(|dependency| {
+        //   let mut mismatches: Vec<(InstanceIdsBySpecifier, InstanceIdsBySpecifier)> = vec![];
+        //   dependency.for_each_specifier(|a| {
+        //     let (specifier_a, instance_ids_a) = a;
+        //     let range_a = specifier_a.unwrap().parse::<Range>().unwrap();
+        //     dependency.for_each_specifier(|b| {
+        //       let (specifier_b, instance_ids_b) = b;
+        //       if specifier_a == specifier_b {
+        //         return;
+        //       }
+        //       let range_b = specifier_b.unwrap().parse::<Range>().unwrap();
+        //       if range_a.allows_all(&range_b) {
+        //         return;
+        //       }
+        //       mismatches.push((
+        //         InstanceIdsBySpecifier {
+        //           specifier: specifier_a.clone(),
+        //           instance_ids: instance_ids_a.clone(),
+        //         },
+        //         InstanceIdsBySpecifier {
+        //           specifier: specifier_b.clone(),
+        //           instance_ids: instance_ids_b.clone(),
+        //         },
+        //       ));
+        //     })
+        //   });
+        //   if mismatches.len() == 0 {
+        //     effects.on(Event::DependencyMatchesSameRange(dependency));
+        //   } else {
+        //     effects.on(Event::DependencyMismatchesSameRange(dependency));
+        //     mismatches.into_iter().for_each(
+        //       |(
+        //         InstanceIdsBySpecifier {
+        //           specifier,
+        //           instance_ids,
+        //         },
+        //         InstanceIdsBySpecifier {
+        //           specifier: specifier_outside_range,
+        //           instance_ids: instance_ids_outside_range,
+        //         },
+        //       )| {
+        //         instance_ids.iter().for_each(|instance_id| {
+        //           effects.on(Event::InstanceMismatchesSameRange(
+        //             &mut SameRangeMismatchEvent {
+        //               dependency,
+        //               instances_by_id,
+        //               packages,
+        //               instance_id: instance_id.clone(),
+        //               specifier: specifier.clone(),
+        //               specifier_outside_range: specifier_outside_range.clone(),
+        //               instance_ids_outside_range: instance_ids_outside_range.clone(),
+        //             },
+        //           ));
+        //         });
+        //       },
+        //     );
+        //   }
+        // });
       }
       Variant::SnappedTo => {
         if let Some(snap_to) = &self.snap_to {

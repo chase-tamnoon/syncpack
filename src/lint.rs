@@ -136,7 +136,7 @@ pub fn lint(config: &Config, packages: &mut Packages, effects: &mut impl Effects
             }
           }
           Variant::SnappedTo => {
-            // @TODO: implement this in Dependency
+            let snapped_to_specifier = dependency.get_snapped_to_specifier(&instances_by_id);
           }
         };
       });
