@@ -1,5 +1,6 @@
+use node_semver::Range;
 use std::{
-  collections::{BTreeMap, HashMap},
+  collections::{BTreeMap, HashMap, HashSet},
   vec,
 };
 use version_compare::{compare, Cmp};
@@ -16,6 +17,14 @@ use crate::{
 pub struct InstanceIdsBySpecifier {
   pub specifier: Specifier,
   pub instance_ids: Vec<InstanceId>,
+}
+
+/// A reference to a group of instances of the same dependency which all have the
+/// same version specifier.
+#[derive(Debug)]
+pub struct InstancesBySpecifier<'a> {
+  pub specifier: Specifier,
+  pub instances: Vec<&'a Instance>,
 }
 
 /// The location which owns all instances
@@ -98,12 +107,22 @@ impl Dependency {
       .all(|instance| instance.actual.is_semver())
   }
 
+  pub fn get_unique_specifiers(&self, instances_by_id: &InstancesById) -> HashSet<Specifier> {
+    self
+      .get_instances(instances_by_id)
+      .iter()
+      .fold(HashSet::new(), |mut uniques, instance| {
+        uniques.insert(instance.actual.clone());
+        uniques
+      })
+  }
+
   /// Is the exact same specifier used by all instances in this group?
   pub fn all_are_identical(&self, instances_by_id: &InstancesById) -> bool {
     let mut previous: Option<&Specifier> = None;
     for instance in self.get_instances(instances_by_id) {
       if let Some(value) = previous {
-        if *value != instance.expected {
+        if *value != instance.actual {
           return false;
         }
       }
@@ -144,6 +163,39 @@ impl Dependency {
         },
       })
       .map(|specifier| specifier.clone())
+  }
+
+  pub fn get_same_range_mismatches<'a>(
+    &'a self,
+    instances_by_id: &'a InstancesById,
+  ) -> Option<Vec<(InstancesBySpecifier, InstancesBySpecifier)>> {
+    let mut mismatches: Vec<(InstancesBySpecifier, InstancesBySpecifier)> = vec![];
+    let by_specifier = self.group_by_specifier(&instances_by_id);
+    by_specifier.iter().for_each(|a| {
+      let (specifier_a, instances_a) = a;
+      let range_a = specifier_a.unwrap().parse::<Range>().unwrap();
+      by_specifier.iter().for_each(|b| {
+        let (specifier_b, instances_b) = b;
+        if specifier_a == specifier_b {
+          return;
+        }
+        let range_b = specifier_b.unwrap().parse::<Range>().unwrap();
+        if range_a.allows_all(&range_b) {
+          return;
+        }
+        mismatches.push((
+          InstancesBySpecifier {
+            specifier: specifier_a.clone(),
+            instances: instances_a.clone(),
+          },
+          InstancesBySpecifier {
+            specifier: specifier_b.clone(),
+            instances: instances_b.clone(),
+          },
+        ));
+      })
+    });
+    Some(mismatches).filter(|vec| !vec.is_empty())
   }
 
   /// Each key is a unique raw version specifier for each dependency.
