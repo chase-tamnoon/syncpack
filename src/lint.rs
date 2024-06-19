@@ -123,6 +123,19 @@ pub fn lint(config: &Config, packages: &mut Packages, effects: &mut impl Effects
     effects.on(Event::InstanceMatchesSameRangeGroupButMismatchesCompatibleSemverGroup(instance));
   }
 
+  /// ✘ Instance mismatches its same range group
+  /// ✓ Instance matches its semver group
+  /// ✘ We can't know what range the user wants and have to ask them
+  fn instance_mismatches_same_range_group(effects: &mut impl Effects, instance: &mut Instance) {
+    effects.on(Event::InstanceMismatchesSameRangeGroup(instance));
+  }
+
+  /// ✓ Instance matches its same range group
+  /// ✓ Instance matches its semver group
+  fn instance_matches_same_range_group(effects: &mut impl Effects, instance: &mut Instance) {
+    effects.on(Event::InstanceMatchesSameRangeGroup(instance));
+  }
+
   if cli.options.versions {
     version_groups
       .iter()
@@ -249,24 +262,25 @@ pub fn lint(config: &Config, packages: &mut Packages, effects: &mut impl Effects
                       if mismatches.contains_key(&instance.expected) {
                         instance_matches_same_range_group_but_mismatches_conflicting_semver_group(effects, instance);
                       } else {
-                        // [INVALID: range matches others and still will when fixed, but it does not
-                        // match its semver group]
                         instance_matches_same_range_group_but_mismatches_compatible_semver_group(effects, instance);
                       }
                     }
                   } else {
                     if mismatches.contains_key(&instance.actual) {
-                      // [INVALID: range does not match 1-* others]
+                      instance_mismatches_same_range_group(effects, instance);
                     } else {
-                      // [VALID: range matches all others and will when fixed]
+                      instance_matches_same_range_group(effects, instance);
                     }
                   }
                 });
               } else if dependency.all_are_identical(&instances_by_id) {
-                // [VALID: unsupported but all match]
+                dependency.get_instances(&instances_by_id).iter_mut().for_each(|instance| {
+                  instance_matches_but_is_unsupported(effects, instance);
+                });
               } else {
-                // [INVALID: unsupported and do not all match]
-                // @TODO: fire a specific event which explains this scenario
+                dependency.get_instances(&instances_by_id).iter_mut().for_each(|instance| {
+                  instance_mismatches_and_is_unsupported(effects, instance);
+                });
               }
             }
             Variant::SnappedTo => {
