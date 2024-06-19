@@ -23,6 +23,42 @@ pub fn lint(config: &Config, packages: &mut Packages, effects: &mut impl Effects
 
   effects.on(Event::EnterVersionsAndRanges);
 
+  fn refuse_to_ban_local_instance(effects: &mut impl Effects, instance: &mut Instance) {
+    effects.on(Event::RefuseToBanLocalInstance(instance));
+  }
+
+  fn ban_instance(effects: &mut impl Effects, instance: &mut Instance) {
+    effects.on(Event::BanInstance(instance));
+  }
+
+  fn local_instance_is_source_of_truth(effects: &mut impl Effects, instance: &mut Instance) {
+    effects.on(Event::LocalInstanceIsSourceOfTruth(instance));
+  }
+
+  fn instance_matches_local_but_mismatches_range(effects: &mut impl Effects, instance: &mut Instance) {
+    effects.on(Event::InstanceMatchesLocalButMismatchesRange(instance));
+  }
+
+  fn instance_matches_local(effects: &mut impl Effects, instance: &mut Instance) {
+    effects.on(Event::InstanceMatchesLocal(instance));
+  }
+
+  fn instance_mismatches_local(effects: &mut impl Effects, instance: &mut Instance) {
+    effects.on(Event::InstanceMismatchesLocal(instance));
+  }
+
+  fn instance_matches_highest_or_lowest_semver_but_mismatches_range(effects: &mut impl Effects, instance: &mut Instance) {
+    effects.on(Event::InstanceMatchesHighestOrLowestSemverButMismatchesRange(instance));
+  }
+
+  fn instance_matches_highest_or_lowest_semver(effects: &mut impl Effects, instance: &mut Instance) {
+    effects.on(Event::InstanceMatchesHighestOrLowestSemver(instance));
+  }
+
+  fn instance_mismatches_highest_or_lowest_semver(effects: &mut impl Effects, instance: &mut Instance) {
+    effects.on(Event::InstanceMismatchesHighestOrLowestSemver(instance));
+  }
+
   if cli.options.versions {
     version_groups
       .iter()
@@ -42,12 +78,13 @@ pub fn lint(config: &Config, packages: &mut Packages, effects: &mut impl Effects
           match dependency.variant {
             Variant::Banned => {
               effects.on(Event::DependencyBanned(dependency));
-              dependency
-                .get_instances(&instances_by_id)
-                .iter_mut()
-                .for_each(|instance| {
-                  // [INVALID: banned]
-                });
+              dependency.get_instances(&instances_by_id).iter_mut().for_each(|instance| {
+                if instance.is_local {
+                  refuse_to_ban_local_instance(effects, instance);
+                } else {
+                  ban_instance(effects, instance);
+                }
+              });
             }
             Variant::HighestSemver | Variant::LowestSemver => {
               let prefer_highest = matches!(dependency.variant, Variant::HighestSemver);
@@ -55,42 +92,35 @@ pub fn lint(config: &Config, packages: &mut Packages, effects: &mut impl Effects
               let label: &str = if prefer_highest { "highest" } else { "lowest" };
               match dependency.get_local_specifier(&instances_by_id) {
                 Some(local_specifier) => {
-                  dependency
-                    .get_instances(&instances_by_id)
-                    .iter_mut()
-                    .for_each(|instance| {
-                      if instance.is_local {
-                        // [VALID: is local source of truth]
-                      } else if instance.actual.matches(&local_specifier) {
-                        if instance.has_range_mismatch() {
-                          // [INVALID: matches local, mismatches range]
-                        } else {
-                          // [VALID: matches local AND range]
-                        }
+                  dependency.get_instances(&instances_by_id).iter_mut().for_each(|instance| {
+                    if instance.is_local {
+                      local_instance_is_source_of_truth(effects, instance);
+                    } else if instance.actual.matches(&local_specifier) {
+                      if instance.has_range_mismatch() {
+                        instance_matches_local_but_mismatches_range(effects, instance);
                       } else {
-                        // [INVALID: does not match local]
+                        instance_matches_local(effects, instance);
                       }
-                    });
+                    } else {
+                      instance_mismatches_local(effects, instance);
+                    }
+                  });
                 }
                 None => {
                   if dependency.all_are_semver(&instances_by_id) {
-                    match dependency.get_highest_or_lowest_semver(&instances_by_id, preferred_order)
-                    {
+                    match dependency.get_highest_or_lowest_semver(&instances_by_id, preferred_order) {
                       Some(preferred) => {
-                        dependency
-                          .get_instances(&instances_by_id)
-                          .iter_mut()
-                          .for_each(|instance| {
-                            if instance.actual.matches(&preferred) {
-                              if instance.has_range_mismatch() {
-                                // [INVALID: matches highest semver, mismatches range]
-                              } else {
-                                // [VALID: matches highest semver AND range]
-                              }
+                        dependency.get_instances(&instances_by_id).iter_mut().for_each(|instance| {
+                          if instance.actual.matches(&preferred) {
+                            if instance.has_range_mismatch() {
+                              instance_matches_highest_or_lowest_semver_but_mismatches_range(effects, instance);
                             } else {
-                              // [INVALID: does not match highest semver]
+                              instance_matches_highest_or_lowest_semver(effects, instance);
                             }
-                          });
+                          } else {
+                            instance_mismatches_highest_or_lowest_semver(effects, instance);
+                          }
+                        });
                       }
                       None => {
                         panic!("No {} semver found for dependency {:?}", label, dependency);
@@ -111,26 +141,23 @@ pub fn lint(config: &Config, packages: &mut Packages, effects: &mut impl Effects
             Variant::Pinned => {
               match &dependency.pinned_specifier {
                 Some(pinned) => {
-                  dependency
-                    .get_instances(&instances_by_id)
-                    .iter_mut()
-                    .for_each(|instance| {
-                      if instance.actual.matches(&pinned) {
-                        if instance.has_range_mismatch() {
-                          if instance.is_local {
-                            // [REFUSED: is local source of truth]
-                          } else {
-                            // [INVALID: matches pinned, mismatches range]
-                          }
+                  dependency.get_instances(&instances_by_id).iter_mut().for_each(|instance| {
+                    if instance.actual.matches(&pinned) {
+                      if instance.has_range_mismatch() {
+                        if instance.is_local {
+                          // [REFUSED: is local source of truth]
                         } else {
-                          // [VALID: matches pinned AND range]
+                          // [INVALID: matches pinned, mismatches range]
                         }
-                      } else if instance.is_local {
-                        // [REFUSED: is local source of truth]
                       } else {
-                        // [INVALID: does not match pinned]
+                        // [VALID: matches pinned AND range]
                       }
-                    });
+                    } else if instance.is_local {
+                      // [REFUSED: is local source of truth]
+                    } else {
+                      // [INVALID: does not match pinned]
+                    }
+                  });
                 }
                 None => {
                   panic!("No pinned specifier found for dependency {:?}", dependency);
@@ -140,34 +167,31 @@ pub fn lint(config: &Config, packages: &mut Packages, effects: &mut impl Effects
             Variant::SameRange => {
               if dependency.all_are_semver(&instances_by_id) {
                 let mismatches = dependency.get_same_range_mismatches(&instances_by_id);
-                dependency
-                  .get_instances(&instances_by_id)
-                  .iter_mut()
-                  .for_each(|instance| {
-                    if instance.has_range_mismatch() {
-                      if mismatches.contains_key(&instance.actual) {
-                        if mismatches.contains_key(&instance.expected) {
-                          // [INVALID: range does not match 1-* others and still won't when range is fixed]
-                        } else {
-                          // [INVALID: range does not match 1-* others but will when range is fixed]
-                        }
+                dependency.get_instances(&instances_by_id).iter_mut().for_each(|instance| {
+                  if instance.has_range_mismatch() {
+                    if mismatches.contains_key(&instance.actual) {
+                      if mismatches.contains_key(&instance.expected) {
+                        // [INVALID: range does not match 1-* others and still won't when range is fixed]
                       } else {
-                        if mismatches.contains_key(&instance.expected) {
-                          // [INVALID: range matches others but does not match its semver group, when
-                          // its semver range is fixed it will no longer match this same range group]
-                        } else {
-                          // [INVALID: range matches others and still will when fixed, but it does not
-                          // match its semver group]
-                        }
+                        // [INVALID: range does not match 1-* others but will when range is fixed]
                       }
                     } else {
-                      if mismatches.contains_key(&instance.actual) {
-                        // [INVALID: range does not match 1-* others]
+                      if mismatches.contains_key(&instance.expected) {
+                        // [INVALID: range matches others but does not match its semver group, when
+                        // its semver range is fixed it will no longer match this same range group]
                       } else {
-                        // [VALID: range matches all others and will when fixed]
+                        // [INVALID: range matches others and still will when fixed, but it does not
+                        // match its semver group]
                       }
                     }
-                  });
+                  } else {
+                    if mismatches.contains_key(&instance.actual) {
+                      // [INVALID: range does not match 1-* others]
+                    } else {
+                      // [VALID: range matches all others and will when fixed]
+                    }
+                  }
+                });
               } else if dependency.all_are_identical(&instances_by_id) {
                 // [VALID: unsupported but all match]
               } else {
@@ -186,10 +210,7 @@ pub fn lint(config: &Config, packages: &mut Packages, effects: &mut impl Effects
   effects.on(Event::EnterFormat);
 
   if cli.options.format {
-    let InMemoryFormattingStatus {
-      was_valid,
-      was_invalid,
-    } = format::fix(&config, packages);
+    let InMemoryFormattingStatus { was_valid, was_invalid } = format::fix(&config, packages);
     if !was_valid.is_empty() {
       effects.on(Event::PackagesMatchFormatting(&was_valid));
     }
