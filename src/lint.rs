@@ -45,6 +45,8 @@ pub fn lint(config: &Config, packages: Packages, effects: &mut impl Effects) {
         }
       })
       .for_each(|group| {
+        effects.on(Event::GroupVisited(&group.selector), &mut instances_by_id);
+
         group.dependencies.values().for_each(|dependency| {
           let mut severity = VALID;
           let mut queue: Vec<Event> = vec![];
@@ -230,6 +232,7 @@ pub fn lint(config: &Config, packages: Packages, effects: &mut impl Effects) {
               let snapped_to_specifier = dependency.get_snapped_to_specifier(&instances_by_id);
             }
           };
+
           if severity == VALID {
             effects.on(Event::DependencyValid(dependency), &mut instances_by_id);
           } else if severity == WARNING {
@@ -237,6 +240,7 @@ pub fn lint(config: &Config, packages: Packages, effects: &mut impl Effects) {
           } else {
             effects.on(Event::DependencyInvalid(dependency), &mut instances_by_id);
           }
+
           while let Some(event) = queue.pop() {
             effects.on(event, &mut instances_by_id);
           }

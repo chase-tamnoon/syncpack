@@ -40,85 +40,8 @@ pub enum Event<'a> {
   // PackagesMismatchFormatting(&'b Vec<&'a PackageJson>),
 
   /// A version/semver group is next to be processed
-  // GroupVisited(&'a GroupSelector),
+  GroupVisited(&'a GroupSelector),
 
-  /// A dependency in an ignored version group has been found
-  // DependencyIgnored(&'a Dependency),
-  /// A dependency in a banned version group has been found
-  // DependencyBanned(&'a Dependency),
-  /// A dependency in a WithRange semver group has been found where all
-  /// instances are valid
-  // DependencyMatchesWithRange(&'a Dependency),
-  /// A dependency in a WithRange semver group has been found where one or more
-  /// instances with semver versions with a semver range that are not the same
-  /// as the `.range`
-  // DependencyMismatchesWithRange(&'a Dependency),
-  /// A dependency in a pinned version group has been found where all
-  /// instances are valid
-  // DependencyMatchesPinnedVersion(&'a Dependency),
-  /// A dependency in a pinned version group has been found which has one
-  /// or more instances with versions that are not the same as the `.pinVersion`
-  // DependencyMismatchesPinnedVersion(&'a Dependency),
-  /// A dependency in a same range version group has been found where all
-  /// instances are valid
-  // DependencyMatchesSameRange(&'a Dependency),
-  /// A dependency in a same range version group has been found which has
-  /// one or more instances with versions that are not a semver range which
-  /// satisfies all of the other semver ranges in the group
-  // DependencyMismatchesSameRange(&'a Dependency),
-  /// A dependency in a snapped to version group has been found where all
-  /// instances are valid
-  // DependencyMatchesSnapTo(&'a Dependency),
-  /// A dependency in a snapped to version group has been found which has
-  /// one or more instances with versions that are not the same as those used
-  /// by the packages named in the `.snapTo` config array
-  // DependencyMismatchesSnapTo(&'a Dependency),
-  /// A dependency in a standard version group has been found where all
-  /// instances are valid
-  // DependencyMatchesStandard(&'a Dependency),
-  /// A dependency in a standard version group has been found which has
-  /// one or more instances with versions that are not the same as the others
-  // DependencyMismatchesStandard(&'a Dependency),
-
-  // /// A valid instance in a standard version group has been found
-  // InstanceMatchesStandard(&'a MatchEvent<'a>),
-  // /// An instance in a banned version group has been found
-  // InstanceBanned(&'a mut BannedEvent<'a>),
-  // /// An instance matches its SemverGroup's version range
-  // InstanceMatchesWithRange(&'a MatchEvent<'a>),
-  // /// An instance does not match its SemverGroup's version range
-  // InstanceMismatchesWithRange(&'a mut MismatchEvent<'a>),
-  // /// An instance in a pinned version group has been found whose version is not
-  // /// the same as the `.pinVersion`
-  // InstanceMismatchesPinnedVersion(&'a mut MismatchEvent<'a>),
-  // /// An instance in a same range version group has been found which has a
-  // /// version which is not a semver range which satisfies all of the other
-  // /// semver ranges in the group
-  // InstanceMismatchesSameRange(&'a mut SameRangeMismatchEvent<'a>),
-  // /// An instance in a snapped to version group has been found which has a
-  // /// version that is not the same as those used by the packages named in the
-  // /// `.snapTo` config array
-  // InstanceMismatchesSnapTo(&'a mut SnapToMismatchEvent<'a>),
-  // /// An instance in a standard version group has been found which is a
-  // /// dependency developed in this repo, its version does not match the
-  // /// `.version` property of the package.json file for this package in the repo
-  // InstanceMismatchesLocalVersion(&'a mut MismatchEvent<'a>),
-  // /// A misconfiguration by the user has resulted in the .version property of a
-  // /// local package.json to be written to. Syncpack should refuse to do this.
-  // InstanceMismatchCorruptsLocalVersion(&'a mut MismatchEvent<'a>),
-  // /// An instance in a standard version group has been found which has a version
-  // /// which is not identical to the others, but not all of the instances have
-  // /// valid or supported version specifiers, so it's impossible to know which
-  // /// should be preferred
-  // InstanceUnsupportedMismatch(&'a mut UnsupportedMismatchEvent<'a>),
-  // /// An instance in a standard version group has been found which has a semver
-  // /// version which is higher than the lowest semver version in the group, and
-  // /// `.preferVersion` is set to `lowestSemver`
-  // InstanceMismatchesLowestVersion(&'a mut MismatchEvent<'a>),
-  // /// An instance in a standard version group has been found which has a semver
-  // /// version which is lower than the highest semver version in the group, and
-  // /// `.preferVersion` is set to `highestSemver`
-  // InstanceMismatchesHighestVersion(&'a mut MismatchEvent<'a>),
   /*
 
 
@@ -126,10 +49,7 @@ pub enum Event<'a> {
   DependencyValid(&'a Dependency),
   DependencyInvalid(&'a Dependency),
   DependencyWarning(&'a Dependency),
-  /*
 
-
-  */
   LocalInstanceIsPreferred(InstanceId /*&'a Instance*/),
   InstanceMatchesLocal(InstanceId /*&'a Instance*/),
   InstanceMatchesHighestOrLowestSemver(InstanceId /*&'a Instance*/),

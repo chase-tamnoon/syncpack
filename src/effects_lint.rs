@@ -33,6 +33,9 @@ impl Effects for LintEffects<'_> {
 
   fn on(&mut self, event: Event, instances_by_id: &mut InstancesById) -> () {
     match &event {
+      Event::GroupVisited(group) => {
+        println!("{} {}", "=".blue(), group.label.blue());
+      }
       Event::DependencyValid(dependency) => {
         println!("DependencyValid {}", dependency.name);
       }
