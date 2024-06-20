@@ -16,11 +16,8 @@ pub fn lint(config: &Config, packages: &mut Packages, effects: &mut impl Effects
   effects.on(Event::PackagesLoaded(&packages));
 
   let cli = &config.cli;
-  let Context {
-    mut instances_by_id,
-    semver_groups,
-    version_groups,
-  } = Context::create(&config, &packages);
+  let ctx = Context::create(&config, &packages);
+  let mut instances_by_id = ctx.instances_by_id;
 
   effects.on(Event::EnterVersionsAndRanges);
 
@@ -137,7 +134,8 @@ pub fn lint(config: &Config, packages: &mut Packages, effects: &mut impl Effects
   }
 
   if cli.options.versions {
-    version_groups
+    ctx
+      .version_groups
       .iter()
       // fix snapped to groups last, so that the packages they're snapped to
       // have any fixes applied to them first
