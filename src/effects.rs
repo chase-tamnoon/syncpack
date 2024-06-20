@@ -123,66 +123,66 @@ pub enum Event<'a, 'b> {
 
 
   */
-  LocalInstanceIsPreferred(&'a Instance),
-  InstanceMatchesLocal(&'a Instance),
-  InstanceMatchesHighestOrLowestSemver(&'a Instance),
-  InstanceMatchesButIsUnsupported(&'a Instance),
-  InstanceIsIgnored(&'a Instance),
-  InstanceMatchesPinned(&'a Instance),
+  LocalInstanceIsPreferred(InstanceId /*&'a Instance*/),
+  InstanceMatchesLocal(InstanceId /*&'a Instance*/),
+  InstanceMatchesHighestOrLowestSemver(InstanceId /*&'a Instance*/),
+  InstanceMatchesButIsUnsupported(InstanceId /*&'a Instance*/),
+  InstanceIsIgnored(InstanceId /*&'a Instance*/),
+  InstanceMatchesPinned(InstanceId /*&'a Instance*/),
 
   /// ✓ Instance matches its same range group
   /// ✓ Instance matches its semver group
-  InstanceMatchesSameRangeGroup(&'a Instance),
+  InstanceMatchesSameRangeGroup(InstanceId /*&'a Instance*/),
 
   /// Misconfiguration: Syncpack refuses to change local dependency specifiers
-  LocalInstanceMistakenlyBanned(&'a mut Instance /*&'a mut Packages*/),
+  LocalInstanceMistakenlyBanned(InstanceId /*&'a mut Instance, &'a mut Packages*/),
 
-  InstanceIsBanned(&'a mut Instance /*&'a mut Packages*/),
+  InstanceIsBanned(InstanceId /*&'a mut Instance, &'a mut Packages*/),
 
-  InstanceMatchesHighestOrLowestSemverButMismatchesSemverGroup(&'a mut Instance /*&'a mut Packages*/),
+  InstanceMatchesHighestOrLowestSemverButMismatchesSemverGroup(InstanceId /*&'a mut Instance, &'a mut Packages*/),
 
-  InstanceMatchesLocalButMismatchesSemverGroup(&'a mut Instance /*&'a mut Packages*/),
+  InstanceMatchesLocalButMismatchesSemverGroup(InstanceId /*&'a mut Instance, &'a mut Packages*/),
 
-  InstanceMismatchesLocal(&'a mut Instance /*&'a mut Packages*/),
+  InstanceMismatchesLocal(InstanceId /*&'a mut Instance, &'a mut Packages*/),
 
-  InstanceMismatchesHighestOrLowestSemver(&'a mut Instance /*&'a mut Packages*/),
+  InstanceMismatchesHighestOrLowestSemver(InstanceId /*&'a mut Instance, &'a mut Packages*/),
 
-  InstanceMismatchesAndIsUnsupported(&'a mut Instance /*&'a mut Packages*/),
-
-  /// Misconfiguration: Syncpack refuses to change local dependency specifiers
-  LocalInstanceMistakenlyMismatchesSemverGroup(&'a mut Instance /*&'a mut Packages*/),
-
-  InstanceMatchesPinnedButMismatchesSemverGroup(&'a mut Instance /*&'a mut Packages*/),
+  InstanceMismatchesAndIsUnsupported(InstanceId /*&'a mut Instance, &'a mut Packages*/),
 
   /// Misconfiguration: Syncpack refuses to change local dependency specifiers
-  LocalInstanceMistakenlyMismatchesPinned(&'a mut Instance),
+  LocalInstanceMistakenlyMismatchesSemverGroup(InstanceId /*&'a mut Instance, &'a mut Packages*/),
 
-  InstanceMismatchesPinned(&'a mut Instance /*&'a mut Packages*/),
+  InstanceMatchesPinnedButMismatchesSemverGroup(InstanceId /*&'a mut Instance, &'a mut Packages*/),
+
+  /// Misconfiguration: Syncpack refuses to change local dependency specifiers
+  LocalInstanceMistakenlyMismatchesPinned(InstanceId /*&'a mut Instance*/),
+
+  InstanceMismatchesPinned(InstanceId /*&'a mut Instance, &'a mut Packages*/),
 
   /// ✘ Instance mismatches its same range group
   /// ✘ Instance mismatches its semver group
   /// ✘ If semver group is fixed, instance would still mismatch its same range group
-  InstanceMismatchesBothSameRangeAndConflictingSemverGroups(&'a mut Instance /*&'a mut Packages*/),
+  InstanceMismatchesBothSameRangeAndConflictingSemverGroups(InstanceId /*&'a mut Instance, &'a mut Packages*/),
 
   /// ✘ Instance mismatches its same range group
   /// ✘ Instance mismatches its semver group
   /// ✓ If semver group is fixed, instance would match its same range group
-  InstanceMismatchesBothSameRangeAndCompatibleSemverGroups(&'a mut Instance /*&'a mut Packages*/),
+  InstanceMismatchesBothSameRangeAndCompatibleSemverGroups(InstanceId /*&'a mut Instance, &'a mut Packages*/),
 
   /// ✓ Instance matches its same range group
   /// ✘ Instance mismatches its semver group
   /// ✘ If semver group is fixed, instance would then mismatch its same range group
-  InstanceMatchesSameRangeGroupButMismatchesConflictingSemverGroup(&'a mut Instance /*&'a mut Packages*/),
+  InstanceMatchesSameRangeGroupButMismatchesConflictingSemverGroup(InstanceId /*&'a mut Instance, &'a mut Packages*/),
 
   /// ✓ Instance matches its same range group
   /// ✘ Instance mismatches its semver group
   /// ✓ If semver group is fixed, instance would still match its same range group
-  InstanceMatchesSameRangeGroupButMismatchesCompatibleSemverGroup(&'a mut Instance /*&'a mut Packages*/),
+  InstanceMatchesSameRangeGroupButMismatchesCompatibleSemverGroup(InstanceId /*&'a mut Instance, &'a mut Packages*/),
 
   /// ✘ Instance mismatches its same range group
   /// ✓ Instance matches its semver group
   /// ✘ We can't know what range the user wants and have to ask them
-  InstanceMismatchesSameRangeGroup(&'a mut Instance /*&'a mut Packages*/),
+  InstanceMismatchesSameRangeGroup(InstanceId /*&'a mut Instance, &'a mut Packages*/),
 }
 
 /// A single instance of a dependency was found, which is valid
