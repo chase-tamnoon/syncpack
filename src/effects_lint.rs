@@ -5,22 +5,35 @@ use crate::{
   config::Config,
   dependency::Dependency,
   effects::{Effects, Event},
+  packages::Packages,
 };
 
 /// The implementation of the `lint` command's side effects
 pub struct LintEffects<'a> {
-  pub is_valid: bool,
   pub config: &'a Config,
+  pub is_valid: bool,
+  pub packages: Option<Packages>,
 }
 
 impl<'a> LintEffects<'a> {
   pub fn new(config: &'a Config) -> Self {
-    Self { is_valid: true, config }
+    Self {
+      config,
+      is_valid: true,
+      packages: None,
+    }
   }
 }
 
 impl Effects for LintEffects<'_> {
+  fn set_packages(&mut self, packages: Packages) -> () {
+    self.packages = Some(packages);
+  }
+
   fn on(&mut self, event: Event) -> () {
+    println!("packages.is_some(): {}", self.packages.is_some());
+    println!("{:?}", event);
+
     // match event {
     //   Event::PackagesLoaded(packages) => {
     //     if packages.all_names.is_empty() {

@@ -17,69 +17,68 @@ use crate::{
 /// this trait.
 pub trait Effects {
   fn on(&mut self, event: Event) -> ();
-  // fn set_context(&mut self, ctx: Context) -> ();
-  // fn borrow_context(&self) -> &Context;
+  fn set_packages(&mut self, packages: Packages) -> ();
 }
 
 #[derive(Debug)]
 pub enum Event<'a, 'b> {
   /// All package.json files have been read from the workspace
-  PackagesLoaded(&'a Packages),
+  // PackagesLoaded(&'a Packages),
 
   /// Syncpack is about to lint/fix versions/ranges, if enabled
-  EnterVersionsAndRanges,
+  // EnterVersionsAndRanges,
   /// Syncpack is about to lint/fix formatting, if enabled
-  EnterFormat,
+  // EnterFormat,
   /// Linting/fixing has completed
-  ExitCommand,
+  // ExitCommand,
 
   /// Linting/fixing of formatting has completed and these packages were valid
-  PackagesMatchFormatting(&'b Vec<&'a PackageJson>),
+  // PackagesMatchFormatting(&'b Vec<&'a PackageJson>),
   /// Linting/fixing of formatting has completed and these packages were
   /// initially invalid. In the case of fixing, they are now valid but were
   /// invalid beforehand.
-  PackagesMismatchFormatting(&'b Vec<&'a PackageJson>),
+  // PackagesMismatchFormatting(&'b Vec<&'a PackageJson>),
 
   /// A version/semver group is next to be processed
-  GroupVisited(&'a GroupSelector),
+  // GroupVisited(&'a GroupSelector),
 
   /// A dependency in an ignored version group has been found
-  DependencyIgnored(&'a Dependency),
+  // DependencyIgnored(&'a Dependency),
   /// A dependency in a banned version group has been found
-  DependencyBanned(&'a Dependency),
+  // DependencyBanned(&'a Dependency),
   /// A dependency in a WithRange semver group has been found where all
   /// instances are valid
-  DependencyMatchesWithRange(&'a Dependency),
+  // DependencyMatchesWithRange(&'a Dependency),
   /// A dependency in a WithRange semver group has been found where one or more
   /// instances with semver versions with a semver range that are not the same
   /// as the `.range`
-  DependencyMismatchesWithRange(&'a Dependency),
+  // DependencyMismatchesWithRange(&'a Dependency),
   /// A dependency in a pinned version group has been found where all
   /// instances are valid
-  DependencyMatchesPinnedVersion(&'a Dependency),
+  // DependencyMatchesPinnedVersion(&'a Dependency),
   /// A dependency in a pinned version group has been found which has one
   /// or more instances with versions that are not the same as the `.pinVersion`
-  DependencyMismatchesPinnedVersion(&'a Dependency),
+  // DependencyMismatchesPinnedVersion(&'a Dependency),
   /// A dependency in a same range version group has been found where all
   /// instances are valid
-  DependencyMatchesSameRange(&'a Dependency),
+  // DependencyMatchesSameRange(&'a Dependency),
   /// A dependency in a same range version group has been found which has
   /// one or more instances with versions that are not a semver range which
   /// satisfies all of the other semver ranges in the group
-  DependencyMismatchesSameRange(&'a Dependency),
+  // DependencyMismatchesSameRange(&'a Dependency),
   /// A dependency in a snapped to version group has been found where all
   /// instances are valid
-  DependencyMatchesSnapTo(&'a Dependency),
+  // DependencyMatchesSnapTo(&'a Dependency),
   /// A dependency in a snapped to version group has been found which has
   /// one or more instances with versions that are not the same as those used
   /// by the packages named in the `.snapTo` config array
-  DependencyMismatchesSnapTo(&'a Dependency),
+  // DependencyMismatchesSnapTo(&'a Dependency),
   /// A dependency in a standard version group has been found where all
   /// instances are valid
-  DependencyMatchesStandard(&'a Dependency),
+  // DependencyMatchesStandard(&'a Dependency),
   /// A dependency in a standard version group has been found which has
   /// one or more instances with versions that are not the same as the others
-  DependencyMismatchesStandard(&'a Dependency),
+  // DependencyMismatchesStandard(&'a Dependency),
 
   // /// A valid instance in a standard version group has been found
   // InstanceMatchesStandard(&'a MatchEvent<'a>),
@@ -136,54 +135,54 @@ pub enum Event<'a, 'b> {
   InstanceMatchesSameRangeGroup(&'a Instance),
 
   /// Misconfiguration: Syncpack refuses to change local dependency specifiers
-  LocalInstanceMistakenlyBanned(&'a mut Instance, &'a mut Packages),
+  LocalInstanceMistakenlyBanned(&'a mut Instance /*&'a mut Packages*/),
 
-  InstanceIsBanned(&'a mut Instance, &'a mut Packages),
+  InstanceIsBanned(&'a mut Instance /*&'a mut Packages*/),
 
-  InstanceMatchesHighestOrLowestSemverButMismatchesSemverGroup(&'a mut Instance, &'a mut Packages),
+  InstanceMatchesHighestOrLowestSemverButMismatchesSemverGroup(&'a mut Instance /*&'a mut Packages*/),
 
-  InstanceMatchesLocalButMismatchesSemverGroup(&'a mut Instance, &'a mut Packages),
+  InstanceMatchesLocalButMismatchesSemverGroup(&'a mut Instance /*&'a mut Packages*/),
 
-  InstanceMismatchesLocal(&'a mut Instance, &'a mut Packages),
+  InstanceMismatchesLocal(&'a mut Instance /*&'a mut Packages*/),
 
-  InstanceMismatchesHighestOrLowestSemver(&'a mut Instance, &'a mut Packages),
+  InstanceMismatchesHighestOrLowestSemver(&'a mut Instance /*&'a mut Packages*/),
 
-  InstanceMismatchesAndIsUnsupported(&'a mut Instance, &'a mut Packages),
+  InstanceMismatchesAndIsUnsupported(&'a mut Instance /*&'a mut Packages*/),
 
   /// Misconfiguration: Syncpack refuses to change local dependency specifiers
-  LocalInstanceMistakenlyMismatchesSemverGroup(&'a mut Instance, &'a mut Packages),
+  LocalInstanceMistakenlyMismatchesSemverGroup(&'a mut Instance /*&'a mut Packages*/),
 
-  InstanceMatchesPinnedButMismatchesSemverGroup(&'a mut Instance, &'a mut Packages),
+  InstanceMatchesPinnedButMismatchesSemverGroup(&'a mut Instance /*&'a mut Packages*/),
 
   /// Misconfiguration: Syncpack refuses to change local dependency specifiers
   LocalInstanceMistakenlyMismatchesPinned(&'a mut Instance),
 
-  InstanceMismatchesPinned(&'a mut Instance, &'a mut Packages),
+  InstanceMismatchesPinned(&'a mut Instance /*&'a mut Packages*/),
 
   /// ✘ Instance mismatches its same range group
   /// ✘ Instance mismatches its semver group
   /// ✘ If semver group is fixed, instance would still mismatch its same range group
-  InstanceMismatchesBothSameRangeAndConflictingSemverGroups(&'a mut Instance, &'a mut Packages),
+  InstanceMismatchesBothSameRangeAndConflictingSemverGroups(&'a mut Instance /*&'a mut Packages*/),
 
   /// ✘ Instance mismatches its same range group
   /// ✘ Instance mismatches its semver group
   /// ✓ If semver group is fixed, instance would match its same range group
-  InstanceMismatchesBothSameRangeAndCompatibleSemverGroups(&'a mut Instance, &'a mut Packages),
+  InstanceMismatchesBothSameRangeAndCompatibleSemverGroups(&'a mut Instance /*&'a mut Packages*/),
 
   /// ✓ Instance matches its same range group
   /// ✘ Instance mismatches its semver group
   /// ✘ If semver group is fixed, instance would then mismatch its same range group
-  InstanceMatchesSameRangeGroupButMismatchesConflictingSemverGroup(&'a mut Instance, &'a mut Packages),
+  InstanceMatchesSameRangeGroupButMismatchesConflictingSemverGroup(&'a mut Instance /*&'a mut Packages*/),
 
   /// ✓ Instance matches its same range group
   /// ✘ Instance mismatches its semver group
   /// ✓ If semver group is fixed, instance would still match its same range group
-  InstanceMatchesSameRangeGroupButMismatchesCompatibleSemverGroup(&'a mut Instance, &'a mut Packages),
+  InstanceMatchesSameRangeGroupButMismatchesCompatibleSemverGroup(&'a mut Instance /*&'a mut Packages*/),
 
   /// ✘ Instance mismatches its same range group
   /// ✓ Instance matches its semver group
   /// ✘ We can't know what range the user wants and have to ask them
-  InstanceMismatchesSameRangeGroup(&'a mut Instance, &'a mut Packages),
+  InstanceMismatchesSameRangeGroup(&'a mut Instance /*&'a mut Packages*/),
 }
 
 /// A single instance of a dependency was found, which is valid

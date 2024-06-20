@@ -11,8 +11,8 @@ use crate::{
   version_group::Variant,
 };
 
-pub fn lint(config: &Config, packages: &mut Packages, effects: &mut impl Effects) {
-  effects.on(Event::PackagesLoaded(&packages));
+pub fn lint(config: &Config, packages: Packages, effects: &mut impl Effects) {
+  // effects.on(Event::PackagesLoaded(&packages));
 
   let cli = &config.cli;
   let Context {
@@ -21,7 +21,9 @@ pub fn lint(config: &Config, packages: &mut Packages, effects: &mut impl Effects
     version_groups,
   } = Context::create(&config, &packages);
 
-  effects.on(Event::EnterVersionsAndRanges);
+  effects.set_packages(packages);
+
+  // effects.on(Event::EnterVersionsAndRanges);
 
   if cli.options.versions {
     version_groups
@@ -39,15 +41,16 @@ pub fn lint(config: &Config, packages: &mut Packages, effects: &mut impl Effects
       })
       .for_each(|group| {
         group.dependencies.values().for_each(|dependency| {
+          let mut queue: Vec<Event> = vec![];
           match dependency.variant {
             Variant::Banned => {
-              effects.on(Event::DependencyBanned(dependency));
+              // queue.push(Event::DependencyBanned(dependency));
               dependency.all.iter().for_each(|instance_id| {
                 let instance = instances_by_id.get_mut(instance_id).unwrap();
                 if instance.is_local {
-                  effects.on(Event::LocalInstanceMistakenlyBanned(instance, packages));
+                  queue.push(Event::LocalInstanceMistakenlyBanned(instance));
                 } else {
-                  effects.on(Event::InstanceIsBanned(instance, packages));
+                  queue.push(Event::InstanceIsBanned(instance));
                 }
               });
             }
@@ -60,15 +63,15 @@ pub fn lint(config: &Config, packages: &mut Packages, effects: &mut impl Effects
                   dependency.all.iter().for_each(|instance_id| {
                     let instance = instances_by_id.get_mut(instance_id).unwrap();
                     if instance.is_local {
-                      effects.on(Event::LocalInstanceIsPreferred(instance));
+                      queue.push(Event::LocalInstanceIsPreferred(instance));
                     } else if instance.actual.matches(&local_specifier) {
                       if instance.has_range_mismatch() {
-                        effects.on(Event::InstanceMatchesLocalButMismatchesSemverGroup(instance, packages));
+                        queue.push(Event::InstanceMatchesLocalButMismatchesSemverGroup(instance));
                       } else {
-                        effects.on(Event::InstanceMatchesLocal(instance));
+                        queue.push(Event::InstanceMatchesLocal(instance));
                       }
                     } else {
-                      effects.on(Event::InstanceMismatchesLocal(instance, packages));
+                      queue.push(Event::InstanceMismatchesLocal(instance));
                     }
                   });
                 }
@@ -80,12 +83,12 @@ pub fn lint(config: &Config, packages: &mut Packages, effects: &mut impl Effects
                           let instance = instances_by_id.get_mut(instance_id).unwrap();
                           if instance.actual.matches(&preferred) {
                             if instance.has_range_mismatch() {
-                              effects.on(Event::InstanceMatchesHighestOrLowestSemverButMismatchesSemverGroup(instance, packages));
+                              queue.push(Event::InstanceMatchesHighestOrLowestSemverButMismatchesSemverGroup(instance));
                             } else {
-                              effects.on(Event::InstanceMatchesHighestOrLowestSemver(instance));
+                              queue.push(Event::InstanceMatchesHighestOrLowestSemver(instance));
                             }
                           } else {
-                            effects.on(Event::InstanceMismatchesHighestOrLowestSemver(instance, packages));
+                            queue.push(Event::InstanceMismatchesHighestOrLowestSemver(instance));
                           }
                         });
                       }
@@ -96,12 +99,12 @@ pub fn lint(config: &Config, packages: &mut Packages, effects: &mut impl Effects
                   } else if dependency.all_are_identical(&instances_by_id) {
                     dependency.all.iter().for_each(|instance_id| {
                       let instance = instances_by_id.get(instance_id).unwrap();
-                      effects.on(Event::InstanceMatchesButIsUnsupported(instance));
+                      queue.push(Event::InstanceMatchesButIsUnsupported(instance));
                     });
                   } else {
                     dependency.all.iter().for_each(|instance_id| {
                       let instance = instances_by_id.get_mut(instance_id).unwrap();
-                      effects.on(Event::InstanceMismatchesAndIsUnsupported(instance, packages));
+                      queue.push(Event::InstanceMismatchesAndIsUnsupported(instance));
                     });
                   }
                 }
@@ -110,7 +113,7 @@ pub fn lint(config: &Config, packages: &mut Packages, effects: &mut impl Effects
             Variant::Ignored => {
               dependency.all.iter().for_each(|instance_id| {
                 let instance = instances_by_id.get(instance_id).unwrap();
-                effects.on(Event::InstanceIsIgnored(instance));
+                queue.push(Event::InstanceIsIgnored(instance));
               });
             }
             Variant::Pinned => match &dependency.pinned_specifier {
@@ -120,17 +123,17 @@ pub fn lint(config: &Config, packages: &mut Packages, effects: &mut impl Effects
                   if instance.actual.matches(&pinned) {
                     if instance.has_range_mismatch() {
                       if instance.is_local {
-                        effects.on(Event::LocalInstanceMistakenlyMismatchesSemverGroup(instance, packages));
+                        queue.push(Event::LocalInstanceMistakenlyMismatchesSemverGroup(instance));
                       } else {
-                        effects.on(Event::InstanceMatchesPinnedButMismatchesSemverGroup(instance, packages));
+                        queue.push(Event::InstanceMatchesPinnedButMismatchesSemverGroup(instance));
                       }
                     } else {
-                      effects.on(Event::InstanceMatchesPinned(instance));
+                      queue.push(Event::InstanceMatchesPinned(instance));
                     }
                   } else if instance.is_local {
-                    effects.on(Event::LocalInstanceMistakenlyMismatchesPinned(instance));
+                    queue.push(Event::LocalInstanceMistakenlyMismatchesPinned(instance));
                   } else {
-                    effects.on(Event::InstanceMismatchesPinned(instance, packages));
+                    queue.push(Event::InstanceMismatchesPinned(instance));
                   }
                 });
               }
@@ -146,34 +149,34 @@ pub fn lint(config: &Config, packages: &mut Packages, effects: &mut impl Effects
                   if instance.has_range_mismatch() {
                     if mismatches.contains_key(&instance.actual) {
                       if mismatches.contains_key(&instance.expected) {
-                        effects.on(Event::InstanceMismatchesBothSameRangeAndConflictingSemverGroups(instance, packages));
+                        queue.push(Event::InstanceMismatchesBothSameRangeAndConflictingSemverGroups(instance));
                       } else {
-                        effects.on(Event::InstanceMismatchesBothSameRangeAndCompatibleSemverGroups(instance, packages));
+                        queue.push(Event::InstanceMismatchesBothSameRangeAndCompatibleSemverGroups(instance));
                       }
                     } else {
                       if mismatches.contains_key(&instance.expected) {
-                        effects.on(Event::InstanceMatchesSameRangeGroupButMismatchesConflictingSemverGroup(instance, packages));
+                        queue.push(Event::InstanceMatchesSameRangeGroupButMismatchesConflictingSemverGroup(instance));
                       } else {
-                        effects.on(Event::InstanceMatchesSameRangeGroupButMismatchesCompatibleSemverGroup(instance, packages));
+                        queue.push(Event::InstanceMatchesSameRangeGroupButMismatchesCompatibleSemverGroup(instance));
                       }
                     }
                   } else {
                     if mismatches.contains_key(&instance.actual) {
-                      effects.on(Event::InstanceMismatchesSameRangeGroup(instance, packages));
+                      queue.push(Event::InstanceMismatchesSameRangeGroup(instance));
                     } else {
-                      effects.on(Event::InstanceMatchesSameRangeGroup(instance));
+                      queue.push(Event::InstanceMatchesSameRangeGroup(instance));
                     }
                   }
                 });
               } else if dependency.all_are_identical(&instances_by_id) {
                 dependency.all.iter().for_each(|instance_id| {
                   let instance = instances_by_id.get(instance_id).unwrap();
-                  effects.on(Event::InstanceMatchesButIsUnsupported(instance));
+                  queue.push(Event::InstanceMatchesButIsUnsupported(instance));
                 });
               } else {
                 dependency.all.iter().for_each(|instance_id| {
                   let instance = instances_by_id.get_mut(instance_id).unwrap();
-                  effects.on(Event::InstanceMismatchesAndIsUnsupported(instance, packages));
+                  queue.push(Event::InstanceMismatchesAndIsUnsupported(instance));
                 });
               }
             }
@@ -185,19 +188,19 @@ pub fn lint(config: &Config, packages: &mut Packages, effects: &mut impl Effects
       });
   }
 
-  effects.on(Event::EnterFormat);
+  // effects.on(Event::EnterFormat);
 
-  if cli.options.format {
-    let InMemoryFormattingStatus { was_valid, was_invalid } = format::fix(&config, packages);
-    if !was_valid.is_empty() {
-      effects.on(Event::PackagesMatchFormatting(&was_valid));
-    }
-    if !was_invalid.is_empty() {
-      effects.on(Event::PackagesMismatchFormatting(&was_invalid));
-    }
-  }
+  // if cli.options.format {
+  //   let InMemoryFormattingStatus { was_valid, was_invalid } = format::fix(&config, packages);
+  //   if !was_valid.is_empty() {
+  //     effects.on(Event::PackagesMatchFormatting(&was_valid));
+  //   }
+  //   if !was_invalid.is_empty() {
+  //     effects.on(Event::PackagesMismatchFormatting(&was_invalid));
+  //   }
+  // }
 
-  effects.on(Event::ExitCommand);
+  // effects.on(Event::ExitCommand);
 }
 
 #[cfg(test)]
