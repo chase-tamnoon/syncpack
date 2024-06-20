@@ -21,7 +21,7 @@ pub trait Effects {
 }
 
 #[derive(Debug)]
-pub enum Event<'a, 'b> {
+pub enum Event {
   /// All package.json files have been read from the workspace
   // PackagesLoaded(&'a Packages),
 
