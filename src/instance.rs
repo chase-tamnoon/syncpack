@@ -64,6 +64,11 @@ impl Instance {
     self.prefer_range.is_some() && self.expected.get_exact() == self.actual.get_exact() && self.expected.get_semver_range() != self.actual.get_semver_range()
   }
 
+  pub fn get_fixed_range_mismatch(&self) -> Specifier {
+    let range = self.prefer_range.as_ref().expect("Cannot fix range mismatch without a preferred range");
+    self.expected.with_semver_range(&range)
+  }
+
   /// Write a version to the package.json
   pub fn set_specifier(&mut self, package: &mut PackageJson, specifier: &Specifier) {
     let raw_specifier = specifier.unwrap();

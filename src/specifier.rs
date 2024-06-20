@@ -69,8 +69,11 @@ pub enum Specifier {
   Unsupported(String),
   Url(String),
   WorkspaceProtocol(String),
-  // 1. When reading, this only appears when a package is missing a .version property
-  // 2. When writing, this is used to represent a banned instance's specifier
+  /// When reading, appears when a package is missing a .version property
+  /// When writing, is used:
+  ///
+  /// 1. To represent a banned instance's specifier
+  /// 2. To represent an unfixable instance's expected specifier
   None,
 }
 

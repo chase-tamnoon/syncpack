@@ -8,6 +8,7 @@ use crate::{
   effects::{Effects, Event},
   format::{self, InMemoryFormattingStatus},
   packages::Packages,
+  specifier::Specifier,
   version_group::Variant,
 };
 
@@ -50,6 +51,7 @@ pub fn lint(config: &Config, packages: Packages, effects: &mut impl Effects) {
                 if instance.is_local {
                   queue.push(Event::LocalInstanceMistakenlyBanned(instance_id.clone()));
                 } else {
+                  instance.expected = Specifier::None;
                   queue.push(Event::InstanceIsBanned(instance_id.clone()));
                 }
               });
@@ -66,11 +68,13 @@ pub fn lint(config: &Config, packages: Packages, effects: &mut impl Effects) {
                       queue.push(Event::LocalInstanceIsPreferred(instance_id.clone()));
                     } else if instance.actual.matches(&local_specifier) {
                       if instance.has_range_mismatch() {
+                        instance.expected = instance.get_fixed_range_mismatch();
                         queue.push(Event::InstanceMatchesLocalButMismatchesSemverGroup(instance_id.clone()));
                       } else {
                         queue.push(Event::InstanceMatchesLocal(instance_id.clone()));
                       }
                     } else {
+                      instance.expected = local_specifier.clone();
                       queue.push(Event::InstanceMismatchesLocal(instance_id.clone()));
                     }
                   });
@@ -83,11 +87,13 @@ pub fn lint(config: &Config, packages: Packages, effects: &mut impl Effects) {
                           let instance = instances_by_id.get_mut(instance_id).unwrap();
                           if instance.actual.matches(&preferred) {
                             if instance.has_range_mismatch() {
+                              instance.expected = instance.get_fixed_range_mismatch();
                               queue.push(Event::InstanceMatchesHighestOrLowestSemverButMismatchesSemverGroup(instance_id.clone()));
                             } else {
                               queue.push(Event::InstanceMatchesHighestOrLowestSemver(instance_id.clone()));
                             }
                           } else {
+                            instance.expected = preferred.clone();
                             queue.push(Event::InstanceMismatchesHighestOrLowestSemver(instance_id.clone()));
                           }
                         });
@@ -104,6 +110,7 @@ pub fn lint(config: &Config, packages: Packages, effects: &mut impl Effects) {
                   } else {
                     dependency.all.iter().for_each(|instance_id| {
                       let instance = instances_by_id.get_mut(instance_id).unwrap();
+                      instance.expected = Specifier::None;
                       queue.push(Event::InstanceMismatchesAndIsUnsupported(instance_id.clone()));
                     });
                   }
@@ -125,6 +132,7 @@ pub fn lint(config: &Config, packages: Packages, effects: &mut impl Effects) {
                       if instance.is_local {
                         queue.push(Event::LocalInstanceMistakenlyMismatchesSemverGroup(instance_id.clone()));
                       } else {
+                        instance.expected = instance.get_fixed_range_mismatch();
                         queue.push(Event::InstanceMatchesPinnedButMismatchesSemverGroup(instance_id.clone()));
                       }
                     } else {
@@ -133,6 +141,7 @@ pub fn lint(config: &Config, packages: Packages, effects: &mut impl Effects) {
                   } else if instance.is_local {
                     queue.push(Event::LocalInstanceMistakenlyMismatchesPinned(instance_id.clone()));
                   } else {
+                    instance.expected = pinned.clone();
                     queue.push(Event::InstanceMismatchesPinned(instance_id.clone()));
                   }
                 });
@@ -149,19 +158,24 @@ pub fn lint(config: &Config, packages: Packages, effects: &mut impl Effects) {
                   if instance.has_range_mismatch() {
                     if mismatches.contains_key(&instance.actual) {
                       if mismatches.contains_key(&instance.expected) {
+                        instance.expected = Specifier::None;
                         queue.push(Event::InstanceMismatchesBothSameRangeAndConflictingSemverGroups(instance_id.clone()));
                       } else {
+                        instance.expected = Specifier::None;
                         queue.push(Event::InstanceMismatchesBothSameRangeAndCompatibleSemverGroups(instance_id.clone()));
                       }
                     } else {
                       if mismatches.contains_key(&instance.expected) {
+                        instance.expected = Specifier::None;
                         queue.push(Event::InstanceMatchesSameRangeGroupButMismatchesConflictingSemverGroup(instance_id.clone()));
                       } else {
+                        instance.expected = Specifier::None;
                         queue.push(Event::InstanceMatchesSameRangeGroupButMismatchesCompatibleSemverGroup(instance_id.clone()));
                       }
                     }
                   } else {
                     if mismatches.contains_key(&instance.actual) {
+                      instance.expected = Specifier::None;
                       queue.push(Event::InstanceMismatchesSameRangeGroup(instance_id.clone()));
                     } else {
                       queue.push(Event::InstanceMatchesSameRangeGroup(instance_id.clone()));
@@ -176,6 +190,7 @@ pub fn lint(config: &Config, packages: Packages, effects: &mut impl Effects) {
               } else {
                 dependency.all.iter().for_each(|instance_id| {
                   let instance = instances_by_id.get_mut(instance_id).unwrap();
+                  instance.expected = Specifier::None;
                   queue.push(Event::InstanceMismatchesAndIsUnsupported(instance_id.clone()));
                 });
               }
