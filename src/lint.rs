@@ -200,7 +200,7 @@ pub fn lint(config: &Config, packages: Packages, effects: &mut impl Effects) {
             }
           };
           while let Some(event) = queue.pop() {
-            effects.on(event);
+            effects.on(event, &mut instances_by_id);
           }
         });
       });

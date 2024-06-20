@@ -6,6 +6,7 @@ use std::{
 use version_compare::{compare, Cmp};
 
 use crate::{
+  context::InstancesById,
   instance::{Instance, InstanceId},
   specifier::Specifier,
   version_group::Variant,
@@ -26,9 +27,6 @@ pub struct InstancesBySpecifier<'a> {
   pub specifier: Specifier,
   pub instances: Vec<&'a Instance>,
 }
-
-/// The location which owns all instances
-pub type InstancesById = BTreeMap<InstanceId, Instance>;
 
 #[derive(Debug)]
 pub struct Dependency {

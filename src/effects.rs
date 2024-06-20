@@ -1,6 +1,6 @@
 use crate::{
-  context::Context,
-  dependency::{Dependency, InstancesById},
+  context::{Context, InstancesById},
+  dependency::Dependency,
   group_selector::GroupSelector,
   instance::{Instance, InstanceId},
   package_json::PackageJson,
@@ -16,7 +16,7 @@ use crate::{
 /// side effects are handled by the command-specific structs which implement
 /// this trait.
 pub trait Effects {
-  fn on(&mut self, event: Event) -> ();
+  fn on(&mut self, event: Event, instances_by_id: &mut InstancesById) -> ();
   fn set_packages(&mut self, packages: Packages) -> ();
 }
 

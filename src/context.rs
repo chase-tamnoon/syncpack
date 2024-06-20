@@ -1,9 +1,18 @@
 use std::collections::BTreeMap;
 
-use crate::{config::Config, dependency::InstancesById, instance::Instance, packages::Packages, semver_group::SemverGroup, version_group::VersionGroup};
+use crate::{
+  config::Config,
+  instance::{Instance, InstanceId},
+  packages::Packages,
+  semver_group::SemverGroup,
+  version_group::VersionGroup,
+};
+
+/// The location which owns all instances
+pub type InstancesById = BTreeMap<InstanceId, Instance>;
 
 pub struct Context {
-  pub instances_by_id: BTreeMap<String, Instance>,
+  pub instances_by_id: InstancesById,
   pub semver_groups: Vec<SemverGroup>,
   pub version_groups: Vec<VersionGroup>,
 }
