@@ -12,19 +12,20 @@ use crate::{
   version_group::Variant,
 };
 
-pub fn lint(config: &Config, packages: Packages, effects: impl Effects) {
+pub fn lint(config: &Config, packages: &mut Packages, effects: &mut impl Effects) {
   effects.on(Event::PackagesLoaded(&packages));
 
   let cli = &config.cli;
-  let ctx = Context::create(&config, &packages);
-  let mut instances_by_id = ctx.instances_by_id;
-  let mut packages = packages;
+  let Context {
+    mut instances_by_id,
+    semver_groups,
+    version_groups,
+  } = Context::create(&config, &packages);
 
   effects.on(Event::EnterVersionsAndRanges);
 
   if cli.options.versions {
-    ctx
-      .version_groups
+    version_groups
       .iter()
       // fix snapped to groups last, so that the packages they're snapped to
       // have any fixes applied to them first
@@ -42,11 +43,12 @@ pub fn lint(config: &Config, packages: Packages, effects: impl Effects) {
           match dependency.variant {
             Variant::Banned => {
               effects.on(Event::DependencyBanned(dependency));
-              dependency.get_instances(&instances_by_id).iter_mut().for_each(|instance| {
+              dependency.all.iter().for_each(|instance_id| {
+                let instance = instances_by_id.get_mut(instance_id).unwrap();
                 if instance.is_local {
-                  effects.on(Event::LocalInstanceMistakenlyBanned(instance, &mut packages));
+                  effects.on(Event::LocalInstanceMistakenlyBanned(instance, packages));
                 } else {
-                  effects.on(Event::InstanceIsBanned(instance, &mut packages));
+                  effects.on(Event::InstanceIsBanned(instance, packages));
                 }
               });
             }
@@ -56,17 +58,18 @@ pub fn lint(config: &Config, packages: Packages, effects: impl Effects) {
               let label: &str = if prefer_highest { "highest" } else { "lowest" };
               match dependency.get_local_specifier(&instances_by_id) {
                 Some(local_specifier) => {
-                  dependency.get_instances(&instances_by_id).iter_mut().for_each(|instance| {
+                  dependency.all.iter().for_each(|instance_id| {
+                    let instance = instances_by_id.get_mut(instance_id).unwrap();
                     if instance.is_local {
                       effects.on(Event::LocalInstanceIsPreferred(instance));
                     } else if instance.actual.matches(&local_specifier) {
                       if instance.has_range_mismatch() {
-                        effects.on(Event::InstanceMatchesLocalButMismatchesSemverGroup(instance, &mut packages));
+                        effects.on(Event::InstanceMatchesLocalButMismatchesSemverGroup(instance, packages));
                       } else {
                         effects.on(Event::InstanceMatchesLocal(instance));
                       }
                     } else {
-                      effects.on(Event::InstanceMismatchesLocal(instance, &mut packages));
+                      effects.on(Event::InstanceMismatchesLocal(instance, packages));
                     }
                   });
                 }
@@ -74,18 +77,16 @@ pub fn lint(config: &Config, packages: Packages, effects: impl Effects) {
                   if dependency.all_are_semver(&instances_by_id) {
                     match dependency.get_highest_or_lowest_semver(&instances_by_id, preferred_order) {
                       Some(preferred) => {
-                        dependency.get_instances(&instances_by_id).iter_mut().for_each(|instance| {
+                        dependency.all.iter().for_each(|instance_id| {
+                          let instance = instances_by_id.get_mut(instance_id).unwrap();
                           if instance.actual.matches(&preferred) {
                             if instance.has_range_mismatch() {
-                              effects.on(Event::InstanceMatchesHighestOrLowestSemverButMismatchesSemverGroup(
-                                instance,
-                                &mut packages,
-                              ));
+                              effects.on(Event::InstanceMatchesHighestOrLowestSemverButMismatchesSemverGroup(instance, packages));
                             } else {
                               effects.on(Event::InstanceMatchesHighestOrLowestSemver(instance));
                             }
                           } else {
-                            effects.on(Event::InstanceMismatchesHighestOrLowestSemver(instance, &mut packages));
+                            effects.on(Event::InstanceMismatchesHighestOrLowestSemver(instance, packages));
                           }
                         });
                       }
@@ -94,39 +95,43 @@ pub fn lint(config: &Config, packages: Packages, effects: impl Effects) {
                       }
                     }
                   } else if dependency.all_are_identical(&instances_by_id) {
-                    dependency.get_instances(&instances_by_id).iter_mut().for_each(|instance| {
+                    dependency.all.iter().for_each(|instance_id| {
+                      let instance = instances_by_id.get(instance_id).unwrap();
                       effects.on(Event::InstanceMatchesButIsUnsupported(instance));
                     });
                   } else {
-                    dependency.get_instances(&instances_by_id).iter_mut().for_each(|instance| {
-                      effects.on(Event::InstanceMismatchesAndIsUnsupported(instance, &mut packages));
+                    dependency.all.iter().for_each(|instance_id| {
+                      let instance = instances_by_id.get_mut(instance_id).unwrap();
+                      effects.on(Event::InstanceMismatchesAndIsUnsupported(instance, packages));
                     });
                   }
                 }
               }
             }
             Variant::Ignored => {
-              dependency.get_instances(&instances_by_id).iter_mut().for_each(|instance| {
+              dependency.all.iter().for_each(|instance_id| {
+                let instance = instances_by_id.get(instance_id).unwrap();
                 effects.on(Event::InstanceIsIgnored(instance));
               });
             }
             Variant::Pinned => match &dependency.pinned_specifier {
               Some(pinned) => {
-                dependency.get_instances(&instances_by_id).iter_mut().for_each(|instance| {
+                dependency.all.iter().for_each(|instance_id| {
+                  let instance = instances_by_id.get_mut(instance_id).unwrap();
                   if instance.actual.matches(&pinned) {
                     if instance.has_range_mismatch() {
                       if instance.is_local {
-                        effects.on(Event::LocalInstanceMistakenlyMismatchesSemverGroup(instance, &mut packages));
+                        effects.on(Event::LocalInstanceMistakenlyMismatchesSemverGroup(instance, packages));
                       } else {
-                        effects.on(Event::InstanceMatchesPinnedButMismatchesSemverGroup(instance, &mut packages));
+                        effects.on(Event::InstanceMatchesPinnedButMismatchesSemverGroup(instance, packages));
                       }
                     } else {
                       effects.on(Event::InstanceMatchesPinned(instance));
                     }
                   } else if instance.is_local {
-                    effects.on(Event::LocalInstanceMistakenlyMismatchesPinned(instance, &mut packages));
+                    effects.on(Event::LocalInstanceMistakenlyMismatchesPinned(instance));
                   } else {
-                    effects.on(Event::InstanceMismatchesPinned(instance, &mut packages));
+                    effects.on(Event::InstanceMismatchesPinned(instance, packages));
                   }
                 });
               }
@@ -137,48 +142,39 @@ pub fn lint(config: &Config, packages: Packages, effects: impl Effects) {
             Variant::SameRange => {
               if dependency.all_are_semver(&instances_by_id) {
                 let mismatches = dependency.get_same_range_mismatches(&instances_by_id);
-                dependency.get_instances(&instances_by_id).iter_mut().for_each(|instance| {
+                dependency.all.iter().for_each(|instance_id| {
+                  let instance = instances_by_id.get_mut(instance_id).unwrap();
                   if instance.has_range_mismatch() {
                     if mismatches.contains_key(&instance.actual) {
                       if mismatches.contains_key(&instance.expected) {
-                        effects.on(Event::InstanceMismatchesBothSameRangeAndConflictingSemverGroups(
-                          instance,
-                          &mut packages,
-                        ));
+                        effects.on(Event::InstanceMismatchesBothSameRangeAndConflictingSemverGroups(instance, packages));
                       } else {
-                        effects.on(Event::InstanceMismatchesBothSameRangeAndCompatibleSemverGroups(
-                          instance,
-                          &mut packages,
-                        ));
+                        effects.on(Event::InstanceMismatchesBothSameRangeAndCompatibleSemverGroups(instance, packages));
                       }
                     } else {
                       if mismatches.contains_key(&instance.expected) {
-                        effects.on(Event::InstanceMatchesSameRangeGroupButMismatchesConflictingSemverGroup(
-                          instance,
-                          &mut packages,
-                        ));
+                        effects.on(Event::InstanceMatchesSameRangeGroupButMismatchesConflictingSemverGroup(instance, packages));
                       } else {
-                        effects.on(Event::InstanceMatchesSameRangeGroupButMismatchesCompatibleSemverGroup(
-                          instance,
-                          &mut packages,
-                        ));
+                        effects.on(Event::InstanceMatchesSameRangeGroupButMismatchesCompatibleSemverGroup(instance, packages));
                       }
                     }
                   } else {
                     if mismatches.contains_key(&instance.actual) {
-                      effects.on(Event::InstanceMismatchesSameRangeGroup(instance, &mut packages));
+                      effects.on(Event::InstanceMismatchesSameRangeGroup(instance, packages));
                     } else {
                       effects.on(Event::InstanceMatchesSameRangeGroup(instance));
                     }
                   }
                 });
               } else if dependency.all_are_identical(&instances_by_id) {
-                dependency.get_instances(&instances_by_id).iter_mut().for_each(|instance| {
+                dependency.all.iter().for_each(|instance_id| {
+                  let instance = instances_by_id.get(instance_id).unwrap();
                   effects.on(Event::InstanceMatchesButIsUnsupported(instance));
                 });
               } else {
-                dependency.get_instances(&instances_by_id).iter_mut().for_each(|instance| {
-                  effects.on(Event::InstanceMismatchesAndIsUnsupported(instance, &mut packages));
+                dependency.all.iter().for_each(|instance_id| {
+                  let instance = instances_by_id.get_mut(instance_id).unwrap();
+                  effects.on(Event::InstanceMismatchesAndIsUnsupported(instance, packages));
                 });
               }
             }
@@ -356,20 +352,18 @@ mod tests {
 
     lint(&config, &mut packages, &mut effects);
 
-    expect(&effects)
-      .to_have_highest_version_mismatches(vec![])
-      .to_have_standard_version_group_matches(vec![
-        ExpectedMatchEvent {
-          dependency_name: "good",
-          instance_id: "good in /dependencies of package-a",
-          specifier: "1.0.0",
-        },
-        ExpectedMatchEvent {
-          dependency_name: "good",
-          instance_id: "good in /dependencies of package-b",
-          specifier: "2.0.0",
-        },
-      ]);
+    expect(&effects).to_have_highest_version_mismatches(vec![]).to_have_standard_version_group_matches(vec![
+      ExpectedMatchEvent {
+        dependency_name: "good",
+        instance_id: "good in /dependencies of package-a",
+        specifier: "1.0.0",
+      },
+      ExpectedMatchEvent {
+        dependency_name: "good",
+        instance_id: "good in /dependencies of package-b",
+        specifier: "2.0.0",
+      },
+    ]);
   }
 
   #[test]

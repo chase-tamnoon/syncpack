@@ -81,6 +81,26 @@ impl Dependency {
       .collect()
   }
 
+  // pub fn for_each_instance<'a, F>(&self, instances_by_id: &'a InstancesById, mut f: F)
+  // where
+  //   F: FnMut(&'a Instance),
+  // {
+  //   for instance_id in self.all.iter() {
+  //     let instance = instances_by_id.get(instance_id).unwrap();
+  //     f(instance);
+  //   }
+  // }
+
+  // pub fn for_each_instance_mut<'a, F>(&self, instances_by_id: &'a mut InstancesById, mut f: F)
+  // where
+  //   F: FnMut(&'a mut Instance),
+  // {
+  //   for instance_id in self.all.iter() {
+  //     let instance = instances_by_id.get_mut(instance_id).unwrap();
+  //     f(instance);
+  //   }
+  // }
+
   pub fn has_local_instance(&self) -> bool {
     self.local_instance_id.is_some()
   }

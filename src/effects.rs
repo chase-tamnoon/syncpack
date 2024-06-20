@@ -133,7 +133,7 @@ pub enum Event<'a, 'b> {
 
   /// ✓ Instance matches its same range group
   /// ✓ Instance matches its semver group
-  InstanceMatchesSameRangeGroup(&Instance),
+  InstanceMatchesSameRangeGroup(&'a Instance),
 
   /// Misconfiguration: Syncpack refuses to change local dependency specifiers
   LocalInstanceMistakenlyBanned(&'a mut Instance, &'a mut Packages),
