@@ -7,7 +7,7 @@ use crate::{
   context::Context,
   effects::{Effects, Event},
   format::{self, InMemoryFormattingStatus},
-  instance::Instance,
+  instance::{Instance, InstanceId},
   packages::Packages,
   version_group::Variant,
 };
@@ -22,114 +22,114 @@ pub fn lint(config: &Config, packages: &mut Packages, effects: &mut impl Effects
   effects.on(Event::EnterVersionsAndRanges);
 
   /// Refuse to change local dependency specifiers
-  fn local_instance_mistakenly_banned(effects: &mut impl Effects, instance: &mut Instance) {
-    effects.on(Event::LocalInstanceMistakenlyBanned(instance));
+  fn local_instance_mistakenly_banned(effects: &mut impl Effects, instance: Instance) {
+    effects.on(Event::LocalInstanceMistakenlyBanned(instance, &packages));
   }
 
-  fn instance_is_banned(effects: &mut impl Effects, instance: &mut Instance) {
+  fn instance_is_banned(effects: &mut impl Effects, instance: Instance) {
     effects.on(Event::InstanceIsBanned(instance));
   }
 
-  fn local_instance_is_preferred(effects: &mut impl Effects, instance: &mut Instance) {
+  fn local_instance_is_preferred(effects: &mut impl Effects, instance: Instance) {
     effects.on(Event::LocalInstanceIsPreferred(instance));
   }
 
-  fn instance_matches_local_but_mismatches_semver_group(effects: &mut impl Effects, instance: &mut Instance) {
+  fn instance_matches_local_but_mismatches_semver_group(effects: &mut impl Effects, instance: Instance) {
     effects.on(Event::InstanceMatchesLocalButMismatchesSemverGroup(instance));
   }
 
-  fn instance_matches_local(effects: &mut impl Effects, instance: &mut Instance) {
+  fn instance_matches_local(effects: &mut impl Effects, instance: Instance) {
     effects.on(Event::InstanceMatchesLocal(instance));
   }
 
-  fn instance_mismatches_local(effects: &mut impl Effects, instance: &mut Instance) {
+  fn instance_mismatches_local(effects: &mut impl Effects, instance: Instance) {
     effects.on(Event::InstanceMismatchesLocal(instance));
   }
 
-  fn instance_matches_highest_or_lowest_semver_but_mismatches_semver_group(effects: &mut impl Effects, instance: &mut Instance) {
+  fn instance_matches_highest_or_lowest_semver_but_mismatches_semver_group(effects: &mut impl Effects, instance: Instance) {
     effects.on(Event::InstanceMatchesHighestOrLowestSemverButMismatchesSemverGroup(instance));
   }
 
-  fn instance_matches_highest_or_lowest_semver(effects: &mut impl Effects, instance: &mut Instance) {
+  fn instance_matches_highest_or_lowest_semver(effects: &mut impl Effects, instance: Instance) {
     effects.on(Event::InstanceMatchesHighestOrLowestSemver(instance));
   }
 
-  fn instance_mismatches_highest_or_lowest_semver(effects: &mut impl Effects, instance: &mut Instance) {
+  fn instance_mismatches_highest_or_lowest_semver(effects: &mut impl Effects, instance: Instance) {
     effects.on(Event::InstanceMismatchesHighestOrLowestSemver(instance));
   }
 
-  fn instance_matches_but_is_unsupported(effects: &mut impl Effects, instance: &mut Instance) {
+  fn instance_matches_but_is_unsupported(effects: &mut impl Effects, instance: Instance) {
     effects.on(Event::InstanceMatchesButIsUnsupported(instance));
   }
 
-  fn instance_mismatches_and_is_unsupported(effects: &mut impl Effects, instance: &mut Instance) {
+  fn instance_mismatches_and_is_unsupported(effects: &mut impl Effects, instance: Instance) {
     effects.on(Event::InstanceMismatchesAndIsUnsupported(instance));
   }
 
-  fn instance_is_ignored(effects: &mut impl Effects, instance: &mut Instance) {
+  fn instance_is_ignored(effects: &mut impl Effects, instance: Instance) {
     effects.on(Event::InstanceIsIgnored(instance));
   }
 
   /// Refuse to change local dependency specifiers
-  fn local_instance_mistakenly_mismatches_semver_group(effects: &mut impl Effects, instance: &mut Instance) {
+  fn local_instance_mistakenly_mismatches_semver_group(effects: &mut impl Effects, instance: Instance) {
     effects.on(Event::LocalInstanceMistakenlyMismatchesSemverGroup(instance));
   }
 
-  fn instance_matches_pinned_but_mismatches_semver_group(effects: &mut impl Effects, instance: &mut Instance) {
+  fn instance_matches_pinned_but_mismatches_semver_group(effects: &mut impl Effects, instance: Instance) {
     effects.on(Event::InstanceMatchesPinnedButMismatchesSemverGroup(instance));
   }
 
-  fn instance_matches_pinned(effects: &mut impl Effects, instance: &mut Instance) {
+  fn instance_matches_pinned(effects: &mut impl Effects, instance: Instance) {
     effects.on(Event::InstanceMatchesPinned(instance));
   }
 
   /// Refuse to change local dependency specifiers
-  fn local_instance_mistakenly_mismatches_pinned(effects: &mut impl Effects, instance: &mut Instance) {
+  fn local_instance_mistakenly_mismatches_pinned(effects: &mut impl Effects, instance: Instance) {
     effects.on(Event::LocalInstanceMistakenlyMismatchesPinned(instance));
   }
 
-  fn instance_mismatches_pinned(effects: &mut impl Effects, instance: &mut Instance) {
+  fn instance_mismatches_pinned(effects: &mut impl Effects, instance: Instance) {
     effects.on(Event::InstanceMismatchesPinned(instance));
   }
 
   /// ✘ Instance mismatches its same range group
   /// ✘ Instance mismatches its semver group
   /// ✘ If semver group is fixed, instance would still mismatch its same range group
-  fn instance_mismatches_both_same_range_and_conflicting_semver_groups(effects: &mut impl Effects, instance: &mut Instance) {
+  fn instance_mismatches_both_same_range_and_conflicting_semver_groups(effects: &mut impl Effects, instance: Instance) {
     effects.on(Event::InstanceMismatchesBothSameRangeAndConflictingSemverGroups(instance));
   }
 
   /// ✘ Instance mismatches its same range group
   /// ✘ Instance mismatches its semver group
   /// ✓ If semver group is fixed, instance would match its same range group
-  fn instance_mismatches_both_same_range_and_compatible_semver_groups(effects: &mut impl Effects, instance: &mut Instance) {
+  fn instance_mismatches_both_same_range_and_compatible_semver_groups(effects: &mut impl Effects, instance: Instance) {
     effects.on(Event::InstanceMismatchesBothSameRangeAndCompatibleSemverGroups(instance));
   }
 
   /// ✓ Instance matches its same range group
   /// ✘ Instance mismatches its semver group
   /// ✘ If semver group is fixed, instance would then mismatch its same range group
-  fn instance_matches_same_range_group_but_mismatches_conflicting_semver_group(effects: &mut impl Effects, instance: &mut Instance) {
+  fn instance_matches_same_range_group_but_mismatches_conflicting_semver_group(effects: &mut impl Effects, instance: Instance) {
     effects.on(Event::InstanceMatchesSameRangeGroupButMismatchesConflictingSemverGroup(instance));
   }
 
   /// ✓ Instance matches its same range group
   /// ✘ Instance mismatches its semver group
   /// ✓ If semver group is fixed, instance would still match its same range group
-  fn instance_matches_same_range_group_but_mismatches_compatible_semver_group(effects: &mut impl Effects, instance: &mut Instance) {
+  fn instance_matches_same_range_group_but_mismatches_compatible_semver_group(effects: &mut impl Effects, instance: Instance) {
     effects.on(Event::InstanceMatchesSameRangeGroupButMismatchesCompatibleSemverGroup(instance));
   }
 
   /// ✘ Instance mismatches its same range group
   /// ✓ Instance matches its semver group
   /// ✘ We can't know what range the user wants and have to ask them
-  fn instance_mismatches_same_range_group(effects: &mut impl Effects, instance: &mut Instance) {
+  fn instance_mismatches_same_range_group(effects: &mut impl Effects, instance: Instance) {
     effects.on(Event::InstanceMismatchesSameRangeGroup(instance));
   }
 
   /// ✓ Instance matches its same range group
   /// ✓ Instance matches its semver group
-  fn instance_matches_same_range_group(effects: &mut impl Effects, instance: &mut Instance) {
+  fn instance_matches_same_range_group(effects: &mut impl Effects, instance: Instance) {
     effects.on(Event::InstanceMatchesSameRangeGroup(instance));
   }
 

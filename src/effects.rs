@@ -1,7 +1,7 @@
 use crate::{
   dependency::{Dependency, InstancesById},
   group_selector::GroupSelector,
-  instance::InstanceId,
+  instance::{Instance, InstanceId},
   package_json::PackageJson,
   packages::Packages,
   specifier::Specifier,
@@ -117,60 +117,76 @@ pub enum Event<'a, 'b> {
   // /// version which is lower than the highest semver version in the group, and
   // /// `.preferVersion` is set to `highestSemver`
   // InstanceMismatchesHighestVersion(&'a mut MismatchEvent<'a>),
-  LocalInstanceMistakenlyBanned(&'a mut MismatchEvent<'a>),
-  InstanceIsBanned(&'a mut MismatchEvent<'a>),
-  LocalInstanceIsPreferred(&'a mut MatchEvent<'a>),
-  InstanceMatchesLocalButMismatchesSemverGroup(&'a mut MismatchEvent<'a>),
-  InstanceMatchesLocal(&'a mut MatchEvent<'a>),
-  InstanceMismatchesLocal(&'a mut MismatchEvent<'a>),
-  InstanceMatchesHighestOrLowestSemverButMismatchesSemverGroup(&'a mut MatchEvent<'a>),
-  InstanceMatchesHighestOrLowestSemver(&'a mut MatchEvent<'a>),
-  InstanceMismatchesHighestOrLowestSemver(&'a mut MismatchEvent<'a>),
-  InstanceMatchesButIsUnsupported(&'a mut MatchEvent<'a>),
-  InstanceMismatchesAndIsUnsupported(&'a mut MismatchEvent<'a>),
-  InstanceIsIgnored(&'a mut MatchEvent<'a>),
-  LocalInstanceMistakenlyMismatchesSemverGroup(&'a mut MismatchEvent<'a>),
-  InstanceMatchesPinnedButMismatchesSemverGroup(&'a mut MismatchEvent<'a>),
-  InstanceMatchesPinned(&'a mut MatchEvent<'a>),
-  LocalInstanceMistakenlyMismatchesPinned(&'a mut MismatchEvent<'a>),
-  InstanceMismatchesPinned(&'a mut MismatchEvent<'a>),
-  InstanceMismatchesBothSameRangeAndConflictingSemverGroups(&'a mut MismatchEvent<'a>),
-  InstanceMismatchesBothSameRangeAndCompatibleSemverGroups(&'a mut MismatchEvent<'a>),
-  InstanceMatchesSameRangeGroupButMismatchesConflictingSemverGroup(&'a mut MatchEvent<'a>),
-  InstanceMatchesSameRangeGroupButMismatchesCompatibleSemverGroup(&'a mut MatchEvent<'a>),
-  InstanceMismatchesSameRangeGroup(&'a mut MismatchEvent<'a>),
-  InstanceMatchesSameRangeGroup(&'a mut MatchEvent<'a>),
+  /**/
+  LocalInstanceIsPreferred(Instance),
+  InstanceMatchesLocal(Instance),
+  InstanceMatchesHighestOrLowestSemverButMismatchesSemverGroup(Instance),
+  InstanceMatchesHighestOrLowestSemver(Instance),
+  InstanceMatchesButIsUnsupported(Instance),
+  InstanceIsIgnored(Instance),
+  InstanceMatchesPinned(Instance),
+  InstanceMatchesSameRangeGroup(Instance),
+
+  LocalInstanceMistakenlyBanned(Instance, &'a mut Packages),
+  InstanceIsBanned(Instance, &'a mut Packages),
+  InstanceMatchesLocalButMismatchesSemverGroup(Instance, &'a mut Packages),
+  InstanceMismatchesLocal(Instance, &'a mut Packages),
+  InstanceMismatchesHighestOrLowestSemver(Instance, &'a mut Packages),
+  InstanceMismatchesAndIsUnsupported(Instance, &'a mut Packages),
+  LocalInstanceMistakenlyMismatchesSemverGroup(Instance, &'a mut Packages),
+  InstanceMatchesPinnedButMismatchesSemverGroup(Instance, &'a mut Packages),
+  LocalInstanceMistakenlyMismatchesPinned(Instance, &'a mut Packages),
+  InstanceMismatchesPinned(Instance, &'a mut Packages),
+  InstanceMismatchesBothSameRangeAndConflictingSemverGroups(Instance, &'a mut Packages),
+  InstanceMismatchesBothSameRangeAndCompatibleSemverGroups(Instance, &'a mut Packages),
+  InstanceMatchesSameRangeGroupButMismatchesConflictingSemverGroup(Instance, &'a mut Packages),
+  InstanceMatchesSameRangeGroupButMismatchesCompatibleSemverGroup(Instance, &'a mut Packages),
+  InstanceMismatchesSameRangeGroup(Instance, &'a mut Packages),
 }
 
 /// A single instance of a dependency was found, which is valid
 #[derive(Debug)]
 pub struct MatchEvent<'a> {
-  /// all instances of this dependency (eg. "react") in this version group
-  pub dependency: &'a Dependency,
-  /// the unique identifier for the instance which was found
-  pub instance_id: InstanceId,
-  /// the version specifier on the instance which was found
-  pub specifier: Specifier,
+  // pub dependency: &'a Dependency,
+  pub instance: &'a Instance,
 }
 
 /// A single instance of a dependency was found, which is not valid
 #[derive(Debug)]
 pub struct MismatchEvent<'a> {
-  /// all instances of this dependency (eg. "react") in this version group
-  pub dependency: &'a Dependency,
-  /// the unique identifier for the instance which was found
-  pub instance_id: InstanceId,
-  /// the correct version specifier the instance should have had
-  pub expected_specifier: Specifier,
-  /// the incorrect version specifier the instance actually has
-  pub actual_specifier: Specifier,
-  /// other instances which do have the correct version specifier
-  pub matching_instance_ids: Vec<InstanceId>,
-  /// all instances in the workspace
-  pub instances_by_id: &'a mut InstancesById,
-  /// all packages in the workspace
-  pub packages: &'a mut Packages,
+  // pub dependency: &'a Dependency,
+  pub instance: &'a Instance,
 }
+
+// /// A single instance of a dependency was found, which is valid
+// #[derive(Debug)]
+// pub struct MatchEvent<'a> {
+//   /// all instances of this dependency (eg. "react") in this version group
+//   pub dependency: &'a Dependency,
+//   /// the unique identifier for the instance which was found
+//   pub instance_id: InstanceId,
+//   /// the version specifier on the instance which was found
+//   pub specifier: Specifier,
+// }
+
+// /// A single instance of a dependency was found, which is not valid
+// #[derive(Debug)]
+// pub struct MismatchEvent<'a> {
+//   /// all instances of this dependency (eg. "react") in this version group
+//   pub dependency: &'a Dependency,
+//   /// the unique identifier for the instance which was found
+//   pub instance_id: InstanceId,
+//   /// the correct version specifier the instance should have had
+//   pub expected_specifier: Specifier,
+//   /// the incorrect version specifier the instance actually has
+//   pub actual_specifier: Specifier,
+//   /// other instances which do have the correct version specifier
+//   pub matching_instance_ids: Vec<InstanceId>,
+//   /// all instances in the workspace
+//   pub instances_by_id: &'a mut InstancesById,
+//   /// all packages in the workspace
+//   pub packages: &'a mut Packages,
+// }
 
 /// A single instance of a dependency was found, where or or one of the other
 /// instances of this dependency have a version specifier which is not
