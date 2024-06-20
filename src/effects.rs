@@ -120,30 +120,69 @@ pub enum Event<'a, 'b> {
   // /// version which is lower than the highest semver version in the group, and
   // /// `.preferVersion` is set to `highestSemver`
   // InstanceMismatchesHighestVersion(&'a mut MismatchEvent<'a>),
-  /**/
-  LocalInstanceIsPreferred(&Instance),
-  InstanceMatchesLocal(&Instance),
-  InstanceMatchesHighestOrLowestSemver(&Instance),
-  InstanceMatchesButIsUnsupported(&Instance),
-  InstanceIsIgnored(&Instance),
-  InstanceMatchesPinned(&Instance),
+  /*
+
+
+  */
+  LocalInstanceIsPreferred(&'a Instance),
+  InstanceMatchesLocal(&'a Instance),
+  InstanceMatchesHighestOrLowestSemver(&'a Instance),
+  InstanceMatchesButIsUnsupported(&'a Instance),
+  InstanceIsIgnored(&'a Instance),
+  InstanceMatchesPinned(&'a Instance),
+
+  /// ✓ Instance matches its same range group
+  /// ✓ Instance matches its semver group
   InstanceMatchesSameRangeGroup(&Instance),
 
+  /// Misconfiguration: Syncpack refuses to change local dependency specifiers
   LocalInstanceMistakenlyBanned(&'a mut Instance, &'a mut Packages),
+
   InstanceIsBanned(&'a mut Instance, &'a mut Packages),
+
   InstanceMatchesHighestOrLowestSemverButMismatchesSemverGroup(&'a mut Instance, &'a mut Packages),
+
   InstanceMatchesLocalButMismatchesSemverGroup(&'a mut Instance, &'a mut Packages),
+
   InstanceMismatchesLocal(&'a mut Instance, &'a mut Packages),
+
   InstanceMismatchesHighestOrLowestSemver(&'a mut Instance, &'a mut Packages),
+
   InstanceMismatchesAndIsUnsupported(&'a mut Instance, &'a mut Packages),
+
+  /// Misconfiguration: Syncpack refuses to change local dependency specifiers
   LocalInstanceMistakenlyMismatchesSemverGroup(&'a mut Instance, &'a mut Packages),
+
   InstanceMatchesPinnedButMismatchesSemverGroup(&'a mut Instance, &'a mut Packages),
-  LocalInstanceMistakenlyMismatchesPinned(&'a mut Instance, &'a mut Packages),
+
+  /// Misconfiguration: Syncpack refuses to change local dependency specifiers
+  LocalInstanceMistakenlyMismatchesPinned(&'a mut Instance),
+
   InstanceMismatchesPinned(&'a mut Instance, &'a mut Packages),
+
+  /// ✘ Instance mismatches its same range group
+  /// ✘ Instance mismatches its semver group
+  /// ✘ If semver group is fixed, instance would still mismatch its same range group
   InstanceMismatchesBothSameRangeAndConflictingSemverGroups(&'a mut Instance, &'a mut Packages),
+
+  /// ✘ Instance mismatches its same range group
+  /// ✘ Instance mismatches its semver group
+  /// ✓ If semver group is fixed, instance would match its same range group
   InstanceMismatchesBothSameRangeAndCompatibleSemverGroups(&'a mut Instance, &'a mut Packages),
+
+  /// ✓ Instance matches its same range group
+  /// ✘ Instance mismatches its semver group
+  /// ✘ If semver group is fixed, instance would then mismatch its same range group
   InstanceMatchesSameRangeGroupButMismatchesConflictingSemverGroup(&'a mut Instance, &'a mut Packages),
+
+  /// ✓ Instance matches its same range group
+  /// ✘ Instance mismatches its semver group
+  /// ✓ If semver group is fixed, instance would still match its same range group
   InstanceMatchesSameRangeGroupButMismatchesCompatibleSemverGroup(&'a mut Instance, &'a mut Packages),
+
+  /// ✘ Instance mismatches its same range group
+  /// ✓ Instance matches its semver group
+  /// ✘ We can't know what range the user wants and have to ask them
   InstanceMismatchesSameRangeGroup(&'a mut Instance, &'a mut Packages),
 }
 
