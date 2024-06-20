@@ -69,17 +69,16 @@ pub enum Specifier {
   Unsupported(String),
   Url(String),
   WorkspaceProtocol(String),
+  // 1. When reading, this only appears when a package is missing a .version property
+  // 2. When writing, this is used to represent a banned instance's specifier
+  None,
 }
 
 impl Specifier {
   pub fn is_semver(&self) -> bool {
     match self {
-      Self::Exact(_) | Self::Latest(_) | Self::Major(_) | Self::Minor(_) | Self::Range(_) | Self::RangeComplex(_) | Self::RangeMinor(_) => {
-        true
-      }
-      Self::Alias(_) | Self::File(_) | Self::Git(_) | Self::Tag(_) | Self::Unsupported(_) | Self::Url(_) | Self::WorkspaceProtocol(_) => {
-        false
-      }
+      Self::Exact(_) | Self::Latest(_) | Self::Major(_) | Self::Minor(_) | Self::Range(_) | Self::RangeComplex(_) | Self::RangeMinor(_) => true,
+      Self::Alias(_) | Self::File(_) | Self::Git(_) | Self::Tag(_) | Self::Unsupported(_) | Self::Url(_) | Self::WorkspaceProtocol(_) | Self::None => false,
     }
   }
 }
@@ -110,6 +109,7 @@ impl Specifier {
       &Specifier::Unsupported(_) => "unsupported",
       &Specifier::Url(_) => "url",
       &Specifier::WorkspaceProtocol(_) => "workspace-protocol",
+      &Specifier::None => "missing",
     }
     .to_string()
   }
@@ -207,6 +207,9 @@ impl Specifier {
       &Specifier::Unsupported(specifier) => specifier,
       &Specifier::Url(specifier) => specifier,
       &Specifier::WorkspaceProtocol(specifier) => specifier,
+      &Specifier::None => {
+        panic!("Cannot unwrap a Specifier::None");
+      }
     }
   }
 }
@@ -261,26 +264,17 @@ fn parse(specifier: &String, is_recursive: bool) -> Specifier {
 /// Is this a semver range containing multiple parts?
 /// Such as OR (" || ") or AND (" ")
 fn is_complex_range(specifier: &str) -> bool {
-  REGEX_OR_OPERATOR
-    .split(specifier)
-    .map(|str| str.trim())
-    .filter(|str| str.len() > 0)
-    .all(|or_condition| {
-      or_condition
-        .split(" ")
-        .map(|str| str.trim())
-        .filter(|str| str.len() > 0)
-        .all(|and_condition| parse(&and_condition.to_string(), true).is_semver())
-    })
+  REGEX_OR_OPERATOR.split(specifier).map(|str| str.trim()).filter(|str| str.len() > 0).all(|or_condition| {
+    or_condition
+      .split(" ")
+      .map(|str| str.trim())
+      .filter(|str| str.len() > 0)
+      .all(|and_condition| parse(&and_condition.to_string(), true).is_semver())
+  })
 }
 
 fn is_range(specifier: &str) -> bool {
-  REGEX_CARET.is_match(specifier)
-    || REGEX_TILDE.is_match(specifier)
-    || REGEX_GT.is_match(specifier)
-    || REGEX_GTE.is_match(specifier)
-    || REGEX_LT.is_match(specifier)
-    || REGEX_LTE.is_match(specifier)
+  REGEX_CARET.is_match(specifier) || REGEX_TILDE.is_match(specifier) || REGEX_GT.is_match(specifier) || REGEX_GTE.is_match(specifier) || REGEX_LT.is_match(specifier) || REGEX_LTE.is_match(specifier)
 }
 
 fn is_range_minor(specifier: &str) -> bool {
@@ -302,11 +296,7 @@ mod tests {
 
   #[test]
   fn alias() {
-    let cases: Vec<String> = to_strings(vec![
-      "npm:@minh.nguyen/plugin-transform-destructuring@^7.5.2",
-      "npm:@types/selenium-webdriver@4.1.18",
-      "npm:foo@1.2.3",
-    ]);
+    let cases: Vec<String> = to_strings(vec!["npm:@minh.nguyen/plugin-transform-destructuring@^7.5.2", "npm:@types/selenium-webdriver@4.1.18", "npm:foo@1.2.3"]);
     for case in cases {
       let parsed = Specifier::new(&case);
       assert_eq!(parsed, Specifier::Alias(case.to_string()), "{} should be alias", case);
@@ -487,11 +477,7 @@ mod tests {
 
   #[test]
   fn url() {
-    let cases: Vec<String> = to_strings(vec![
-      "http://insecure.com/foo.tgz",
-      "https://server.com/foo.tgz",
-      "https://server.com/foo.tgz",
-    ]);
+    let cases: Vec<String> = to_strings(vec!["http://insecure.com/foo.tgz", "https://server.com/foo.tgz", "https://server.com/foo.tgz"]);
     for case in cases {
       let parsed = Specifier::new(&case);
       assert_eq!(parsed, Specifier::Url(case.clone()), "{} should be url", &case);
@@ -503,12 +489,7 @@ mod tests {
     let cases: Vec<String> = to_strings(vec!["workspace:*", "workspace:^", "workspace:~"]);
     for case in cases {
       let parsed = Specifier::new(&case);
-      assert_eq!(
-        parsed,
-        Specifier::WorkspaceProtocol(case.clone()),
-        "{} should be workspace-protocol",
-        case
-      );
+      assert_eq!(parsed, Specifier::WorkspaceProtocol(case.clone()), "{} should be workspace-protocol", case);
     }
   }
 
@@ -532,15 +513,7 @@ mod tests {
 
   #[test]
   fn change_semver_range() {
-    let cases: Vec<(&str, &str)> = vec![
-      ("^", "^1.2.3"),
-      ("~", "~1.2.3"),
-      (">=", ">=1.2.3"),
-      ("<=", "<=1.2.3"),
-      (">", ">1.2.3"),
-      ("<", "<1.2.3"),
-      ("", "1.2.3"),
-    ];
+    let cases: Vec<(&str, &str)> = vec![("^", "^1.2.3"), ("~", "~1.2.3"), (">=", ">=1.2.3"), ("<=", "<=1.2.3"), (">", ">1.2.3"), ("<", "<1.2.3"), ("", "1.2.3")];
     for (_, initial) in &cases {
       let initial = initial.to_string();
       for (range, expected) in &cases {
@@ -615,14 +588,7 @@ mod tests {
     for (range, specifier, expected) in cases {
       let range = SemverRange::new(&range.to_string()).unwrap();
       let parsed = Specifier::new(&specifier.to_string());
-      assert_eq!(
-        parsed.has_range(&range),
-        expected,
-        "{} has range {:?} should be {}",
-        specifier,
-        range,
-        expected
-      );
+      assert_eq!(parsed.has_range(&range), expected, "{} has range {:?} should be {}", specifier, range, expected);
     }
   }
 }
