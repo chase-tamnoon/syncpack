@@ -44,12 +44,10 @@ fn main() -> () {
   let cwd = current_dir().unwrap();
   let cli = Cli::parse();
   let config = Config::from_cli(cwd, cli);
-  let packages = Packages::from_config(&config);
+  let mut packages = Packages::from_config(&config);
 
   match config.cli.command_name {
     Subcommand::Fix => {
-      // everything is mutated and written when fixing
-      let mut packages = packages;
       let mut effects = FixEffects::new(&config);
       fix(&config, &mut packages, &mut effects);
       if !effects.is_valid {
@@ -57,8 +55,8 @@ fn main() -> () {
       }
     }
     Subcommand::Lint => {
-      let effects = LintEffects::new(&config);
-      lint(&config, packages, effects);
+      let mut effects = LintEffects::new(&config);
+      lint(&config, &mut packages, &mut effects);
       if !effects.is_valid {
         process::exit(1);
       }
