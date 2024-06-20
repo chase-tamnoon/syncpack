@@ -18,7 +18,7 @@ impl Context {
 
     // @TODO add some debug!("{}", logs);
 
-    packages.get_all_instances(config, |mut instance| {
+    packages.get_all_instances(&config, |mut instance| {
       version_groups
         .iter_mut()
         .find(|vgroup| vgroup.selector.can_add(&instance))

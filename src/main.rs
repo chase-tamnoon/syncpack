@@ -57,10 +57,8 @@ fn main() -> () {
       }
     }
     Subcommand::Lint => {
-      // packages are mutated when linting formatting, but not written to disk
-      let mut packages = packages;
-      let mut effects = LintEffects::new(&config);
-      lint(&config, &mut packages, &mut effects);
+      let effects = LintEffects::new(&config);
+      lint(&config, packages, effects);
       if !effects.is_valid {
         process::exit(1);
       }

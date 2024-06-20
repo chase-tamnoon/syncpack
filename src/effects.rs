@@ -1,4 +1,5 @@
 use crate::{
+  context::Context,
   dependency::{Dependency, InstancesById},
   group_selector::GroupSelector,
   instance::{Instance, InstanceId},
@@ -16,6 +17,8 @@ use crate::{
 /// this trait.
 pub trait Effects {
   fn on(&mut self, event: Event) -> ();
+  // fn set_context(&mut self, ctx: Context) -> ();
+  // fn borrow_context(&self) -> &Context;
 }
 
 #[derive(Debug)]
@@ -118,30 +121,30 @@ pub enum Event<'a, 'b> {
   // /// `.preferVersion` is set to `highestSemver`
   // InstanceMismatchesHighestVersion(&'a mut MismatchEvent<'a>),
   /**/
-  LocalInstanceIsPreferred(Instance),
-  InstanceMatchesLocal(Instance),
-  InstanceMatchesHighestOrLowestSemverButMismatchesSemverGroup(Instance),
-  InstanceMatchesHighestOrLowestSemver(Instance),
-  InstanceMatchesButIsUnsupported(Instance),
-  InstanceIsIgnored(Instance),
-  InstanceMatchesPinned(Instance),
-  InstanceMatchesSameRangeGroup(Instance),
+  LocalInstanceIsPreferred(&Instance),
+  InstanceMatchesLocal(&Instance),
+  InstanceMatchesHighestOrLowestSemver(&Instance),
+  InstanceMatchesButIsUnsupported(&Instance),
+  InstanceIsIgnored(&Instance),
+  InstanceMatchesPinned(&Instance),
+  InstanceMatchesSameRangeGroup(&Instance),
 
-  LocalInstanceMistakenlyBanned(Instance, &'a mut Packages),
-  InstanceIsBanned(Instance, &'a mut Packages),
-  InstanceMatchesLocalButMismatchesSemverGroup(Instance, &'a mut Packages),
-  InstanceMismatchesLocal(Instance, &'a mut Packages),
-  InstanceMismatchesHighestOrLowestSemver(Instance, &'a mut Packages),
-  InstanceMismatchesAndIsUnsupported(Instance, &'a mut Packages),
-  LocalInstanceMistakenlyMismatchesSemverGroup(Instance, &'a mut Packages),
-  InstanceMatchesPinnedButMismatchesSemverGroup(Instance, &'a mut Packages),
-  LocalInstanceMistakenlyMismatchesPinned(Instance, &'a mut Packages),
-  InstanceMismatchesPinned(Instance, &'a mut Packages),
-  InstanceMismatchesBothSameRangeAndConflictingSemverGroups(Instance, &'a mut Packages),
-  InstanceMismatchesBothSameRangeAndCompatibleSemverGroups(Instance, &'a mut Packages),
-  InstanceMatchesSameRangeGroupButMismatchesConflictingSemverGroup(Instance, &'a mut Packages),
-  InstanceMatchesSameRangeGroupButMismatchesCompatibleSemverGroup(Instance, &'a mut Packages),
-  InstanceMismatchesSameRangeGroup(Instance, &'a mut Packages),
+  LocalInstanceMistakenlyBanned(&'a mut Instance, &'a mut Packages),
+  InstanceIsBanned(&'a mut Instance, &'a mut Packages),
+  InstanceMatchesHighestOrLowestSemverButMismatchesSemverGroup(&'a mut Instance, &'a mut Packages),
+  InstanceMatchesLocalButMismatchesSemverGroup(&'a mut Instance, &'a mut Packages),
+  InstanceMismatchesLocal(&'a mut Instance, &'a mut Packages),
+  InstanceMismatchesHighestOrLowestSemver(&'a mut Instance, &'a mut Packages),
+  InstanceMismatchesAndIsUnsupported(&'a mut Instance, &'a mut Packages),
+  LocalInstanceMistakenlyMismatchesSemverGroup(&'a mut Instance, &'a mut Packages),
+  InstanceMatchesPinnedButMismatchesSemverGroup(&'a mut Instance, &'a mut Packages),
+  LocalInstanceMistakenlyMismatchesPinned(&'a mut Instance, &'a mut Packages),
+  InstanceMismatchesPinned(&'a mut Instance, &'a mut Packages),
+  InstanceMismatchesBothSameRangeAndConflictingSemverGroups(&'a mut Instance, &'a mut Packages),
+  InstanceMismatchesBothSameRangeAndCompatibleSemverGroups(&'a mut Instance, &'a mut Packages),
+  InstanceMatchesSameRangeGroupButMismatchesConflictingSemverGroup(&'a mut Instance, &'a mut Packages),
+  InstanceMatchesSameRangeGroupButMismatchesCompatibleSemverGroup(&'a mut Instance, &'a mut Packages),
+  InstanceMismatchesSameRangeGroup(&'a mut Instance, &'a mut Packages),
 }
 
 /// A single instance of a dependency was found, which is valid
