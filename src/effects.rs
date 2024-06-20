@@ -21,7 +21,7 @@ pub trait Effects {
 }
 
 #[derive(Debug)]
-pub enum Event {
+pub enum Event<'a> {
   /// All package.json files have been read from the workspace
   // PackagesLoaded(&'a Packages),
 
@@ -119,6 +119,13 @@ pub enum Event {
   // /// version which is lower than the highest semver version in the group, and
   // /// `.preferVersion` is set to `highestSemver`
   // InstanceMismatchesHighestVersion(&'a mut MismatchEvent<'a>),
+  /*
+
+
+  */
+  DependencyValid(&'a Dependency),
+  DependencyInvalid(&'a Dependency),
+  DependencyWarning(&'a Dependency),
   /*
 
 

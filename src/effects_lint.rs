@@ -33,97 +33,106 @@ impl Effects for LintEffects<'_> {
 
   fn on(&mut self, event: Event, instances_by_id: &mut InstancesById) -> () {
     match &event {
+      Event::DependencyValid(dependency) => {
+        println!("DependencyValid {}", dependency.name);
+      }
+      Event::DependencyInvalid(dependency) => {
+        println!("DependencyInvalid {}", dependency.name);
+      }
+      Event::DependencyWarning(dependency) => {
+        println!("DependencyWarning {}", dependency.name);
+      }
       Event::LocalInstanceIsPreferred(instance_id) => {
         let instance = instances_by_id.get(instance_id).unwrap();
-        println!("{:?}", &event);
+        println!("  {:?}", &event);
       }
       Event::InstanceMatchesLocal(instance_id) => {
         let instance = instances_by_id.get(instance_id).unwrap();
-        println!("{:?}", &event);
+        println!("  {:?}", &event);
       }
       Event::InstanceMatchesHighestOrLowestSemver(instance_id) => {
         let instance = instances_by_id.get(instance_id).unwrap();
-        println!("{:?}", &event);
+        println!("  {:?}", &event);
       }
       Event::InstanceMatchesButIsUnsupported(instance_id) => {
         let instance = instances_by_id.get(instance_id).unwrap();
-        println!("{:?}", &event);
+        println!("  {:?}", &event);
       }
       Event::InstanceIsIgnored(instance_id) => {
         let instance = instances_by_id.get(instance_id).unwrap();
-        println!("{:?}", &event);
+        println!("  {:?}", &event);
       }
       Event::InstanceMatchesPinned(instance_id) => {
         let instance = instances_by_id.get(instance_id).unwrap();
-        println!("{:?}", &event);
+        println!("  {:?}", &event);
       }
       Event::InstanceMatchesSameRangeGroup(instance_id) => {
         let instance = instances_by_id.get(instance_id).unwrap();
-        println!("{:?}", &event);
+        println!("  {:?}", &event);
       }
       Event::LocalInstanceMistakenlyBanned(instance_id) => {
         let instance = instances_by_id.get(instance_id).unwrap();
-        println!("{:?}", &event);
+        println!("  {:?}", &event);
       }
       Event::InstanceIsBanned(instance_id) => {
         let instance = instances_by_id.get(instance_id).unwrap();
-        println!("{:?}", &event);
+        println!("  {:?}", &event);
       }
       Event::InstanceMatchesHighestOrLowestSemverButMismatchesSemverGroup(instance_id) => {
         let instance = instances_by_id.get(instance_id).unwrap();
-        println!("{:?}", &event);
+        println!("  {:?}", &event);
       }
       Event::InstanceMatchesLocalButMismatchesSemverGroup(instance_id) => {
         let instance = instances_by_id.get(instance_id).unwrap();
-        println!("{:?}", &event);
+        println!("  {:?}", &event);
       }
       Event::InstanceMismatchesLocal(instance_id) => {
         let instance = instances_by_id.get(instance_id).unwrap();
-        println!("{:?}", &event);
+        println!("  {:?}", &event);
       }
       Event::InstanceMismatchesHighestOrLowestSemver(instance_id) => {
         let instance = instances_by_id.get(instance_id).unwrap();
-        println!("{:?}", &event);
+        println!("  {:?}", &event);
       }
       Event::InstanceMismatchesAndIsUnsupported(instance_id) => {
         let instance = instances_by_id.get(instance_id).unwrap();
-        println!("{:?}", &event);
+        println!("  {:?}", &event);
       }
       Event::LocalInstanceMistakenlyMismatchesSemverGroup(instance_id) => {
         let instance = instances_by_id.get(instance_id).unwrap();
-        println!("{:?}", &event);
+        println!("  {:?}", &event);
       }
       Event::InstanceMatchesPinnedButMismatchesSemverGroup(instance_id) => {
         let instance = instances_by_id.get(instance_id).unwrap();
-        println!("{:?}", &event);
+        println!("  {:?}", &event);
       }
       Event::LocalInstanceMistakenlyMismatchesPinned(instance_id) => {
         let instance = instances_by_id.get(instance_id).unwrap();
-        println!("{:?}", &event);
+        println!("  {:?}", &event);
       }
       Event::InstanceMismatchesPinned(instance_id) => {
         let instance = instances_by_id.get(instance_id).unwrap();
-        println!("{:?}", &event);
+        println!("  {:?}", &event);
       }
       Event::InstanceMismatchesBothSameRangeAndConflictingSemverGroups(instance_id) => {
         let instance = instances_by_id.get(instance_id).unwrap();
-        println!("{:?}", &event);
+        println!("  {:?}", &event);
       }
       Event::InstanceMismatchesBothSameRangeAndCompatibleSemverGroups(instance_id) => {
         let instance = instances_by_id.get(instance_id).unwrap();
-        println!("{:?}", &event);
+        println!("  {:?}", &event);
       }
       Event::InstanceMatchesSameRangeGroupButMismatchesConflictingSemverGroup(instance_id) => {
         let instance = instances_by_id.get(instance_id).unwrap();
-        println!("{:?}", &event);
+        println!("  {:?}", &event);
       }
       Event::InstanceMatchesSameRangeGroupButMismatchesCompatibleSemverGroup(instance_id) => {
         let instance = instances_by_id.get(instance_id).unwrap();
-        println!("{:?}", &event);
+        println!("  {:?}", &event);
       }
       Event::InstanceMismatchesSameRangeGroup(instance_id) => {
         let instance = instances_by_id.get(instance_id).unwrap();
-        println!("{:?}", &event);
+        println!("  {:?}", &event);
       }
     }
 
