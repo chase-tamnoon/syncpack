@@ -48,11 +48,7 @@ impl PackageJson {
 
   /// Convenience method to get the name of the package
   pub fn get_name(&self) -> String {
-    self
-      .get_prop("/name")
-      .and_then(|name| name.as_str())
-      .expect("package.json file has no .name property")
-      .to_string()
+    self.get_prop("/name").and_then(|name| name.as_str()).expect("package.json file has no .name property").to_string()
   }
 
   /// Deeply get a property in the parsed package.json

@@ -121,11 +121,7 @@ impl VersionGroup {
     }
     if let Some(prefer_version) = &group.prefer_version {
       return VersionGroup {
-        variant: if prefer_version == "lowestSemver" {
-          Variant::LowestSemver
-        } else {
-          Variant::HighestSemver
-        },
+        variant: if prefer_version == "lowestSemver" { Variant::LowestSemver } else { Variant::HighestSemver },
         selector,
         dependencies: BTreeMap::new(),
         pin_version: None,

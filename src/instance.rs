@@ -61,9 +61,7 @@ impl Instance {
   /// Does this instance's specifier mismatch the initial specifier only by its
   /// semver group's semver range?
   pub fn has_range_mismatch(&self) -> bool {
-    self.prefer_range.is_some()
-      && self.expected.get_exact() == self.actual.get_exact()
-      && self.expected.get_semver_range() != self.actual.get_semver_range()
+    self.prefer_range.is_some() && self.expected.get_exact() == self.actual.get_exact() && self.expected.get_semver_range() != self.actual.get_semver_range()
   }
 
   /// Write a version to the package.json

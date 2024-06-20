@@ -173,9 +173,7 @@ pub struct MockEffects {
 #[cfg(test)]
 impl MockEffects {
   pub fn new() -> Self {
-    Self {
-      events: EventsByType::new(),
-    }
+    Self { events: EventsByType::new() }
   }
 }
 

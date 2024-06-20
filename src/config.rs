@@ -52,12 +52,7 @@ fn default_sort_exports() -> Vec<String> {
 }
 
 fn sort_first() -> Vec<String> {
-  vec![
-    "name".to_string(),
-    "description".to_string(),
-    "version".to_string(),
-    "author".to_string(),
-  ]
+  vec!["name".to_string(), "description".to_string(), "version".to_string(), "author".to_string()]
 }
 
 fn default_source() -> Vec<String> {
@@ -191,11 +186,7 @@ impl Rcfile {
 
   /// Create every version group defined in the rcfile.
   pub fn get_version_groups(&self, local_package_names: &Vec<String>) -> Vec<VersionGroup> {
-    let mut user_groups: Vec<VersionGroup> = self
-      .version_groups
-      .iter()
-      .map(|group| VersionGroup::from_config(group, local_package_names))
-      .collect();
+    let mut user_groups: Vec<VersionGroup> = self.version_groups.iter().map(|group| VersionGroup::from_config(group, local_package_names)).collect();
     user_groups.push(VersionGroup::get_catch_all());
     user_groups
   }
@@ -305,10 +296,7 @@ impl Config {
 
     let rcfile = fs::read_to_string(&file_path)
       .inspect_err(|_| {
-        info!(
-          "{}",
-          format!("? using default config: {} not found", &file_path.to_str().unwrap()).dimmed()
-        );
+        info!("{}", format!("? using default config: {} not found", &file_path.to_str().unwrap()).dimmed());
       })
       .or_else(|_| Ok("{}".to_string()))
       .and_then(|json| serde_json::from_str::<Rcfile>(&json))

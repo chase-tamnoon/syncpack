@@ -46,13 +46,7 @@ pub struct GroupSelector {
 }
 
 impl GroupSelector {
-  pub fn new(
-    dependencies: Vec<String>,
-    dependency_types: Vec<String>,
-    label: String,
-    packages: Vec<String>,
-    specifier_types: Vec<String>,
-  ) -> GroupSelector {
+  pub fn new(dependencies: Vec<String>, dependency_types: Vec<String>, label: String, packages: Vec<String>, specifier_types: Vec<String>) -> GroupSelector {
     GroupSelector {
       include_dependencies: create_globs(true, &dependencies),
       exclude_dependencies: create_globs(false, &dependencies),
@@ -67,18 +61,11 @@ impl GroupSelector {
   }
 
   pub fn can_add(&self, instance: &Instance) -> bool {
-    self.matches_dependency_types(instance)
-      && self.matches_packages(instance)
-      && self.matches_dependencies(instance)
-      && self.matches_specifier_types(instance)
+    self.matches_dependency_types(instance) && self.matches_packages(instance) && self.matches_dependencies(instance) && self.matches_specifier_types(instance)
   }
 
   pub fn matches_dependency_types(&self, instance: &Instance) -> bool {
-    matches_identifiers(
-      &instance.dependency_type.name,
-      &self.include_dependency_types,
-      &self.exclude_dependency_types,
-    )
+    matches_identifiers(&instance.dependency_type.name, &self.include_dependency_types, &self.exclude_dependency_types)
   }
 
   pub fn matches_packages(&self, instance: &Instance) -> bool {
@@ -90,12 +77,7 @@ impl GroupSelector {
   }
 
   pub fn matches_specifier_types(&self, instance: &Instance) -> bool {
-    self.include_specifier_types.is_empty()
-      || matches_identifiers(
-        &instance.expected.get_type_name(),
-        &self.include_specifier_types,
-        &self.exclude_specifier_types,
-      )
+    self.include_specifier_types.is_empty() || matches_identifiers(&instance.expected.get_type_name(), &self.include_specifier_types, &self.exclude_specifier_types)
   }
 }
 
@@ -103,11 +85,7 @@ fn create_globs(is_include: bool, patterns: &Vec<String>) -> Vec<GlobMatcher> {
   patterns
     .iter()
     .filter(|pattern| *pattern != "**" && pattern.starts_with("!") != is_include)
-    .map(|pattern| {
-      Glob::new(&pattern.replace("!", ""))
-        .expect("invalid glob pattern")
-        .compile_matcher()
-    })
+    .map(|pattern| Glob::new(&pattern.replace("!", "")).expect("invalid glob pattern").compile_matcher())
     .collect()
 }
 

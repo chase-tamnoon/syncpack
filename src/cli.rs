@@ -170,11 +170,7 @@ impl CliOptions {
     let use_ranges = matches.get_flag("ranges");
     let use_versions = matches.get_flag("versions");
     let use_all = !use_format && !use_ranges && !use_versions;
-    let source = matches
-      .get_many::<String>("source")
-      .unwrap_or_default()
-      .map(|source| source.to_owned())
-      .collect::<Vec<_>>();
+    let source = matches.get_many::<String>("source").unwrap_or_default().map(|source| source.to_owned()).collect::<Vec<_>>();
     let filter = matches.get_one::<Regex>("filter").map(|filter| filter.to_owned());
 
     CliOptions {

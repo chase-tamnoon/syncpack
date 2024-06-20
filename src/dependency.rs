@@ -47,12 +47,7 @@ pub struct Dependency {
 }
 
 impl Dependency {
-  pub fn new(
-    name: String,
-    variant: Variant,
-    pinned_specifier: Option<Specifier>,
-    snapped_to_package_names: Option<Vec<String>>,
-  ) -> Dependency {
+  pub fn new(name: String, variant: Variant, pinned_specifier: Option<Specifier>, snapped_to_package_names: Option<Vec<String>>) -> Dependency {
     Dependency {
       all: vec![],
       local_instance_id: None,
@@ -74,11 +69,7 @@ impl Dependency {
   }
 
   pub fn get_instances<'a>(&'a self, instances_by_id: &'a InstancesById) -> Vec<&'a Instance> {
-    self
-      .all
-      .iter()
-      .map(move |instance_id| instances_by_id.get(instance_id).unwrap())
-      .collect()
+    self.all.iter().map(move |instance_id| instances_by_id.get(instance_id).unwrap()).collect()
   }
 
   // pub fn for_each_instance<'a, F>(&self, instances_by_id: &'a InstancesById, mut f: F)
@@ -106,46 +97,30 @@ impl Dependency {
   }
 
   pub fn has_preferred_ranges(&self, instances_by_id: &InstancesById) -> bool {
-    self
-      .get_instances(instances_by_id)
-      .iter()
-      .any(|instance| instance.prefer_range.is_some())
+    self.get_instances(instances_by_id).iter().any(|instance| instance.prefer_range.is_some())
   }
 
   pub fn get_local_specifier(&self, instances_by_id: &InstancesById) -> Option<Specifier> {
-    self
-      .get_instances(instances_by_id)
-      .iter()
-      .find(|instance| instance.is_local)
-      .map(|instance| instance.actual.clone())
+    self.get_instances(instances_by_id).iter().find(|instance| instance.is_local).map(|instance| instance.actual.clone())
   }
 
   pub fn all_are_semver(&self, instances_by_id: &InstancesById) -> bool {
-    self
-      .get_instances(instances_by_id)
-      .iter()
-      .all(|instance| instance.actual.is_semver())
+    self.get_instances(instances_by_id).iter().all(|instance| instance.actual.is_semver())
   }
 
   pub fn get_unique_expected_and_actual_specifiers(&self, instances_by_id: &InstancesById) -> HashSet<Specifier> {
-    self
-      .get_instances(instances_by_id)
-      .iter()
-      .fold(HashSet::new(), |mut uniques, instance| {
-        uniques.insert(instance.actual.clone());
-        uniques.insert(instance.expected.clone());
-        uniques
-      })
+    self.get_instances(instances_by_id).iter().fold(HashSet::new(), |mut uniques, instance| {
+      uniques.insert(instance.actual.clone());
+      uniques.insert(instance.expected.clone());
+      uniques
+    })
   }
 
   pub fn get_unique_expected_specifiers(&self, instances_by_id: &InstancesById) -> HashSet<Specifier> {
-    self
-      .get_instances(instances_by_id)
-      .iter()
-      .fold(HashSet::new(), |mut uniques, instance| {
-        uniques.insert(instance.expected.clone());
-        uniques
-      })
+    self.get_instances(instances_by_id).iter().fold(HashSet::new(), |mut uniques, instance| {
+      uniques.insert(instance.expected.clone());
+      uniques
+    })
   }
 
   /// Is the exact same specifier used by all instances in this group?
@@ -225,10 +200,7 @@ impl Dependency {
         if range_a.allows_all(&range_b) {
           return;
         }
-        mismatches_by_specifier
-          .entry(specifier_a.clone())
-          .or_insert(vec![])
-          .push(specifier_b.clone());
+        mismatches_by_specifier.entry(specifier_a.clone()).or_insert(vec![]).push(specifier_b.clone());
       });
     });
     mismatches_by_specifier
@@ -262,12 +234,9 @@ impl Dependency {
   ///
   /// If there is more than one unique version, then we have mismatches
   pub fn group_by_specifier<'a>(&'a self, instances_by_id: &'a InstancesById) -> HashMap<Specifier, Vec<&'a Instance>> {
-    self
-      .get_instances(instances_by_id)
-      .iter()
-      .fold(HashMap::new(), |mut acc, instance| {
-        acc.entry(instance.actual.clone()).or_insert_with(|| vec![]).push(&instance);
-        acc
-      })
+    self.get_instances(instances_by_id).iter().fold(HashMap::new(), |mut acc, instance| {
+      acc.entry(instance.actual.clone()).or_insert_with(|| vec![]).push(&instance);
+      acc
+    })
   }
 }

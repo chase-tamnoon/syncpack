@@ -192,12 +192,7 @@ impl Effects for FixEffects<'_> {
   }
 }
 
-fn set_instance_version_to(
-  instances_by_id: &mut InstancesById,
-  packages: &mut Packages,
-  instance_id: &String,
-  expected_specifier: &Specifier,
-) {
+fn set_instance_version_to(instances_by_id: &mut InstancesById, packages: &mut Packages, instance_id: &String, expected_specifier: &Specifier) {
   let target_instance = instances_by_id.get_mut(instance_id).unwrap();
   let package = packages.by_name.get_mut(&target_instance.package_name).unwrap();
   target_instance.set_specifier(package, expected_specifier);
