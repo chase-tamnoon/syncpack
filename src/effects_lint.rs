@@ -7,6 +7,7 @@ use crate::{
   dependency::Dependency,
   effects::{Effects, Event},
   packages::Packages,
+  version_group::Variant,
 };
 
 /// The implementation of the `lint` command's side effects
@@ -66,15 +67,18 @@ impl Effects for LintEffects<'_> {
       }
       Event::LocalInstanceIsPreferred(instance_id) => {
         let instance = instances_by_id.get(instance_id).unwrap();
-        info!("  {:?}", &event);
+        let hint = "*is local";
+        info!("      {} {} {}", green_tick(), instance.actual.unwrap().green(), hint);
       }
       Event::InstanceMatchesLocal(instance_id) => {
         let instance = instances_by_id.get(instance_id).unwrap();
-        info!("  {:?}", &event);
+        let hint = "*matches local";
+        info!("      {} {} {}", green_tick(), instance.actual.unwrap().green(), hint);
       }
-      Event::InstanceMatchesHighestOrLowestSemver(instance_id) => {
+      Event::InstanceMatchesHighestOrLowestSemver(instance_id, variant) => {
         let instance = instances_by_id.get(instance_id).unwrap();
-        info!("      {} {} {}", green_tick(), instance.actual.unwrap().green(), "[Valid]".dimmed());
+        let hint = high_low_hint(variant);
+        info!("      {} {} {}", green_tick(), instance.actual.unwrap().green(), hint);
       }
       Event::InstanceMatchesButIsUnsupported(instance_id) => {
         let instance = instances_by_id.get(instance_id).unwrap();
@@ -100,7 +104,7 @@ impl Effects for LintEffects<'_> {
         let instance = instances_by_id.get(instance_id).unwrap();
         info!("  {:?}", &event);
       }
-      Event::InstanceMatchesHighestOrLowestSemverButMismatchesSemverGroup(instance_id) => {
+      Event::InstanceMatchesHighestOrLowestSemverButMismatchesSemverGroup(instance_id, variant) => {
         let instance = instances_by_id.get(instance_id).unwrap();
         info!("  {:?}", &event);
       }
@@ -112,7 +116,7 @@ impl Effects for LintEffects<'_> {
         let instance = instances_by_id.get(instance_id).unwrap();
         info!("  {:?}", &event);
       }
-      Event::InstanceMismatchesHighestOrLowestSemver(instance_id) => {
+      Event::InstanceMismatchesHighestOrLowestSemver(instance_id, variant) => {
         let instance = instances_by_id.get(instance_id).unwrap();
         info!("  {:?}", &event);
       }
@@ -366,6 +370,11 @@ fn print_version_match(dependency: &Dependency) {
   // let (specifier, _) = dependency.by_initial_specifier.iter().next().unwrap();
   // info!("{} {} {}", count, dependency.name, &specifier.unwrap().dimmed());
   info!("@TODO print_version_match");
+}
+
+fn high_low_hint(variant: &Variant) -> ColoredString {
+  let is_highest = matches!(variant, Variant::HighestSemver);
+  if is_highest { "*highest" } else { "*lowest" }.dimmed()
 }
 
 fn green_tick() -> ColoredString {

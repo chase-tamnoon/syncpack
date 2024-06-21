@@ -102,14 +102,14 @@ pub fn lint(config: &Config, packages: Packages, effects: &mut impl Effects) {
                             if instance.has_range_mismatch() {
                               mark_as(INVALID);
                               instance.expected = instance.get_fixed_range_mismatch();
-                              queue.push(Event::InstanceMatchesHighestOrLowestSemverButMismatchesSemverGroup(instance_id.clone()));
+                              queue.push(Event::InstanceMatchesHighestOrLowestSemverButMismatchesSemverGroup(instance_id.clone(), &dependency.variant));
                             } else {
-                              queue.push(Event::InstanceMatchesHighestOrLowestSemver(instance_id.clone()));
+                              queue.push(Event::InstanceMatchesHighestOrLowestSemver(instance_id.clone(), &dependency.variant));
                             }
                           } else {
                             mark_as(INVALID);
                             instance.expected = preferred.clone();
-                            queue.push(Event::InstanceMismatchesHighestOrLowestSemver(instance_id.clone()));
+                            queue.push(Event::InstanceMismatchesHighestOrLowestSemver(instance_id.clone(), &dependency.variant));
                           }
                         });
                       }
