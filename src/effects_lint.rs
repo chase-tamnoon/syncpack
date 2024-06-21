@@ -8,6 +8,7 @@ use crate::{
   effects::{Effects, Event},
   instance::Instance,
   packages::Packages,
+  specifier::Specifier,
   version_group::Variant,
 };
 
@@ -58,20 +59,20 @@ impl Effects for LintEffects<'_> {
       Event::DependencyValid(dependency, expected) => {
         let count = render_count_column(dependency.all.len());
         let name = &dependency.name;
-        let expected = if let Some(specifier) = expected { specifier.unwrap() } else { "" };
-        info!("{count} {name} {expected}");
+        let hint = get_expected_hint(&dependency, &expected);
+        info!("{count} {name} {hint}");
       }
       Event::DependencyInvalid(dependency, expected) => {
         let count = render_count_column(dependency.all.len());
         let name = dependency.name.red();
-        let expected = if let Some(specifier) = expected { specifier.unwrap() } else { "" };
-        info!("{count} {name} {expected}");
+        let hint = get_expected_hint(&dependency, &expected);
+        info!("{count} {name} {hint}");
       }
       Event::DependencyWarning(dependency, expected) => {
         let count = render_count_column(dependency.all.len());
         let name = dependency.name.yellow();
-        let expected = if let Some(specifier) = expected { specifier.unwrap() } else { "" };
-        info!("{count} {name} {expected}");
+        let hint = get_expected_hint(&dependency, &expected);
+        info!("{count} {name} {hint}");
       }
       Event::LocalInstanceIsPreferred(instance_id, dependency) => {
         let instance = instances_by_id.get(instance_id).unwrap();
@@ -100,11 +101,11 @@ impl Effects for LintEffects<'_> {
       }
       Event::InstanceMatchesButIsUnsupported(instance_id, dependency) => {
         let instance = instances_by_id.get(instance_id).unwrap();
-        info!("  {:?}", &event);
+        info!("  InstanceMatchesButIsUnsupported");
       }
       Event::InstanceIsIgnored(instance_id, dependency) => {
         let instance = instances_by_id.get(instance_id).unwrap();
-        info!("  {:?}", &event);
+        info!("  instance_id");
       }
       Event::InstanceMatchesPinned(instance_id, dependency) => {
         // let instance = instances_by_id.get(instance_id).unwrap();
@@ -118,11 +119,11 @@ impl Effects for LintEffects<'_> {
       }
       Event::InstanceMatchesSameRangeGroup(instance_id, dependency) => {
         let instance = instances_by_id.get(instance_id).unwrap();
-        info!("  {:?}", &event);
+        info!("  InstanceMatchesSameRangeGroup");
       }
       Event::LocalInstanceMistakenlyBanned(instance_id, dependency) => {
         let instance = instances_by_id.get(instance_id).unwrap();
-        info!("  {:?}", &event);
+        info!("  LocalInstanceMistakenlyBanned");
       }
       Event::InstanceIsBanned(instance_id, dependency) => {
         let instance = instances_by_id.get(instance_id).unwrap();
@@ -146,11 +147,11 @@ impl Effects for LintEffects<'_> {
       }
       Event::InstanceMatchesLocalButMismatchesSemverGroup(instance_id, dependency) => {
         let instance = instances_by_id.get(instance_id).unwrap();
-        info!("  {:?}", &event);
+        info!("  InstanceMatchesLocalButMismatchesSemverGroup");
       }
       Event::InstanceMismatchesLocal(instance_id, dependency) => {
         let instance = instances_by_id.get(instance_id).unwrap();
-        info!("  {:?}", &event);
+        info!("  InstanceMismatchesLocal");
       }
       Event::InstanceMismatchesHighestOrLowestSemver(instance_id, dependency) => {
         let instance = instances_by_id.get(instance_id).unwrap();
@@ -159,19 +160,19 @@ impl Effects for LintEffects<'_> {
       }
       Event::InstanceMismatchesAndIsUnsupported(instance_id, dependency) => {
         let instance = instances_by_id.get(instance_id).unwrap();
-        info!("  {:?}", &event);
+        info!("  InstanceMismatchesAndIsUnsupported");
       }
       Event::LocalInstanceMistakenlyMismatchesSemverGroup(instance_id, dependency) => {
         let instance = instances_by_id.get(instance_id).unwrap();
-        info!("  {:?}", &event);
+        info!("  LocalInstanceMistakenlyMismatchesSemverGroup");
       }
       Event::InstanceMatchesPinnedButMismatchesSemverGroup(instance_id, dependency) => {
         let instance = instances_by_id.get(instance_id).unwrap();
-        info!("  {:?}", &event);
+        info!("  InstanceMatchesPinnedButMismatchesSemverGroup");
       }
       Event::LocalInstanceMistakenlyMismatchesPinned(instance_id, dependency) => {
         let instance = instances_by_id.get(instance_id).unwrap();
-        info!("  {:?}", &event);
+        info!("  LocalInstanceMistakenlyMismatchesPinned");
       }
       Event::InstanceMismatchesPinned(instance_id, dependency) => {
         let instance = instances_by_id.get(instance_id).unwrap();
@@ -185,23 +186,23 @@ impl Effects for LintEffects<'_> {
       }
       Event::InstanceMismatchesBothSameRangeAndConflictingSemverGroups(instance_id, dependency) => {
         let instance = instances_by_id.get(instance_id).unwrap();
-        info!("  {:?}", &event);
+        info!("  InstanceMismatchesBothSameRangeAndConflictingSemverGroups");
       }
       Event::InstanceMismatchesBothSameRangeAndCompatibleSemverGroups(instance_id, dependency) => {
         let instance = instances_by_id.get(instance_id).unwrap();
-        info!("  {:?}", &event);
+        info!("  InstanceMismatchesBothSameRangeAndCompatibleSemverGroups");
       }
       Event::InstanceMatchesSameRangeGroupButMismatchesConflictingSemverGroup(instance_id, dependency) => {
         let instance = instances_by_id.get(instance_id).unwrap();
-        info!("  {:?}", &event);
+        info!("  InstanceMatchesSameRangeGroupButMismatchesConflictingSemverGroup");
       }
       Event::InstanceMatchesSameRangeGroupButMismatchesCompatibleSemverGroup(instance_id, dependency) => {
         let instance = instances_by_id.get(instance_id).unwrap();
-        info!("  {:?}", &event);
+        info!("  InstanceMatchesSameRangeGroupButMismatchesCompatibleSemverGroup");
       }
       Event::InstanceMismatchesSameRangeGroup(instance_id, dependency) => {
         let instance = instances_by_id.get(instance_id).unwrap();
-        info!("  {:?}", &event);
+        info!("  InstanceMismatchesSameRangeGroup");
       }
       Event::PackagesMatchFormatting(valid_packages) => {
         info!("{} {} valid formatting", render_count_column(valid_packages.len()), green_tick());
@@ -440,4 +441,38 @@ fn red_cross() -> ColoredString {
 
 fn dimmed_arrow() -> ColoredString {
   "→".dimmed()
+}
+
+fn get_expected_hint(dependency: &Dependency, expected: &Option<Specifier>) -> ColoredString {
+  match expected {
+    Some(specifier) => {
+      if matches!(specifier, Specifier::None) {
+        return "".to_string().dimmed();
+      }
+      let specifier = specifier.unwrap();
+      match dependency.variant {
+        Variant::Banned => "is banned".to_string().dimmed(),
+        Variant::HighestSemver => {
+          if dependency.all.len() == 1 {
+            specifier.dimmed()
+          } else {
+            format!("{specifier} is the highest semver").dimmed()
+          }
+        }
+        Variant::Ignored => "".to_string().dimmed(),
+        Variant::LowestSemver => {
+          if dependency.all.len() == 1 {
+            specifier.dimmed()
+          } else {
+            format!("{specifier} is the lowest semver").dimmed()
+          }
+        }
+        Variant::Pinned => format!("is pinned to {specifier}").dimmed(),
+        Variant::SameRange => "must all have ranges which satisfy each other".dimmed(),
+        // @TODO: "is snapped to 0.1.4 from /devDependencies of @foo/numberwang"
+        Variant::SnappedTo => format!("is pinned to {specifier}").dimmed(),
+      }
+    }
+    None => "".to_string().dimmed(),
+  }
 }
