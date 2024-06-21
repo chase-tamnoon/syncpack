@@ -246,6 +246,7 @@ pub fn lint(config: &Config, packages: Packages, effects: &mut impl Effects) {
 
     let mut packages = effects.get_packages();
     let InMemoryFormattingStatus { was_valid, was_invalid } = format::fix(&config, &mut packages);
+
     if !was_valid.is_empty() {
       effects.on(Event::PackagesMatchFormatting(was_valid), &mut instances_by_id);
     }
@@ -270,9 +271,9 @@ mod tests {
   fn runs_effect_when_packages_loaded() {
     let mut effects = MockEffects::new();
     let config = Config::new();
-    let mut packages = Packages::new();
+    let packages = Packages::new();
 
-    lint(&config, &mut packages, &mut effects);
+    lint(&config, packages, &mut effects);
     assert_eq!(effects.events.packages_loaded.len(), 1);
   }
 
@@ -280,7 +281,7 @@ mod tests {
   fn reports_one_highest_version_mismatch_in_one_file() {
     let mut effects = MockEffects::new();
     let config = Config::new();
-    let mut packages = Packages::from_mocks(vec![json!({
+    let packages = Packages::from_mocks(vec![json!({
       "name": "package-a",
       "dependencies": {
         "wat": "1.0.0"
@@ -290,7 +291,7 @@ mod tests {
       }
     })]);
 
-    lint(&config, &mut packages, &mut effects);
+    lint(&config, packages, &mut effects);
 
     expect(&effects)
       .to_have_standard_version_group_matches(vec![ExpectedMatchEvent {
@@ -310,7 +311,7 @@ mod tests {
   fn reports_many_highest_version_mismatches_in_one_file() {
     let mut effects = MockEffects::new();
     let config = Config::new();
-    let mut packages = Packages::from_mocks(vec![json!({
+    let packages = Packages::from_mocks(vec![json!({
       "name": "package-a",
       "dependencies": {
         "wat": "0.1.0"
@@ -323,7 +324,7 @@ mod tests {
       }
     })]);
 
-    lint(&config, &mut packages, &mut effects);
+    lint(&config, packages, &mut effects);
 
     expect(&effects)
       .to_have_standard_version_group_matches(vec![ExpectedMatchEvent {
@@ -351,7 +352,7 @@ mod tests {
   fn reports_highest_version_mismatches_in_many_files() {
     let mut effects = MockEffects::new();
     let config = Config::new();
-    let mut packages = Packages::from_mocks(vec![
+    let packages = Packages::from_mocks(vec![
       json!({
         "name": "package-a",
         "dependencies": {
@@ -366,7 +367,7 @@ mod tests {
       }),
     ]);
 
-    lint(&config, &mut packages, &mut effects);
+    lint(&config, packages, &mut effects);
 
     expect(&effects)
       .to_have_standard_version_group_matches(vec![ExpectedMatchEvent {
@@ -391,7 +392,7 @@ mod tests {
         { "packages": ["package-b"] }
       ]
     }));
-    let mut packages = Packages::from_mocks(vec![
+    let packages = Packages::from_mocks(vec![
       json!({
         "name": "package-a",
         "dependencies": {
@@ -406,7 +407,7 @@ mod tests {
       }),
     ]);
 
-    lint(&config, &mut packages, &mut effects);
+    lint(&config, packages, &mut effects);
 
     expect(&effects).to_have_highest_version_mismatches(vec![]).to_have_standard_version_group_matches(vec![
       ExpectedMatchEvent {
@@ -431,7 +432,7 @@ mod tests {
         "pinVersion": "1.2.0"
       }]
     }));
-    let mut packages = Packages::from_mocks(vec![
+    let packages = Packages::from_mocks(vec![
       json!({
         "name": "package-a",
         "version": "1.0.0"
@@ -444,7 +445,7 @@ mod tests {
       }),
     ]);
 
-    lint(&config, &mut packages, &mut effects);
+    lint(&config, packages, &mut effects);
 
     expect(&effects)
       .to_have_rejected_local_version_mismatches(vec![ExpectedMismatchEvent {
@@ -465,7 +466,7 @@ mod tests {
   fn does_not_confuse_highest_version_matches_and_mismatches() {
     let mut effects = MockEffects::new();
     let config = Config::new();
-    let mut packages = Packages::from_mocks(vec![
+    let packages = Packages::from_mocks(vec![
       json!({
         "name": "package-a",
         "dependencies": {
@@ -486,7 +487,7 @@ mod tests {
       }),
     ]);
 
-    lint(&config, &mut packages, &mut effects);
+    lint(&config, packages, &mut effects);
 
     expect(&effects)
       .to_have_standard_version_group_matches(vec![
@@ -521,7 +522,7 @@ mod tests {
   fn reports_local_version_mismatch_when_an_instance_uses_a_higher_version() {
     let mut effects = MockEffects::new();
     let config = Config::new();
-    let mut packages = Packages::from_mocks(vec![
+    let packages = Packages::from_mocks(vec![
       json!({
         "name": "package-a",
         "version": "1.0.0"
@@ -537,7 +538,7 @@ mod tests {
       }),
     ]);
 
-    lint(&config, &mut packages, &mut effects);
+    lint(&config, packages, &mut effects);
 
     expect(&effects)
       .to_have_standard_version_group_matches(vec![ExpectedMatchEvent {
@@ -569,7 +570,7 @@ mod tests {
         "range": "^"
       }]
     }));
-    let mut packages = Packages::from_mocks(vec![
+    let packages = Packages::from_mocks(vec![
       json!({
         "name": "package-a",
         "version": "1.0.0"
@@ -582,7 +583,7 @@ mod tests {
       }),
     ]);
 
-    lint(&config, &mut packages, &mut effects);
+    lint(&config, packages, &mut effects);
 
     // refuse to break local package's version
     expect(&effects)
@@ -635,7 +636,7 @@ mod tests {
         "range": ">"
       }]
     }));
-    let mut packages = Packages::from_mocks(vec![json!({
+    let packages = Packages::from_mocks(vec![json!({
       "name": "package-a",
       "dependencies": {
         "foo": "1.0.0"
@@ -645,7 +646,7 @@ mod tests {
       }
     })]);
 
-    lint(&config, &mut packages, &mut effects);
+    lint(&config, packages, &mut effects);
 
     expect(&effects)
       .to_have_highest_version_mismatches(vec![ExpectedMismatchEvent {
