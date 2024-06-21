@@ -6,7 +6,6 @@ use crate::{
   context::InstancesById,
   dependency::Dependency,
   effects::{Effects, Event},
-  instance::Instance,
   packages::Packages,
   specifier::Specifier,
   version_group::Variant,
@@ -93,11 +92,9 @@ impl Effects for LintEffects<'_> {
       Event::InstanceMatchesHighestOrLowestSemver(instance_id, dependency) => {
         let instance = instances_by_id.get(instance_id).unwrap();
         let icon = green_tick();
-        let high_low = high_low_hint(&dependency.variant);
-        let hint = format!("is {high_low}").dimmed();
         let location_hint = instance.location_hint.dimmed();
         let actual = instance.actual.unwrap().green();
-        info!("      {icon} {actual} {hint} {location_hint}");
+        info!("      {icon} {actual} {location_hint}");
       }
       Event::InstanceMatchesButIsUnsupported(instance_id, dependency) => {
         let instance = instances_by_id.get(instance_id).unwrap();
@@ -155,7 +152,10 @@ impl Effects for LintEffects<'_> {
       }
       Event::InstanceMismatchesHighestOrLowestSemver(instance_id, dependency) => {
         let instance = instances_by_id.get(instance_id).unwrap();
-        info!("      {} {} {}", red_cross(), actual_to_expected(&instance), instance.location_hint.dimmed());
+        let icon = red_cross();
+        let expected = instance.expected.unwrap().red();
+        let location_hint = instance.location_hint.dimmed();
+        info!("      {icon} {expected} {location_hint}");
         self.is_valid = false;
       }
       Event::InstanceMismatchesAndIsUnsupported(instance_id, dependency) => {
@@ -178,10 +178,8 @@ impl Effects for LintEffects<'_> {
         let instance = instances_by_id.get(instance_id).unwrap();
         let icon = red_cross();
         let actual = instance.actual.unwrap().red();
-        let arrow = dimmed_arrow();
-        let expected = instance.expected.unwrap().green();
         let location_hint = instance.location_hint.dimmed();
-        info!("      {icon} {actual} {arrow} {expected} {location_hint}");
+        info!("      {icon} {actual} {location_hint}");
         self.is_valid = false;
       }
       Event::InstanceMismatchesBothSameRangeAndConflictingSemverGroups(instance_id, dependency) => {
@@ -416,12 +414,6 @@ fn print_version_match(dependency: &Dependency) {
   info!("@TODO print_version_match");
 }
 
-fn actual_to_expected(instance: &Instance) -> String {
-  let actual = instance.actual.unwrap();
-  let expected = instance.expected.unwrap();
-  format!("{} {} {}", actual.red(), dimmed_arrow(), expected.dimmed())
-}
-
 fn high_low_hint(variant: &Variant) -> &str {
   let is_highest = matches!(variant, Variant::HighestSemver);
   if is_highest {
@@ -449,14 +441,15 @@ fn get_expected_hint(dependency: &Dependency, expected: &Option<Specifier>) -> C
       if matches!(specifier, Specifier::None) {
         return "".to_string().dimmed();
       }
-      let specifier = specifier.unwrap();
+      let specifier = specifier.unwrap().green();
       match dependency.variant {
-        Variant::Banned => "is banned".to_string().dimmed(),
+        Variant::Banned => "".to_string().dimmed(),
         Variant::HighestSemver => {
           if dependency.all.len() == 1 {
             specifier.dimmed()
           } else {
-            format!("{specifier} is the highest semver").dimmed()
+            let label = "the highest semver is".dimmed();
+            format!("{label} {specifier}")
           }
         }
         Variant::Ignored => "".to_string().dimmed(),
@@ -464,13 +457,20 @@ fn get_expected_hint(dependency: &Dependency, expected: &Option<Specifier>) -> C
           if dependency.all.len() == 1 {
             specifier.dimmed()
           } else {
-            format!("{specifier} is the lowest semver").dimmed()
+            let label = "the lowest semver is".dimmed();
+            format!("{label} {specifier}")
           }
         }
-        Variant::Pinned => format!("is pinned to {specifier}").dimmed(),
-        Variant::SameRange => "must all have ranges which satisfy each other".dimmed(),
-        // @TODO: "is snapped to 0.1.4 from /devDependencies of @foo/numberwang"
-        Variant::SnappedTo => format!("is pinned to {specifier}").dimmed(),
+        Variant::Pinned => {
+          let label = "is pinned to".dimmed();
+          format!("{label} {specifier}")
+        }
+        Variant::SameRange => "all specifier ranges must satisfy each other".dimmed(),
+        Variant::SnappedTo => {
+          // @TODO: "is snapped to 0.1.4 from /devDependencies of @foo/numberwang"
+          let label = "is snapped to".dimmed();
+          format!("{label} {specifier}")
+        }
       }
     }
     None => "".to_string().dimmed(),

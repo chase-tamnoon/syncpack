@@ -5,7 +5,6 @@ use version_compare::Cmp;
 use crate::{
   config::Config,
   context::Context,
-  dependency,
   effects::{Effects, Event},
   format::{self, InMemoryFormattingStatus},
   packages::Packages,

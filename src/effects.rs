@@ -6,7 +6,6 @@ use crate::{
   package_json::PackageJson,
   packages::Packages,
   specifier::Specifier,
-  version_group::Variant,
 };
 
 /// Side effects in Syncpack commands are handled by structs which implement
