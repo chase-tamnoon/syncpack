@@ -1,201 +1,201 @@
 {
-	"name": "@fluid-internal/client-utils",
-	"version": "2.0.1-rc.1.0.1",
-	"description": "Not intended for use outside the Fluid Framework.",
-	"homepage": "https://fluidframework.com",
-	"repository": {
-		"type": "git",
-		"url": "https://github.com/microsoft/FluidFramework.git",
-		"directory": "packages/common/client-utils"
-	},
-	"license": "MIT",
-	"author": "Microsoft and contributors",
-	"sideEffects": false,
-	"type": "module",
-	"exports": {
-		".": {
-			"node": {
-				"import": {
-					"types": "./lib/indexNode.d.ts",
-					"default": "./lib/indexNode.js"
-				},
-				"require": {
-					"types": "./dist/indexNode.d.ts",
-					"default": "./dist/indexNode.js"
-				}
-			},
-			"default": {
-				"import": {
-					"types": "./lib/indexBrowser.d.ts",
-					"default": "./lib/indexBrowser.js"
-				},
-				"require": {
-					"types": "./dist/indexBrowser.d.ts",
-					"default": "./dist/indexBrowser.js"
-				}
-			}
-		},
-		"./bufferBrowser.js": {
-			"node": {
-				"import": {
-					"types": "./lib/bufferNode.d.ts",
-					"default": "./lib/bufferNode.js"
-				},
-				"require": {
-					"types": "./dist/bufferNode.d.ts",
-					"default": "./dist/bufferNode.js"
-				}
-			},
-			"default": {
-				"import": {
-					"types": "./lib/bufferBrowser.d.ts",
-					"default": "./lib/bufferBrowser.js"
-				},
-				"require": {
-					"types": "./dist/bufferBrowser.d.ts",
-					"default": "./dist/bufferBrowser.js"
-				}
-			}
-		}
-	},
-	"main": "lib/indexNode.js",
-	"types": "lib/indexNode.d.ts",
-	"scripts": {
-		"build": "fluid-build . --task build",
-		"build:commonjs": "fluid-build . --task commonjs",
-		"build:compile": "fluid-build . --task compile",
-		"build:docs": "api-extractor run --local",
-		"build:esnext": "tsc --project ./tsconfig.json",
-		"build:test": "concurrently npm:build:test:mocha npm:build:test:jest npm:build:test:types",
-		"build:test:jest": "fluid-tsc commonjs --project ./src/test/jest/tsconfig.cjs.json",
-		"build:test:mocha": "concurrently npm:build:test:mocha:esm npm:build:test:mocha:cjs",
-		"build:test:mocha:cjs": "fluid-tsc commonjs --project ./src/test/mocha/tsconfig.cjs.json",
-		"build:test:mocha:esm": "tsc --project ./src/test/mocha/tsconfig.json",
-		"build:test:types": "tsc --project ./src/test/types/tsconfig.json",
-		"check:are-the-types-wrong": "attw --pack .",
-		"check:prettier": "prettier --check . --cache --ignore-path ../../../.prettierignore",
-		"check:release-tags": "api-extractor run --local --config ./api-extractor-lint.json",
-		"ci:build:docs": "api-extractor run",
-		"clean": "rimraf --glob _api-extractor-temp dist lib \"**/*.tsbuildinfo\" \"**/*.build.log\" nyc",
-		"eslint": "eslint --format stylish src",
-		"eslint:fix": "eslint --format stylish src --fix --fix-type problem,suggestion,layout",
-		"format": "fluid-build --task format .",
-		"format:prettier": "prettier --write . --cache --ignore-path ../../../.prettierignore",
-		"lint": "fluid-build . --task lint",
-		"lint:fix": "fluid-build . --task eslint:fix --task format",
-		"test": "npm run test:mocha && npm run test:jest",
-		"test:coverage": "c8 npm test",
-		"test:jest": "jest",
-		"test:mocha": "npm run test:mocha:esm && npm run test:mocha:cjs",
-		"test:mocha:cjs": "mocha --recursive \"dist/test/mocha/**/*.spec.*js\" --exit -r node_modules/@fluid-internal/mocha-test-setup",
-		"test:mocha:esm": "mocha --recursive \"lib/test/mocha/**/*.spec.*js\" --exit -r node_modules/@fluid-internal/mocha-test-setup",
-		"tsc": "fluid-tsc commonjs --project ./tsconfig.cjs.json && copyfiles -f ./src/cjs/package.json ./dist",
-		"typetests:gen": "fluid-type-test-generator",
-		"typetests:prepare": "flub typetests --dir . --reset --previous --normalize"
-	},
-	"c8": {
-		"all": true,
-		"cache-dir": "nyc/.cache",
-		"exclude": [
-			"src/test/**/*.*ts",
-			"dist/test/**/*.*js"
-		],
-		"exclude-after-remap": false,
-		"include": [
-			"src/**/*.*ts",
-			"dist/**/*.*js"
-		],
-		"report-dir": "nyc/report",
-		"reporter": [
-			"cobertura",
-			"html",
-			"text"
-		],
-		"temp-directory": "nyc/.nyc_output"
-	},
-	"dependencies": {
-		"@fluidframework/core-interfaces": "workspace:~",
-		"@fluidframework/core-utils": "workspace:~",
-		"@types/events_pkg": "npm:@types/events@^3.1.0",
-		"base64-js": "^1.0.2",
-		"buffer": "^6.1.1",
-		"events_pkg": "npm:events@^3.2.1",
-		"lodash": "^4.2.1",
-		"sha.js": "^2.0.1"
-	},
-	"devDependencies": {
-		"@arethetypeswrong/cli": "^0.0.0",
-		"@biomejs/biome": "^1.0.1",
-		"@fluid-internal/client-utils-previous": "npm:@fluid-internal/client-utils@2.1.1-internal.2.1.0",
-		"@fluid-internal/mocha-test-setup": "workspace:~",
-		"@fluid-tools/build-cli": "^0.1.1",
-		"@fluidframework/build-common": "^2.1.2",
-		"@fluidframework/build-tools": "^0.0.1",
-		"@fluidframework/eslint-config-fluid": "^5.1.1",
-		"@microsoft/api-extractor": "^7.2.2",
-		"@types/base64-js": "^1.1.1",
-		"@types/jest": "29.2.0",
-		"@types/jest-environment-puppeteer": "workspace:~",
-		"@types/mocha": "^9.2.1",
-		"@types/node": "^18.1.1",
-		"@types/rewire": "^2.1.0",
-		"@types/sha.js": "^2.0.1",
-		"@types/sinon": "^17.1.1",
-		"c8": "^8.1.0",
-		"concurrently": "^8.1.0",
-		"copyfiles": "^2.2.1",
-		"cross-env": "^7.0.1",
-		"eslint": "~8.1.1",
-		"eslint-config-prettier": "~9.0.1",
-		"jest": "^29.1.2",
-		"jest-environment-puppeteer": "^9.1.1",
-		"jest-junit": "^10.0.1",
-		"jest-puppeteer": "^9.2.2",
-		"mocha": "^10.1.1",
-		"mocha-json-output-reporter": "^2.1.0",
-		"mocha-multi-reporters": "^1.2.1",
-		"moment": "^2.0.1",
-		"prettier": "~3.1.2",
-		"puppeteer": "^22.1.1",
-		"rewire": "^5.1.1",
-		"rimraf": "^4.2.0",
-		"sinon": "^17.1.2",
-		"ts-jest": "^29.1.2",
-		"ts-node": "^10.0.1",
-		"typescript": "~5.1.2"
-	},
-	"fluidBuild": {
-		"tasks": {
-			"eslint": [
-				"tsc",
-				"build:esnext",
-				"build:test:mocha:esm",
-				"build:test:jest",
-				"build:test:types"
-			],
-			"build:test:jest": [
-				"tsc"
-			],
-			"build:test:mocha:cjs": [
-				"tsc"
-			],
-			"build:test:mocha:esm": [
-				"build:esnext"
-			],
-			"build:test:types": [
-				"build:esnext"
-			]
-		}
-	},
-	"typeValidation": {
-		"broken": {
-			"TypeAliasDeclaration_EventEmitterEventType": {
-				"forwardCompat": false
-			},
-			"RemovedClassDeclaration_EventForwarder": {
-				"backCompat": false,
-				"forwardCompat": false
-			}
-		}
-	}
+  "name": "@fluid-internal/client-utils",
+  "version": "2.0.1-rc.1.0.1",
+  "description": "Not intended for use outside the Fluid Framework.",
+  "homepage": "https://fluidframework.com",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/microsoft/FluidFramework.git",
+    "directory": "packages/common/client-utils"
+  },
+  "license": "MIT",
+  "author": "Microsoft and contributors",
+  "sideEffects": false,
+  "type": "module",
+  "exports": {
+    ".": {
+      "node": {
+        "import": {
+          "types": "./lib/indexNode.d.ts",
+          "default": "./lib/indexNode.js"
+        },
+        "require": {
+          "types": "./dist/indexNode.d.ts",
+          "default": "./dist/indexNode.js"
+        }
+      },
+      "default": {
+        "import": {
+          "types": "./lib/indexBrowser.d.ts",
+          "default": "./lib/indexBrowser.js"
+        },
+        "require": {
+          "types": "./dist/indexBrowser.d.ts",
+          "default": "./dist/indexBrowser.js"
+        }
+      }
+    },
+    "./bufferBrowser.js": {
+      "node": {
+        "import": {
+          "types": "./lib/bufferNode.d.ts",
+          "default": "./lib/bufferNode.js"
+        },
+        "require": {
+          "types": "./dist/bufferNode.d.ts",
+          "default": "./dist/bufferNode.js"
+        }
+      },
+      "default": {
+        "import": {
+          "types": "./lib/bufferBrowser.d.ts",
+          "default": "./lib/bufferBrowser.js"
+        },
+        "require": {
+          "types": "./dist/bufferBrowser.d.ts",
+          "default": "./dist/bufferBrowser.js"
+        }
+      }
+    }
+  },
+  "main": "lib/indexNode.js",
+  "types": "lib/indexNode.d.ts",
+  "scripts": {
+    "build": "fluid-build . --task build",
+    "build:commonjs": "fluid-build . --task commonjs",
+    "build:compile": "fluid-build . --task compile",
+    "build:docs": "api-extractor run --local",
+    "build:esnext": "tsc --project ./tsconfig.json",
+    "build:test": "concurrently npm:build:test:mocha npm:build:test:jest npm:build:test:types",
+    "build:test:jest": "fluid-tsc commonjs --project ./src/test/jest/tsconfig.cjs.json",
+    "build:test:mocha": "concurrently npm:build:test:mocha:esm npm:build:test:mocha:cjs",
+    "build:test:mocha:cjs": "fluid-tsc commonjs --project ./src/test/mocha/tsconfig.cjs.json",
+    "build:test:mocha:esm": "tsc --project ./src/test/mocha/tsconfig.json",
+    "build:test:types": "tsc --project ./src/test/types/tsconfig.json",
+    "check:are-the-types-wrong": "attw --pack .",
+    "check:prettier": "prettier --check . --cache --ignore-path ../../../.prettierignore",
+    "check:release-tags": "api-extractor run --local --config ./api-extractor-lint.json",
+    "ci:build:docs": "api-extractor run",
+    "clean": "rimraf --glob _api-extractor-temp dist lib \"**/*.tsbuildinfo\" \"**/*.build.log\" nyc",
+    "eslint": "eslint --format stylish src",
+    "eslint:fix": "eslint --format stylish src --fix --fix-type problem,suggestion,layout",
+    "format": "fluid-build --task format .",
+    "format:prettier": "prettier --write . --cache --ignore-path ../../../.prettierignore",
+    "lint": "fluid-build . --task lint",
+    "lint:fix": "fluid-build . --task eslint:fix --task format",
+    "test": "npm run test:mocha && npm run test:jest",
+    "test:coverage": "c8 npm test",
+    "test:jest": "jest",
+    "test:mocha": "npm run test:mocha:esm && npm run test:mocha:cjs",
+    "test:mocha:cjs": "mocha --recursive \"dist/test/mocha/**/*.spec.*js\" --exit -r node_modules/@fluid-internal/mocha-test-setup",
+    "test:mocha:esm": "mocha --recursive \"lib/test/mocha/**/*.spec.*js\" --exit -r node_modules/@fluid-internal/mocha-test-setup",
+    "tsc": "fluid-tsc commonjs --project ./tsconfig.cjs.json && copyfiles -f ./src/cjs/package.json ./dist",
+    "typetests:gen": "fluid-type-test-generator",
+    "typetests:prepare": "flub typetests --dir . --reset --previous --normalize"
+  },
+  "c8": {
+    "all": true,
+    "cache-dir": "nyc/.cache",
+    "exclude": [
+      "src/test/**/*.*ts",
+      "dist/test/**/*.*js"
+    ],
+    "exclude-after-remap": false,
+    "include": [
+      "src/**/*.*ts",
+      "dist/**/*.*js"
+    ],
+    "report-dir": "nyc/report",
+    "reporter": [
+      "cobertura",
+      "html",
+      "text"
+    ],
+    "temp-directory": "nyc/.nyc_output"
+  },
+  "dependencies": {
+    "@fluidframework/core-interfaces": "workspace:~",
+    "@fluidframework/core-utils": "workspace:~",
+    "@types/events_pkg": "npm:@types/events@^3.1.0",
+    "base64-js": "^1.0.2",
+    "buffer": "^6.1.1",
+    "events_pkg": "npm:events@^3.2.1",
+    "lodash": "^4.2.1",
+    "sha.js": "^2.0.1"
+  },
+  "devDependencies": {
+    "@arethetypeswrong/cli": "^0.0.0",
+    "@biomejs/biome": "^1.0.1",
+    "@fluid-internal/client-utils-previous": "npm:@fluid-internal/client-utils@2.1.1-internal.2.1.0",
+    "@fluid-internal/mocha-test-setup": "workspace:~",
+    "@fluid-tools/build-cli": "^0.1.1",
+    "@fluidframework/build-common": "^2.1.2",
+    "@fluidframework/build-tools": "^0.0.1",
+    "@fluidframework/eslint-config-fluid": "^5.1.1",
+    "@microsoft/api-extractor": "^7.2.2",
+    "@types/base64-js": "^1.1.1",
+    "@types/jest": "29.2.0",
+    "@types/jest-environment-puppeteer": "workspace:~",
+    "@types/mocha": "^9.2.1",
+    "@types/node": "^18.1.1",
+    "@types/rewire": "^2.1.0",
+    "@types/sha.js": "^2.0.1",
+    "@types/sinon": "^17.1.1",
+    "c8": "^8.1.0",
+    "concurrently": "^8.1.0",
+    "copyfiles": "^2.2.1",
+    "cross-env": "^7.0.1",
+    "eslint": "~8.1.1",
+    "eslint-config-prettier": "~9.0.1",
+    "jest": "^29.1.2",
+    "jest-environment-puppeteer": "^9.1.1",
+    "jest-junit": "^10.0.1",
+    "jest-puppeteer": "^9.2.2",
+    "mocha": "^10.1.1",
+    "mocha-json-output-reporter": "^2.1.0",
+    "mocha-multi-reporters": "^1.2.1",
+    "moment": "^2.0.1",
+    "prettier": "~3.1.2",
+    "puppeteer": "^22.1.1",
+    "rewire": "^5.1.1",
+    "rimraf": "^4.2.0",
+    "sinon": "^0.1.2",
+    "ts-jest": "^29.1.2",
+    "ts-node": "^10.0.1",
+    "typescript": "~5.1.2"
+  },
+  "fluidBuild": {
+    "tasks": {
+      "eslint": [
+        "tsc",
+        "build:esnext",
+        "build:test:mocha:esm",
+        "build:test:jest",
+        "build:test:types"
+      ],
+      "build:test:jest": [
+        "tsc"
+      ],
+      "build:test:mocha:cjs": [
+        "tsc"
+      ],
+      "build:test:mocha:esm": [
+        "build:esnext"
+      ],
+      "build:test:types": [
+        "build:esnext"
+      ]
+    }
+  },
+  "typeValidation": {
+    "broken": {
+      "TypeAliasDeclaration_EventEmitterEventType": {
+        "forwardCompat": false
+      },
+      "RemovedClassDeclaration_EventForwarder": {
+        "backCompat": false,
+        "forwardCompat": false
+      }
+    }
+  }
 }
