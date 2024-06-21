@@ -25,6 +25,8 @@ pub struct Instance {
   pub id: InstanceId,
   /// Whether this is a package developed in this repo
   pub is_local: bool,
+  /// eg. "in /devDependencies of @foo/numberwang"
+  pub location_hint: String,
   /// The dependency name eg. "react", "react-dom"
   pub name: String,
   /// The `.name` of the package.json this file is in
@@ -52,16 +54,29 @@ impl Instance {
       file_path: package.file_path.clone(),
       id: format!("{} in {} of {}", name, &dependency_type.path, package_name),
       is_local: dependency_type.path == "/version",
+      location_hint: format!("in {} of {}", &dependency_type.path, package_name),
       name,
       package_name,
       prefer_range: None,
     }
   }
 
-  /// Does this instance's specifier mismatch the initial specifier only by its
-  /// semver group's semver range?
-  pub fn has_range_mismatch(&self) -> bool {
-    self.prefer_range.is_some() && self.expected.get_exact() == self.actual.get_exact() && self.expected.get_semver_range() != self.actual.get_semver_range()
+  /// Does this instance's specifier match the expected specifier for this
+  /// dependency except for by its own semver group's preferred semver range?
+  ///
+  /// ✓ it has a semver group
+  /// ✓ its own version matches its expected version (eg. "1.1.0" == "1.1.0")
+  /// ✓ its expected version matches the expected version of the group
+  /// ✘ only its own semver range is different
+  pub fn has_range_mismatch(&self, expected: &Specifier) -> bool {
+    // it has a semver group
+    self.prefer_range.is_some()
+    // its own version matches its expected version (eg. "1.1.0" == "1.1.0")
+    && self.expected.get_exact() == self.actual.get_exact()
+    // its expected version matches the expected version of the group
+    && self.expected.get_exact() == expected.get_exact()
+    // only its own semver range is different
+    && self.expected.get_semver_range() != self.actual.get_semver_range()
   }
 
   pub fn get_fixed_range_mismatch(&self) -> Specifier {

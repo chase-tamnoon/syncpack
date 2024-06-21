@@ -6,6 +6,7 @@ use crate::{
   context::InstancesById,
   dependency::Dependency,
   effects::{Effects, Event},
+  instance::Instance,
   packages::Packages,
   version_group::Variant,
 };
@@ -67,18 +68,28 @@ impl Effects for LintEffects<'_> {
       }
       Event::LocalInstanceIsPreferred(instance_id) => {
         let instance = instances_by_id.get(instance_id).unwrap();
+        let icon = green_tick();
         let hint = "*is local";
-        info!("      {} {} {}", green_tick(), instance.actual.unwrap().green(), hint);
+        let location_hint = instance.location_hint.dimmed();
+        let actual = instance.actual.unwrap().green();
+        info!("      {icon} {actual} {hint} {location_hint}");
       }
       Event::InstanceMatchesLocal(instance_id) => {
         let instance = instances_by_id.get(instance_id).unwrap();
+        let icon = green_tick();
         let hint = "*matches local";
-        info!("      {} {} {}", green_tick(), instance.actual.unwrap().green(), hint);
+        let location_hint = instance.location_hint.dimmed();
+        let actual = instance.actual.unwrap().green();
+        info!("      {icon} {actual} {hint} {location_hint}");
       }
       Event::InstanceMatchesHighestOrLowestSemver(instance_id, variant) => {
         let instance = instances_by_id.get(instance_id).unwrap();
-        let hint = high_low_hint(variant);
-        info!("      {} {} {}", green_tick(), instance.actual.unwrap().green(), hint);
+        let icon = green_tick();
+        let high_low = high_low_hint(variant);
+        let hint = format!("is {high_low}").dimmed();
+        let location_hint = instance.location_hint.dimmed();
+        let actual = instance.actual.unwrap().green();
+        info!("      {icon} {actual} {hint} {location_hint}");
       }
       Event::InstanceMatchesButIsUnsupported(instance_id) => {
         let instance = instances_by_id.get(instance_id).unwrap();
@@ -89,8 +100,14 @@ impl Effects for LintEffects<'_> {
         info!("  {:?}", &event);
       }
       Event::InstanceMatchesPinned(instance_id) => {
-        let instance = instances_by_id.get(instance_id).unwrap();
-        info!("  {:?}", &event);
+        // let instance = instances_by_id.get(instance_id).unwrap();
+        // let icon = red_cross();
+        // let location_hint = instance.location_hint.dimmed();
+        // let actual = instance.actual.unwrap().red();
+        // let expected = instance.expected.unwrap().green();
+        // let arrow = dimmed_arrow();
+        // info!("      {icon} {actual} {arrow} {expected} {location_hint}");
+        // self.is_valid = false;
       }
       Event::InstanceMatchesSameRangeGroup(instance_id) => {
         let instance = instances_by_id.get(instance_id).unwrap();
@@ -102,11 +119,23 @@ impl Effects for LintEffects<'_> {
       }
       Event::InstanceIsBanned(instance_id) => {
         let instance = instances_by_id.get(instance_id).unwrap();
-        info!("  {:?}", &event);
+        let icon = red_cross();
+        let hint = "banned".red();
+        let location_hint = instance.location_hint.dimmed();
+        info!("      {icon} {hint} {location_hint}");
+        self.is_valid = false;
       }
       Event::InstanceMatchesHighestOrLowestSemverButMismatchesSemverGroup(instance_id, variant) => {
         let instance = instances_by_id.get(instance_id).unwrap();
-        info!("  {:?}", &event);
+        let icon = red_cross();
+        let high_low = high_low_hint(variant);
+        let hint = format!("is {high_low} but mismatches its semver group").dimmed();
+        let location_hint = instance.location_hint.dimmed();
+        let actual = instance.actual.unwrap().red();
+        let arrow = dimmed_arrow();
+        let expected = instance.expected.unwrap().green();
+        info!("      {icon} {actual} {arrow} {expected} {hint} {location_hint}");
+        self.is_valid = false;
       }
       Event::InstanceMatchesLocalButMismatchesSemverGroup(instance_id) => {
         let instance = instances_by_id.get(instance_id).unwrap();
@@ -118,7 +147,8 @@ impl Effects for LintEffects<'_> {
       }
       Event::InstanceMismatchesHighestOrLowestSemver(instance_id, variant) => {
         let instance = instances_by_id.get(instance_id).unwrap();
-        info!("  {:?}", &event);
+        info!("      {} {} {}", red_cross(), actual_to_expected(&instance), instance.location_hint.dimmed());
+        self.is_valid = false;
       }
       Event::InstanceMismatchesAndIsUnsupported(instance_id) => {
         let instance = instances_by_id.get(instance_id).unwrap();
@@ -138,7 +168,13 @@ impl Effects for LintEffects<'_> {
       }
       Event::InstanceMismatchesPinned(instance_id) => {
         let instance = instances_by_id.get(instance_id).unwrap();
-        info!("  {:?}", &event);
+        let icon = red_cross();
+        let actual = instance.actual.unwrap().red();
+        let arrow = dimmed_arrow();
+        let expected = instance.expected.unwrap().green();
+        let location_hint = instance.location_hint.dimmed();
+        info!("      {icon} {actual} {arrow} {expected} {location_hint}");
+        self.is_valid = false;
       }
       Event::InstanceMismatchesBothSameRangeAndConflictingSemverGroups(instance_id) => {
         let instance = instances_by_id.get(instance_id).unwrap();
@@ -372,9 +408,19 @@ fn print_version_match(dependency: &Dependency) {
   info!("@TODO print_version_match");
 }
 
-fn high_low_hint(variant: &Variant) -> ColoredString {
+fn actual_to_expected(instance: &Instance) -> String {
+  let actual = instance.actual.unwrap();
+  let expected = instance.expected.unwrap();
+  format!("{} {} {}", actual.red(), dimmed_arrow(), expected.dimmed())
+}
+
+fn high_low_hint(variant: &Variant) -> &str {
   let is_highest = matches!(variant, Variant::HighestSemver);
-  if is_highest { "*highest" } else { "*lowest" }.dimmed()
+  if is_highest {
+    "highest semver"
+  } else {
+    "lowest semver"
+  }
 }
 
 fn green_tick() -> ColoredString {
@@ -386,5 +432,5 @@ fn red_cross() -> ColoredString {
 }
 
 fn dimmed_arrow() -> ColoredString {
-  "→ ".dimmed()
+  "→".dimmed()
 }
