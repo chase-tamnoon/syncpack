@@ -42,9 +42,9 @@ pub enum Event<'a> {
   /// A version/semver group is next to be processed
   GroupVisited(&'a GroupSelector),
 
-  DependencyValid(&'a Dependency),
-  DependencyInvalid(&'a Dependency),
-  DependencyWarning(&'a Dependency),
+  DependencyValid(&'a Dependency, Option<Specifier>),
+  DependencyInvalid(&'a Dependency, Option<Specifier>),
+  DependencyWarning(&'a Dependency, Option<Specifier>),
 
   LocalInstanceIsPreferred(InstanceId, &'a Dependency),
   InstanceMatchesLocal(InstanceId, &'a Dependency),

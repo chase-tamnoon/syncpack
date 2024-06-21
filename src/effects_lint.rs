@@ -55,17 +55,23 @@ impl Effects for LintEffects<'_> {
         let full_header = format!("{header}{divider}");
         info!("{}", full_header.blue());
       }
-      Event::DependencyValid(dependency) => {
+      Event::DependencyValid(dependency, expected) => {
         let count = render_count_column(dependency.all.len());
-        info!("{} {}", count, dependency.name);
+        let name = &dependency.name;
+        let expected = if let Some(specifier) = expected { specifier.unwrap() } else { "" };
+        info!("{count} {name} {expected}");
       }
-      Event::DependencyInvalid(dependency) => {
+      Event::DependencyInvalid(dependency, expected) => {
         let count = render_count_column(dependency.all.len());
-        info!("{} {}", count, dependency.name.red());
+        let name = dependency.name.red();
+        let expected = if let Some(specifier) = expected { specifier.unwrap() } else { "" };
+        info!("{count} {name} {expected}");
       }
-      Event::DependencyWarning(dependency) => {
+      Event::DependencyWarning(dependency, expected) => {
         let count = render_count_column(dependency.all.len());
-        info!("{} {}", count, dependency.name.yellow());
+        let name = dependency.name.yellow();
+        let expected = if let Some(specifier) = expected { specifier.unwrap() } else { "" };
+        info!("{count} {name} {expected}");
       }
       Event::LocalInstanceIsPreferred(instance_id, dependency) => {
         let instance = instances_by_id.get(instance_id).unwrap();
