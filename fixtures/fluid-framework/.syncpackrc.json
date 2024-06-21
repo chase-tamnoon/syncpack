@@ -10,97 +10,57 @@
       "strategy": "name@version"
     }
   },
-  "source": [
-    "**/package.json"
-  ],
+  "source": ["**/package.json"],
   "semverGroups": [
     {
       "label": "Version compatibility workarounds should be used, or removed from syncpack.config.cjs if no longer needed.",
-      "dependencies": [
-        "@oclif/core"
-      ],
-      "dependencyTypes": [
-        "pnpmOverrides"
-      ],
-      "packages": [
-        "**"
-      ],
+      "dependencies": ["@oclif/core"],
+      "dependencyTypes": ["pnpmOverrides"],
+      "packages": ["**"],
       "range": "~"
     },
     {
       "label": "engines.node should always use >= ranges",
-      "dependencyTypes": [
-        "engines"
-      ],
-      "dependencies": [
-        "node"
-      ],
-      "packages": [
-        "**"
-      ],
+      "dependencyTypes": ["engines"],
+      "dependencies": ["node"],
+      "packages": ["**"],
       "range": ">="
     },
     {
       "label": "engines.npm should always use caret ranges",
-      "dependencyTypes": [
-        "engines"
-      ],
-      "dependencies": [
-        "npm"
-      ],
-      "packages": [
-        "**"
-      ],
+      "dependencyTypes": ["engines"],
+      "dependencies": ["npm"],
+      "packages": ["**"],
       "range": "^"
     },
     {
       "label": "packageManager should always use exact dependency ranges",
-      "dependencyTypes": [
-        "packageManager"
-      ],
-      "dependencies": [
-        "**"
-      ],
-      "packages": [
-        "**"
-      ],
+      "dependencyTypes": ["packageManager"],
+      "dependencies": ["**"],
+      "packages": ["**"],
       "range": ""
     },
     {
-      "dependencies": [
-        "**"
-      ],
-      "packages": [
-        "@fluid-experimental/property-*"
-      ],
+      "dependencies": ["**"],
+      "packages": ["@fluid-experimental/property-*"],
       "isIgnored": true
     },
     {
       "label": "Overridden server dependencies should always be exact versions",
-      "dependencyTypes": [
-        "pnpmOverrides"
-      ],
+      "dependencyTypes": ["pnpmOverrides"],
       "dependencies": [
         "@fluidframework/gitresources",
         "@fluidframework/protocol-base",
         "@fluidframework/server-*"
       ],
-      "packages": [
-        "**"
-      ],
+      "packages": ["**"],
       "range": ""
     },
     {
       "label": "Deps in pnpm overrides can use whatever dependency ranges they need",
-      "dependencyTypes": [
-        "pnpmOverrides"
-      ],
-      "dependencies": [
-        "**"
-      ],
-      "packages": [
-        "**"
-      ],
+      "dependencyTypes": ["pnpmOverrides"],
+      "dependencies": ["**"],
+      "packages": ["**"],
       "isIgnored": true
     },
     {
@@ -121,9 +81,7 @@
         "json-stringify-safe",
         "yargs"
       ],
-      "packages": [
-        "**"
-      ],
+      "packages": ["**"],
       "range": ""
     },
     {
@@ -139,68 +97,43 @@
         "webpack-dev-server",
         "@cerner/duplicate-package-checker-webpack-plugin"
       ],
-      "packages": [
-        "**"
-      ],
+      "packages": ["**"],
       "range": "^"
     },
     {
       "label": "Dependencies should use caret dependency ranges",
-      "dependencies": [
-        "**"
-      ],
-      "dependencyTypes": [
-        "dev",
-        "peer",
-        "prod"
-      ],
-      "packages": [
-        "**"
-      ],
+      "dependencies": ["**"],
+      "dependencyTypes": ["dev", "peer", "prod"],
+      "packages": ["**"],
       "range": "^"
     }
   ],
   "versionGroups": [
     {
       "label": "Example of banned dependency",
-      "dependencies": [
-        "lodash"
-      ],
+      "dependencies": ["lodash"],
       "isBanned": true
     },
     {
       "label": "Example of pinned dependency",
-      "dependencies": [
-        "@types/chai"
-      ],
+      "dependencies": ["@types/chai"],
       "pinVersion": "4.0.0"
     },
     {
       "label": "Example of same range dependency",
-      "dependencies": [
-        "@fluidframework/build-common"
-      ],
+      "dependencies": ["@fluidframework/build-common"],
       "policy": "sameRange"
     },
     {
       "label": "Example of lowest version group",
-      "dependencies": [
-        "@types/mocha"
-      ],
+      "dependencies": ["@types/mocha"],
       "preferVersion": "lowestSemver"
     },
     {
       "label": "Example of snapped to version group",
-      "dependencies": [
-        "**"
-      ],
-      "packages": [
-        "fluid-framework",
-        "@fluidframework/undo-redo"
-      ],
-      "snapTo": [
-        "@fluidframework/core-utils"
-      ]
+      "dependencies": ["**"],
+      "packages": ["fluid-framework", "@fluidframework/undo-redo"],
+      "snapTo": ["@fluidframework/core-utils"]
     },
     {
       "label": "Versions of common Fluid packages should all match",
@@ -211,33 +144,19 @@
         "@fluidframework/build-tools",
         "@fluid-tools/build-cli"
       ],
-      "packages": [
-        "**"
-      ]
+      "packages": ["**"]
     },
     {
       "label": "Versions in engines field should all match",
-      "dependencyTypes": [
-        "engines"
-      ],
-      "dependencies": [
-        "**"
-      ],
-      "packages": [
-        "**"
-      ]
+      "dependencyTypes": ["engines"],
+      "dependencies": ["**"],
+      "packages": ["**"]
     },
     {
       "label": "Versions in packageManager field should all match",
-      "dependencyTypes": [
-        "packageManager"
-      ],
-      "dependencies": [
-        "**"
-      ],
-      "packages": [
-        "**"
-      ]
+      "dependencyTypes": ["packageManager"],
+      "dependencies": ["**"],
+      "packages": ["**"]
     }
   ]
 }
