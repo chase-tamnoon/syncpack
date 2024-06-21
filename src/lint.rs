@@ -75,6 +75,7 @@ pub fn lint(config: &Config, packages: Packages, effects: &mut impl Effects) {
               let label: &str = if prefer_highest { "highest" } else { "lowest" };
               match dependency.get_local_specifier(&instances_by_id) {
                 Some(local_specifier) => {
+                  expected = Some(local_specifier.clone());
                   dependency.all.iter().for_each(|instance_id| {
                     let instance = instances_by_id.get_mut(instance_id).unwrap();
                     if instance.is_local {
@@ -84,12 +85,10 @@ pub fn lint(config: &Config, packages: Packages, effects: &mut impl Effects) {
                     } else if instance.has_range_mismatch(&local_specifier) {
                       mark_as(INVALID);
                       instance.expected = instance.get_fixed_range_mismatch();
-                      expected = Some(instance.get_fixed_range_mismatch());
                       queue.push(Event::InstanceMatchesLocalButMismatchesSemverGroup(instance_id.clone(), &dependency));
                     } else {
                       mark_as(INVALID);
                       instance.expected = local_specifier.clone();
-                      expected = Some(local_specifier.clone());
                       queue.push(Event::InstanceMismatchesLocal(instance_id.clone(), &dependency));
                     }
                   });
@@ -98,6 +97,7 @@ pub fn lint(config: &Config, packages: Packages, effects: &mut impl Effects) {
                   if dependency.all_are_semver(&instances_by_id) {
                     match dependency.get_highest_or_lowest_semver(&instances_by_id, preferred_order) {
                       Some(preferred) => {
+                        expected = Some(preferred.clone());
                         dependency.all.iter().for_each(|instance_id| {
                           let instance = instances_by_id.get_mut(instance_id).unwrap();
                           if instance.actual.matches(&preferred) {
@@ -105,12 +105,10 @@ pub fn lint(config: &Config, packages: Packages, effects: &mut impl Effects) {
                           } else if instance.has_range_mismatch(&preferred) {
                             mark_as(INVALID);
                             instance.expected = instance.get_fixed_range_mismatch();
-                            expected = Some(instance.get_fixed_range_mismatch());
                             queue.push(Event::InstanceMatchesHighestOrLowestSemverButMismatchesSemverGroup(instance_id.clone(), &dependency));
                           } else {
                             mark_as(INVALID);
                             instance.expected = preferred.clone();
-                            expected = Some(preferred.clone());
                             queue.push(Event::InstanceMismatchesHighestOrLowestSemver(instance_id.clone(), &dependency));
                           }
                         });
@@ -123,6 +121,7 @@ pub fn lint(config: &Config, packages: Packages, effects: &mut impl Effects) {
                     mark_as(WARNING);
                     dependency.all.iter().for_each(|instance_id| {
                       let instance = instances_by_id.get(instance_id).unwrap();
+                      expected = Some(instance.actual.clone());
                       queue.push(Event::InstanceMatchesButIsUnsupported(instance_id.clone(), &dependency));
                     });
                   } else {
@@ -144,6 +143,7 @@ pub fn lint(config: &Config, packages: Packages, effects: &mut impl Effects) {
             }
             Variant::Pinned => match &dependency.pinned_specifier {
               Some(pinned) => {
+                expected = Some(pinned.clone());
                 dependency.all.iter().for_each(|instance_id| {
                   let instance = instances_by_id.get_mut(instance_id).unwrap();
                   if instance.actual.matches(&pinned) {
@@ -155,7 +155,6 @@ pub fn lint(config: &Config, packages: Packages, effects: &mut impl Effects) {
                     } else {
                       mark_as(INVALID);
                       instance.expected = instance.get_fixed_range_mismatch();
-                      expected = Some(instance.get_fixed_range_mismatch());
                       queue.push(Event::InstanceMatchesPinnedButMismatchesSemverGroup(instance_id.clone(), &dependency));
                     }
                   } else if instance.is_local {
@@ -164,7 +163,6 @@ pub fn lint(config: &Config, packages: Packages, effects: &mut impl Effects) {
                   } else {
                     mark_as(INVALID);
                     instance.expected = pinned.clone();
-                    expected = Some(pinned.clone());
                     queue.push(Event::InstanceMismatchesPinned(instance_id.clone(), &dependency));
                   }
                 });
