@@ -44,50 +44,57 @@ pub enum Event<'a> {
 }
 
 #[derive(Debug)]
-pub enum InstanceEvent<'a> {
-  LocalInstanceIsPreferred(InstanceId, &'a Dependency),
-  InstanceMatchesLocal(InstanceId, &'a Dependency),
-  InstanceMatchesHighestOrLowestSemver(InstanceId, &'a Dependency),
-  InstanceMatchesButIsUnsupported(InstanceId, &'a Dependency),
-  InstanceIsIgnored(InstanceId, &'a Dependency),
-  InstanceMatchesPinned(InstanceId, &'a Dependency),
+pub enum InstanceEventVariant {
+  LocalInstanceIsPreferred,
+  InstanceMatchesLocal,
+  InstanceMatchesHighestOrLowestSemver,
+  InstanceMatchesButIsUnsupported,
+  InstanceIsIgnored,
+  InstanceMatchesPinned,
   /// ✓ Instance matches its same range group
   /// ✓ Instance matches its semver group
-  InstanceMatchesSameRangeGroup(InstanceId, &'a Dependency),
+  InstanceMatchesSameRangeGroup,
   /// Misconfiguration: Syncpack refuses to change local dependency specifiers
-  LocalInstanceMistakenlyBanned(InstanceId, &'a Dependency),
-  InstanceIsBanned(InstanceId, &'a Dependency),
-  InstanceMatchesHighestOrLowestSemverButMismatchesSemverGroup(InstanceId, &'a Dependency),
-  InstanceMatchesLocalButMismatchesSemverGroup(InstanceId, &'a Dependency),
-  InstanceMismatchesLocal(InstanceId, &'a Dependency),
-  InstanceMismatchesHighestOrLowestSemver(InstanceId, &'a Dependency),
-  InstanceMismatchesAndIsUnsupported(InstanceId, &'a Dependency),
+  LocalInstanceMistakenlyBanned,
+  InstanceIsBanned,
+  InstanceMatchesHighestOrLowestSemverButMismatchesSemverGroup,
+  InstanceMatchesLocalButMismatchesSemverGroup,
+  InstanceMismatchesLocal,
+  InstanceMismatchesHighestOrLowestSemver,
+  InstanceMismatchesAndIsUnsupported,
   /// Misconfiguration: Syncpack refuses to change local dependency specifiers
-  LocalInstanceMistakenlyMismatchesSemverGroup(InstanceId, &'a Dependency),
-  InstanceMatchesPinnedButMismatchesSemverGroup(InstanceId, &'a Dependency),
+  LocalInstanceMistakenlyMismatchesSemverGroup,
+  InstanceMatchesPinnedButMismatchesSemverGroup,
   /// Misconfiguration: Syncpack refuses to change local dependency specifiers
-  LocalInstanceMistakenlyMismatchesPinned(InstanceId, &'a Dependency /*&'a mut Instance*/),
-  InstanceMismatchesPinned(InstanceId, &'a Dependency),
+  LocalInstanceMistakenlyMismatchesPinned,
+  InstanceMismatchesPinned,
   /// ✘ Instance mismatches its same range group
   /// ✘ Instance mismatches its semver group
   /// ✘ If semver group is fixed, instance would still mismatch its same range group
-  InstanceMismatchesBothSameRangeAndConflictingSemverGroups(InstanceId, &'a Dependency),
+  InstanceMismatchesBothSameRangeAndConflictingSemverGroups,
   /// ✘ Instance mismatches its same range group
   /// ✘ Instance mismatches its semver group
   /// ✓ If semver group is fixed, instance would match its same range group
-  InstanceMismatchesBothSameRangeAndCompatibleSemverGroups(InstanceId, &'a Dependency),
+  InstanceMismatchesBothSameRangeAndCompatibleSemverGroups,
   /// ✓ Instance matches its same range group
   /// ✘ Instance mismatches its semver group
   /// ✘ If semver group is fixed, instance would then mismatch its same range group
-  InstanceMatchesSameRangeGroupButMismatchesConflictingSemverGroup(InstanceId, &'a Dependency),
+  InstanceMatchesSameRangeGroupButMismatchesConflictingSemverGroup,
   /// ✓ Instance matches its same range group
   /// ✘ Instance mismatches its semver group
   /// ✓ If semver group is fixed, instance would still match its same range group
-  InstanceMatchesSameRangeGroupButMismatchesCompatibleSemverGroup(InstanceId, &'a Dependency),
+  InstanceMatchesSameRangeGroupButMismatchesCompatibleSemverGroup,
   /// ✘ Instance mismatches its same range group
   /// ✓ Instance matches its semver group
   /// ✘ We can't know what range the user wants and have to ask them
-  InstanceMismatchesSameRangeGroup(InstanceId, &'a Dependency),
+  InstanceMismatchesSameRangeGroup,
+}
+
+#[derive(Debug)]
+pub struct InstanceEvent<'a> {
+  pub dependency: &'a Dependency,
+  pub instance_id: InstanceId,
+  pub variant: InstanceEventVariant,
 }
 
 /// A single instance of a dependency was found, which is valid
