@@ -16,8 +16,8 @@ use crate::{
 /// side effects are handled by the command-specific structs which implement
 /// this trait.
 pub trait Effects {
-  // @TODO: split this into multiple methods for instance events etc
   fn on(&mut self, event: Event, instances_by_id: &mut InstancesById) -> ();
+  fn on_instance(&mut self, event: InstanceEvent, instances_by_id: &mut InstancesById) -> ();
   fn get_packages(&mut self) -> Packages;
   fn set_packages(&mut self, packages: Packages) -> ();
 }
@@ -26,32 +26,31 @@ pub trait Effects {
 pub enum Event<'a> {
   /// Syncpack is about to lint/fix versions/ranges, if enabled
   EnterVersionsAndRanges,
+  /// A version/semver group is next to be processed
+  GroupVisited(&'a GroupSelector),
+  DependencyValid(&'a Dependency, Option<Specifier>),
+  DependencyInvalid(&'a Dependency, Option<Specifier>),
+  DependencyWarning(&'a Dependency, Option<Specifier>),
   /// Syncpack is about to lint/fix formatting, if enabled
   EnterFormat,
-  /// Linting/fixing has completed
-  ExitCommand,
-
   /// Linting/fixing of formatting has completed and these packages were valid
   PackagesMatchFormatting(Vec<&'a PackageJson>),
   /// Linting/fixing of formatting has completed and these packages were
   /// initially invalid. In the case of fixing, they are now valid but were
   /// invalid beforehand.
   PackagesMismatchFormatting(Vec<&'a PackageJson>),
+  /// Linting/fixing has completed
+  ExitCommand,
+}
 
-  /// A version/semver group is next to be processed
-  GroupVisited(&'a GroupSelector),
-
-  DependencyValid(&'a Dependency, Option<Specifier>),
-  DependencyInvalid(&'a Dependency, Option<Specifier>),
-  DependencyWarning(&'a Dependency, Option<Specifier>),
-
+#[derive(Debug)]
+pub enum InstanceEvent<'a> {
   LocalInstanceIsPreferred(InstanceId, &'a Dependency),
   InstanceMatchesLocal(InstanceId, &'a Dependency),
   InstanceMatchesHighestOrLowestSemver(InstanceId, &'a Dependency),
   InstanceMatchesButIsUnsupported(InstanceId, &'a Dependency),
   InstanceIsIgnored(InstanceId, &'a Dependency),
   InstanceMatchesPinned(InstanceId, &'a Dependency),
-
   /// ✓ Instance matches its same range group
   /// ✓ Instance matches its semver group
   InstanceMatchesSameRangeGroup(InstanceId, &'a Dependency),

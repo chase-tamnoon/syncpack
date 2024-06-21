@@ -5,7 +5,7 @@ use version_compare::Cmp;
 use crate::{
   config::Config,
   context::Context,
-  effects::{Effects, Event},
+  effects::{Effects, Event, InstanceEvent},
   format::{self, InMemoryFormattingStatus},
   packages::Packages,
   specifier::Specifier,
@@ -46,7 +46,7 @@ pub fn lint(config: &Config, packages: Packages, effects: &mut impl Effects) {
 
         group.dependencies.values().for_each(|dependency| {
           let mut expected: Option<Specifier> = None;
-          let mut queue: Vec<Event> = vec![];
+          let mut queue: Vec<InstanceEvent> = vec![];
           let mut severity = VALID;
           let mut mark_as = |level: u8| {
             if severity < level {
@@ -59,11 +59,11 @@ pub fn lint(config: &Config, packages: Packages, effects: &mut impl Effects) {
                 let instance = instances_by_id.get_mut(instance_id).unwrap();
                 if instance.is_local {
                   mark_as(WARNING);
-                  queue.push(Event::LocalInstanceMistakenlyBanned(instance_id.clone(), &dependency));
+                  queue.push(InstanceEvent::LocalInstanceMistakenlyBanned(instance_id.clone(), &dependency));
                 } else {
                   mark_as(INVALID);
                   instance.expected = Specifier::None;
-                  queue.push(Event::InstanceIsBanned(instance_id.clone(), &dependency));
+                  queue.push(InstanceEvent::InstanceIsBanned(instance_id.clone(), &dependency));
                 }
               });
             }
@@ -77,20 +77,20 @@ pub fn lint(config: &Config, packages: Packages, effects: &mut impl Effects) {
                     let instance = instances_by_id.get_mut(instance_id).unwrap();
                     if instance.is_local {
                       expected = Some(local_specifier.clone());
-                      queue.push(Event::LocalInstanceIsPreferred(instance_id.clone(), &dependency));
+                      queue.push(InstanceEvent::LocalInstanceIsPreferred(instance_id.clone(), &dependency));
                     } else if instance.actual.matches(&local_specifier) {
                       expected = Some(local_specifier.clone());
-                      queue.push(Event::InstanceMatchesLocal(instance_id.clone(), &dependency));
+                      queue.push(InstanceEvent::InstanceMatchesLocal(instance_id.clone(), &dependency));
                     } else if instance.has_range_mismatch(&local_specifier) {
                       mark_as(INVALID);
                       instance.expected = instance.get_fixed_range_mismatch();
                       expected = Some(local_specifier.clone());
-                      queue.push(Event::InstanceMatchesLocalButMismatchesSemverGroup(instance_id.clone(), &dependency));
+                      queue.push(InstanceEvent::InstanceMatchesLocalButMismatchesSemverGroup(instance_id.clone(), &dependency));
                     } else {
                       mark_as(INVALID);
                       instance.expected = local_specifier.clone();
                       expected = Some(local_specifier.clone());
-                      queue.push(Event::InstanceMismatchesLocal(instance_id.clone(), &dependency));
+                      queue.push(InstanceEvent::InstanceMismatchesLocal(instance_id.clone(), &dependency));
                     }
                   });
                 }
@@ -102,17 +102,17 @@ pub fn lint(config: &Config, packages: Packages, effects: &mut impl Effects) {
                           let instance = instances_by_id.get_mut(instance_id).unwrap();
                           if instance.actual.matches(&preferred) {
                             expected = Some(preferred.clone());
-                            queue.push(Event::InstanceMatchesHighestOrLowestSemver(instance_id.clone(), &dependency));
+                            queue.push(InstanceEvent::InstanceMatchesHighestOrLowestSemver(instance_id.clone(), &dependency));
                           } else if instance.has_range_mismatch(&preferred) {
                             mark_as(INVALID);
                             instance.expected = instance.get_fixed_range_mismatch();
                             expected = Some(preferred.clone());
-                            queue.push(Event::InstanceMatchesHighestOrLowestSemverButMismatchesSemverGroup(instance_id.clone(), &dependency));
+                            queue.push(InstanceEvent::InstanceMatchesHighestOrLowestSemverButMismatchesSemverGroup(instance_id.clone(), &dependency));
                           } else {
                             mark_as(INVALID);
                             instance.expected = preferred.clone();
                             expected = Some(preferred.clone());
-                            queue.push(Event::InstanceMismatchesHighestOrLowestSemver(instance_id.clone(), &dependency));
+                            queue.push(InstanceEvent::InstanceMismatchesHighestOrLowestSemver(instance_id.clone(), &dependency));
                           }
                         });
                       }
@@ -125,14 +125,14 @@ pub fn lint(config: &Config, packages: Packages, effects: &mut impl Effects) {
                     dependency.all.iter().for_each(|instance_id| {
                       let instance = instances_by_id.get(instance_id).unwrap();
                       expected = Some(instance.actual.clone());
-                      queue.push(Event::InstanceMatchesButIsUnsupported(instance_id.clone(), &dependency));
+                      queue.push(InstanceEvent::InstanceMatchesButIsUnsupported(instance_id.clone(), &dependency));
                     });
                   } else {
                     mark_as(INVALID);
                     dependency.all.iter().for_each(|instance_id| {
                       let instance = instances_by_id.get_mut(instance_id).unwrap();
                       instance.expected = Specifier::None;
-                      queue.push(Event::InstanceMismatchesAndIsUnsupported(instance_id.clone(), &dependency));
+                      queue.push(InstanceEvent::InstanceMismatchesAndIsUnsupported(instance_id.clone(), &dependency));
                     });
                   }
                 }
@@ -141,7 +141,7 @@ pub fn lint(config: &Config, packages: Packages, effects: &mut impl Effects) {
             Variant::Ignored => {
               dependency.all.iter().for_each(|instance_id| {
                 let instance = instances_by_id.get(instance_id).unwrap();
-                queue.push(Event::InstanceIsIgnored(instance_id.clone(), &dependency));
+                queue.push(InstanceEvent::InstanceIsIgnored(instance_id.clone(), &dependency));
               });
             }
             Variant::Pinned => match &dependency.pinned_specifier {
@@ -150,27 +150,27 @@ pub fn lint(config: &Config, packages: Packages, effects: &mut impl Effects) {
                   let instance = instances_by_id.get_mut(instance_id).unwrap();
                   if instance.actual.matches(&pinned) {
                     expected = Some(pinned.clone());
-                    queue.push(Event::InstanceMatchesPinned(instance_id.clone(), &dependency));
+                    queue.push(InstanceEvent::InstanceMatchesPinned(instance_id.clone(), &dependency));
                   } else if instance.has_range_mismatch(&pinned) {
                     if instance.is_local {
                       mark_as(WARNING);
                       expected = Some(pinned.clone());
-                      queue.push(Event::LocalInstanceMistakenlyMismatchesSemverGroup(instance_id.clone(), &dependency));
+                      queue.push(InstanceEvent::LocalInstanceMistakenlyMismatchesSemverGroup(instance_id.clone(), &dependency));
                     } else {
                       mark_as(INVALID);
                       instance.expected = instance.get_fixed_range_mismatch();
                       expected = Some(pinned.clone());
-                      queue.push(Event::InstanceMatchesPinnedButMismatchesSemverGroup(instance_id.clone(), &dependency));
+                      queue.push(InstanceEvent::InstanceMatchesPinnedButMismatchesSemverGroup(instance_id.clone(), &dependency));
                     }
                   } else if instance.is_local {
                     mark_as(WARNING);
                     expected = Some(pinned.clone());
-                    queue.push(Event::LocalInstanceMistakenlyMismatchesPinned(instance_id.clone(), &dependency));
+                    queue.push(InstanceEvent::LocalInstanceMistakenlyMismatchesPinned(instance_id.clone(), &dependency));
                   } else {
                     mark_as(INVALID);
                     instance.expected = pinned.clone();
                     expected = Some(pinned.clone());
-                    queue.push(Event::InstanceMismatchesPinned(instance_id.clone(), &dependency));
+                    queue.push(InstanceEvent::InstanceMismatchesPinned(instance_id.clone(), &dependency));
                   }
                 });
               }
@@ -189,30 +189,30 @@ pub fn lint(config: &Config, packages: Packages, effects: &mut impl Effects) {
                       if mismatches.contains_key(&instance.expected) {
                         mark_as(INVALID);
                         instance.expected = Specifier::None;
-                        queue.push(Event::InstanceMismatchesBothSameRangeAndConflictingSemverGroups(instance_id.clone(), &dependency));
+                        queue.push(InstanceEvent::InstanceMismatchesBothSameRangeAndConflictingSemverGroups(instance_id.clone(), &dependency));
                       } else {
                         mark_as(INVALID);
                         instance.expected = Specifier::None;
-                        queue.push(Event::InstanceMismatchesBothSameRangeAndCompatibleSemverGroups(instance_id.clone(), &dependency));
+                        queue.push(InstanceEvent::InstanceMismatchesBothSameRangeAndCompatibleSemverGroups(instance_id.clone(), &dependency));
                       }
                     } else {
                       if mismatches.contains_key(&instance.expected) {
                         mark_as(INVALID);
                         instance.expected = Specifier::None;
-                        queue.push(Event::InstanceMatchesSameRangeGroupButMismatchesConflictingSemverGroup(instance_id.clone(), &dependency));
+                        queue.push(InstanceEvent::InstanceMatchesSameRangeGroupButMismatchesConflictingSemverGroup(instance_id.clone(), &dependency));
                       } else {
                         mark_as(INVALID);
                         instance.expected = Specifier::None;
-                        queue.push(Event::InstanceMatchesSameRangeGroupButMismatchesCompatibleSemverGroup(instance_id.clone(), &dependency));
+                        queue.push(InstanceEvent::InstanceMatchesSameRangeGroupButMismatchesCompatibleSemverGroup(instance_id.clone(), &dependency));
                       }
                     }
                   } else {
                     if mismatches.contains_key(&instance.actual) {
                       mark_as(INVALID);
                       instance.expected = Specifier::None;
-                      queue.push(Event::InstanceMismatchesSameRangeGroup(instance_id.clone(), &dependency));
+                      queue.push(InstanceEvent::InstanceMismatchesSameRangeGroup(instance_id.clone(), &dependency));
                     } else {
-                      queue.push(Event::InstanceMatchesSameRangeGroup(instance_id.clone(), &dependency));
+                      queue.push(InstanceEvent::InstanceMatchesSameRangeGroup(instance_id.clone(), &dependency));
                     }
                   }
                   // /CHECK THIS OVER
@@ -221,14 +221,14 @@ pub fn lint(config: &Config, packages: Packages, effects: &mut impl Effects) {
                 mark_as(WARNING);
                 dependency.all.iter().for_each(|instance_id| {
                   let instance = instances_by_id.get(instance_id).unwrap();
-                  queue.push(Event::InstanceMatchesButIsUnsupported(instance_id.clone(), &dependency));
+                  queue.push(InstanceEvent::InstanceMatchesButIsUnsupported(instance_id.clone(), &dependency));
                 });
               } else {
                 mark_as(INVALID);
                 dependency.all.iter().for_each(|instance_id| {
                   let instance = instances_by_id.get_mut(instance_id).unwrap();
                   instance.expected = Specifier::None;
-                  queue.push(Event::InstanceMismatchesAndIsUnsupported(instance_id.clone(), &dependency));
+                  queue.push(InstanceEvent::InstanceMismatchesAndIsUnsupported(instance_id.clone(), &dependency));
                 });
               }
             }
@@ -245,8 +245,47 @@ pub fn lint(config: &Config, packages: Packages, effects: &mut impl Effects) {
           } else {
             effects.on(Event::DependencyInvalid(dependency, expected), &mut instances_by_id);
           }
+
+          //   fn get_specifier(event:Event){
+          //       match event{
+          //       Event::LocalInstanceIsPreferred
+          // Event::InstanceMatchesLocal
+          // Event::InstanceMatchesHighestOrLowestSemver
+          // Event::InstanceMatchesButIsUnsupported
+          // Event::InstanceIsIgnored
+          // Event::InstanceMatchesPinned
+          // Event::InstanceMatchesSameRangeGroup
+          // Event::LocalInstanceMistakenlyBanned
+          // Event::InstanceIsBanned
+          // Event::InstanceMatchesHighestOrLowestSemverButMismatchesSemverGroup
+          // Event::InstanceMatchesLocalButMismatchesSemverGroup
+          // Event::InstanceMismatchesLocal
+          // Event::InstanceMismatchesHighestOrLowestSemver
+          // Event::InstanceMismatchesAndIsUnsupported
+          // Event::LocalInstanceMistakenlyMismatchesSemverGroup
+          // Event::InstanceMatchesPinnedButMismatchesSemverGroup
+          // Event::LocalInstanceMistakenlyMismatchesPinned
+          // Event::InstanceMismatchesPinned
+          // Event::InstanceMismatchesBothSameRangeAndConflictingSemverGroups
+          // Event::InstanceMismatchesBothSameRangeAndCompatibleSemverGroups
+          // Event::InstanceMatchesSameRangeGroupButMismatchesConflictingSemverGroup
+          // Event::InstanceMatchesSameRangeGroupButMismatchesCompatibleSemverGroup
+          // Event::InstanceMismatchesSameRangeGroup
+          //       }
+          //   }
+
+          //   queue.sort_by(|a, b| {
+          //     if matches!(a.variant, Variant::SnappedTo) {
+          //       Ordering::Greater
+          //     } else if matches!(b.variant, Variant::SnappedTo) {
+          //       Ordering::Less
+          //     } else {
+          //       Ordering::Equal
+          //     }
+          //   });
+
           while let Some(event) = queue.pop() {
-            effects.on(event, &mut instances_by_id);
+            effects.on_instance(event, &mut instances_by_id);
           }
         });
       });

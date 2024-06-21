@@ -5,7 +5,7 @@ use crate::{
   config::Config,
   context::InstancesById,
   dependency::Dependency,
-  effects::{Effects, Event},
+  effects::{Effects, Event, InstanceEvent},
   packages::Packages,
   specifier::Specifier,
   version_group::Variant,
@@ -72,142 +72,6 @@ impl Effects for LintEffects<'_> {
         let name = &dependency.name;
         let hint = "has name or specifiers unsupported by syncpack".dimmed();
         info!("{count} {name} {hint}");
-      }
-      Event::LocalInstanceIsPreferred(instance_id, dependency) => {
-        let instance = instances_by_id.get(instance_id).unwrap();
-        let icon = icon_valid();
-        let hint = "*is local";
-        let location_hint = instance.location_hint.dimmed();
-        let actual = instance.actual.unwrap().green();
-        info!("      {icon} {actual} {hint} {location_hint}");
-      }
-      Event::InstanceMatchesLocal(instance_id, dependency) => {
-        let instance = instances_by_id.get(instance_id).unwrap();
-        let icon = icon_valid();
-        let hint = "*matches local";
-        let location_hint = instance.location_hint.dimmed();
-        let actual = instance.actual.unwrap().green();
-        info!("      {icon} {actual} {hint} {location_hint}");
-      }
-      Event::InstanceMatchesHighestOrLowestSemver(instance_id, dependency) => {
-        let instance = instances_by_id.get(instance_id).unwrap();
-        let icon = icon_valid();
-        let location_hint = instance.location_hint.dimmed();
-        let actual = instance.actual.unwrap().green();
-        info!("      {icon} {actual} {location_hint}");
-      }
-      Event::InstanceMatchesButIsUnsupported(instance_id, dependency) => {
-        let instance = instances_by_id.get(instance_id).unwrap();
-        let icon = icon_valid();
-        let actual = instance.actual.unwrap().green();
-        let location_hint = instance.location_hint.dimmed();
-        info!("      {icon} {actual} {location_hint}");
-      }
-      Event::InstanceIsIgnored(instance_id, dependency) => {
-        let instance = instances_by_id.get(instance_id).unwrap();
-        info!("  instance_id");
-      }
-      Event::InstanceMatchesPinned(instance_id, dependency) => {
-        // let instance = instances_by_id.get(instance_id).unwrap();
-        // let icon = red_cross();
-        // let location_hint = instance.location_hint.dimmed();
-        // let actual = instance.actual.unwrap().red();
-        // let expected = instance.expected.unwrap().green();
-        // let arrow = dimmed_arrow();
-        // info!("      {icon} {actual} {arrow} {expected} {location_hint}");
-        // self.is_valid = false;
-      }
-      Event::InstanceMatchesSameRangeGroup(instance_id, dependency) => {
-        let instance = instances_by_id.get(instance_id).unwrap();
-        info!("  InstanceMatchesSameRangeGroup");
-      }
-      Event::LocalInstanceMistakenlyBanned(instance_id, dependency) => {
-        let instance = instances_by_id.get(instance_id).unwrap();
-        info!("  LocalInstanceMistakenlyBanned");
-      }
-      Event::InstanceIsBanned(instance_id, dependency) => {
-        let instance = instances_by_id.get(instance_id).unwrap();
-        let icon = icon_fixable();
-        let hint = "banned".red();
-        let location_hint = instance.location_hint.dimmed();
-        info!("      {icon} {hint} {location_hint}");
-        self.is_valid = false;
-      }
-      Event::InstanceMatchesHighestOrLowestSemverButMismatchesSemverGroup(instance_id, dependency) => {
-        let instance = instances_by_id.get(instance_id).unwrap();
-        let icon = icon_fixable();
-        let actual = instance.actual.unwrap().red();
-        let arrow = icon_arrow();
-        let expected = instance.expected.unwrap().green();
-        let high_low = high_low_hint(&dependency.variant);
-        let hint = format!("is {high_low} but mismatches its semver group").dimmed();
-        let location_hint = instance.location_hint.dimmed();
-        info!("      {icon} {actual} {arrow} {expected} {hint} {location_hint}");
-        self.is_valid = false;
-      }
-      Event::InstanceMatchesLocalButMismatchesSemverGroup(instance_id, dependency) => {
-        let instance = instances_by_id.get(instance_id).unwrap();
-        info!("  InstanceMatchesLocalButMismatchesSemverGroup");
-      }
-      Event::InstanceMismatchesLocal(instance_id, dependency) => {
-        let instance = instances_by_id.get(instance_id).unwrap();
-        info!("  InstanceMismatchesLocal");
-      }
-      Event::InstanceMismatchesHighestOrLowestSemver(instance_id, dependency) => {
-        let instance = instances_by_id.get(instance_id).unwrap();
-        let icon = icon_fixable();
-        let actual = instance.actual.unwrap().red();
-        let location_hint = instance.location_hint.dimmed();
-        info!("      {icon} {actual} {location_hint}");
-        self.is_valid = false;
-      }
-      Event::InstanceMismatchesAndIsUnsupported(instance_id, dependency) => {
-        let instance = instances_by_id.get(instance_id).unwrap();
-        let icon = icon_unfixable();
-        let actual = instance.actual.unwrap().red();
-        let location_hint = instance.location_hint.dimmed();
-        info!("      {icon} {actual} {location_hint}");
-        self.is_valid = false;
-      }
-      Event::LocalInstanceMistakenlyMismatchesSemverGroup(instance_id, dependency) => {
-        let instance = instances_by_id.get(instance_id).unwrap();
-        info!("  LocalInstanceMistakenlyMismatchesSemverGroup");
-      }
-      Event::InstanceMatchesPinnedButMismatchesSemverGroup(instance_id, dependency) => {
-        let instance = instances_by_id.get(instance_id).unwrap();
-        info!("  InstanceMatchesPinnedButMismatchesSemverGroup");
-      }
-      Event::LocalInstanceMistakenlyMismatchesPinned(instance_id, dependency) => {
-        let instance = instances_by_id.get(instance_id).unwrap();
-        info!("  LocalInstanceMistakenlyMismatchesPinned");
-      }
-      Event::InstanceMismatchesPinned(instance_id, dependency) => {
-        let instance = instances_by_id.get(instance_id).unwrap();
-        let icon = icon_fixable();
-        let actual = instance.actual.unwrap().red();
-        let location_hint = instance.location_hint.dimmed();
-        info!("      {icon} {actual} {location_hint}");
-        self.is_valid = false;
-      }
-      Event::InstanceMismatchesBothSameRangeAndConflictingSemverGroups(instance_id, dependency) => {
-        let instance = instances_by_id.get(instance_id).unwrap();
-        info!("  InstanceMismatchesBothSameRangeAndConflictingSemverGroups");
-      }
-      Event::InstanceMismatchesBothSameRangeAndCompatibleSemverGroups(instance_id, dependency) => {
-        let instance = instances_by_id.get(instance_id).unwrap();
-        info!("  InstanceMismatchesBothSameRangeAndCompatibleSemverGroups");
-      }
-      Event::InstanceMatchesSameRangeGroupButMismatchesConflictingSemverGroup(instance_id, dependency) => {
-        let instance = instances_by_id.get(instance_id).unwrap();
-        info!("  InstanceMatchesSameRangeGroupButMismatchesConflictingSemverGroup");
-      }
-      Event::InstanceMatchesSameRangeGroupButMismatchesCompatibleSemverGroup(instance_id, dependency) => {
-        let instance = instances_by_id.get(instance_id).unwrap();
-        info!("  InstanceMatchesSameRangeGroupButMismatchesCompatibleSemverGroup");
-      }
-      Event::InstanceMismatchesSameRangeGroup(instance_id, dependency) => {
-        let instance = instances_by_id.get(instance_id).unwrap();
-        info!("  InstanceMismatchesSameRangeGroup");
       }
       Event::PackagesMatchFormatting(valid_packages) => {
         info!("{} {} valid formatting", render_count_column(valid_packages.len()), icon_valid());
@@ -405,6 +269,147 @@ impl Effects for LintEffects<'_> {
     //     self.is_valid = false;
     //   }
     // };
+  }
+
+  fn on_instance(&mut self, event: InstanceEvent, instances_by_id: &mut InstancesById) -> () {
+    match &event {
+      InstanceEvent::LocalInstanceIsPreferred(instance_id, dependency) => {
+        let instance = instances_by_id.get(instance_id).unwrap();
+        let icon = icon_valid();
+        let hint = "*is local";
+        let location_hint = instance.location_hint.dimmed();
+        let actual = instance.actual.unwrap().green();
+        info!("      {icon} {actual} {hint} {location_hint}");
+      }
+      InstanceEvent::InstanceMatchesLocal(instance_id, dependency) => {
+        let instance = instances_by_id.get(instance_id).unwrap();
+        let icon = icon_valid();
+        let hint = "*matches local";
+        let location_hint = instance.location_hint.dimmed();
+        let actual = instance.actual.unwrap().green();
+        info!("      {icon} {actual} {hint} {location_hint}");
+      }
+      InstanceEvent::InstanceMatchesHighestOrLowestSemver(instance_id, dependency) => {
+        let instance = instances_by_id.get(instance_id).unwrap();
+        let icon = icon_valid();
+        let location_hint = instance.location_hint.dimmed();
+        let actual = instance.actual.unwrap().green();
+        info!("      {icon} {actual} {location_hint}");
+      }
+      InstanceEvent::InstanceMatchesButIsUnsupported(instance_id, dependency) => {
+        let instance = instances_by_id.get(instance_id).unwrap();
+        let icon = icon_valid();
+        let actual = instance.actual.unwrap().green();
+        let location_hint = instance.location_hint.dimmed();
+        info!("      {icon} {actual} {location_hint}");
+      }
+      InstanceEvent::InstanceIsIgnored(instance_id, dependency) => {
+        let instance = instances_by_id.get(instance_id).unwrap();
+        info!("  instance_id");
+      }
+      InstanceEvent::InstanceMatchesPinned(instance_id, dependency) => {
+        // let instance = instances_by_id.get(instance_id).unwrap();
+        // let icon = red_cross();
+        // let location_hint = instance.location_hint.dimmed();
+        // let actual = instance.actual.unwrap().red();
+        // let expected = instance.expected.unwrap().green();
+        // let arrow = dimmed_arrow();
+        // info!("      {icon} {actual} {arrow} {expected} {location_hint}");
+        // self.is_valid = false;
+      }
+      InstanceEvent::InstanceMatchesSameRangeGroup(instance_id, dependency) => {
+        let instance = instances_by_id.get(instance_id).unwrap();
+        info!("  InstanceMatchesSameRangeGroup");
+      }
+      InstanceEvent::LocalInstanceMistakenlyBanned(instance_id, dependency) => {
+        let instance = instances_by_id.get(instance_id).unwrap();
+        info!("  LocalInstanceMistakenlyBanned");
+      }
+      InstanceEvent::InstanceIsBanned(instance_id, dependency) => {
+        let instance = instances_by_id.get(instance_id).unwrap();
+        let icon = icon_fixable();
+        let hint = "banned".red();
+        let location_hint = instance.location_hint.dimmed();
+        info!("      {icon} {hint} {location_hint}");
+        self.is_valid = false;
+      }
+      InstanceEvent::InstanceMatchesHighestOrLowestSemverButMismatchesSemverGroup(instance_id, dependency) => {
+        let instance = instances_by_id.get(instance_id).unwrap();
+        let icon = icon_fixable();
+        let actual = instance.actual.unwrap().red();
+        let arrow = icon_arrow();
+        let expected = instance.expected.unwrap().green();
+        let high_low = high_low_hint(&dependency.variant);
+        let hint = format!("is {high_low} but mismatches its semver group").dimmed();
+        let location_hint = instance.location_hint.dimmed();
+        info!("      {icon} {actual} {arrow} {expected} {hint} {location_hint}");
+        self.is_valid = false;
+      }
+      InstanceEvent::InstanceMatchesLocalButMismatchesSemverGroup(instance_id, dependency) => {
+        let instance = instances_by_id.get(instance_id).unwrap();
+        info!("  InstanceMatchesLocalButMismatchesSemverGroup");
+      }
+      InstanceEvent::InstanceMismatchesLocal(instance_id, dependency) => {
+        let instance = instances_by_id.get(instance_id).unwrap();
+        info!("  InstanceMismatchesLocal");
+      }
+      InstanceEvent::InstanceMismatchesHighestOrLowestSemver(instance_id, dependency) => {
+        let instance = instances_by_id.get(instance_id).unwrap();
+        let icon = icon_fixable();
+        let actual = instance.actual.unwrap().red();
+        let location_hint = instance.location_hint.dimmed();
+        info!("      {icon} {actual} {location_hint}");
+        self.is_valid = false;
+      }
+      InstanceEvent::InstanceMismatchesAndIsUnsupported(instance_id, dependency) => {
+        let instance = instances_by_id.get(instance_id).unwrap();
+        let icon = icon_unfixable();
+        let actual = instance.actual.unwrap().red();
+        let location_hint = instance.location_hint.dimmed();
+        info!("      {icon} {actual} {location_hint}");
+        self.is_valid = false;
+      }
+      InstanceEvent::LocalInstanceMistakenlyMismatchesSemverGroup(instance_id, dependency) => {
+        let instance = instances_by_id.get(instance_id).unwrap();
+        info!("  LocalInstanceMistakenlyMismatchesSemverGroup");
+      }
+      InstanceEvent::InstanceMatchesPinnedButMismatchesSemverGroup(instance_id, dependency) => {
+        let instance = instances_by_id.get(instance_id).unwrap();
+        info!("  InstanceMatchesPinnedButMismatchesSemverGroup");
+      }
+      InstanceEvent::LocalInstanceMistakenlyMismatchesPinned(instance_id, dependency) => {
+        let instance = instances_by_id.get(instance_id).unwrap();
+        info!("  LocalInstanceMistakenlyMismatchesPinned");
+      }
+      InstanceEvent::InstanceMismatchesPinned(instance_id, dependency) => {
+        let instance = instances_by_id.get(instance_id).unwrap();
+        let icon = icon_fixable();
+        let actual = instance.actual.unwrap().red();
+        let location_hint = instance.location_hint.dimmed();
+        info!("      {icon} {actual} {location_hint}");
+        self.is_valid = false;
+      }
+      InstanceEvent::InstanceMismatchesBothSameRangeAndConflictingSemverGroups(instance_id, dependency) => {
+        let instance = instances_by_id.get(instance_id).unwrap();
+        info!("  InstanceMismatchesBothSameRangeAndConflictingSemverGroups");
+      }
+      InstanceEvent::InstanceMismatchesBothSameRangeAndCompatibleSemverGroups(instance_id, dependency) => {
+        let instance = instances_by_id.get(instance_id).unwrap();
+        info!("  InstanceMismatchesBothSameRangeAndCompatibleSemverGroups");
+      }
+      InstanceEvent::InstanceMatchesSameRangeGroupButMismatchesConflictingSemverGroup(instance_id, dependency) => {
+        let instance = instances_by_id.get(instance_id).unwrap();
+        info!("  InstanceMatchesSameRangeGroupButMismatchesConflictingSemverGroup");
+      }
+      InstanceEvent::InstanceMatchesSameRangeGroupButMismatchesCompatibleSemverGroup(instance_id, dependency) => {
+        let instance = instances_by_id.get(instance_id).unwrap();
+        info!("  InstanceMatchesSameRangeGroupButMismatchesCompatibleSemverGroup");
+      }
+      InstanceEvent::InstanceMismatchesSameRangeGroup(instance_id, dependency) => {
+        let instance = instances_by_id.get(instance_id).unwrap();
+        info!("  InstanceMismatchesSameRangeGroup");
+      }
+    }
   }
 }
 
