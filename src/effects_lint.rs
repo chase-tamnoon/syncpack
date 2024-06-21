@@ -470,8 +470,9 @@ fn get_expected_hint(dependency: &Dependency, expected: &Option<Specifier>) -> C
     None => match dependency.variant {
       Variant::Banned => "is banned".dimmed(),
       Variant::SameRange => "requires all ranges to satisfy each other".dimmed(),
+      Variant::HighestSemver | Variant::LowestSemver => "has non semver mismatches syncpack cannot fix".dimmed(),
       _ => {
-        panic!("{:?} should have an expected specifier", dependency.variant);
+        panic!("{} ({:?}) should have an expected specifier", dependency.name, dependency.variant);
       }
     },
   }
