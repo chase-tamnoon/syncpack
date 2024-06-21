@@ -437,34 +437,42 @@ fn dimmed_arrow() -> ColoredString {
 
 fn get_expected_hint(dependency: &Dependency, expected: &Option<Specifier>) -> ColoredString {
   match expected {
-    Some(specifier) => {
-      if matches!(specifier, Specifier::None) {
-        return "".to_string().dimmed();
+    Some(specifier) => match dependency.variant {
+      Variant::Banned => {
+        panic!("Banned should not have an expected specifier");
       }
-      let specifier = specifier.unwrap().green();
-      match dependency.variant {
-        Variant::Banned => "".to_string().dimmed(),
-        Variant::HighestSemver => {
-          let label = "has highest semver".dimmed();
-          format!("{label} {specifier}").normal()
-        }
-        Variant::Ignored => "".to_string().dimmed(),
-        Variant::LowestSemver => {
-          let label = "has lowest semver".dimmed();
-          format!("{label} {specifier}").normal()
-        }
-        Variant::Pinned => {
-          let label = "is pinned to".dimmed();
-          format!("{label} {specifier}").normal()
-        }
-        Variant::SameRange => "all specifier ranges must satisfy each other".dimmed(),
-        Variant::SnappedTo => {
-          // @TODO: "is snapped to 0.1.4 from /devDependencies of @foo/numberwang"
-          let label = "is snapped to".dimmed();
-          format!("{label} {specifier}").normal()
-        }
+      Variant::HighestSemver => {
+        let specifier = specifier.unwrap().green();
+        let label = "is highest semver".dimmed();
+        format!("{specifier} {label}").normal()
       }
-    }
-    None => "".to_string().dimmed(),
+      Variant::Ignored => "".to_string().dimmed(),
+      Variant::LowestSemver => {
+        let specifier = specifier.unwrap().green();
+        let label = "is lowest semver".dimmed();
+        format!("{specifier} {label}").normal()
+      }
+      Variant::Pinned => {
+        let label = "is pinned to".dimmed();
+        let specifier = specifier.unwrap().green();
+        format!("{label} {specifier}").normal()
+      }
+      Variant::SameRange => {
+        panic!("SameRange should not have an expected specifier");
+      }
+      Variant::SnappedTo => {
+        // @TODO: "is snapped to 0.1.4 from /devDependencies of @foo/numberwang"
+        let label = "is snapped to".dimmed();
+        let specifier = specifier.unwrap().green();
+        format!("{label} {specifier}").normal()
+      }
+    },
+    None => match dependency.variant {
+      Variant::Banned => "is banned".dimmed(),
+      Variant::SameRange => "requires all ranges to satisfy each other".dimmed(),
+      _ => {
+        panic!("{:?} should have an expected specifier", dependency.variant);
+      }
+    },
   }
 }
