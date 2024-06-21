@@ -1,5 +1,5 @@
 use crate::{
-  context::{Context, InstancesById},
+  context::InstancesById,
   dependency::Dependency,
   group_selector::GroupSelector,
   instance::{Instance, InstanceId},
@@ -16,36 +16,31 @@ use crate::{
 /// side effects are handled by the command-specific structs which implement
 /// this trait.
 pub trait Effects {
+  // @TODO: split this into multiple methods for instance events etc
   fn on(&mut self, event: Event, instances_by_id: &mut InstancesById) -> ();
+  fn get_packages(&mut self) -> Packages;
   fn set_packages(&mut self, packages: Packages) -> ();
 }
 
 #[derive(Debug)]
 pub enum Event<'a> {
-  /// All package.json files have been read from the workspace
-  // PackagesLoaded(&'a Packages),
-
   /// Syncpack is about to lint/fix versions/ranges, if enabled
-  // EnterVersionsAndRanges,
+  EnterVersionsAndRanges,
   /// Syncpack is about to lint/fix formatting, if enabled
-  // EnterFormat,
+  EnterFormat,
   /// Linting/fixing has completed
-  // ExitCommand,
+  ExitCommand,
 
   /// Linting/fixing of formatting has completed and these packages were valid
-  // PackagesMatchFormatting(&'b Vec<&'a PackageJson>),
+  PackagesMatchFormatting(Vec<&'a PackageJson>),
   /// Linting/fixing of formatting has completed and these packages were
   /// initially invalid. In the case of fixing, they are now valid but were
   /// invalid beforehand.
-  // PackagesMismatchFormatting(&'b Vec<&'a PackageJson>),
+  PackagesMismatchFormatting(Vec<&'a PackageJson>),
 
   /// A version/semver group is next to be processed
   GroupVisited(&'a GroupSelector),
 
-  /*
-
-
-  */
   DependencyValid(&'a Dependency),
   DependencyInvalid(&'a Dependency),
   DependencyWarning(&'a Dependency),

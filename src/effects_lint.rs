@@ -27,115 +27,144 @@ impl<'a> LintEffects<'a> {
 }
 
 impl Effects for LintEffects<'_> {
+  fn get_packages(&mut self) -> Packages {
+    let packages = self.packages.take().unwrap();
+    self.packages = None;
+    packages
+  }
+
   fn set_packages(&mut self, packages: Packages) -> () {
     self.packages = Some(packages);
   }
 
   fn on(&mut self, event: Event, instances_by_id: &mut InstancesById) -> () {
     match &event {
+      Event::EnterVersionsAndRanges => {
+        info!("{}", "= SEMVER RANGES AND VERSION MISMATCHES".dimmed());
+      }
+      Event::EnterFormat => {
+        info!("{}", "= FORMATTING".dimmed());
+      }
       Event::GroupVisited(group) => {
-        println!("{} {}", "=".blue(), group.label.blue());
+        info!("{} {}", "=".blue(), group.label.blue());
       }
       Event::DependencyValid(dependency) => {
-        println!("DependencyValid {}", dependency.name);
+        info!("DependencyValid {}", dependency.name);
       }
       Event::DependencyInvalid(dependency) => {
-        println!("DependencyInvalid {}", dependency.name);
+        info!("DependencyInvalid {}", dependency.name);
       }
       Event::DependencyWarning(dependency) => {
-        println!("DependencyWarning {}", dependency.name);
+        info!("DependencyWarning {}", dependency.name);
       }
       Event::LocalInstanceIsPreferred(instance_id) => {
         let instance = instances_by_id.get(instance_id).unwrap();
-        println!("  {:?}", &event);
+        info!("  {:?}", &event);
       }
       Event::InstanceMatchesLocal(instance_id) => {
         let instance = instances_by_id.get(instance_id).unwrap();
-        println!("  {:?}", &event);
+        info!("  {:?}", &event);
       }
       Event::InstanceMatchesHighestOrLowestSemver(instance_id) => {
         let instance = instances_by_id.get(instance_id).unwrap();
-        println!("  {:?}", &event);
+        info!("  {:?}", &event);
       }
       Event::InstanceMatchesButIsUnsupported(instance_id) => {
         let instance = instances_by_id.get(instance_id).unwrap();
-        println!("  {:?}", &event);
+        info!("  {:?}", &event);
       }
       Event::InstanceIsIgnored(instance_id) => {
         let instance = instances_by_id.get(instance_id).unwrap();
-        println!("  {:?}", &event);
+        info!("  {:?}", &event);
       }
       Event::InstanceMatchesPinned(instance_id) => {
         let instance = instances_by_id.get(instance_id).unwrap();
-        println!("  {:?}", &event);
+        info!("  {:?}", &event);
       }
       Event::InstanceMatchesSameRangeGroup(instance_id) => {
         let instance = instances_by_id.get(instance_id).unwrap();
-        println!("  {:?}", &event);
+        info!("  {:?}", &event);
       }
       Event::LocalInstanceMistakenlyBanned(instance_id) => {
         let instance = instances_by_id.get(instance_id).unwrap();
-        println!("  {:?}", &event);
+        info!("  {:?}", &event);
       }
       Event::InstanceIsBanned(instance_id) => {
         let instance = instances_by_id.get(instance_id).unwrap();
-        println!("  {:?}", &event);
+        info!("  {:?}", &event);
       }
       Event::InstanceMatchesHighestOrLowestSemverButMismatchesSemverGroup(instance_id) => {
         let instance = instances_by_id.get(instance_id).unwrap();
-        println!("  {:?}", &event);
+        info!("  {:?}", &event);
       }
       Event::InstanceMatchesLocalButMismatchesSemverGroup(instance_id) => {
         let instance = instances_by_id.get(instance_id).unwrap();
-        println!("  {:?}", &event);
+        info!("  {:?}", &event);
       }
       Event::InstanceMismatchesLocal(instance_id) => {
         let instance = instances_by_id.get(instance_id).unwrap();
-        println!("  {:?}", &event);
+        info!("  {:?}", &event);
       }
       Event::InstanceMismatchesHighestOrLowestSemver(instance_id) => {
         let instance = instances_by_id.get(instance_id).unwrap();
-        println!("  {:?}", &event);
+        info!("  {:?}", &event);
       }
       Event::InstanceMismatchesAndIsUnsupported(instance_id) => {
         let instance = instances_by_id.get(instance_id).unwrap();
-        println!("  {:?}", &event);
+        info!("  {:?}", &event);
       }
       Event::LocalInstanceMistakenlyMismatchesSemverGroup(instance_id) => {
         let instance = instances_by_id.get(instance_id).unwrap();
-        println!("  {:?}", &event);
+        info!("  {:?}", &event);
       }
       Event::InstanceMatchesPinnedButMismatchesSemverGroup(instance_id) => {
         let instance = instances_by_id.get(instance_id).unwrap();
-        println!("  {:?}", &event);
+        info!("  {:?}", &event);
       }
       Event::LocalInstanceMistakenlyMismatchesPinned(instance_id) => {
         let instance = instances_by_id.get(instance_id).unwrap();
-        println!("  {:?}", &event);
+        info!("  {:?}", &event);
       }
       Event::InstanceMismatchesPinned(instance_id) => {
         let instance = instances_by_id.get(instance_id).unwrap();
-        println!("  {:?}", &event);
+        info!("  {:?}", &event);
       }
       Event::InstanceMismatchesBothSameRangeAndConflictingSemverGroups(instance_id) => {
         let instance = instances_by_id.get(instance_id).unwrap();
-        println!("  {:?}", &event);
+        info!("  {:?}", &event);
       }
       Event::InstanceMismatchesBothSameRangeAndCompatibleSemverGroups(instance_id) => {
         let instance = instances_by_id.get(instance_id).unwrap();
-        println!("  {:?}", &event);
+        info!("  {:?}", &event);
       }
       Event::InstanceMatchesSameRangeGroupButMismatchesConflictingSemverGroup(instance_id) => {
         let instance = instances_by_id.get(instance_id).unwrap();
-        println!("  {:?}", &event);
+        info!("  {:?}", &event);
       }
       Event::InstanceMatchesSameRangeGroupButMismatchesCompatibleSemverGroup(instance_id) => {
         let instance = instances_by_id.get(instance_id).unwrap();
-        println!("  {:?}", &event);
+        info!("  {:?}", &event);
       }
       Event::InstanceMismatchesSameRangeGroup(instance_id) => {
         let instance = instances_by_id.get(instance_id).unwrap();
-        println!("  {:?}", &event);
+        info!("  {:?}", &event);
+      }
+      Event::PackagesMatchFormatting(valid_packages) => {
+        info!("{} {} valid formatting", render_count_column(valid_packages.len()), "✓".green());
+      }
+      Event::PackagesMismatchFormatting(invalid_packages) => {
+        info!("{} {}", render_count_column(invalid_packages.len()), "invalid formatting".red());
+        invalid_packages.iter().for_each(|package| {
+          info!("      {} {}", "✘".red(), package.get_relative_file_path(&self.config.cwd).red());
+        });
+        self.is_valid = false;
+      }
+      Event::ExitCommand => {
+        if self.is_valid {
+          info!("\n{} {}", "✓".green(), "valid");
+        } else {
+          info!("\n{} {}", "✘".red(), "invalid");
+        }
       }
     }
 
@@ -145,47 +174,6 @@ impl Effects for LintEffects<'_> {
     //       info!("\n{} {}", "✘".red(), "No packages found");
     //       self.is_valid = false;
     //     }
-    //   }
-
-    //   Event::EnterVersionsAndRanges => {
-    //     if self.config.cli.options.versions {
-    //       info!("{}", "= SEMVER RANGES AND VERSION MISMATCHES".dimmed());
-    //     };
-    //   }
-    //   Event::EnterFormat => {
-    //     if self.config.cli.options.format {
-    //       info!("{}", "= FORMATTING".dimmed());
-    //     }
-    //   }
-    //   Event::ExitCommand => {
-    //     if self.is_valid {
-    //       info!("\n{} {}", "✓".green(), "valid");
-    //     } else {
-    //       info!("\n{} {}", "✘".red(), "invalid");
-    //     }
-    //   }
-
-    //   Event::PackagesMatchFormatting(valid_packages) => {
-    //     info!(
-    //       "{} {} valid formatting",
-    //       render_count_column(valid_packages.len()),
-    //       "✓".green()
-    //     );
-    //   }
-    //   Event::PackagesMismatchFormatting(invalid_packages) => {
-    //     info!(
-    //       "{} {}",
-    //       render_count_column(invalid_packages.len()),
-    //       "invalid formatting".red()
-    //     );
-    //     invalid_packages.iter().for_each(|package| {
-    //       info!(
-    //         "      {} {}",
-    //         "✘".red(),
-    //         package.get_relative_file_path(&self.config.cwd).red()
-    //       );
-    //     });
-    //     self.is_valid = false;
     //   }
 
     //   Event::GroupVisited(selector) => {
@@ -467,10 +455,6 @@ pub fn render_count_column(count: usize) -> ColoredString {
 fn print_version_match(dependency: &Dependency) {
   // let count = render_count_column(dependency.all.len());
   // let (specifier, _) = dependency.by_initial_specifier.iter().next().unwrap();
-  // info!(
-  //   "{} {} {}",
-  //   count,
-  //   dependency.name,
-  //   &specifier.unwrap().dimmed()
-  // );
+  // info!("{} {} {}", count, dependency.name, &specifier.unwrap().dimmed());
+  info!("@TODO print_version_match");
 }

@@ -13,9 +13,10 @@ use crate::{
 };
 
 pub fn lint(config: &Config, packages: Packages, effects: &mut impl Effects) {
-  // effects.on(Event::PackagesLoaded(&packages));
+  const VALID: u8 = 0;
+  const WARNING: u8 = 1;
+  const INVALID: u8 = 2;
 
-  let cli = &config.cli;
   let Context {
     mut instances_by_id,
     semver_groups,
@@ -24,13 +25,9 @@ pub fn lint(config: &Config, packages: Packages, effects: &mut impl Effects) {
 
   effects.set_packages(packages);
 
-  // effects.on(Event::EnterVersionsAndRanges);
+  if config.cli.options.versions {
+    effects.on(Event::EnterVersionsAndRanges, &mut instances_by_id);
 
-  const VALID: u8 = 0;
-  const WARNING: u8 = 1;
-  const INVALID: u8 = 2;
-
-  if cli.options.versions {
     version_groups
       .iter()
       // fix snapped to groups last, so that the packages they're snapped to
@@ -48,15 +45,13 @@ pub fn lint(config: &Config, packages: Packages, effects: &mut impl Effects) {
         effects.on(Event::GroupVisited(&group.selector), &mut instances_by_id);
 
         group.dependencies.values().for_each(|dependency| {
-          let mut severity = VALID;
           let mut queue: Vec<Event> = vec![];
-
+          let mut severity = VALID;
           let mut mark_as = |level: u8| {
             if severity < level {
               severity = level;
             }
           };
-
           match dependency.variant {
             Variant::Banned => {
               // queue.push(Event::DependencyBanned(dependency));
@@ -232,7 +227,6 @@ pub fn lint(config: &Config, packages: Packages, effects: &mut impl Effects) {
               let snapped_to_specifier = dependency.get_snapped_to_specifier(&instances_by_id);
             }
           };
-
           if severity == VALID {
             effects.on(Event::DependencyValid(dependency), &mut instances_by_id);
           } else if severity == WARNING {
@@ -240,7 +234,6 @@ pub fn lint(config: &Config, packages: Packages, effects: &mut impl Effects) {
           } else {
             effects.on(Event::DependencyInvalid(dependency), &mut instances_by_id);
           }
-
           while let Some(event) = queue.pop() {
             effects.on(event, &mut instances_by_id);
           }
@@ -248,19 +241,20 @@ pub fn lint(config: &Config, packages: Packages, effects: &mut impl Effects) {
       });
   }
 
-  // effects.on(Event::EnterFormat);
+  if config.cli.options.format {
+    effects.on(Event::EnterFormat, &mut instances_by_id);
 
-  // if cli.options.format {
-  //   let InMemoryFormattingStatus { was_valid, was_invalid } = format::fix(&config, packages);
-  //   if !was_valid.is_empty() {
-  //     effects.on(Event::PackagesMatchFormatting(&was_valid));
-  //   }
-  //   if !was_invalid.is_empty() {
-  //     effects.on(Event::PackagesMismatchFormatting(&was_invalid));
-  //   }
-  // }
+    let mut packages = effects.get_packages();
+    let InMemoryFormattingStatus { was_valid, was_invalid } = format::fix(&config, &mut packages);
+    if !was_valid.is_empty() {
+      effects.on(Event::PackagesMatchFormatting(was_valid), &mut instances_by_id);
+    }
+    if !was_invalid.is_empty() {
+      effects.on(Event::PackagesMismatchFormatting(was_invalid), &mut instances_by_id);
+    }
+  }
 
-  // effects.on(Event::ExitCommand);
+  effects.on(Event::ExitCommand, &mut instances_by_id);
 }
 
 #[cfg(test)]

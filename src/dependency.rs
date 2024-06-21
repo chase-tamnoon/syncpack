@@ -1,6 +1,6 @@
 use node_semver::Range;
 use std::{
-  collections::{BTreeMap, HashMap, HashSet},
+  collections::{HashMap, HashSet},
   vec,
 };
 use version_compare::{compare, Cmp};
@@ -69,26 +69,6 @@ impl Dependency {
   pub fn get_instances<'a>(&'a self, instances_by_id: &'a InstancesById) -> Vec<&'a Instance> {
     self.all.iter().map(move |instance_id| instances_by_id.get(instance_id).unwrap()).collect()
   }
-
-  // pub fn for_each_instance<'a, F>(&self, instances_by_id: &'a InstancesById, mut f: F)
-  // where
-  //   F: FnMut(&'a Instance),
-  // {
-  //   for instance_id in self.all.iter() {
-  //     let instance = instances_by_id.get(instance_id).unwrap();
-  //     f(instance);
-  //   }
-  // }
-
-  // pub fn for_each_instance_mut<'a, F>(&self, instances_by_id: &'a mut InstancesById, mut f: F)
-  // where
-  //   F: FnMut(&'a mut Instance),
-  // {
-  //   for instance_id in self.all.iter() {
-  //     let instance = instances_by_id.get_mut(instance_id).unwrap();
-  //     f(instance);
-  //   }
-  // }
 
   pub fn has_local_instance(&self) -> bool {
     self.local_instance_id.is_some()
@@ -225,16 +205,5 @@ impl Dependency {
       }
     }
     return None;
-  }
-
-  /// Each key is a unique raw version specifier for each dependency.
-  /// The values are each instance which has that version specifier.
-  ///
-  /// If there is more than one unique version, then we have mismatches
-  pub fn group_by_specifier<'a>(&'a self, instances_by_id: &'a InstancesById) -> HashMap<Specifier, Vec<&'a Instance>> {
-    self.get_instances(instances_by_id).iter().fold(HashMap::new(), |mut acc, instance| {
-      acc.entry(instance.actual.clone()).or_insert_with(|| vec![]).push(&instance);
-      acc
-    })
   }
 }
