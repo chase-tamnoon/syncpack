@@ -445,31 +445,23 @@ fn get_expected_hint(dependency: &Dependency, expected: &Option<Specifier>) -> C
       match dependency.variant {
         Variant::Banned => "".to_string().dimmed(),
         Variant::HighestSemver => {
-          if dependency.all.len() == 1 {
-            specifier.dimmed()
-          } else {
-            let label = "the highest semver is".dimmed();
-            format!("{label} {specifier}")
-          }
+          let label = "has highest semver".dimmed();
+          format!("{label} {specifier}").normal()
         }
         Variant::Ignored => "".to_string().dimmed(),
         Variant::LowestSemver => {
-          if dependency.all.len() == 1 {
-            specifier.dimmed()
-          } else {
-            let label = "the lowest semver is".dimmed();
-            format!("{label} {specifier}")
-          }
+          let label = "has lowest semver".dimmed();
+          format!("{label} {specifier}").normal()
         }
         Variant::Pinned => {
           let label = "is pinned to".dimmed();
-          format!("{label} {specifier}")
+          format!("{label} {specifier}").normal()
         }
         Variant::SameRange => "all specifier ranges must satisfy each other".dimmed(),
         Variant::SnappedTo => {
           // @TODO: "is snapped to 0.1.4 from /devDependencies of @foo/numberwang"
           let label = "is snapped to".dimmed();
-          format!("{label} {specifier}")
+          format!("{label} {specifier}").normal()
         }
       }
     }
