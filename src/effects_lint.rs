@@ -276,6 +276,7 @@ impl Effects for LintEffects<'_> {
     let dependency = &event.dependency;
     match &event.variant {
       InstanceEventVariant::LocalInstanceIsPreferred => {
+        return /*SKIP*/;
         let instance = instances_by_id.get(instance_id).unwrap();
         let icon = icon_valid();
         let hint = "*is local";
@@ -284,6 +285,7 @@ impl Effects for LintEffects<'_> {
         info!("      {icon} {actual} {hint} {location_hint}");
       }
       InstanceEventVariant::InstanceMatchesLocal => {
+        return /*SKIP*/;
         let instance = instances_by_id.get(instance_id).unwrap();
         let icon = icon_valid();
         let hint = "*matches local";
@@ -292,6 +294,7 @@ impl Effects for LintEffects<'_> {
         info!("      {icon} {actual} {hint} {location_hint}");
       }
       InstanceEventVariant::InstanceMatchesHighestOrLowestSemver => {
+        return /*SKIP*/;
         let instance = instances_by_id.get(instance_id).unwrap();
         let icon = icon_valid();
         let location_hint = instance.location_hint.dimmed();
@@ -299,16 +302,14 @@ impl Effects for LintEffects<'_> {
         info!("      {icon} {actual} {location_hint}");
       }
       InstanceEventVariant::InstanceMatchesButIsUnsupported => {
+        return /*SKIP*/;
         let instance = instances_by_id.get(instance_id).unwrap();
         let icon = icon_valid();
         let actual = instance.actual.unwrap().green();
         let location_hint = instance.location_hint.dimmed();
         info!("      {icon} {actual} {location_hint}");
       }
-      InstanceEventVariant::InstanceIsIgnored => {
-        let instance = instances_by_id.get(instance_id).unwrap();
-        info!("  instance_id");
-      }
+      InstanceEventVariant::InstanceIsIgnored => { /*NOOP*/ }
       InstanceEventVariant::InstanceMatchesPinned => {
         // let instance = instances_by_id.get(instance_id).unwrap();
         // let icon = red_cross();
@@ -328,6 +329,7 @@ impl Effects for LintEffects<'_> {
         info!("  LocalInstanceMistakenlyBanned");
       }
       InstanceEventVariant::InstanceIsBanned => {
+        return /*SKIP*/;
         let instance = instances_by_id.get(instance_id).unwrap();
         let icon = icon_fixable();
         let hint = "banned".red();
@@ -336,6 +338,7 @@ impl Effects for LintEffects<'_> {
         self.is_valid = false;
       }
       InstanceEventVariant::InstanceMatchesHighestOrLowestSemverButMismatchesSemverGroup => {
+        return /*SKIP*/;
         let instance = instances_by_id.get(instance_id).unwrap();
         let icon = icon_fixable();
         let actual = instance.actual.unwrap().red();
@@ -356,6 +359,7 @@ impl Effects for LintEffects<'_> {
         info!("  InstanceMismatchesLocal");
       }
       InstanceEventVariant::InstanceMismatchesHighestOrLowestSemver => {
+        return /*SKIP*/;
         let instance = instances_by_id.get(instance_id).unwrap();
         let icon = icon_fixable();
         let actual = instance.actual.unwrap().red();
@@ -364,6 +368,7 @@ impl Effects for LintEffects<'_> {
         self.is_valid = false;
       }
       InstanceEventVariant::InstanceMismatchesAndIsUnsupported => {
+        return /*SKIP*/;
         let instance = instances_by_id.get(instance_id).unwrap();
         let icon = icon_unfixable();
         let actual = instance.actual.unwrap().red();
@@ -384,6 +389,7 @@ impl Effects for LintEffects<'_> {
         info!("  LocalInstanceMistakenlyMismatchesPinned");
       }
       InstanceEventVariant::InstanceMismatchesPinned => {
+        return /*SKIP*/;
         let instance = instances_by_id.get(instance_id).unwrap();
         let icon = icon_fixable();
         let actual = instance.actual.unwrap().red();

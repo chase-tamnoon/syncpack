@@ -1,5 +1,6 @@
 #![allow(dead_code)]
 #![allow(unused_variables)]
+#![allow(unreachable_code)]
 
 use env_logger::Builder;
 use log::{Level, LevelFilter};
