@@ -63,19 +63,19 @@ impl Effects for LintEffects<'_> {
       }
       Event::DependencyInvalid(dependency, expected) => {
         let count = render_count_column(dependency.all.len());
-        let name = dependency.name.red();
+        let name = &dependency.name;
         let hint = get_expected_hint(&dependency, &expected);
         info!("{count} {name} {hint}");
       }
       Event::DependencyWarning(dependency, expected) => {
         let count = render_count_column(dependency.all.len());
-        let name = dependency.name.yellow();
-        let hint = get_expected_hint(&dependency, &expected);
+        let name = &dependency.name;
+        let hint = "has name or specifiers unsupported by syncpack".dimmed();
         info!("{count} {name} {hint}");
       }
       Event::LocalInstanceIsPreferred(instance_id, dependency) => {
         let instance = instances_by_id.get(instance_id).unwrap();
-        let icon = green_tick();
+        let icon = icon_valid();
         let hint = "*is local";
         let location_hint = instance.location_hint.dimmed();
         let actual = instance.actual.unwrap().green();
@@ -83,7 +83,7 @@ impl Effects for LintEffects<'_> {
       }
       Event::InstanceMatchesLocal(instance_id, dependency) => {
         let instance = instances_by_id.get(instance_id).unwrap();
-        let icon = green_tick();
+        let icon = icon_valid();
         let hint = "*matches local";
         let location_hint = instance.location_hint.dimmed();
         let actual = instance.actual.unwrap().green();
@@ -91,14 +91,17 @@ impl Effects for LintEffects<'_> {
       }
       Event::InstanceMatchesHighestOrLowestSemver(instance_id, dependency) => {
         let instance = instances_by_id.get(instance_id).unwrap();
-        let icon = green_tick();
+        let icon = icon_valid();
         let location_hint = instance.location_hint.dimmed();
         let actual = instance.actual.unwrap().green();
         info!("      {icon} {actual} {location_hint}");
       }
       Event::InstanceMatchesButIsUnsupported(instance_id, dependency) => {
         let instance = instances_by_id.get(instance_id).unwrap();
-        info!("  InstanceMatchesButIsUnsupported");
+        let icon = icon_valid();
+        let actual = instance.actual.unwrap().green();
+        let location_hint = instance.location_hint.dimmed();
+        info!("      {icon} {actual} {location_hint}");
       }
       Event::InstanceIsIgnored(instance_id, dependency) => {
         let instance = instances_by_id.get(instance_id).unwrap();
@@ -124,7 +127,7 @@ impl Effects for LintEffects<'_> {
       }
       Event::InstanceIsBanned(instance_id, dependency) => {
         let instance = instances_by_id.get(instance_id).unwrap();
-        let icon = red_cross();
+        let icon = icon_fixable();
         let hint = "banned".red();
         let location_hint = instance.location_hint.dimmed();
         info!("      {icon} {hint} {location_hint}");
@@ -132,13 +135,13 @@ impl Effects for LintEffects<'_> {
       }
       Event::InstanceMatchesHighestOrLowestSemverButMismatchesSemverGroup(instance_id, dependency) => {
         let instance = instances_by_id.get(instance_id).unwrap();
-        let icon = red_cross();
+        let icon = icon_fixable();
+        let actual = instance.actual.unwrap().red();
+        let arrow = icon_arrow();
+        let expected = instance.expected.unwrap().green();
         let high_low = high_low_hint(&dependency.variant);
         let hint = format!("is {high_low} but mismatches its semver group").dimmed();
         let location_hint = instance.location_hint.dimmed();
-        let actual = instance.actual.unwrap().red();
-        let arrow = dimmed_arrow();
-        let expected = instance.expected.unwrap().green();
         info!("      {icon} {actual} {arrow} {expected} {hint} {location_hint}");
         self.is_valid = false;
       }
@@ -152,15 +155,19 @@ impl Effects for LintEffects<'_> {
       }
       Event::InstanceMismatchesHighestOrLowestSemver(instance_id, dependency) => {
         let instance = instances_by_id.get(instance_id).unwrap();
-        let icon = red_cross();
-        let expected = instance.expected.unwrap().red();
+        let icon = icon_fixable();
+        let actual = instance.actual.unwrap().red();
         let location_hint = instance.location_hint.dimmed();
-        info!("      {icon} {expected} {location_hint}");
+        info!("      {icon} {actual} {location_hint}");
         self.is_valid = false;
       }
       Event::InstanceMismatchesAndIsUnsupported(instance_id, dependency) => {
         let instance = instances_by_id.get(instance_id).unwrap();
-        info!("  InstanceMismatchesAndIsUnsupported");
+        let icon = icon_unfixable();
+        let actual = instance.actual.unwrap().red();
+        let location_hint = instance.location_hint.dimmed();
+        info!("      {icon} {actual} {location_hint}");
+        self.is_valid = false;
       }
       Event::LocalInstanceMistakenlyMismatchesSemverGroup(instance_id, dependency) => {
         let instance = instances_by_id.get(instance_id).unwrap();
@@ -176,7 +183,7 @@ impl Effects for LintEffects<'_> {
       }
       Event::InstanceMismatchesPinned(instance_id, dependency) => {
         let instance = instances_by_id.get(instance_id).unwrap();
-        let icon = red_cross();
+        let icon = icon_fixable();
         let actual = instance.actual.unwrap().red();
         let location_hint = instance.location_hint.dimmed();
         info!("      {icon} {actual} {location_hint}");
@@ -203,20 +210,20 @@ impl Effects for LintEffects<'_> {
         info!("  InstanceMismatchesSameRangeGroup");
       }
       Event::PackagesMatchFormatting(valid_packages) => {
-        info!("{} {} valid formatting", render_count_column(valid_packages.len()), green_tick());
+        info!("{} {} valid formatting", render_count_column(valid_packages.len()), icon_valid());
       }
       Event::PackagesMismatchFormatting(invalid_packages) => {
         info!("{} {}", render_count_column(invalid_packages.len()), "invalid formatting".red());
         invalid_packages.iter().for_each(|package| {
-          info!("      {} {}", red_cross(), package.get_relative_file_path(&self.config.cwd).red());
+          info!("      {} {}", icon_fixable(), package.get_relative_file_path(&self.config.cwd).red());
         });
         self.is_valid = false;
       }
       Event::ExitCommand => {
         if self.is_valid {
-          info!("\n{} {}", green_tick(), "valid");
+          info!("\n{} {}", icon_valid(), "valid");
         } else {
-          info!("\n{} {}", red_cross(), "invalid");
+          info!("\n{} {}", icon_fixable(), "invalid");
         }
       }
     }
@@ -423,15 +430,19 @@ fn high_low_hint(variant: &Variant) -> &str {
   }
 }
 
-fn green_tick() -> ColoredString {
+fn icon_valid() -> ColoredString {
   "✓".green()
 }
 
-fn red_cross() -> ColoredString {
+fn icon_fixable() -> ColoredString {
   "✘".red()
 }
 
-fn dimmed_arrow() -> ColoredString {
+fn icon_unfixable() -> ColoredString {
+  "✘".red()
+}
+
+fn icon_arrow() -> ColoredString {
   "→".dimmed()
 }
 
