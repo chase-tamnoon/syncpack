@@ -46,50 +46,50 @@ pub enum Event<'a> {
   DependencyInvalid(&'a Dependency),
   DependencyWarning(&'a Dependency),
 
-  LocalInstanceIsPreferred(InstanceId),
-  InstanceMatchesLocal(InstanceId),
-  InstanceMatchesHighestOrLowestSemver(InstanceId, &'a Variant),
-  InstanceMatchesButIsUnsupported(InstanceId),
-  InstanceIsIgnored(InstanceId),
-  InstanceMatchesPinned(InstanceId),
+  LocalInstanceIsPreferred(InstanceId, &'a Dependency),
+  InstanceMatchesLocal(InstanceId, &'a Dependency),
+  InstanceMatchesHighestOrLowestSemver(InstanceId, &'a Dependency),
+  InstanceMatchesButIsUnsupported(InstanceId, &'a Dependency),
+  InstanceIsIgnored(InstanceId, &'a Dependency),
+  InstanceMatchesPinned(InstanceId, &'a Dependency),
 
   /// ✓ Instance matches its same range group
   /// ✓ Instance matches its semver group
-  InstanceMatchesSameRangeGroup(InstanceId),
+  InstanceMatchesSameRangeGroup(InstanceId, &'a Dependency),
   /// Misconfiguration: Syncpack refuses to change local dependency specifiers
-  LocalInstanceMistakenlyBanned(InstanceId),
-  InstanceIsBanned(InstanceId),
-  InstanceMatchesHighestOrLowestSemverButMismatchesSemverGroup(InstanceId, &'a Variant),
-  InstanceMatchesLocalButMismatchesSemverGroup(InstanceId),
-  InstanceMismatchesLocal(InstanceId),
-  InstanceMismatchesHighestOrLowestSemver(InstanceId, &'a Variant),
-  InstanceMismatchesAndIsUnsupported(InstanceId),
+  LocalInstanceMistakenlyBanned(InstanceId, &'a Dependency),
+  InstanceIsBanned(InstanceId, &'a Dependency),
+  InstanceMatchesHighestOrLowestSemverButMismatchesSemverGroup(InstanceId, &'a Dependency),
+  InstanceMatchesLocalButMismatchesSemverGroup(InstanceId, &'a Dependency),
+  InstanceMismatchesLocal(InstanceId, &'a Dependency),
+  InstanceMismatchesHighestOrLowestSemver(InstanceId, &'a Dependency),
+  InstanceMismatchesAndIsUnsupported(InstanceId, &'a Dependency),
   /// Misconfiguration: Syncpack refuses to change local dependency specifiers
-  LocalInstanceMistakenlyMismatchesSemverGroup(InstanceId),
-  InstanceMatchesPinnedButMismatchesSemverGroup(InstanceId),
+  LocalInstanceMistakenlyMismatchesSemverGroup(InstanceId, &'a Dependency),
+  InstanceMatchesPinnedButMismatchesSemverGroup(InstanceId, &'a Dependency),
   /// Misconfiguration: Syncpack refuses to change local dependency specifiers
-  LocalInstanceMistakenlyMismatchesPinned(InstanceId /*&'a mut Instance*/),
-  InstanceMismatchesPinned(InstanceId),
+  LocalInstanceMistakenlyMismatchesPinned(InstanceId, &'a Dependency /*&'a mut Instance*/),
+  InstanceMismatchesPinned(InstanceId, &'a Dependency),
   /// ✘ Instance mismatches its same range group
   /// ✘ Instance mismatches its semver group
   /// ✘ If semver group is fixed, instance would still mismatch its same range group
-  InstanceMismatchesBothSameRangeAndConflictingSemverGroups(InstanceId),
+  InstanceMismatchesBothSameRangeAndConflictingSemverGroups(InstanceId, &'a Dependency),
   /// ✘ Instance mismatches its same range group
   /// ✘ Instance mismatches its semver group
   /// ✓ If semver group is fixed, instance would match its same range group
-  InstanceMismatchesBothSameRangeAndCompatibleSemverGroups(InstanceId),
+  InstanceMismatchesBothSameRangeAndCompatibleSemverGroups(InstanceId, &'a Dependency),
   /// ✓ Instance matches its same range group
   /// ✘ Instance mismatches its semver group
   /// ✘ If semver group is fixed, instance would then mismatch its same range group
-  InstanceMatchesSameRangeGroupButMismatchesConflictingSemverGroup(InstanceId),
+  InstanceMatchesSameRangeGroupButMismatchesConflictingSemverGroup(InstanceId, &'a Dependency),
   /// ✓ Instance matches its same range group
   /// ✘ Instance mismatches its semver group
   /// ✓ If semver group is fixed, instance would still match its same range group
-  InstanceMatchesSameRangeGroupButMismatchesCompatibleSemverGroup(InstanceId),
+  InstanceMatchesSameRangeGroupButMismatchesCompatibleSemverGroup(InstanceId, &'a Dependency),
   /// ✘ Instance mismatches its same range group
   /// ✓ Instance matches its semver group
   /// ✘ We can't know what range the user wants and have to ask them
-  InstanceMismatchesSameRangeGroup(InstanceId),
+  InstanceMismatchesSameRangeGroup(InstanceId, &'a Dependency),
 }
 
 /// A single instance of a dependency was found, which is valid
