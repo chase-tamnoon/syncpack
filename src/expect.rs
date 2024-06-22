@@ -199,6 +199,7 @@ impl<'a> Expects<'a> {
 
   fn expect_instance_matches(&self, label: &str, expected_matches: &Vec<ExpectedMatchEvent>, actual_matches: &Vec<ActualMatchEvent>) -> &Self {
     if expected_matches.len() != actual_matches.len() {
+      self.debug();
       panic!("expected {} {} matches but found {}", expected_matches.len(), label, actual_matches.len());
     }
     'expected: for expected in expected_matches {
@@ -213,13 +214,16 @@ impl<'a> Expects<'a> {
           continue 'expected;
         }
       }
-      panic!("expected a '{label}' for {expected_instance_id} with {expected_actual_specifier}\n{actual_matches:#?}");
+      println!("{:#?}", expected_matches);
+      println!("{:#?}", actual_matches);
+      panic!("expected a '{label}' for '{expected_instance_id}' with '{expected_actual_specifier}'");
     }
     self
   }
 
   fn expect_instance_mismatches(&self, label: &str, expected_mismatches: &Vec<ExpectedMismatchEvent>, actual_mismatches: &Vec<ActualMismatchEvent>) -> &Self {
     if expected_mismatches.len() != actual_mismatches.len() {
+      self.debug();
       panic!("expected {} {} mismatches but found {}", expected_mismatches.len(), label, actual_mismatches.len());
     }
     'expected: for expected in expected_mismatches {
@@ -236,7 +240,9 @@ impl<'a> Expects<'a> {
           continue 'expected;
         }
       }
-      panic!("expected a '{label}' for {expected_instance_id} from {expected_actual_specifier} to {expected_expected_specifier}\n{actual_mismatches:#?}");
+      println!("{:#?}", expected_mismatches);
+      println!("{:#?}", actual_mismatches);
+      panic!("expected a '{label}' for '{expected_instance_id}' from '{expected_actual_specifier}' to '{expected_expected_specifier}'");
     }
     self
   }

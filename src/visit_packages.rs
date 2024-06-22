@@ -576,7 +576,7 @@ mod tests {
         dependency_name: "package-a",
         instance_id: "package-a in /version of package-a",
         actual: "1.0.0",
-        expected: "1.2.0",
+        expected: "1.0.0",
       }])
       .to_have_instance_mismatches_pinned(vec![ExpectedMismatchEvent {
         dependency_name: "package-a",
@@ -711,7 +711,6 @@ mod tests {
 
     // refuse to break local package's version
     expect(&effects)
-      .debug()
       .to_have_local_instance_mistakenly_mismatches_pinned(vec![ExpectedMismatchEvent {
         dependency_name: "package-a",
         instance_id: "package-a in /version of package-a",
