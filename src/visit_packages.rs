@@ -403,8 +403,8 @@ mod tests {
 
   #[test]
   fn runs_effect_when_packages_loaded() {
-    let mut effects = MockEffects::new();
     let config = Config::new();
+    let mut effects = MockEffects::new(&config);
     let packages = Packages::new();
 
     visit_packages(&config, packages, &mut effects);
@@ -413,8 +413,8 @@ mod tests {
 
   #[test]
   fn reports_one_highest_version_mismatch_in_one_file() {
-    let mut effects = MockEffects::new();
     let config = Config::new();
+    let mut effects = MockEffects::new(&config);
     let packages = Packages::from_mocks(vec![json!({
       "name": "package-a",
       "dependencies": {
@@ -436,15 +436,15 @@ mod tests {
       .to_have_highest_version_mismatches(vec![ExpectedMismatchEvent {
         dependency_name: "wat",
         instance_id: "wat in /dependencies of package-a",
-        actual_specifier: "1.0.0",
-        expected_specifier: "2.0.0",
+        actual: "1.0.0",
+        expected: "2.0.0",
       }]);
   }
 
   #[test]
   fn reports_many_highest_version_mismatches_in_one_file() {
-    let mut effects = MockEffects::new();
     let config = Config::new();
+    let mut effects = MockEffects::new(&config);
     let packages = Packages::from_mocks(vec![json!({
       "name": "package-a",
       "dependencies": {
@@ -470,22 +470,22 @@ mod tests {
         ExpectedMismatchEvent {
           dependency_name: "wat",
           instance_id: "wat in /dependencies of package-a",
-          actual_specifier: "0.1.0",
-          expected_specifier: "0.3.0",
+          actual: "0.1.0",
+          expected: "0.3.0",
         },
         ExpectedMismatchEvent {
           dependency_name: "wat",
           instance_id: "wat in /peerDependencies of package-a",
-          actual_specifier: "0.2.0",
-          expected_specifier: "0.3.0",
+          actual: "0.2.0",
+          expected: "0.3.0",
         },
       ]);
   }
 
   #[test]
   fn reports_highest_version_mismatches_in_many_files() {
-    let mut effects = MockEffects::new();
     let config = Config::new();
+    let mut effects = MockEffects::new(&config);
     let packages = Packages::from_mocks(vec![
       json!({
         "name": "package-a",
@@ -512,20 +512,20 @@ mod tests {
       .to_have_highest_version_mismatches(vec![ExpectedMismatchEvent {
         dependency_name: "wat",
         instance_id: "wat in /dependencies of package-a",
-        actual_specifier: "1.0.0",
-        expected_specifier: "2.0.0",
+        actual: "1.0.0",
+        expected: "2.0.0",
       }]);
   }
 
   #[test]
   fn does_not_consider_instances_in_different_version_groups_a_highest_version_mismatch() {
-    let mut effects = MockEffects::new();
     let config = Config::from_mock(json!({
       "versionGroups": [
         { "packages": ["package-a"] },
         { "packages": ["package-b"] }
       ]
     }));
+    let mut effects = MockEffects::new(&config);
     let packages = Packages::from_mocks(vec![
       json!({
         "name": "package-a",
@@ -559,13 +559,13 @@ mod tests {
 
   #[test]
   fn rejects_pinned_version_when_it_would_replace_local_version() {
-    let mut effects = MockEffects::new();
     let config = Config::from_mock(json!({
       "versionGroups": [{
         "dependencies": ["package-a"],
         "pinVersion": "1.2.0"
       }]
     }));
+    let mut effects = MockEffects::new(&config);
     let packages = Packages::from_mocks(vec![
       json!({
         "name": "package-a",
@@ -585,21 +585,21 @@ mod tests {
       .to_have_rejected_local_version_mismatches(vec![ExpectedMismatchEvent {
         dependency_name: "package-a",
         instance_id: "package-a in /version of package-a",
-        actual_specifier: "1.0.0",
-        expected_specifier: "1.2.0",
+        actual: "1.0.0",
+        expected: "1.2.0",
       }])
       .to_have_pinned_version_mismatches(vec![ExpectedMismatchEvent {
         dependency_name: "package-a",
         instance_id: "package-a in /dependencies of package-b",
-        actual_specifier: "1.1.0",
-        expected_specifier: "1.2.0",
+        actual: "1.1.0",
+        expected: "1.2.0",
       }]);
   }
 
   #[test]
   fn does_not_confuse_highest_version_matches_and_mismatches() {
-    let mut effects = MockEffects::new();
     let config = Config::new();
+    let mut effects = MockEffects::new(&config);
     let packages = Packages::from_mocks(vec![
       json!({
         "name": "package-a",
@@ -640,22 +640,22 @@ mod tests {
         ExpectedMismatchEvent {
           dependency_name: "mix",
           instance_id: "mix in /devDependencies of package-a",
-          actual_specifier: "0.1.0",
-          expected_specifier: "0.3.0",
+          actual: "0.1.0",
+          expected: "0.3.0",
         },
         ExpectedMismatchEvent {
           dependency_name: "mix",
           instance_id: "mix in /peerDependencies of package-a",
-          actual_specifier: "0.2.0",
-          expected_specifier: "0.3.0",
+          actual: "0.2.0",
+          expected: "0.3.0",
         },
       ]);
   }
 
   #[test]
   fn reports_local_version_mismatch_when_an_instance_uses_a_higher_version() {
-    let mut effects = MockEffects::new();
     let config = Config::new();
+    let mut effects = MockEffects::new(&config);
     let packages = Packages::from_mocks(vec![
       json!({
         "name": "package-a",
@@ -684,26 +684,26 @@ mod tests {
         ExpectedMismatchEvent {
           dependency_name: "package-a",
           instance_id: "package-a in /dependencies of package-b",
-          actual_specifier: "1.1.0",
-          expected_specifier: "1.0.0",
+          actual: "1.1.0",
+          expected: "1.0.0",
         },
         ExpectedMismatchEvent {
           dependency_name: "package-a",
           instance_id: "package-a in /devDependencies of package-b",
-          actual_specifier: "workspace:*",
-          expected_specifier: "1.0.0",
+          actual: "workspace:*",
+          expected: "1.0.0",
         },
       ]);
   }
 
   #[test]
   fn instance_has_same_version_as_local_package_but_does_not_match_its_semver_group() {
-    let mut effects = MockEffects::new();
     let config = Config::from_mock(json!({
       "semverGroups": [{
         "range": "^"
       }]
     }));
+    let mut effects = MockEffects::new(&config);
     let packages = Packages::from_mocks(vec![
       json!({
         "name": "package-a",
@@ -725,14 +725,14 @@ mod tests {
       .to_have_rejected_local_version_mismatches(vec![ExpectedMismatchEvent {
         dependency_name: "package-a",
         instance_id: "package-a in /version of package-a",
-        actual_specifier: "1.0.0",
-        expected_specifier: "^1.0.0",
+        actual: "1.0.0",
+        expected: "^1.0.0",
       }])
       .to_have_semver_range_mismatches(vec![ExpectedMismatchEvent {
         dependency_name: "package-a",
         instance_id: "package-a in /dependencies of package-b",
-        actual_specifier: "1.0.0",
-        expected_specifier: "^1.0.0",
+        actual: "1.0.0",
+        expected: "^1.0.0",
       }]);
   }
 
@@ -763,13 +763,13 @@ mod tests {
   #[test]
   #[ignore]
   fn highest_version_match_becomes_mismatch_after_semver_range_has_been_fixed() {
-    let mut effects = MockEffects::new();
     let config = Config::from_mock(json!({
       "semverGroups": [{
         "dependencyTypes": ["dev"],
         "range": ">"
       }]
     }));
+    let mut effects = MockEffects::new(&config);
     let packages = Packages::from_mocks(vec![json!({
       "name": "package-a",
       "dependencies": {
@@ -786,14 +786,14 @@ mod tests {
       .to_have_highest_version_mismatches(vec![ExpectedMismatchEvent {
         dependency_name: "foo",
         instance_id: "foo in /dependencies of package-a",
-        actual_specifier: "1.0.0",
-        expected_specifier: ">1.0.0",
+        actual: "1.0.0",
+        expected: ">1.0.0",
       }])
       .to_have_semver_range_mismatches(vec![ExpectedMismatchEvent {
         dependency_name: "foo",
         instance_id: "foo in /devDependencies of package-a",
-        actual_specifier: "1.0.0",
-        expected_specifier: ">1.0.0",
+        actual: "1.0.0",
+        expected: ">1.0.0",
       }]);
   }
 }
