@@ -3,197 +3,141 @@ use log::info;
 
 use crate::{
   config::Config,
-  dependency::InstancesById,
-  effects::{Effects, Event},
-  effects_lint::render_count_column,
+  context::InstancesById,
+  effects::{Effects, Event, InstanceEvent, InstanceEventVariant},
+  effects_lint::{icon_fixable, icon_valid},
   packages::Packages,
-  specifier::Specifier,
 };
 
 /// The implementation of the `fix` command's side effects
 pub struct FixEffects<'a> {
-  pub is_valid: bool,
   pub config: &'a Config,
+  pub is_valid: bool,
+  pub packages: Option<Packages>,
 }
 
 impl<'a> FixEffects<'a> {
   pub fn new(config: &'a Config) -> Self {
-    Self { is_valid: true, config }
+    Self {
+      config,
+      is_valid: true,
+      packages: None,
+    }
   }
 }
 
 impl Effects for FixEffects<'_> {
-  fn on(&mut self, event: Event) -> () {
-    // match event {
-    //   Event::PackagesLoaded(_) => {
-    //     // @TODO
-    //     // lint_effects(event);
-    //   }
-
-    //   Event::EnterVersionsAndRanges => {
-    //     // @TODO
-    //     // lint_effects(event);
-    //   }
-    //   Event::EnterFormat => {
-    //     // @TODO
-    //     // lint_effects(event);
-    //   }
-    //   Event::ExitCommand => {
-    //     if self.is_valid {
-    //       info!("\n{} {}", "✓".green(), "complete");
-    //     } else {
-    //       // @TODO: when fixing and unfixable errors happen, explain them to the user
-    //       info!("\n{} {}", "✘".red(), "some issues were not autofixable");
-    //     }
-    //   }
-
-    //   Event::PackagesMatchFormatting(valid_packages) => {}
-    //   Event::PackagesMismatchFormatting(invalid_packages) => {
-    //     info!(
-    //       "{} {}",
-    //       render_count_column(invalid_packages.len()),
-    //       "fixed formatting".green()
-    //     );
-    //     invalid_packages.iter().for_each(|package| {
-    //       info!(
-    //         "      {} {}",
-    //         "✓".green(),
-    //         package.get_relative_file_path(&self.config.cwd)
-    //       );
-    //     });
-    //   }
-
-    //   Event::GroupVisited(selector) => {
-    //     // @TODO
-    //     // lint_effects(event);
-    //   }
-
-    //   Event::DependencyIgnored(dependency) => {}
-    //   Event::DependencyBanned(dependency) => {}
-    //   Event::DependencyMatchesWithRange(dependency) => {}
-    //   Event::DependencyMismatchesWithRange(_) => {
-    //     println!("@TODO: fix Event::DependencyMismatchesWithRange");
-    //   }
-    //   Event::DependencyMatchesPinnedVersion(dependency) => {}
-    //   Event::DependencyMismatchesPinnedVersion(dependency) => {}
-    //   Event::DependencyMatchesSameRange(dependency) => {}
-    //   Event::DependencyMismatchesSameRange(dependency) => {
-    //     let count = render_count_column(dependency.all.len());
-    //     info!("{} {}", count, dependency.name.red());
-    //   }
-    //   Event::DependencyMatchesSnapTo(dependency) => {}
-    //   Event::DependencyMismatchesSnapTo(dependency) => {}
-    //   Event::DependencyMatchesStandard(dependency) => {}
-    //   Event::DependencyMismatchesStandard(dependency) => {
-    //     // show name above unsupported mismatches
-    //     if !dependency.non_semver.is_empty() {
-    //       let count = render_count_column(dependency.all.len());
-    //       info!("{} {}", count, dependency.name.red());
-    //     }
-    //   }
-
-    //   Event::InstanceMatchesStandard(_) => {}
-    //   Event::InstanceBanned(event) => {
-    //     let target_instance = event.instances_by_id.get_mut(&event.instance_id).unwrap();
-    //     let package = event
-    //       .packages
-    //       .by_name
-    //       .get_mut(&target_instance.package_name)
-    //       .unwrap();
-    //     target_instance.remove_from(package);
-    //   }
-    //   Event::InstanceMatchesWithRange(_) => {}
-    //   Event::InstanceMismatchesWithRange(event) => {
-    //     set_instance_version_to(
-    //       event.instances_by_id,
-    //       event.packages,
-    //       &event.instance_id,
-    //       &event.expected_specifier,
-    //     );
-    //   }
-    //   Event::InstanceMismatchesPinnedVersion(event) => {
-    //     set_instance_version_to(
-    //       event.instances_by_id,
-    //       event.packages,
-    //       &event.instance_id,
-    //       &event.expected_specifier,
-    //     );
-    //   }
-    //   Event::InstanceMismatchesSameRange(event) => {
-    //     info!(
-    //       "      {} {} {} {} {}",
-    //       "✘".red(),
-    //       event.specifier_outside_range.unwrap().red(),
-    //       "falls outside".red(),
-    //       event.specifier.unwrap().red(),
-    //       "[SameRangeMismatch]".dimmed()
-    //     );
-    //     self.is_valid = false;
-    //   }
-    //   Event::InstanceMismatchesSnapTo(event) => {
-    //     set_instance_version_to(
-    //       event.instances_by_id,
-    //       event.packages,
-    //       &event.instance_id,
-    //       &event.expected_specifier,
-    //     );
-    //   }
-    //   Event::InstanceMismatchCorruptsLocalVersion(event) => {
-    //     let icon = "!".red();
-    //     let arrow = "→".dimmed();
-    //     info!(
-    //       "      {} {} {} {} {}",
-    //       icon,
-    //       event.actual_specifier.unwrap().green(),
-    //       arrow,
-    //       event.expected_specifier.unwrap().red(),
-    //       "[RejectedLocalMismatch]".dimmed()
-    //     );
-    //     self.is_valid = false;
-    //   }
-    //   Event::InstanceMismatchesLocalVersion(event) => {
-    //     set_instance_version_to(
-    //       event.instances_by_id,
-    //       event.packages,
-    //       &event.instance_id,
-    //       &event.expected_specifier,
-    //     );
-    //   }
-    //   Event::InstanceUnsupportedMismatch(event) => {
-    //     let icon = "✘".red();
-    //     let arrow = "→".dimmed();
-    //     info!(
-    //       "      {} {} {} {} {}",
-    //       icon,
-    //       event.specifier.unwrap().red(),
-    //       arrow,
-    //       "?".yellow(),
-    //       "[UnsupportedMismatch]".dimmed()
-    //     );
-    //     self.is_valid = false;
-    //   }
-    //   Event::InstanceMismatchesLowestVersion(event) => {
-    //     set_instance_version_to(
-    //       event.instances_by_id,
-    //       event.packages,
-    //       &event.instance_id,
-    //       &event.expected_specifier,
-    //     );
-    //   }
-    //   Event::InstanceMismatchesHighestVersion(event) => {
-    //     set_instance_version_to(
-    //       event.instances_by_id,
-    //       event.packages,
-    //       &event.instance_id,
-    //       &event.expected_specifier,
-    //     );
-    //   }
-    // };
+  fn get_packages(&mut self) -> Packages {
+    let packages = self.packages.take().unwrap();
+    self.packages = None;
+    packages
   }
-}
 
-fn set_instance_version_to(instances_by_id: &mut InstancesById, packages: &mut Packages, instance_id: &String, expected_specifier: &Specifier) {
-  let target_instance = instances_by_id.get_mut(instance_id).unwrap();
-  let package = packages.by_name.get_mut(&target_instance.package_name).unwrap();
-  target_instance.set_specifier(package, expected_specifier);
+  fn set_packages(&mut self, packages: Packages) -> () {
+    self.packages = Some(packages);
+  }
+
+  fn on(&mut self, event: Event, instances_by_id: &mut InstancesById) -> () {
+    match &event {
+      Event::EnterVersionsAndRanges => {
+        info!("{}", "= SEMVER RANGES AND VERSION MISMATCHES".dimmed());
+      }
+      Event::EnterFormat => {
+        info!("{}", "= FORMATTING".dimmed());
+      }
+      Event::GroupVisited(group) => {
+        let print_width = 80;
+        let label = &group.label;
+        let header = format!("= {label} ");
+        let divider = if header.len() < print_width { "=".repeat(print_width - header.len()) } else { "".to_string() };
+        let full_header = format!("{header}{divider}");
+        info!("{}", full_header.blue());
+      }
+      Event::DependencyValid(dependency, expected) => { /*NOOP*/ }
+      Event::DependencyInvalid(dependency, expected) => { /*NOOP*/ }
+      Event::DependencyWarning(dependency, expected) => { /*NOOP*/ }
+      Event::FormatMatch(_) => {
+        // @TODO
+      }
+      Event::FormatMismatch(_) => {
+        // @TODO
+      }
+      Event::ExitCommand => {
+        if self.is_valid {
+          let icon = icon_valid();
+          info!("\n{icon} valid");
+        } else {
+          let icon = icon_fixable();
+          info!("\n{icon} invalid");
+        }
+      }
+    }
+  }
+
+  fn on_instance(&mut self, event: InstanceEvent, instances_by_id: &mut InstancesById) -> () {
+    let instance_id = &event.instance_id;
+    let dependency = &event.dependency;
+    match &event.variant {
+      /* Ignored */
+      InstanceEventVariant::InstanceIsIgnored => { /*NOOP*/ }
+      /* Matches */
+      InstanceEventVariant::LocalInstanceIsPreferred
+      | InstanceEventVariant::InstanceMatchesLocal
+      | InstanceEventVariant::InstanceMatchesHighestOrLowestSemver
+      | InstanceEventVariant::InstanceMatchesButIsUnsupported
+      | InstanceEventVariant::InstanceMatchesPinned
+      | InstanceEventVariant::InstanceMatchesSameRangeGroup => { /*NOOP*/ }
+      /* Warnings */
+      InstanceEventVariant::LocalInstanceMistakenlyBanned => {
+        println!("@TODO: explain LocalInstanceMistakenlyBanned");
+      }
+      InstanceEventVariant::LocalInstanceMistakenlyMismatchesSemverGroup => {
+        println!("@TODO: explain LocalInstanceMistakenlyMismatchesSemverGroup");
+      }
+      InstanceEventVariant::LocalInstanceMistakenlyMismatchesPinned => {
+        println!("@TODO: explain LocalInstanceMistakenlyMismatchesPinned");
+      }
+      /* Fixable Mismatches */
+      InstanceEventVariant::InstanceIsBanned
+      | InstanceEventVariant::InstanceMatchesHighestOrLowestSemverButMismatchesSemverGroup
+      | InstanceEventVariant::InstanceMatchesLocalButMismatchesSemverGroup
+      | InstanceEventVariant::InstanceMismatchesLocal
+      | InstanceEventVariant::InstanceMismatchesHighestOrLowestSemver
+      | InstanceEventVariant::InstanceMismatchesPinned => {
+        let instance = instances_by_id.get_mut(instance_id).unwrap();
+        let packages = self.packages.as_mut().unwrap();
+        let package = packages.by_name.get_mut(&instance.package_name).unwrap();
+        instance.set_specifier(package, &instance.expected.clone());
+      }
+      /* Unfixable Mismatches */
+      InstanceEventVariant::InstanceMismatchesAndIsUnsupported => {
+        println!("@TODO: explain InstanceMismatchesAndIsUnsupported");
+        self.is_valid = false;
+      }
+      InstanceEventVariant::InstanceMatchesPinnedButMismatchesSemverGroup => {
+        println!("@TODO: explain InstanceMatchesPinnedButMismatchesSemverGroup");
+        self.is_valid = false;
+      }
+      InstanceEventVariant::InstanceMismatchesBothSameRangeAndConflictingSemverGroups => {
+        println!("@TODO: explain InstanceMismatchesBothSameRangeAndConflictingSemverGroups");
+        self.is_valid = false;
+      }
+      InstanceEventVariant::InstanceMismatchesBothSameRangeAndCompatibleSemverGroups => {
+        println!("@TODO: explain InstanceMismatchesBothSameRangeAndCompatibleSemverGroups");
+        self.is_valid = false;
+      }
+      InstanceEventVariant::InstanceMatchesSameRangeGroupButMismatchesConflictingSemverGroup => {
+        println!("@TODO: explain InstanceMatchesSameRangeGroupButMismatchesConflictingSemverGroup");
+        self.is_valid = false;
+      }
+      InstanceEventVariant::InstanceMatchesSameRangeGroupButMismatchesCompatibleSemverGroup => {
+        println!("@TODO: explain InstanceMatchesSameRangeGroupButMismatchesCompatibleSemverGroup");
+        self.is_valid = false;
+      }
+      InstanceEventVariant::InstanceMismatchesSameRangeGroup => {
+        println!("@TODO: explain InstanceMismatchesSameRangeGroup");
+        self.is_valid = false;
+      }
+    }
+  }
 }

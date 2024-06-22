@@ -6,7 +6,6 @@ use crate::{
   config::Config,
   context::Context,
   effects::{Effects, Event, InstanceEvent, InstanceEventVariant},
-  format::{self, InMemoryFormattingStatus},
   packages::Packages,
   specifier::Specifier,
   version_group::Variant,

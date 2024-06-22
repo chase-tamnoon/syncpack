@@ -10,7 +10,7 @@ use std::{env::current_dir, process};
 use crate::{
   cli::{Cli, Subcommand},
   config::Config,
-  // effects_fix::FixEffects,
+  effects_fix::FixEffects,
   effects_lint::LintEffects,
   packages::Packages,
   visit_packages::visit_packages,
@@ -22,7 +22,7 @@ mod context;
 mod dependency;
 mod dependency_type;
 mod effects;
-// mod effects_fix;
+mod effects_fix;
 mod effects_lint;
 mod effects_mock;
 mod expect;
@@ -47,11 +47,11 @@ fn main() -> () {
 
   match config.cli.command_name {
     Subcommand::Fix => {
-      // let mut effects = FixEffects::new(&config);
-      // visit_packages(&config, packages, &mut effects);
-      // if !effects.is_valid {
-      //   process::exit(1);
-      // }
+      let mut effects = FixEffects::new(&config);
+      visit_packages(&config, packages, &mut effects);
+      if !effects.is_valid {
+        process::exit(1);
+      }
     }
     Subcommand::Lint => {
       let mut effects = LintEffects::new(&config);

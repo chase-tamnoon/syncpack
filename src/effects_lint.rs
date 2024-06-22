@@ -224,11 +224,11 @@ fn high_low_hint(variant: &Variant) -> &str {
   }
 }
 
-fn icon_valid() -> ColoredString {
+pub fn icon_valid() -> ColoredString {
   "✓".green()
 }
 
-fn icon_fixable() -> ColoredString {
+pub fn icon_fixable() -> ColoredString {
   "✘".red()
 }
 
