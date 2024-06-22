@@ -25,12 +25,13 @@ pub enum Event<'a> {
   DependencyWarning(&'a Dependency, Option<Specifier>),
   /// Syncpack is about to lint/fix formatting, if enabled
   EnterFormat,
-  /// Linting/fixing of formatting has completed and these packages were valid
-  PackagesMatchFormatting(Vec<&'a PackageJson>),
-  /// Linting/fixing of formatting has completed and these packages were
-  /// initially invalid. In the case of fixing, they are now valid but were
-  /// invalid beforehand.
-  PackagesMismatchFormatting(Vec<&'a PackageJson>),
+  /// Linting/fixing of formatting of a package.json file has completed and the
+  /// package was already valid
+  FormatMatch(&'a FormatEvent<'a>),
+  /// Linting/fixing of formatting of a package.json file has completed and the
+  /// package was initially invalid. In the case of fixing, they are now valid
+  /// but were invalid beforehand
+  FormatMismatch(&'a FormatEvent<'a>),
   /// Linting/fixing has completed
   ExitCommand,
 }
@@ -87,4 +88,20 @@ pub struct InstanceEvent<'a> {
   pub dependency: &'a Dependency,
   pub instance_id: InstanceId,
   pub variant: InstanceEventVariant,
+}
+
+#[derive(Debug)]
+pub struct FormatEvent<'a> {
+  /// The package.json file being linted
+  pub package_json: &'a PackageJson,
+  /// Whether `rcfile.format_bugs` is enabled and matches
+  pub format_bugs_is_valid: Option<bool>,
+  /// Whether `rcfile.format_repository` is enabled and matches
+  pub format_repository_is_valid: Option<bool>,
+  /// Whether `rcfile.sort_az` is enabled and matches
+  pub sort_az_is_valid: Option<bool>,
+  /// Whether `rcfile.sort_first` is enabled and matches
+  pub sort_first_is_valid: Option<bool>,
+  /// Whether `rcfile.sort_exports` is enabled and matches
+  pub sort_exports_is_valid: Option<bool>,
 }

@@ -73,16 +73,22 @@ impl Effects for LintEffects<'_> {
         let hint = "has name or specifiers unsupported by syncpack".dimmed();
         info!("{count} {name} {hint}");
       }
-      Event::PackagesMatchFormatting(valid_packages) => {
-        info!("{} {} valid formatting", render_count_column(valid_packages.len()), icon_valid());
+      Event::FormatMatch(_) => {
+        // @TODO
       }
-      Event::PackagesMismatchFormatting(invalid_packages) => {
-        info!("{} {}", render_count_column(invalid_packages.len()), "invalid formatting".red());
-        invalid_packages.iter().for_each(|package| {
-          info!("      {} {}", icon_fixable(), package.get_relative_file_path(&self.config.cwd).red());
-        });
-        self.is_valid = false;
+      Event::FormatMismatch(_) => {
+        // @TODO
       }
+      // Event::PackagesMatchFormatting(valid_packages) => {
+      //   info!("{} {} valid formatting", render_count_column(valid_packages.len()), icon_valid());
+      // }
+      // Event::PackagesMismatchFormatting(invalid_packages) => {
+      //   info!("{} {}", render_count_column(invalid_packages.len()), "invalid formatting".red());
+      //   invalid_packages.iter().for_each(|package| {
+      //     info!("      {} {}", icon_fixable(), package.get_relative_file_path(&self.config.cwd).red());
+      //   });
+      //   self.is_valid = false;
+      // }
       Event::ExitCommand => {
         if self.is_valid {
           info!("\n{} {}", icon_valid(), "valid");

@@ -375,19 +375,20 @@ pub fn lint(config: &Config, packages: Packages, effects: &mut impl Effects) {
       });
   }
 
-  if config.cli.options.format {
-    effects.on(Event::EnterFormat, &mut instances_by_id);
+  // @TODO
+  // if config.cli.options.format {
+  //   effects.on(Event::EnterFormat, &mut instances_by_id);
 
-    let mut packages = effects.get_packages();
-    let InMemoryFormattingStatus { was_valid, was_invalid } = format::fix(&config, &mut packages);
+  //   let mut packages = effects.get_packages();
+  //   let InMemoryFormattingStatus { was_valid, was_invalid } = format::fix(&config, &mut packages);
 
-    if !was_valid.is_empty() {
-      effects.on(Event::PackagesMatchFormatting(was_valid), &mut instances_by_id);
-    }
-    if !was_invalid.is_empty() {
-      effects.on(Event::PackagesMismatchFormatting(was_invalid), &mut instances_by_id);
-    }
-  }
+  //   if !was_valid.is_empty() {
+  //     effects.on(Event::PackagesMatchFormatting(was_valid), &mut instances_by_id);
+  //   }
+  //   if !was_invalid.is_empty() {
+  //     effects.on(Event::PackagesMismatchFormatting(was_invalid), &mut instances_by_id);
+  //   }
+  // }
 
   effects.on(Event::ExitCommand, &mut instances_by_id);
 }

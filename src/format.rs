@@ -153,18 +153,57 @@ fn get_locale_collator() -> Collator {
 
 /// Use a shorthand format for the bugs URL when possible
 fn format_bugs(package: &mut PackageJson) {
-  if let Some(bugs_url) = package.get_prop("/bugs/url") {
-    package.set_prop("/bugs", bugs_url.clone());
-  };
+  get_formatted_bugs(package).map(|bugs| {
+    package.set_prop("/bugs", bugs);
+  });
+}
+
+fn get_formatted_bugs(package: &PackageJson) -> Option<Value> {
+  package.get_prop("/bugs/url").map(|bugs_url| bugs_url.clone())
+}
+
+fn format_bugs_is_valid(package: &PackageJson) -> bool {
+  get_formatted_bugs(package).is_none()
 }
 
 /// Use a shorthand format for the repository URL when possible
 fn format_repository(package: &mut PackageJson) {
+  get_formatted_repository(package).map(|bugs| {
+    package.set_prop("/repository", bugs);
+  });
+}
+
+fn get_formatted_repository(package: &PackageJson) -> Option<Value> {
   if package.get_prop("/repository/directory").is_none() {
     package
       .get_prop("/repository/url")
       .and_then(|repository_url| repository_url.as_str())
       .and_then(|url| Regex::new(r#".+github\.com/"#).ok().map(|re| re.replace(url, "").to_string()))
-      .map(|next_url| package.set_prop("/repository", json!(next_url)));
+      .map(|next_url| json!(next_url))
+  } else {
+    None
+  }
+}
+
+fn format_repository_is_valid(package: &PackageJson) -> bool {
+  get_formatted_repository(package).is_none()
+}
+
+#[cfg(test)]
+mod tests {
+  use super::*;
+  use serde_json::json;
+
+  #[test]
+  fn format_repository() {
+    let packages = Packages::from_mocks(vec![json!({
+      "name": "a",
+      "bugs": {
+        "url": "https://github.com/User/repo/issues"
+      }
+    })]);
+    let package = packages.by_name.get("a").unwrap();
+
+    assert_eq!(get_formatted_bugs(&package), Some(json!("https://github.com/User/repo/issues")));
   }
 }
