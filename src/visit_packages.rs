@@ -12,7 +12,7 @@ use crate::{
   version_group::Variant,
 };
 
-pub fn lint(config: &Config, packages: Packages, effects: &mut impl Effects) {
+pub fn visit_packages(config: &Config, packages: Packages, effects: &mut impl Effects) {
   const VALID: u8 = 0;
   const WARNING: u8 = 1;
   const INVALID: u8 = 2;
@@ -408,7 +408,7 @@ mod tests {
     let config = Config::new();
     let packages = Packages::new();
 
-    lint(&config, packages, &mut effects);
+    visit_packages(&config, packages, &mut effects);
     assert_eq!(effects.events.packages_loaded.len(), 1);
   }
 
@@ -426,7 +426,7 @@ mod tests {
       }
     })]);
 
-    lint(&config, packages, &mut effects);
+    visit_packages(&config, packages, &mut effects);
 
     expect(&effects)
       .to_have_standard_version_group_matches(vec![ExpectedMatchEvent {
@@ -459,7 +459,7 @@ mod tests {
       }
     })]);
 
-    lint(&config, packages, &mut effects);
+    visit_packages(&config, packages, &mut effects);
 
     expect(&effects)
       .to_have_standard_version_group_matches(vec![ExpectedMatchEvent {
@@ -502,7 +502,7 @@ mod tests {
       }),
     ]);
 
-    lint(&config, packages, &mut effects);
+    visit_packages(&config, packages, &mut effects);
 
     expect(&effects)
       .to_have_standard_version_group_matches(vec![ExpectedMatchEvent {
@@ -542,7 +542,7 @@ mod tests {
       }),
     ]);
 
-    lint(&config, packages, &mut effects);
+    visit_packages(&config, packages, &mut effects);
 
     expect(&effects).to_have_highest_version_mismatches(vec![]).to_have_standard_version_group_matches(vec![
       ExpectedMatchEvent {
@@ -580,7 +580,7 @@ mod tests {
       }),
     ]);
 
-    lint(&config, packages, &mut effects);
+    visit_packages(&config, packages, &mut effects);
 
     expect(&effects)
       .to_have_rejected_local_version_mismatches(vec![ExpectedMismatchEvent {
@@ -622,7 +622,7 @@ mod tests {
       }),
     ]);
 
-    lint(&config, packages, &mut effects);
+    visit_packages(&config, packages, &mut effects);
 
     expect(&effects)
       .to_have_standard_version_group_matches(vec![
@@ -673,7 +673,7 @@ mod tests {
       }),
     ]);
 
-    lint(&config, packages, &mut effects);
+    visit_packages(&config, packages, &mut effects);
 
     expect(&effects)
       .to_have_standard_version_group_matches(vec![ExpectedMatchEvent {
@@ -718,7 +718,7 @@ mod tests {
       }),
     ]);
 
-    lint(&config, packages, &mut effects);
+    visit_packages(&config, packages, &mut effects);
 
     // refuse to break local package's version
     expect(&effects)
@@ -781,7 +781,7 @@ mod tests {
       }
     })]);
 
-    lint(&config, packages, &mut effects);
+    visit_packages(&config, packages, &mut effects);
 
     expect(&effects)
       .to_have_highest_version_mismatches(vec![ExpectedMismatchEvent {

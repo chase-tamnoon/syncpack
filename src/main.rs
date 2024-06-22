@@ -12,9 +12,8 @@ use crate::{
   config::Config,
   // effects_fix::FixEffects,
   effects_lint::LintEffects,
-  // fix::fix,
-  lint::lint,
   packages::Packages,
+  visit_packages::visit_packages,
 };
 
 mod cli;
@@ -27,17 +26,16 @@ mod effects;
 mod effects_lint;
 mod effects_mock;
 mod expect;
-// mod fix;
 mod format;
 mod group_selector;
 mod instance;
-mod lint;
 mod package_json;
 mod packages;
 mod semver_group;
 mod semver_range;
 mod specifier;
 mod version_group;
+mod visit_packages;
 
 fn main() -> () {
   init_logger();
@@ -50,14 +48,14 @@ fn main() -> () {
   match config.cli.command_name {
     Subcommand::Fix => {
       // let mut effects = FixEffects::new(&config);
-      // fix(&config, &mut packages, &mut effects);
+      // visit_packages(&config, packages, &mut effects);
       // if !effects.is_valid {
       //   process::exit(1);
       // }
     }
     Subcommand::Lint => {
       let mut effects = LintEffects::new(&config);
-      lint(&config, packages, &mut effects);
+      visit_packages(&config, packages, &mut effects);
       if !effects.is_valid {
         process::exit(1);
       }
