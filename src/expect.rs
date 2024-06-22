@@ -1,29 +1,48 @@
 #[cfg(test)]
-use crate::effects_mock::{MockEffects, PartialMatchEvent, PartialMismatchEvent};
+use crate::effects_mock::MockEffects;
 
 #[cfg(test)]
+#[derive(Debug)]
 pub struct ExpectedMatchEvent<'a> {
   pub dependency_name: &'a str,
   pub instance_id: &'a str,
-  pub specifier: &'a str,
+  pub actual: &'a str,
 }
 
 #[cfg(test)]
+#[derive(Debug)]
+pub struct ActualMatchEvent {
+  pub dependency_name: String,
+  pub instance_id: String,
+  pub actual: String,
+}
+
+#[cfg(test)]
+#[derive(Debug)]
 pub struct ExpectedMismatchEvent<'a> {
   pub dependency_name: &'a str,
   pub instance_id: &'a str,
-  pub actual_specifier: &'a str,
-  pub expected_specifier: &'a str,
+  pub actual: &'a str,
+  pub expected: &'a str,
 }
 
 #[cfg(test)]
-pub fn expect(effects: &MockEffects) -> Expects {
+#[derive(Debug)]
+pub struct ActualMismatchEvent {
+  pub dependency_name: String,
+  pub instance_id: String,
+  pub actual: String,
+  pub expected: String,
+}
+
+#[cfg(test)]
+pub fn expect<'a>(effects: &'a MockEffects) -> Expects<'a> {
   Expects::new(effects)
 }
 
 #[cfg(test)]
 pub struct Expects<'a> {
-  pub effects: &'a MockEffects,
+  pub effects: &'a MockEffects<'a>,
 }
 
 #[cfg(test)]
@@ -62,55 +81,51 @@ impl<'a> Expects<'a> {
     self.expect_instance_mismatches("semver range", &expected_mismatches, &self.effects.events.instance_mismatches_semver_range)
   }
 
-  fn expect_instance_matches(&self, label: &str, expected_matches: &Vec<ExpectedMatchEvent>, actual_matches: &Vec<PartialMatchEvent>) -> &Self {
+  fn expect_instance_matches(&self, label: &str, expected_matches: &Vec<ExpectedMatchEvent>, actual_matches: &Vec<ActualMatchEvent>) -> &Self {
     if expected_matches.len() != actual_matches.len() {
       panic!("expected {} {} matches but found {}", expected_matches.len(), label, actual_matches.len());
     }
-
     'expected: for expected in expected_matches {
-      let dependency_name = expected.dependency_name.to_string();
-      let instance_id = expected.instance_id.to_string();
-      let specifier = expected.specifier.to_string();
-
+      let expected_dependency_name = expected.dependency_name.to_string();
+      let expected_instance_id = expected.instance_id.to_string();
+      let expected_actual_specifier = expected.actual.to_string();
       for actual in actual_matches {
-        if actual.dependency_name == dependency_name && actual.specifier.unwrap().clone() == specifier && actual.instance_id == instance_id {
+        let actual_dependency_name = actual.dependency_name.clone();
+        let actual_instance_id = actual.instance_id.clone();
+        let actual_actual_specifier = actual.actual.clone();
+        if actual_dependency_name == expected_dependency_name && actual_actual_specifier == expected_actual_specifier && actual_instance_id == expected_instance_id {
           continue 'expected;
         }
       }
-
-      panic!("expected {} to be a {} match with {}\n{:#?}", instance_id, label, specifier, actual_matches);
+      panic!("expected {expected_instance_id} to be a {label} match with {expected_actual_specifier}\n{actual_matches:#?}");
     }
-
     self
   }
 
-  fn expect_instance_mismatches(&self, label: &str, expected_mismatches: &Vec<ExpectedMismatchEvent>, actual_mismatches: &Vec<PartialMismatchEvent>) -> &Self {
+  fn expect_instance_mismatches(&self, label: &str, expected_mismatches: &Vec<ExpectedMismatchEvent>, actual_mismatches: &Vec<ActualMismatchEvent>) -> &Self {
     if expected_mismatches.len() != actual_mismatches.len() {
       panic!("expected {} {} mismatches but found {}", expected_mismatches.len(), label, actual_mismatches.len());
     }
-
     'expected: for expected in expected_mismatches {
-      let dependency_name = expected.dependency_name.to_string();
-      let instance_id = expected.instance_id.to_string();
-      let actual_specifier = expected.actual_specifier.to_string();
-      let expected_specifier = expected.expected_specifier.to_string();
-
+      let expected_dependency_name = expected.dependency_name.to_string();
+      let expected_instance_id = expected.instance_id.to_string();
+      let expected_actual_specifier = expected.actual.to_string();
+      let expected_expected_specifier = expected.expected.to_string();
       for actual in actual_mismatches {
-        if actual.dependency_name == dependency_name
-          && actual.expected_specifier.unwrap().clone() == expected_specifier
-          && actual.actual_specifier.unwrap().clone() == actual_specifier
-          && actual.expected_specifier.unwrap().clone() == expected_specifier
+        let actual_dependency_name = actual.dependency_name.clone();
+        let actual_instance_id = actual.instance_id.clone();
+        let actual_actual_specifier = actual.actual.clone();
+        let actual_expected_specifier = actual.expected.clone();
+        if actual_dependency_name == expected_dependency_name
+          && actual_expected_specifier == expected_expected_specifier
+          && actual_actual_specifier == expected_actual_specifier
+          && actual_expected_specifier == expected_expected_specifier
         {
           continue 'expected;
         }
       }
-
-      panic!(
-        "expected {} mismatch for {} from {} to {}\n{:#?}",
-        label, instance_id, actual_specifier, expected_specifier, actual_mismatches
-      );
+      panic!("expected {label} mismatch for {expected_instance_id} from {expected_actual_specifier} to {expected_expected_specifier}\n{actual_mismatches:#?}");
     }
-
     self
   }
 }
