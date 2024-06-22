@@ -52,6 +52,7 @@ pub fn visit_packages(config: &Config, packages: Packages, effects: &mut impl Ef
               severity = level;
             }
           };
+
           match dependency.variant {
             Variant::Banned => {
               dependency.all.iter().for_each(|instance_id| {
@@ -83,37 +84,52 @@ pub fn visit_packages(config: &Config, packages: Packages, effects: &mut impl Ef
                   dependency.all.iter().for_each(|instance_id| {
                     let instance = instances_by_id.get_mut(instance_id).unwrap();
                     if instance.is_local {
-                      expected = Some(local_specifier.clone());
-                      queue.push(InstanceEvent {
-                        dependency: &dependency,
-                        instance_id: instance_id.clone(),
-                        variant: InstanceEventVariant::LocalInstanceIsPreferred,
-                      });
-                    } else if instance.actual.matches(&local_specifier) {
-                      expected = Some(local_specifier.clone());
-                      queue.push(InstanceEvent {
-                        dependency: &dependency,
-                        instance_id: instance_id.clone(),
-                        variant: InstanceEventVariant::InstanceMatchesLocal,
-                      });
-                    } else if instance.has_range_mismatch(&local_specifier) {
-                      mark_as(INVALID);
-                      instance.expected = instance.get_fixed_range_mismatch();
-                      expected = Some(local_specifier.clone());
-                      queue.push(InstanceEvent {
-                        dependency: &dependency,
-                        instance_id: instance_id.clone(),
-                        variant: InstanceEventVariant::InstanceMatchesLocalButMismatchesSemverGroup,
-                      });
+                      if instance.has_range_mismatch(&local_specifier) {
+                        mark_as(WARNING);
+                        expected = Some(local_specifier.clone());
+                        instance.expected = local_specifier.clone();
+                        queue.push(InstanceEvent {
+                          dependency: &dependency,
+                          instance_id: instance_id.clone(),
+                          variant: InstanceEventVariant::LocalInstanceMistakenlyMismatchesSemverGroup,
+                        });
+                      } else {
+                        expected = Some(local_specifier.clone());
+                        queue.push(InstanceEvent {
+                          dependency: &dependency,
+                          instance_id: instance_id.clone(),
+                          variant: InstanceEventVariant::LocalInstanceIsPreferred,
+                        });
+                      }
                     } else {
-                      mark_as(INVALID);
-                      instance.expected = local_specifier.clone();
-                      expected = Some(local_specifier.clone());
-                      queue.push(InstanceEvent {
-                        dependency: &dependency,
-                        instance_id: instance_id.clone(),
-                        variant: InstanceEventVariant::InstanceMismatchesLocal,
-                      });
+                      if instance.actual.matches(&local_specifier) {
+                        if instance.has_range_mismatch(&local_specifier) {
+                          mark_as(INVALID);
+                          instance.expected = instance.get_fixed_range_mismatch();
+                          expected = Some(local_specifier.clone());
+                          queue.push(InstanceEvent {
+                            dependency: &dependency,
+                            instance_id: instance_id.clone(),
+                            variant: InstanceEventVariant::InstanceMatchesLocalButMismatchesSemverGroup,
+                          });
+                        } else {
+                          expected = Some(local_specifier.clone());
+                          queue.push(InstanceEvent {
+                            dependency: &dependency,
+                            instance_id: instance_id.clone(),
+                            variant: InstanceEventVariant::InstanceMatchesLocal,
+                          });
+                        }
+                      } else {
+                        mark_as(INVALID);
+                        instance.expected = local_specifier.clone();
+                        expected = Some(local_specifier.clone());
+                        queue.push(InstanceEvent {
+                          dependency: &dependency,
+                          instance_id: instance_id.clone(),
+                          variant: InstanceEventVariant::InstanceMismatchesLocal,
+                        });
+                      }
                     }
                   });
                 }
@@ -337,6 +353,7 @@ pub fn visit_packages(config: &Config, packages: Packages, effects: &mut impl Ef
               expected = Some(Specifier::new(&"0.0.0".to_string()));
             }
           };
+
           if severity == VALID {
             effects.on(Event::DependencyValid(dependency, expected), &mut instances_by_id);
           } else if severity == WARNING {
@@ -665,7 +682,7 @@ mod tests {
     visit_packages(&config, packages, &mut effects);
 
     expect(&effects)
-      .to_have_instance_matches_highest_or_lowest_semver(vec![ExpectedMatchEvent {
+      .to_have_local_instance_is_preferred(vec![ExpectedMatchEvent {
         dependency_name: "package-a",
         instance_id: "package-a in /version of package-a",
         actual: "1.0.0",
@@ -711,11 +728,11 @@ mod tests {
 
     // refuse to break local package's version
     expect(&effects)
-      .to_have_local_instance_mistakenly_mismatches_pinned(vec![ExpectedMismatchEvent {
+      .to_have_local_instance_mistakenly_mismatches_semver_group(vec![ExpectedMismatchEvent {
         dependency_name: "package-a",
         instance_id: "package-a in /version of package-a",
         actual: "1.0.0",
-        expected: "^1.0.0",
+        expected: "1.0.0",
       }])
       .to_have_instance_matches_local_but_mismatches_semver_group(vec![ExpectedMismatchEvent {
         dependency_name: "package-a",
