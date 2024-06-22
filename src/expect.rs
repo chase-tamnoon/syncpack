@@ -103,16 +103,16 @@ impl<'a> Expects<'a> {
     self.expect_instance_matches(label, &expected_mismatches, actual_matches)
   }
 
-  pub fn to_have_local_instance_mistakenly_mismatches_semver_group(&self, expected_mismatches: Vec<ExpectedMatchEvent>) -> &Self {
+  pub fn to_have_local_instance_mistakenly_mismatches_semver_group(&self, expected_mismatches: Vec<ExpectedMismatchEvent>) -> &Self {
     let label = "local instance mistakenly mismatches semver group";
-    let actual_matches = &self.effects.events.local_instance_mistakenly_mismatches_semver_group;
-    self.expect_instance_matches(label, &expected_mismatches, actual_matches)
+    let actual_mismatches = &self.effects.events.local_instance_mistakenly_mismatches_semver_group;
+    self.expect_instance_mismatches(label, &expected_mismatches, actual_mismatches)
   }
 
-  pub fn to_have_local_instance_mistakenly_mismatches_pinned(&self, expected_mismatches: Vec<ExpectedMatchEvent>) -> &Self {
+  pub fn to_have_local_instance_mistakenly_mismatches_pinned(&self, expected_mismatches: Vec<ExpectedMismatchEvent>) -> &Self {
     let label = "local instance mistakenly mismatches pinned";
-    let actual_matches = &self.effects.events.local_instance_mistakenly_mismatches_pinned;
-    self.expect_instance_matches(label, &expected_mismatches, actual_matches)
+    let actual_mismatches = &self.effects.events.local_instance_mistakenly_mismatches_pinned;
+    self.expect_instance_mismatches(label, &expected_mismatches, actual_mismatches)
   }
 
   /* Fixable Mismatches */

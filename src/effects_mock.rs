@@ -31,8 +31,8 @@ pub struct EventsByType {
   pub instance_matches_same_range_group: Vec<ActualMatchEvent>,
   /* Warnings */
   pub local_instance_mistakenly_banned: Vec<ActualMatchEvent>,
-  pub local_instance_mistakenly_mismatches_semver_group: Vec<ActualMatchEvent>,
-  pub local_instance_mistakenly_mismatches_pinned: Vec<ActualMatchEvent>,
+  pub local_instance_mistakenly_mismatches_semver_group: Vec<ActualMismatchEvent>,
+  pub local_instance_mistakenly_mismatches_pinned: Vec<ActualMismatchEvent>,
   /* Fixable Mismatches */
   pub instance_is_banned: Vec<ActualMismatchEvent>,
   pub instance_matches_highest_or_lowest_semver_but_mismatches_semver_group: Vec<ActualMismatchEvent>,
