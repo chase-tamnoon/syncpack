@@ -57,28 +57,144 @@ impl<'a> Expects<'a> {
     self
   }
 
-  pub fn to_have_standard_version_group_matches(&self, expected_matches: Vec<ExpectedMatchEvent>) -> &Self {
-    self.expect_instance_matches("standard version group", &expected_matches, &self.effects.events.instance_matches_standard)
+  pub fn to_have_local_instance_is_preferred(&self, expected_matches: Vec<ExpectedMatchEvent>) -> &Self {
+    let label = "local instance is preferred";
+    let actual_matches = &self.effects.events.local_instance_is_preferred;
+    self.expect_instance_matches(label, &expected_matches, actual_matches)
   }
 
-  pub fn to_have_highest_version_mismatches(&self, expected_mismatches: Vec<ExpectedMismatchEvent>) -> &Self {
-    self.expect_instance_mismatches("highest semver", &expected_mismatches, &self.effects.events.instance_mismatches_highest_version)
+  /* Matches */
+
+  pub fn to_have_instance_matches_local(&self, expected_matches: Vec<ExpectedMatchEvent>) -> &Self {
+    let label = "instance matches local";
+    let actual_matches = &self.effects.events.instance_matches_local;
+    self.expect_instance_matches(label, &expected_matches, actual_matches)
   }
 
-  pub fn to_have_rejected_local_version_mismatches(&self, expected_mismatches: Vec<ExpectedMismatchEvent>) -> &Self {
-    self.expect_instance_mismatches("rejected local version", &expected_mismatches, &self.effects.events.instance_mismatch_changes_local_version)
+  pub fn to_have_instance_matches_highest_or_lowest_semver(&self, expected_matches: Vec<ExpectedMatchEvent>) -> &Self {
+    let label = "instance matches highest or lowest semver";
+    let actual_matches = &self.effects.events.instance_matches_highest_or_lowest_semver;
+    self.expect_instance_matches(label, &expected_matches, actual_matches)
   }
 
-  pub fn to_have_local_version_mismatches(&self, expected_mismatches: Vec<ExpectedMismatchEvent>) -> &Self {
-    self.expect_instance_mismatches("local version", &expected_mismatches, &self.effects.events.instance_mismatches_local_version)
+  pub fn to_have_instance_matches_but_is_unsupported(&self, expected_matches: Vec<ExpectedMatchEvent>) -> &Self {
+    let label = "instance matches but is unsupported";
+    let actual_matches = &self.effects.events.instance_matches_but_is_unsupported;
+    self.expect_instance_matches(label, &expected_matches, actual_matches)
   }
 
-  pub fn to_have_pinned_version_mismatches(&self, expected_mismatches: Vec<ExpectedMismatchEvent>) -> &Self {
-    self.expect_instance_mismatches("highest semver", &expected_mismatches, &self.effects.events.instance_mismatches_pinned_version)
+  pub fn to_have_instance_matches_pinned(&self, expected_matches: Vec<ExpectedMatchEvent>) -> &Self {
+    let label = "instance matches pinned";
+    let actual_matches = &self.effects.events.instance_matches_pinned;
+    self.expect_instance_matches(label, &expected_matches, actual_matches)
   }
 
-  pub fn to_have_semver_range_mismatches(&self, expected_mismatches: Vec<ExpectedMismatchEvent>) -> &Self {
-    self.expect_instance_mismatches("semver range", &expected_mismatches, &self.effects.events.instance_mismatches_semver_range)
+  pub fn to_have_instance_matches_same_range_group(&self, expected_matches: Vec<ExpectedMatchEvent>) -> &Self {
+    let label = "instance matches same range group";
+    let actual_matches = &self.effects.events.instance_matches_same_range_group;
+    self.expect_instance_matches(label, &expected_matches, actual_matches)
+  }
+
+  /* Warnings */
+
+  pub fn to_have_local_instance_mistakenly_banned(&self, expected_mismatches: Vec<ExpectedMatchEvent>) -> &Self {
+    let label = "local instance mistakenly banned";
+    let actual_matches = &self.effects.events.local_instance_mistakenly_banned;
+    self.expect_instance_matches(label, &expected_mismatches, actual_matches)
+  }
+
+  pub fn to_have_local_instance_mistakenly_mismatches_semver_group(&self, expected_mismatches: Vec<ExpectedMatchEvent>) -> &Self {
+    let label = "local instance mistakenly mismatches semver group";
+    let actual_matches = &self.effects.events.local_instance_mistakenly_mismatches_semver_group;
+    self.expect_instance_matches(label, &expected_mismatches, actual_matches)
+  }
+
+  pub fn to_have_local_instance_mistakenly_mismatches_pinned(&self, expected_mismatches: Vec<ExpectedMatchEvent>) -> &Self {
+    let label = "local instance mistakenly mismatches pinned";
+    let actual_matches = &self.effects.events.local_instance_mistakenly_mismatches_pinned;
+    self.expect_instance_matches(label, &expected_mismatches, actual_matches)
+  }
+
+  /* Fixable Mismatches */
+
+  pub fn to_have_instance_is_banned(&self, expected_mismatches: Vec<ExpectedMismatchEvent>) -> &Self {
+    let label = "instance is banned";
+    let actual_mismatches = &self.effects.events.instance_is_banned;
+    self.expect_instance_mismatches(label, &expected_mismatches, actual_mismatches)
+  }
+
+  pub fn to_have_instance_matches_highest_or_lowest_semver_but_mismatches_semver_group(&self, expected_mismatches: Vec<ExpectedMismatchEvent>) -> &Self {
+    let label = "instance matches highest or lowest semver but mismatches semver group";
+    let actual_mismatches = &self.effects.events.instance_matches_highest_or_lowest_semver_but_mismatches_semver_group;
+    self.expect_instance_mismatches(label, &expected_mismatches, actual_mismatches)
+  }
+
+  pub fn to_have_instance_matches_local_but_mismatches_semver_group(&self, expected_mismatches: Vec<ExpectedMismatchEvent>) -> &Self {
+    let label = "instance matches local but mismatches semver group";
+    let actual_mismatches = &self.effects.events.instance_matches_local_but_mismatches_semver_group;
+    self.expect_instance_mismatches(label, &expected_mismatches, actual_mismatches)
+  }
+
+  pub fn to_have_instance_mismatches_local(&self, expected_mismatches: Vec<ExpectedMismatchEvent>) -> &Self {
+    let label = "instance mismatches local";
+    let actual_mismatches = &self.effects.events.instance_mismatches_local;
+    self.expect_instance_mismatches(label, &expected_mismatches, actual_mismatches)
+  }
+
+  pub fn to_have_instance_mismatches_highest_or_lowest_semver(&self, expected_mismatches: Vec<ExpectedMismatchEvent>) -> &Self {
+    let label = "instance mismatches highest or lowest semver";
+    let actual_mismatches = &self.effects.events.instance_mismatches_highest_or_lowest_semver;
+    self.expect_instance_mismatches(label, &expected_mismatches, actual_mismatches)
+  }
+
+  pub fn to_have_instance_mismatches_pinned(&self, expected_mismatches: Vec<ExpectedMismatchEvent>) -> &Self {
+    let label = "instance mismatches pinned";
+    let actual_mismatches = &self.effects.events.instance_mismatches_pinned;
+    self.expect_instance_mismatches(label, &expected_mismatches, actual_mismatches)
+  }
+
+  /* Unfixable Mismatches */
+
+  pub fn to_have_instance_mismatches_and_is_unsupported(&self, expected_mismatches: Vec<ExpectedMatchEvent>) -> &Self {
+    let label = "instance mismatches and is unsupported";
+    let actual_matches = &self.effects.events.instance_mismatches_and_is_unsupported;
+    self.expect_instance_matches(label, &expected_mismatches, actual_matches)
+  }
+
+  pub fn to_have_instance_matches_pinned_but_mismatches_semver_group(&self, expected_mismatches: Vec<ExpectedMatchEvent>) -> &Self {
+    let label = "instance matches pinned but mismatches semver group";
+    let actual_matches = &self.effects.events.instance_matches_pinned_but_mismatches_semver_group;
+    self.expect_instance_matches(label, &expected_mismatches, actual_matches)
+  }
+
+  pub fn to_have_instance_mismatches_both_same_range_and_conflicting_semver_groups(&self, expected_mismatches: Vec<ExpectedMatchEvent>) -> &Self {
+    let label = "instance mismatches both same range and conflicting semver groups";
+    let actual_matches = &self.effects.events.instance_mismatches_both_same_range_and_conflicting_semver_groups;
+    self.expect_instance_matches(label, &expected_mismatches, actual_matches)
+  }
+
+  pub fn to_have_instance_mismatches_both_same_range_and_compatible_semver_groups(&self, expected_mismatches: Vec<ExpectedMatchEvent>) -> &Self {
+    let label = "instance mismatches both same range and compatible semver groups";
+    let actual_matches = &self.effects.events.instance_mismatches_both_same_range_and_compatible_semver_groups;
+    self.expect_instance_matches(label, &expected_mismatches, actual_matches)
+  }
+
+  pub fn to_have_instance_matches_same_range_group_but_mismatches_conflicting_semver_group(&self, expected_mismatches: Vec<ExpectedMatchEvent>) -> &Self {
+    let label = "instance matches same range group but mismatches conflicting semver group";
+    let actual_matches = &self.effects.events.instance_matches_same_range_group_but_mismatches_conflicting_semver_group;
+    self.expect_instance_matches(label, &expected_mismatches, actual_matches)
+  }
+
+  pub fn to_have_instance_matches_same_range_group_but_mismatches_compatible_semver_group(&self, expected_mismatches: Vec<ExpectedMatchEvent>) -> &Self {
+    let label = "instance matches same range group but mismatches compatible semver group";
+    let actual_matches = &self.effects.events.instance_matches_same_range_group_but_mismatches_compatible_semver_group;
+    self.expect_instance_matches(label, &expected_mismatches, actual_matches)
+  }
+
+  pub fn to_have_instance_mismatches_same_range_group(&self, expected_mismatches: Vec<ExpectedMatchEvent>) -> &Self {
+    let label = "instance mismatches same range group";
+    let actual_matches = &self.effects.events.instance_mismatches_same_range_group;
+    self.expect_instance_matches(label, &expected_mismatches, actual_matches)
   }
 
   fn expect_instance_matches(&self, label: &str, expected_matches: &Vec<ExpectedMatchEvent>, actual_matches: &Vec<ActualMatchEvent>) -> &Self {
@@ -97,7 +213,7 @@ impl<'a> Expects<'a> {
           continue 'expected;
         }
       }
-      panic!("expected {expected_instance_id} to be a {label} match with {expected_actual_specifier}\n{actual_matches:#?}");
+      panic!("expected a '{label}' for {expected_instance_id} with {expected_actual_specifier}\n{actual_matches:#?}");
     }
     self
   }
@@ -116,15 +232,11 @@ impl<'a> Expects<'a> {
         let actual_instance_id = actual.instance_id.clone();
         let actual_actual_specifier = actual.actual.clone();
         let actual_expected_specifier = actual.expected.clone();
-        if actual_dependency_name == expected_dependency_name
-          && actual_expected_specifier == expected_expected_specifier
-          && actual_actual_specifier == expected_actual_specifier
-          && actual_expected_specifier == expected_expected_specifier
-        {
+        if actual_dependency_name == expected_dependency_name && actual_expected_specifier == expected_expected_specifier && actual_actual_specifier == expected_actual_specifier && actual_expected_specifier == expected_expected_specifier {
           continue 'expected;
         }
       }
-      panic!("expected {label} mismatch for {expected_instance_id} from {expected_actual_specifier} to {expected_expected_specifier}\n{actual_mismatches:#?}");
+      panic!("expected a '{label}' for {expected_instance_id} from {expected_actual_specifier} to {expected_expected_specifier}\n{actual_mismatches:#?}");
     }
     self
   }
