@@ -5,7 +5,7 @@ use crate::{
   dependency_type::{DependencyType, Strategy},
   package_json::PackageJson,
   semver_group::SemverGroup,
-  specifier::{any_specifier::AnySpecifier, semver::Semver, semver_range::SemverRange, Specifier},
+  specifier::{semver::Semver, semver_range::SemverRange, Specifier},
 };
 
 pub type InstanceId = String;
@@ -14,11 +14,11 @@ pub type InstanceId = String;
 pub struct Instance {
   /// The original version specifier, which should never be mutated.
   /// eg. `Specifier::Exact("16.8.0")`, `Specifier::Range("^16.8.0")`
-  pub actual: AnySpecifier,
+  pub actual: Specifier,
   /// The dependency type to use to read/write this instance
   pub dependency_type: DependencyType,
   /// The latest version specifier which is mutated by Syncpack
-  pub expected: AnySpecifier,
+  pub expected: Specifier,
   /// The file path of the package.json file this instance belongs to
   pub file_path: PathBuf,
   /// A unique identifier for this instance
@@ -46,7 +46,7 @@ impl Instance {
     package: &PackageJson,
   ) -> Instance {
     let package_name = package.get_name();
-    let specifier = AnySpecifier::new(&raw_specifier);
+    let specifier = Specifier::new(&raw_specifier);
     Instance {
       actual: specifier.clone(),
       dependency_type: dependency_type.clone(),
@@ -66,7 +66,9 @@ impl Instance {
   pub fn apply_semver_group(&mut self, group: &SemverGroup) -> () {
     group.range.as_ref().map(|range| {
       self.prefer_range = Some(range.clone());
-      self.expected = self.expected.with_range_if_semver(&range);
+      if let Some(expected) = self.expected.get_simple_semver() {
+        self.expected = Specifier::Semver(Semver::Simple(expected.with_range(&range)));
+      }
     });
   }
 
@@ -77,48 +79,62 @@ impl Instance {
   /// ✓ its own version matches its expected version (eg. "1.1.0" == "1.1.0")
   /// ✓ its expected version matches the expected version of the group
   /// ✘ only its own semver range is different
-  pub fn has_range_mismatch(&self, other: &AnySpecifier) -> bool {
+  pub fn has_range_mismatch(&self, other: &Specifier) -> bool {
     // it has a semver group
     self.prefer_range.is_some()
+      && match (
+        self.actual.get_simple_semver(),
+        self.expected.get_simple_semver(),
+        other.get_simple_semver(),
+      ) {
         // all versions are simple semver
-        && self.actual.is_simple_semver()
-        && self.expected.is_simple_semver()
-        && other.is_simple_semver()
-        // its own version matches its expected version (eg. "1.1.0" == "1.1.0")
-        && actual.has_same_version(&expected)
-        // its expected version matches the expected version of the group
-        && expected.has_same_version(&other)
-        // only its own semver range is different
-        && !expected.has_same_range(&actual)
+        (Some(actual), Some(expected), Some(other)) => {
+          // its own version matches its expected version (eg. "1.1.0" == "1.1.0")
+          actual.has_same_version(&expected)
+          // its expected version matches the expected version of the group
+          && expected.has_same_version(&other)
+          // only its own semver range is different
+          && !expected.has_same_range(&actual)
+        }
+        _ => false,
+      }
   }
 
-  pub fn get_fixed_range_mismatch(&self) -> AnySpecifier {
-    let range = self
+  pub fn get_fixed_range_mismatch(&self) -> Specifier {
+    self
       .prefer_range
       .as_ref()
-      .expect("Cannot fix range mismatch without a preferred range");
-    self.expected.with_range_if_semver(&range)
+      .and_then(|prefer_range| {
+        self
+          .expected
+          .get_simple_semver()
+          .map(|expected| expected.with_range(&prefer_range))
+      })
+      .map(|simple_semver| Specifier::Semver(Semver::Simple(simple_semver)))
+      .expect("Failed to fix semver range mismatch")
   }
 
   /// Write a version to the package.json
-  pub fn set_specifier(&mut self, package: &mut PackageJson, specifier: &AnySpecifier) {
-    let raw_specifier = specifier.unwrap();
+  pub fn set_specifier(&mut self, package: &mut PackageJson, specifier: &Specifier) {
     match self.dependency_type.strategy {
       Strategy::NameAndVersionProps => {
         let path_to_prop = &self.dependency_type.path;
         let path_to_prop_str = path_to_prop.as_str();
-        package.set_prop(path_to_prop_str, Value::String(raw_specifier.clone()));
+        let raw_specifier = specifier.unwrap();
+        package.set_prop(path_to_prop_str, Value::String(raw_specifier));
       }
       Strategy::NamedVersionString => {
         let path_to_prop = &self.dependency_type.path;
         let path_to_prop_str = path_to_prop.as_str();
-        let full_value = format!("{}@{}", self.name, &raw_specifier);
+        let raw_specifier = specifier.unwrap();
+        let full_value = format!("{}@{}", self.name, raw_specifier);
         package.set_prop(path_to_prop_str, Value::String(full_value));
       }
       Strategy::UnnamedVersionString => {
         let path_to_prop = &self.dependency_type.path;
         let path_to_prop_str = path_to_prop.as_str();
-        package.set_prop(path_to_prop_str, Value::String(raw_specifier.clone()));
+        let raw_specifier = specifier.unwrap();
+        package.set_prop(path_to_prop_str, Value::String(raw_specifier));
       }
       Strategy::VersionsByName => {
         let path_to_obj = &self.dependency_type.path;
@@ -131,7 +147,8 @@ impl Instance {
           .as_object_mut()
           .unwrap();
         let value = obj.get_mut(name).unwrap();
-        *value = Value::String(raw_specifier.clone());
+        let raw_specifier = specifier.unwrap();
+        *value = Value::String(raw_specifier);
       }
       Strategy::InvalidConfig => {
         panic!("unrecognised strategy");

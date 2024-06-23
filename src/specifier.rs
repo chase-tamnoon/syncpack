@@ -54,7 +54,38 @@ impl Specifier {
     }
   }
 
+  pub fn unwrap(&self) -> String {
+    match self {
+      Self::Semver(Semver::Simple(SimpleSemver::Exact(string))) => string,
+      Self::Semver(Semver::Simple(SimpleSemver::Latest(string))) => string,
+      Self::Semver(Semver::Simple(SimpleSemver::Major(string))) => string,
+      Self::Semver(Semver::Simple(SimpleSemver::Minor(string))) => string,
+      Self::Semver(Semver::Simple(SimpleSemver::Range(string))) => string,
+      Self::Semver(Semver::Simple(SimpleSemver::RangeMinor(string))) => string,
+      Self::Semver(Semver::Complex(string)) => string,
+      Self::NonSemver(NonSemver::Alias(string)) => string,
+      Self::NonSemver(NonSemver::File(string)) => string,
+      Self::NonSemver(NonSemver::Git(string)) => string,
+      Self::NonSemver(NonSemver::Tag(string)) => string,
+      Self::NonSemver(NonSemver::Url(string)) => string,
+      Self::NonSemver(NonSemver::WorkspaceProtocol(string)) => string,
+      Self::NonSemver(NonSemver::Unsupported(string)) => string,
+      Self::None => {
+        panic!("Cannot unwrap a Specifier::None");
+      }
+    }
+    .clone()
+  }
+
   pub fn is_simple_semver(&self) -> bool {
     matches!(self, Specifier::Semver(Semver::Simple(_)))
+  }
+
+  pub fn get_simple_semver(&self) -> Option<SimpleSemver> {
+    if let Specifier::Semver(Semver::Simple(simple_semver)) = self {
+      Some(simple_semver.clone())
+    } else {
+      None
+    }
   }
 }
