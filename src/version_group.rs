@@ -1,7 +1,7 @@
 use serde::Deserialize;
 use std::{collections::BTreeMap, vec};
 
-use crate::{dependency::Dependency, group_selector::GroupSelector, instance::Instance, specifier::AnySpecifier};
+use crate::{dependency::Dependency, group_selector::GroupSelector, instance::Instance, specifier::any_specifier::AnySpecifier};
 
 /// What behaviour has this group been configured to exhibit?
 #[derive(Clone, Debug)]

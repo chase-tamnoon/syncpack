@@ -5,7 +5,7 @@ use crate::{
   dependency_type::{DependencyType, Strategy},
   package_json::PackageJson,
   semver_group::SemverGroup,
-  specifier::{semver::Semver, semver_range::SemverRange, specifier_tree::SpecifierTree, AnySpecifier},
+  specifier::{any_specifier::AnySpecifier, semver::Semver, semver_range::SemverRange, Specifier},
 };
 
 pub type InstanceId = String;
@@ -80,9 +80,9 @@ impl Instance {
   pub fn has_range_mismatch(&self, other: &AnySpecifier) -> bool {
     // it has a semver group
     self.prefer_range.is_some()
-      && match (SpecifierTree::new(&self.actual), SpecifierTree::new(&self.expected), SpecifierTree::new(other)) {
+      && match (Specifier::new(&self.actual), Specifier::new(&self.expected), Specifier::new(other)) {
         // all versions are simple semver
-        (SpecifierTree::Semver(Semver::Simple(actual)), SpecifierTree::Semver(Semver::Simple(expected)), SpecifierTree::Semver(Semver::Simple(other))) => {
+        (Specifier::Semver(Semver::Simple(actual)), Specifier::Semver(Semver::Simple(expected)), Specifier::Semver(Semver::Simple(other))) => {
           // its own version matches its expected version (eg. "1.1.0" == "1.1.0")
           actual.has_same_version(&expected)
           // its expected version matches the expected version of the group

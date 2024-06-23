@@ -7,7 +7,7 @@ use crate::{
   context::Context,
   effects::{Effects, Event, InstanceEvent, InstanceEventVariant},
   packages::Packages,
-  specifier::AnySpecifier,
+  specifier::any_specifier::AnySpecifier,
   version_group::Variant,
 };
 
