@@ -4,6 +4,7 @@ use std::path::PathBuf;
 use crate::{
   dependency_type::{DependencyType, Strategy},
   package_json::PackageJson,
+  semver_group::SemverGroup,
   specifier::{semver_range::SemverRange, Specifier},
 };
 
@@ -60,6 +61,17 @@ impl Instance {
     }
   }
 
+  /// Updated the expected version specifier for this instance to match the
+  /// preferred semver range of the given semver group
+  pub fn apply_semver_group(&mut self, group: &SemverGroup) -> () {
+    group.range.as_ref().map(|range| {
+      if self.expected.is_simple_semver() {
+        self.prefer_range = Some(range.clone());
+        self.expected = self.expected.with_range_if_semver(&range);
+      }
+    });
+  }
+
   /// Does this instance's specifier match the expected specifier for this
   /// dependency except for by its own semver group's preferred semver range?
   ///
@@ -80,7 +92,7 @@ impl Instance {
 
   pub fn get_fixed_range_mismatch(&self) -> Specifier {
     let range = self.prefer_range.as_ref().expect("Cannot fix range mismatch without a preferred range");
-    self.expected.with_semver_range(&range)
+    self.expected.with_range_if_semver(&range)
   }
 
   /// Write a version to the package.json

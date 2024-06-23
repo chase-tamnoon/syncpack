@@ -3,7 +3,7 @@ use regex::Regex;
 
 lazy_static! {
   /// Any character used in a semver range
-  pub static ref REGEX_RANGE_CHAR: Regex = Regex::new(r"[~><=*^]").unwrap();
+  pub static ref REGEX_RANGE_CHARS: Regex = Regex::new(r"^(~|\^|\*|>=?|<=?)").unwrap();
   /// "1.2.3"
   pub static ref REGEX_EXACT: Regex = Regex::new(r"^\d+\.\d+\.\d+$").unwrap();
   /// "1.2.3-alpha" || "1.2.3-rc.1"

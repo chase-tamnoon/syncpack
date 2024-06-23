@@ -1,4 +1,7 @@
 use log::debug;
+use non_semver::NonSemver;
+use semver::Semver;
+use simple_semver::SimpleSemver;
 
 use crate::specifier::{
   regexes::{
@@ -51,10 +54,11 @@ impl Specifier {
     Specifier::parse(specifier, false)
   }
 
-  pub fn is_semver(&self) -> bool {
-    matches!(SpecifierTree::new(self), SpecifierTree::Semver(_))
+  pub fn is_simple_semver(&self) -> bool {
+    matches!(SpecifierTree::new(self), SpecifierTree::Semver(Semver::Simple(_)))
   }
 
+  // @TODO: impl Eq
   pub fn matches(&self, specifier: &Specifier) -> bool {
     *self == *specifier
   }
@@ -81,6 +85,7 @@ impl Specifier {
     .to_string()
   }
 
+  #[deprecated]
   pub fn get_semver_range(&self) -> Option<SemverRange> {
     let specifier = self.unwrap();
     if specifier == "*" {
@@ -110,50 +115,24 @@ impl Specifier {
     return None;
   }
 
+  #[deprecated]
   pub fn has_range(&self, expected_range: &SemverRange) -> bool {
     self.get_semver_range().map_or(false, |range| range == *expected_range)
   }
 
+  #[deprecated]
   pub fn get_exact(&self) -> Self {
-    self.with_semver_range(&SemverRange::Exact)
+    self.with_range_if_semver(&SemverRange::Exact)
   }
 
-  pub fn with_semver_range(&self, range: &SemverRange) -> Self {
-    let replace = |current_range: &str| {
-      let specifier = self.unwrap();
-      let next_range = range.unwrap();
-      Specifier::parse(&specifier.replace(current_range, &next_range), false)
-    };
-    match self.get_semver_range() {
-      Some(SemverRange::Exact) => {
-        let specifier = self.unwrap();
-        let next_range = range.unwrap();
-        return Specifier::parse(&format!("{}{}", &next_range, &specifier), false);
-      }
-      Some(SemverRange::Minor) => {
-        return replace("^");
-      }
-      Some(SemverRange::Patch) => {
-        return replace("~");
-      }
-      Some(SemverRange::Gt) => {
-        return replace(">");
-      }
-      Some(SemverRange::Gte) => {
-        return replace(">=");
-      }
-      Some(SemverRange::Lt) => {
-        return replace("<");
-      }
-      Some(SemverRange::Lte) => {
-        return replace("<=");
-      }
-      Some(SemverRange::Any) => {
-        return Specifier::Latest("*".to_string());
-      }
-      None => {
-        panic!("Cannot set a semver range on a non-semver specifier: {:?}", self);
-      }
+  /// Get the specifier with the given range applied if it is valid to do so,
+  /// otherwise return the specifier unchanged
+  pub fn with_range_if_semver(&self, range: &SemverRange) -> Self {
+    let tree = SpecifierTree::new(&self);
+    if let SpecifierTree::Semver(Semver::Simple(simple_semver_specifier)) = tree {
+      simple_semver_specifier.with_range(&range).to_specifier()
+    } else {
+      self.clone()
     }
   }
 
@@ -235,7 +214,7 @@ impl Specifier {
         .split(" ")
         .map(|str| str.trim())
         .filter(|str| str.len() > 0)
-        .all(|and_condition| Specifier::parse(&and_condition.to_string(), true).is_semver())
+        .all(|and_condition| Specifier::parse(&and_condition.to_string(), true).is_simple_semver())
     })
   }
 
@@ -492,7 +471,7 @@ mod tests {
         let range = SemverRange::new(&range.to_string()).unwrap();
         let expected = expected.to_string();
         let parsed = Specifier::new(&initial);
-        assert_eq!(parsed.with_semver_range(&range), Specifier::new(&expected.clone()), "{} + {:?} should produce {}", initial, range, expected);
+        assert_eq!(parsed.with_range_if_semver(&range), Specifier::new(&expected.clone()), "{} + {:?} should produce {}", initial, range, expected);
       }
     }
   }

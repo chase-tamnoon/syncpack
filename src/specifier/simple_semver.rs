@@ -3,7 +3,7 @@ use node_semver::Version;
 use std::cmp::Ordering;
 
 use super::{
-  regexes::{REGEX_CARET, REGEX_CARET_TAG, REGEX_GT, REGEX_GTE, REGEX_GTE_TAG, REGEX_GT_TAG, REGEX_LT, REGEX_LTE, REGEX_LTE_TAG, REGEX_LT_TAG, REGEX_RANGE_CHAR, REGEX_TILDE, REGEX_TILDE_TAG},
+  regexes::{REGEX_CARET, REGEX_CARET_TAG, REGEX_GT, REGEX_GTE, REGEX_GTE_TAG, REGEX_GT_TAG, REGEX_LT, REGEX_LTE, REGEX_LTE_TAG, REGEX_LT_TAG, REGEX_RANGE_CHARS, REGEX_TILDE, REGEX_TILDE_TAG},
   semver_range::SemverRange,
   Specifier,
 };
@@ -88,6 +88,17 @@ impl SimpleSemver {
     }
   }
 
+  pub fn to_specifier(&self) -> Specifier {
+    match self {
+      SimpleSemver::Exact(s) => Specifier::Exact(s.clone()),
+      SimpleSemver::Latest(s) => Specifier::Latest(s.clone()),
+      SimpleSemver::Major(s) => Specifier::Major(s.clone()),
+      SimpleSemver::Minor(s) => Specifier::Minor(s.clone()),
+      SimpleSemver::Range(s) => Specifier::Range(s.clone()),
+      SimpleSemver::RangeMinor(s) => Specifier::RangeMinor(s.clone()),
+    }
+  }
+
   /// Replace this version's semver range with another one
   pub fn with_range(&self, range: &SemverRange) -> SimpleSemver {
     match self {
@@ -100,7 +111,7 @@ impl SimpleSemver {
         SimpleSemver::new(&Specifier::new(&format!("{next_range}{exact}")))
       }
       SimpleSemver::Major(s) | SimpleSemver::Minor(s) | SimpleSemver::Range(s) | SimpleSemver::RangeMinor(s) => {
-        let exact = REGEX_RANGE_CHAR.replace(s, "");
+        let exact = REGEX_RANGE_CHARS.replace(s, "");
         let next_range = range.unwrap();
         SimpleSemver::new(&Specifier::new(&format!("{next_range}{exact}")))
       }
@@ -152,11 +163,11 @@ impl SimpleSemver {
       SimpleSemver::Major(s) => Version::parse(&format!("{}.0.0", s)).unwrap(),
       SimpleSemver::Minor(s) => Version::parse(&format!("{}.0", s)).unwrap(),
       SimpleSemver::Range(s) => {
-        let exact = REGEX_RANGE_CHAR.replace(s, "");
+        let exact = REGEX_RANGE_CHARS.replace(s, "");
         Version::parse(&exact).unwrap()
       }
       SimpleSemver::RangeMinor(s) => {
-        let exact = REGEX_RANGE_CHAR.replace(s, "");
+        let exact = REGEX_RANGE_CHARS.replace(s, "");
         Version::parse(&format!("{}.0", exact)).unwrap()
       }
     };

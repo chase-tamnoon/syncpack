@@ -23,23 +23,14 @@ impl Context {
     let mut version_groups = config.rcfile.get_version_groups(&packages.all_names);
     let mut instances_by_id: InstancesById = BTreeMap::new();
 
-    // @TODO add some debug!("{}", logs);
-
     packages.get_all_instances(&config, |mut instance| {
       version_groups
         .iter_mut()
         .find(|vgroup| vgroup.selector.can_add(&instance))
         .inspect(|vgroup| {
-          semver_groups
-            .iter()
-            .find(|sgroup| sgroup.selector.can_add(&instance))
-            .and_then(|sgroup| sgroup.range.clone())
-            .map(|prefer_range| {
-              if instance.expected.is_semver() {
-                instance.prefer_range = Some(prefer_range.clone());
-                instance.expected = instance.expected.with_semver_range(&prefer_range);
-              }
-            });
+          semver_groups.iter().find(|sgroup| sgroup.selector.can_add(&instance)).inspect(|sgroup| {
+            instance.apply_semver_group(&sgroup);
+          });
         })
         .map(|vgroup| {
           let dependency = vgroup.get_or_create_dependency(&instance);

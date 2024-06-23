@@ -83,7 +83,7 @@ impl Dependency {
   }
 
   pub fn all_are_semver(&self, instances_by_id: &InstancesById) -> bool {
-    self.get_instances(instances_by_id).iter().all(|instance| instance.actual.is_semver())
+    self.get_instances(instances_by_id).iter().all(|instance| instance.actual.is_simple_semver())
   }
 
   pub fn get_unique_expected_and_actual_specifiers(&self, instances_by_id: &InstancesById) -> HashSet<Specifier> {
@@ -165,7 +165,7 @@ impl Dependency {
     let unique_semver_specifiers: Vec<Specifier> = self
       .get_unique_expected_and_actual_specifiers(&instances_by_id)
       .iter()
-      .filter(|specifier| specifier.is_semver())
+      .filter(|specifier| specifier.is_simple_semver())
       .map(|specifier| specifier.clone())
       .collect();
     unique_semver_specifiers.iter().for_each(|specifier_a| {
