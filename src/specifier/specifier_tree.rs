@@ -1,7 +1,6 @@
-use super::non_semver::NonSemver;
-use super::semver::Semver;
-use super::Specifier;
+use super::{non_semver::NonSemver, semver::Semver, Specifier};
 
+#[derive(Clone, Debug)]
 pub enum SpecifierTree {
   Semver(Semver),
   NonSemver(NonSemver),

@@ -1,13 +1,7 @@
-use super::Specifier;
-use super::REGEX_CARET;
-use super::REGEX_GT;
-use super::REGEX_GTE;
-use super::REGEX_LT;
-use super::REGEX_LTE;
-use super::REGEX_RANGE_CHAR;
-use super::REGEX_TILDE;
-use crate::semver_range::SemverRange;
+use log::warn;
 use std::cmp::Ordering;
+
+use super::{semver_range::SemverRange, Specifier, REGEX_CARET, REGEX_GT, REGEX_GTE, REGEX_LT, REGEX_LTE, REGEX_RANGE_CHAR, REGEX_TILDE};
 
 #[derive(Clone, Debug)]
 pub enum SimpleSemver {

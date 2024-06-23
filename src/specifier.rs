@@ -1,13 +1,22 @@
-use crate::{semver_range::SemverRange, specifier::specifier_tree::SpecifierTree};
 use log::debug;
 use node_semver::Version;
 use std::cmp::Ordering;
 
-mod non_semver;
-mod regexes;
-mod semver;
-mod simple_semver;
-mod specifier_tree;
+use crate::specifier::{
+  regexes::{
+    REGEX_ALIAS, REGEX_CARET, REGEX_CARET_MINOR, REGEX_EXACT, REGEX_FILE, REGEX_GIT, REGEX_GT, REGEX_GTE, REGEX_GTE_MINOR, REGEX_GT_MINOR, REGEX_LT, REGEX_LTE, REGEX_LTE_MINOR, REGEX_LT_MINOR, REGEX_MAJOR, REGEX_MINOR, REGEX_OR_OPERATOR,
+    REGEX_RANGE_CHAR, REGEX_TAG, REGEX_TILDE, REGEX_TILDE_MINOR, REGEX_URL, REGEX_WORKSPACE_PROTOCOL,
+  },
+  semver_range::SemverRange,
+  specifier_tree::SpecifierTree,
+};
+
+pub mod non_semver;
+pub mod regexes;
+pub mod semver;
+pub mod semver_range;
+pub mod simple_semver;
+pub mod specifier_tree;
 
 /// General purpose version specifier.
 ///

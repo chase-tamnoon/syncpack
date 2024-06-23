@@ -1,6 +1,6 @@
 use serde::Deserialize;
 
-use crate::{group_selector::GroupSelector, semver_range::SemverRange};
+use crate::{group_selector::GroupSelector, specifier::semver_range::SemverRange};
 
 #[derive(Debug)]
 pub enum SemverGroupVariant {

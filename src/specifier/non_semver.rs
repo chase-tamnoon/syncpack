@@ -1,6 +1,6 @@
 use super::Specifier;
 
-#[derive(Clone, Eq, Debug, Hash, PartialEq)]
+#[derive(Clone, Debug)]
 pub enum NonSemver {
   /// eg. `npm:1.2.3`
   Alias(String),

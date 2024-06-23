@@ -4,8 +4,7 @@ use std::path::PathBuf;
 use crate::{
   dependency_type::{DependencyType, Strategy},
   package_json::PackageJson,
-  semver_range::SemverRange,
-  specifier::Specifier,
+  specifier::{semver_range::SemverRange, Specifier},
 };
 
 pub type InstanceId = String;
