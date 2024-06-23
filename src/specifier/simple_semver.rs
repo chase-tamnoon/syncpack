@@ -16,16 +16,29 @@ struct OrderableSimpleSemver {
 
 impl Ord for OrderableSimpleSemver {
   fn cmp(&self, other: &Self) -> Ordering {
+    // major
     match self.version.major.cmp(&other.version.major) {
       Ordering::Greater => return Ordering::Greater,
       Ordering::Less => return Ordering::Less,
+      // minor
       Ordering::Equal => match self.version.minor.cmp(&other.version.minor) {
         Ordering::Greater => return Ordering::Greater,
         Ordering::Less => return Ordering::Less,
+        // patch
         Ordering::Equal => match self.version.patch.cmp(&other.version.patch) {
           Ordering::Greater => return Ordering::Greater,
           Ordering::Less => return Ordering::Less,
-          Ordering::Equal => self.range.cmp(&other.range),
+          // build
+          Ordering::Equal => match self.version.build.cmp(&other.version.build) {
+            Ordering::Greater => return Ordering::Greater,
+            Ordering::Less => return Ordering::Less,
+            // pre_release
+            Ordering::Equal => match self.version.pre_release.cmp(&other.version.pre_release) {
+              Ordering::Greater => return Ordering::Greater,
+              Ordering::Less => return Ordering::Less,
+              Ordering::Equal => self.range.cmp(&other.range),
+            },
+          },
         },
       },
     }
@@ -174,6 +187,7 @@ impl Eq for SimpleSemver {}
 #[cfg(test)]
 mod tests {
   use super::*;
+  use node_semver::{Identifier, Version};
   use std::cmp::Ordering;
 
   fn to_strings(specifiers: Vec<&str>) -> Vec<String> {
@@ -197,15 +211,28 @@ mod tests {
         },
       ),
       (
-        "0.0.0-alpha",
+        "1.2.3-alpha",
         OrderableSimpleSemver {
           range: SemverRange::Exact,
           version: Version {
-            major: 0,
-            minor: 0,
-            patch: 0,
+            major: 1,
+            minor: 2,
+            patch: 3,
             build: vec![],
-            pre_release: vec![],
+            pre_release: vec![Identifier::AlphaNumeric("alpha".to_string())],
+          },
+        },
+      ),
+      (
+        "1.2.3-rc.18",
+        OrderableSimpleSemver {
+          range: SemverRange::Exact,
+          version: Version {
+            major: 1,
+            minor: 2,
+            patch: 3,
+            build: vec![],
+            pre_release: vec![Identifier::AlphaNumeric("rc".to_string()), Identifier::Numeric(18)],
           },
         },
       ),
@@ -214,19 +241,19 @@ mod tests {
       let raw = str.to_string();
       let semver = SimpleSemver::new(&Specifier::new(&raw));
       let orderable = semver.get_orderable();
-      assert_eq!(orderable.range, expected.range);
-      assert_eq!(orderable.version.major, expected.version.major);
-      assert_eq!(orderable.version.minor, expected.version.minor);
-      assert_eq!(orderable.version.patch, expected.version.patch);
-      assert_eq!(orderable.version.build, expected.version.build);
-      assert_eq!(orderable.version.pre_release, expected.version.pre_release);
+      assert_eq!(orderable.range, expected.range, "range");
+      assert_eq!(orderable.version.major, expected.version.major, "version.major");
+      assert_eq!(orderable.version.minor, expected.version.minor, "version.minor");
+      assert_eq!(orderable.version.patch, expected.version.patch, "version.patch");
+      assert_eq!(orderable.version.build, expected.version.build, "version.build");
+      assert_eq!(orderable.version.pre_release, expected.version.pre_release, "version.pre_release");
     }
   }
 
   #[test]
   fn compare() {
     let cases: Vec<(&str, &str, Ordering)> = vec![
-      /* "" */
+      /* normal versions */
       ("0.0.0", "0.0.1", Ordering::Less),
       ("0.0.0", "0.1.0", Ordering::Less),
       ("0.0.0", "1.0.0", Ordering::Less),
@@ -234,7 +261,7 @@ mod tests {
       ("0.0.1", "0.0.0", Ordering::Greater),
       ("0.1.0", "0.0.0", Ordering::Greater),
       ("1.0.0", "0.0.0", Ordering::Greater),
-      /* ~ */
+      /* range greediness applies only when versions are equal */
       ("0.0.0", "~0.0.1", Ordering::Less),
       ("0.0.0", "~0.1.0", Ordering::Less),
       ("0.0.0", "~1.0.0", Ordering::Less),
@@ -242,6 +269,24 @@ mod tests {
       ("0.0.1", "~0.0.0", Ordering::Greater),
       ("0.1.0", "~0.0.0", Ordering::Greater),
       ("1.0.0", "~0.0.0", Ordering::Greater),
+      /* stable should be older than tagged */
+      ("0.0.0", "0.0.0-alpha", Ordering::Less),
+      /* equal tags should not affect comparison */
+      ("0.0.0-alpha", "0.0.0-alpha", Ordering::Equal),
+      ("0.0.0-alpha", "0.1.0-alpha", Ordering::Less),
+      ("0.0.0-alpha", "1.0.0-alpha", Ordering::Less),
+      ("0.0.0-alpha", "0.0.0-alpha", Ordering::Equal),
+      ("0.0.1-alpha", "0.0.0-alpha", Ordering::Greater),
+      ("0.1.0-alpha", "0.0.0-alpha", Ordering::Greater),
+      ("1.0.0-alpha", "0.0.0-alpha", Ordering::Greater),
+      /* preleases should matter when version is equal */
+      ("0.0.0-rc.0.0.0", "0.0.0-rc.0.0.0", Ordering::Equal),
+      ("0.0.0-rc.0.0.0", "0.0.0-rc.0.1.0", Ordering::Less),
+      ("0.0.0-rc.0.0.0", "0.0.0-rc.1.0.0", Ordering::Less),
+      ("0.0.0-rc.0.0.0", "0.0.0-rc.0.0.0", Ordering::Equal),
+      ("0.0.0-rc.0.0.1", "0.0.0-rc.0.0.0", Ordering::Greater),
+      ("0.0.0-rc.0.1.0", "0.0.0-rc.0.0.0", Ordering::Greater),
+      ("0.0.0-rc.1.0.0", "0.0.0-rc.0.0.0", Ordering::Greater),
     ];
     for (str_a, str_b, expected) in cases {
       let a = Specifier::new(&str_a.to_string());
