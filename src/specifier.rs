@@ -198,7 +198,9 @@ impl Specifier {
         .split(" ")
         .map(|str| str.trim())
         .filter(|str| str.len() > 0)
-        .all(|and_condition| Specifier::parse(&and_condition.to_string(), true).is_simple_semver())
+        .map(|and_condition| Specifier::parse(&and_condition.to_string(), true))
+        .map(|specifier| SpecifierTree::new(&specifier))
+        .all(|specifier_tree| specifier_tree.is_simple_semver())
     })
   }
 
