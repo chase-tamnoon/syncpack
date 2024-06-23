@@ -80,26 +80,16 @@ impl Instance {
   pub fn has_range_mismatch(&self, other: &AnySpecifier) -> bool {
     // it has a semver group
     self.prefer_range.is_some()
-      && match (
-        Specifier::new(&self.actual),
-        Specifier::new(&self.expected),
-        Specifier::new(other),
-      ) {
         // all versions are simple semver
-        (
-          Specifier::Semver(Semver::Simple(actual)),
-          Specifier::Semver(Semver::Simple(expected)),
-          Specifier::Semver(Semver::Simple(other)),
-        ) => {
-          // its own version matches its expected version (eg. "1.1.0" == "1.1.0")
-          actual.has_same_version(&expected)
-          // its expected version matches the expected version of the group
-          && expected.has_same_version(&other)
-          // only its own semver range is different
-          && !expected.has_same_range(&actual)
-        }
-        _ => false,
-      }
+        && self.actual.is_simple_semver()
+        && self.expected.is_simple_semver()
+        && other.is_simple_semver()
+        // its own version matches its expected version (eg. "1.1.0" == "1.1.0")
+        && actual.has_same_version(&expected)
+        // its expected version matches the expected version of the group
+        && expected.has_same_version(&other)
+        // only its own semver range is different
+        && !expected.has_same_range(&actual)
   }
 
   pub fn get_fixed_range_mismatch(&self) -> AnySpecifier {

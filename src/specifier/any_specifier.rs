@@ -66,28 +66,28 @@ impl AnySpecifier {
   }
 
   // @TODO: impl Eq
-  pub fn matches(&self, specifier: &AnySpecifier) -> bool {
+  pub fn matches(&self, specifier: &Self) -> bool {
     *self == *specifier
   }
 
   /// Get the `specifier_type` name as used in config files.
   pub fn get_config_identifier(&self) -> String {
     match self {
-      &AnySpecifier::Exact(_) => "exact",
-      &AnySpecifier::Latest(_) => "latest",
-      &AnySpecifier::Major(_) => "major",
-      &AnySpecifier::Minor(_) => "minor",
-      &AnySpecifier::Range(_) => "range",
-      &AnySpecifier::RangeMinor(_) => "range-minor",
-      &AnySpecifier::RangeComplex(_) => "range-complex",
-      &AnySpecifier::Alias(_) => "alias",
-      &AnySpecifier::File(_) => "file",
-      &AnySpecifier::Git(_) => "git",
-      &AnySpecifier::Tag(_) => "tag",
-      &AnySpecifier::Unsupported(_) => "unsupported",
-      &AnySpecifier::Url(_) => "url",
-      &AnySpecifier::WorkspaceProtocol(_) => "workspace-protocol",
-      &AnySpecifier::None => "missing",
+      &Self::Exact(_) => "exact",
+      &Self::Latest(_) => "latest",
+      &Self::Major(_) => "major",
+      &Self::Minor(_) => "minor",
+      &Self::Range(_) => "range",
+      &Self::RangeMinor(_) => "range-minor",
+      &Self::RangeComplex(_) => "range-complex",
+      &Self::Alias(_) => "alias",
+      &Self::File(_) => "file",
+      &Self::Git(_) => "git",
+      &Self::Tag(_) => "tag",
+      &Self::Unsupported(_) => "unsupported",
+      &Self::Url(_) => "url",
+      &Self::WorkspaceProtocol(_) => "workspace-protocol",
+      &Self::None => "missing",
     }
     .to_string()
   }
@@ -104,23 +104,36 @@ impl AnySpecifier {
   }
 
   /// Get the raw specifier value
+  pub fn is_simple_semver(&self) -> bool {
+    match &self {
+      &Self::Exact(_)
+      | &Self::Latest(_)
+      | &Self::Major(_)
+      | &Self::Minor(_)
+      | &Self::Range(_)
+      | &Self::RangeMinor(_) => true,
+      _ => false,
+    }
+  }
+
+  /// Get the raw specifier value
   pub fn unwrap(&self) -> &String {
     match &self {
-      &AnySpecifier::Exact(specifier) => specifier,
-      &AnySpecifier::Latest(specifier) => specifier,
-      &AnySpecifier::Major(specifier) => specifier,
-      &AnySpecifier::Minor(specifier) => specifier,
-      &AnySpecifier::Range(specifier) => specifier,
-      &AnySpecifier::RangeMinor(specifier) => specifier,
-      &AnySpecifier::RangeComplex(specifier) => specifier,
-      &AnySpecifier::Alias(specifier) => specifier,
-      &AnySpecifier::File(specifier) => specifier,
-      &AnySpecifier::Git(specifier) => specifier,
-      &AnySpecifier::Tag(specifier) => specifier,
-      &AnySpecifier::Unsupported(specifier) => specifier,
-      &AnySpecifier::Url(specifier) => specifier,
-      &AnySpecifier::WorkspaceProtocol(specifier) => specifier,
-      &AnySpecifier::None => {
+      &Self::Exact(specifier) => specifier,
+      &Self::Latest(specifier) => specifier,
+      &Self::Major(specifier) => specifier,
+      &Self::Minor(specifier) => specifier,
+      &Self::Range(specifier) => specifier,
+      &Self::RangeMinor(specifier) => specifier,
+      &Self::RangeComplex(specifier) => specifier,
+      &Self::Alias(specifier) => specifier,
+      &Self::File(specifier) => specifier,
+      &Self::Git(specifier) => specifier,
+      &Self::Tag(specifier) => specifier,
+      &Self::Unsupported(specifier) => specifier,
+      &Self::Url(specifier) => specifier,
+      &Self::WorkspaceProtocol(specifier) => specifier,
+      &Self::None => {
         panic!("Cannot unwrap a Specifier::None");
       }
     }
