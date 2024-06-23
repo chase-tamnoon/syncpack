@@ -96,6 +96,7 @@ impl Effects for LintEffects<'_> {
   fn on_instance(&mut self, event: InstanceEvent, instances_by_id: &mut InstancesById) -> () {
     let instance_id = &event.instance_id;
     let dependency = &event.dependency;
+    println!("{:?}", instances_by_id.get(instance_id).unwrap());
     match &event.variant {
       /* Ignored */
       InstanceEventVariant::InstanceIsIgnored => { /*NOOP*/ }
@@ -106,7 +107,7 @@ impl Effects for LintEffects<'_> {
       | InstanceEventVariant::InstanceMatchesButIsUnsupported
       | InstanceEventVariant::InstanceMatchesPinned
       | InstanceEventVariant::InstanceMatchesSameRangeGroup => {
-        return /*SKIP*/;
+        // return /*SKIP*/;
         let instance = instances_by_id.get(instance_id).unwrap();
         let icon = icon_valid();
         let actual = instance.actual.unwrap().green();
@@ -128,7 +129,7 @@ impl Effects for LintEffects<'_> {
       }
       /* Fixable Mismatches */
       InstanceEventVariant::InstanceIsBanned => {
-        return /*SKIP*/;
+        // return /*SKIP*/;
         let instance = instances_by_id.get(instance_id).unwrap();
         let icon = icon_fixable();
         let hint = "banned".red();
@@ -137,7 +138,7 @@ impl Effects for LintEffects<'_> {
         self.is_valid = false;
       }
       InstanceEventVariant::InstanceMatchesHighestOrLowestSemverButMismatchesSemverGroup => {
-        return /*SKIP*/;
+        // return /*SKIP*/;
         let instance = instances_by_id.get(instance_id).unwrap();
         let icon = icon_fixable();
         let actual = instance.actual.unwrap().red();
@@ -158,7 +159,7 @@ impl Effects for LintEffects<'_> {
         info!("  InstanceMismatchesLocal");
       }
       InstanceEventVariant::InstanceMismatchesHighestOrLowestSemver => {
-        return /*SKIP*/;
+        // return /*SKIP*/;
         let instance = instances_by_id.get(instance_id).unwrap();
         let icon = icon_fixable();
         let actual = instance.actual.unwrap().red();
@@ -167,7 +168,7 @@ impl Effects for LintEffects<'_> {
         self.is_valid = false;
       }
       InstanceEventVariant::InstanceMismatchesPinned => {
-        return /*SKIP*/;
+        // return /*SKIP*/;
         let instance = instances_by_id.get(instance_id).unwrap();
         let icon = icon_fixable();
         let actual = instance.actual.unwrap().red();
@@ -177,7 +178,7 @@ impl Effects for LintEffects<'_> {
       }
       /* Unfixable Mismatches */
       InstanceEventVariant::InstanceMismatchesAndIsUnsupported => {
-        return /*SKIP*/;
+        // return /*SKIP*/;
         let instance = instances_by_id.get(instance_id).unwrap();
         let icon = icon_unfixable();
         let actual = instance.actual.unwrap().red();
