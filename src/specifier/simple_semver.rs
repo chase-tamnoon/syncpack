@@ -3,7 +3,7 @@ use node_semver::Version;
 use std::cmp::Ordering;
 
 use super::{
-  regexes::{REGEX_CARET, REGEX_CARET_TAG, REGEX_GT, REGEX_GTE, REGEX_GTE_TAG, REGEX_GT_TAG, REGEX_LT, REGEX_LTE, REGEX_LTE_TAG, REGEX_LT_TAG, REGEX_RANGE_CHARS, REGEX_TILDE, REGEX_TILDE_TAG},
+  regexes::{CARET, CARET_TAG, GT, GTE, GTE_TAG, GT_TAG, LT, LTE, LTE_TAG, LT_TAG, RANGE_CHARS, TILDE, TILDE_TAG},
   semver_range::SemverRange,
   Specifier,
 };
@@ -111,7 +111,7 @@ impl SimpleSemver {
         SimpleSemver::new(&Specifier::new(&format!("{next_range}{exact}")))
       }
       SimpleSemver::Major(s) | SimpleSemver::Minor(s) | SimpleSemver::Range(s) | SimpleSemver::RangeMinor(s) => {
-        let exact = REGEX_RANGE_CHARS.replace(s, "");
+        let exact = RANGE_CHARS.replace(s, "");
         let next_range = range.unwrap();
         SimpleSemver::new(&Specifier::new(&format!("{next_range}{exact}")))
       }
@@ -135,22 +135,22 @@ impl SimpleSemver {
       SimpleSemver::Major(s) => SemverRange::Exact,
       SimpleSemver::Minor(s) => SemverRange::Exact,
       SimpleSemver::Range(s) | SimpleSemver::RangeMinor(s) => {
-        if REGEX_CARET.is_match(s) || REGEX_CARET_TAG.is_match(s) {
+        if CARET.is_match(s) || CARET_TAG.is_match(s) {
           return SemverRange::Minor;
         }
-        if REGEX_TILDE.is_match(s) || REGEX_TILDE_TAG.is_match(s) {
+        if TILDE.is_match(s) || TILDE_TAG.is_match(s) {
           return SemverRange::Patch;
         }
-        if REGEX_GT.is_match(s) || REGEX_GT_TAG.is_match(s) {
+        if GT.is_match(s) || GT_TAG.is_match(s) {
           return SemverRange::Gt;
         }
-        if REGEX_GTE.is_match(s) || REGEX_GTE_TAG.is_match(s) {
+        if GTE.is_match(s) || GTE_TAG.is_match(s) {
           return SemverRange::Gte;
         }
-        if REGEX_LT.is_match(s) || REGEX_LT_TAG.is_match(s) {
+        if LT.is_match(s) || LT_TAG.is_match(s) {
           return SemverRange::Lt;
         }
-        if REGEX_LTE.is_match(s) || REGEX_LTE_TAG.is_match(s) {
+        if LTE.is_match(s) || LTE_TAG.is_match(s) {
           return SemverRange::Lte;
         }
         panic!("'{s}' has unrecognised semver range specifier");
@@ -171,11 +171,11 @@ impl SimpleSemver {
       SimpleSemver::Major(s) => Version::parse(&format!("{}.0.0", s)).unwrap(),
       SimpleSemver::Minor(s) => Version::parse(&format!("{}.0", s)).unwrap(),
       SimpleSemver::Range(s) => {
-        let exact = REGEX_RANGE_CHARS.replace(s, "");
+        let exact = RANGE_CHARS.replace(s, "");
         Version::parse(&exact).unwrap()
       }
       SimpleSemver::RangeMinor(s) => {
-        let exact = REGEX_RANGE_CHARS.replace(s, "");
+        let exact = RANGE_CHARS.replace(s, "");
         Version::parse(&format!("{}.0", exact)).unwrap()
       }
     };

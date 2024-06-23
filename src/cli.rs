@@ -53,20 +53,8 @@ fn create() -> Command {
             .action(clap::ArgAction::SetTrue)
             .help("enable to lint the formatting and order of package.json files"),
         )
-        .arg(
-          Arg::new("ranges")
-            .short('r')
-            .long("ranges")
-            .action(clap::ArgAction::SetTrue)
-            .help("enable to lint semver range mismatches"),
-        )
-        .arg(
-          Arg::new("versions")
-            .short('v')
-            .long("versions")
-            .action(clap::ArgAction::SetTrue)
-            .help("enable to lint version mismatches"),
-        )
+        .arg(Arg::new("ranges").short('r').long("ranges").action(clap::ArgAction::SetTrue).help("enable to lint semver range mismatches"))
+        .arg(Arg::new("versions").short('v').long("versions").action(clap::ArgAction::SetTrue).help("enable to lint version mismatches"))
         .arg(
           Arg::new("source")
             .short('s')
@@ -93,20 +81,8 @@ fn create() -> Command {
             .action(clap::ArgAction::SetTrue)
             .help("enable to fix the formatting and order of package.json files"),
         )
-        .arg(
-          Arg::new("ranges")
-            .short('r')
-            .long("ranges")
-            .action(clap::ArgAction::SetTrue)
-            .help("enable to fix semver range mismatches"),
-        )
-        .arg(
-          Arg::new("versions")
-            .short('v')
-            .long("versions")
-            .action(clap::ArgAction::SetTrue)
-            .help("enable to fix version mismatches"),
-        )
+        .arg(Arg::new("ranges").short('r').long("ranges").action(clap::ArgAction::SetTrue).help("enable to fix semver range mismatches"))
+        .arg(Arg::new("versions").short('v').long("versions").action(clap::ArgAction::SetTrue).help("enable to fix version mismatches"))
         .arg(
           Arg::new("source")
             .short('s')

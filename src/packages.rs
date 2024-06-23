@@ -19,10 +19,7 @@ pub struct Packages {
 impl Packages {
   /// Create an empty collection of package.json files
   pub fn new() -> Self {
-    Self {
-      all_names: vec![],
-      by_name: HashMap::new(),
-    }
+    Self { all_names: vec![], by_name: HashMap::new() }
   }
 
   #[cfg(test)]

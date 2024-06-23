@@ -3,63 +3,63 @@ use regex::Regex;
 
 lazy_static! {
   /// Any character used in a semver range
-  pub static ref REGEX_RANGE_CHARS: Regex = Regex::new(r"^(~|\^|\*|>=?|<=?)").unwrap();
+  pub static ref RANGE_CHARS: Regex = Regex::new(r"^(~|\^|\*|>=?|<=?)").unwrap();
   /// "1.2.3"
-  pub static ref REGEX_EXACT: Regex = Regex::new(r"^\d+\.\d+\.\d+$").unwrap();
+  pub static ref EXACT: Regex = Regex::new(r"^\d+\.\d+\.\d+$").unwrap();
   /// "1.2.3-alpha" || "1.2.3-rc.1"
-  pub static ref REGEX_EXACT_TAG: Regex = Regex::new(r"^\d+\.\d+\.\d+\-[a-z0-9.-_]+$").unwrap();
+  pub static ref EXACT_TAG: Regex = Regex::new(r"^\d+\.\d+\.\d+\-[a-z0-9.-_]+$").unwrap();
   /// "^1.2.3"
-  pub static ref REGEX_CARET: Regex = Regex::new(r"^\^(\d+\.\d+\.\d+)$").unwrap();
+  pub static ref CARET: Regex = Regex::new(r"^\^(\d+\.\d+\.\d+)$").unwrap();
   /// "^1.2.3-alpha" || "^1.2.3-rc.1"
-  pub static ref REGEX_CARET_TAG: Regex = Regex::new(r"^\^(\d+\.\d+\.\d+)\-[a-z0-9.-_]+$").unwrap();
+  pub static ref CARET_TAG: Regex = Regex::new(r"^\^(\d+\.\d+\.\d+)\-[a-z0-9.-_]+$").unwrap();
   /// "~1.2.3"
-  pub static ref REGEX_TILDE: Regex = Regex::new(r"^~(\d+\.\d+\.\d+)$").unwrap();
+  pub static ref TILDE: Regex = Regex::new(r"^~(\d+\.\d+\.\d+)$").unwrap();
   /// "~1.2.3-alpha" || "~1.2.3-rc.1"
-  pub static ref REGEX_TILDE_TAG: Regex = Regex::new(r"^~(\d+\.\d+\.\d+)\-[a-z0-9.-_]+$").unwrap();
+  pub static ref TILDE_TAG: Regex = Regex::new(r"^~(\d+\.\d+\.\d+)\-[a-z0-9.-_]+$").unwrap();
   /// ">1.2.3"
-  pub static ref REGEX_GT: Regex = Regex::new(r"^>(\d+\.\d+\.\d+)$").unwrap();
+  pub static ref GT: Regex = Regex::new(r"^>(\d+\.\d+\.\d+)$").unwrap();
   /// ">1.2.3-alpha" || ">1.2.3-rc.1"
-  pub static ref REGEX_GT_TAG: Regex = Regex::new(r"^>(\d+\.\d+\.\d+)\-[a-z0-9.-_]+$").unwrap();
+  pub static ref GT_TAG: Regex = Regex::new(r"^>(\d+\.\d+\.\d+)\-[a-z0-9.-_]+$").unwrap();
   /// ">=1.2.3"
-  pub static ref REGEX_GTE: Regex = Regex::new(r"^>=(\d+\.\d+\.\d+)$").unwrap();
+  pub static ref GTE: Regex = Regex::new(r"^>=(\d+\.\d+\.\d+)$").unwrap();
   /// ">=1.2.3-alpha" || ">=1.2.3-rc.1"
-  pub static ref REGEX_GTE_TAG: Regex = Regex::new(r"^>=(\d+\.\d+\.\d+)\-[a-z0-9.-_]+$").unwrap();
+  pub static ref GTE_TAG: Regex = Regex::new(r"^>=(\d+\.\d+\.\d+)\-[a-z0-9.-_]+$").unwrap();
   /// "<1.2.3"
-  pub static ref REGEX_LT: Regex = Regex::new(r"^<(\d+\.\d+\.\d+)$").unwrap();
+  pub static ref LT: Regex = Regex::new(r"^<(\d+\.\d+\.\d+)$").unwrap();
   /// "<1.2.3-alpha" || "<1.2.3-rc.1"
-  pub static ref REGEX_LT_TAG: Regex = Regex::new(r"^<(\d+\.\d+\.\d+)\-[a-z0-9.-_]+$").unwrap();
+  pub static ref LT_TAG: Regex = Regex::new(r"^<(\d+\.\d+\.\d+)\-[a-z0-9.-_]+$").unwrap();
   /// "<=1.2.3"
-  pub static ref REGEX_LTE: Regex = Regex::new(r"^<=(\d+\.\d+\.\d+)$").unwrap();
+  pub static ref LTE: Regex = Regex::new(r"^<=(\d+\.\d+\.\d+)$").unwrap();
   /// "<=1.2.3-alpha" || "<=1.2.3-rc.1"
-  pub static ref REGEX_LTE_TAG: Regex = Regex::new(r"^<=(\d+\.\d+\.\d+)\-[a-z0-9.-_]+$").unwrap();
+  pub static ref LTE_TAG: Regex = Regex::new(r"^<=(\d+\.\d+\.\d+)\-[a-z0-9.-_]+$").unwrap();
   /// "^1.2"
-  pub static ref REGEX_CARET_MINOR: Regex = Regex::new(r"^\^(\d+\.\d+)$").unwrap();
+  pub static ref CARET_MINOR: Regex = Regex::new(r"^\^(\d+\.\d+)$").unwrap();
   /// "~1.2"
-  pub static ref REGEX_TILDE_MINOR: Regex = Regex::new(r"^~(\d+\.\d+)$").unwrap();
+  pub static ref TILDE_MINOR: Regex = Regex::new(r"^~(\d+\.\d+)$").unwrap();
   /// ">1.2"
-  pub static ref REGEX_GT_MINOR: Regex = Regex::new(r"^>(\d+\.\d+)$").unwrap();
+  pub static ref GT_MINOR: Regex = Regex::new(r"^>(\d+\.\d+)$").unwrap();
   /// ">=1.2"
-  pub static ref REGEX_GTE_MINOR: Regex = Regex::new(r"^>=(\d+\.\d+)$").unwrap();
+  pub static ref GTE_MINOR: Regex = Regex::new(r"^>=(\d+\.\d+)$").unwrap();
   /// "<1.2"
-  pub static ref REGEX_LT_MINOR: Regex = Regex::new(r"^<(\d+\.\d+)$").unwrap();
+  pub static ref LT_MINOR: Regex = Regex::new(r"^<(\d+\.\d+)$").unwrap();
   /// "<=1.2"
-  pub static ref REGEX_LTE_MINOR: Regex = Regex::new(r"^<=(\d+\.\d+)$").unwrap();
+  pub static ref LTE_MINOR: Regex = Regex::new(r"^<=(\d+\.\d+)$").unwrap();
   /// "1"
-  pub static ref REGEX_MAJOR: Regex = Regex::new(r"^(\d+)$").unwrap();
+  pub static ref MAJOR: Regex = Regex::new(r"^(\d+)$").unwrap();
   /// "1.2"
-  pub static ref REGEX_MINOR: Regex = Regex::new(r"^(\d+\.\d+)$").unwrap();
+  pub static ref MINOR: Regex = Regex::new(r"^(\d+\.\d+)$").unwrap();
   /// "npm:"
-  pub static ref REGEX_ALIAS: Regex = Regex::new(r"^npm:").unwrap();
+  pub static ref ALIAS: Regex = Regex::new(r"^npm:").unwrap();
   /// "file:"
-  pub static ref REGEX_FILE: Regex = Regex::new(r"^file:").unwrap();
+  pub static ref FILE: Regex = Regex::new(r"^file:").unwrap();
   /// "workspace:"
-  pub static ref REGEX_WORKSPACE_PROTOCOL: Regex = Regex::new(r"^workspace:").unwrap();
+  pub static ref WORKSPACE_PROTOCOL: Regex = Regex::new(r"^workspace:").unwrap();
   /// "https://"
-  pub static ref REGEX_URL: Regex = Regex::new(r"^https?://").unwrap();
+  pub static ref URL: Regex = Regex::new(r"^https?://").unwrap();
   /// "git://"
-  pub static ref REGEX_GIT: Regex = Regex::new(r"^git(\+(ssh|https?))?://").unwrap();
+  pub static ref GIT: Regex = Regex::new(r"^git(\+(ssh|https?))?://").unwrap();
   /// "alpha"
-  pub static ref REGEX_TAG: Regex = Regex::new(r"^[a-zA-Z0-9-]+$").unwrap();
+  pub static ref TAG: Regex = Regex::new(r"^[a-zA-Z0-9-]+$").unwrap();
   /// a logical OR in a semver range
-  pub static ref REGEX_OR_OPERATOR:Regex = Regex::new(r" ?\|\| ?").unwrap();
+  pub static ref OR_OPERATOR:Regex = Regex::new(r" ?\|\| ?").unwrap();
 }

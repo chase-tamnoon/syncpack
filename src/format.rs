@@ -131,13 +131,7 @@ fn sort_alphabetically(value: &mut Value) {
       *value = Value::Object(Map::from_iter(entries.into_iter()));
     }
     Value::Array(arr) => {
-      arr.sort_by(|a, b| {
-        if let (Some(a), Some(b)) = (a.as_str(), b.as_str()) {
-          collator.compare(a, b)
-        } else {
-          Ordering::Equal
-        }
-      });
+      arr.sort_by(|a, b| if let (Some(a), Some(b)) = (a.as_str(), b.as_str()) { collator.compare(a, b) } else { Ordering::Equal });
     }
     _ => {}
   }
