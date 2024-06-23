@@ -102,7 +102,8 @@ pub fn visit_packages(config: &Config, packages: Packages, effects: &mut impl Ef
                         });
                       }
                     } else {
-                      if instance.actual.matches(&local_specifier) {
+                        // CHECK THIS Eq WORKS
+                      if instance.actual == local_specifier {
                         if instance.has_range_mismatch(&local_specifier) {
                           mark_as(INVALID);
                           instance.expected = instance.get_fixed_range_mismatch();
@@ -139,7 +140,8 @@ pub fn visit_packages(config: &Config, packages: Packages, effects: &mut impl Ef
                       Some(preferred) => {
                         dependency.all.iter().for_each(|instance_id| {
                           let instance = instances_by_id.get_mut(instance_id).unwrap();
-                          if instance.actual.matches(&preferred) {
+                          // CHECK THIS Eq WORKS
+                          if instance.actual == preferred {
                             if instance.has_range_mismatch(&preferred) {
                               mark_as(INVALID);
                               instance.expected = instance.get_fixed_range_mismatch();
@@ -213,7 +215,8 @@ pub fn visit_packages(config: &Config, packages: Packages, effects: &mut impl Ef
               Some(pinned) => {
                 dependency.all.iter().for_each(|instance_id| {
                   let instance = instances_by_id.get_mut(instance_id).unwrap();
-                  if instance.actual.matches(&pinned) {
+                  // CHECK THIS Eq WORKS
+                  if instance.actual==*pinned {
                     expected = Some(pinned.clone());
                     queue.push(InstanceEvent {
                       dependency: &dependency,
