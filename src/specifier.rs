@@ -1,6 +1,4 @@
 use log::debug;
-use node_semver::Version;
-use std::cmp::Ordering;
 
 use crate::specifier::{
   regexes::{
@@ -248,54 +246,14 @@ impl Specifier {
   fn is_range_minor(specifier: &str) -> bool {
     REGEX_CARET_MINOR.is_match(specifier) || REGEX_TILDE_MINOR.is_match(specifier) || REGEX_GT_MINOR.is_match(specifier) || REGEX_GTE_MINOR.is_match(specifier) || REGEX_LT_MINOR.is_match(specifier) || REGEX_LTE_MINOR.is_match(specifier)
   }
-
-  pub fn compare_to(&self, other: &Specifier) -> Ordering {
-    if self.get_exact().unwrap() == other.get_exact().unwrap() {
-      let a = self.get_semver_range();
-      let b = other.get_semver_range();
-      return a.cmp(&b);
-    } else {
-      let a = self.unwrap().parse::<Version>().unwrap();
-      let b = other.unwrap().parse::<Version>().unwrap();
-      return a.cmp(&b);
-    }
-  }
 }
 
 #[cfg(test)]
 mod tests {
   use super::*;
-  use std::cmp::Ordering;
 
   fn to_strings(specifiers: Vec<&str>) -> Vec<String> {
     specifiers.iter().map(|s| s.to_string()).collect()
-  }
-
-  #[test]
-  fn compare_specifiers() {
-    let cases: Vec<(&str, &str, Ordering)> = vec![
-      /* "" */
-      ("0.0.0", "0.0.1", Ordering::Less),
-      ("0.0.0", "0.1.0", Ordering::Less),
-      ("0.0.0", "1.0.0", Ordering::Less),
-      ("0.0.0", "0.0.0", Ordering::Equal),
-      ("0.0.1", "0.0.0", Ordering::Greater),
-      ("0.1.0", "0.0.0", Ordering::Greater),
-      ("1.0.0", "0.0.0", Ordering::Greater),
-      /* ~ */
-      ("0.0.0", "~0.0.1", Ordering::Less),
-      ("0.0.0", "~0.1.0", Ordering::Less),
-      ("0.0.0", "~1.0.0", Ordering::Less),
-      ("0.0.0", "~0.0.0", Ordering::Less),
-      ("0.0.1", "~0.0.0", Ordering::Greater),
-      ("0.1.0", "~0.0.0", Ordering::Greater),
-      ("1.0.0", "~0.0.0", Ordering::Greater),
-    ];
-    for (a, b, expected) in cases {
-      let parsed = Specifier::new(&a.to_string());
-      let ordering = parsed.compare_to(&Specifier::new(&b.to_string()));
-      assert_eq!(ordering, expected, "{a} should {expected:?} {b}");
-    }
   }
 
   #[test]
