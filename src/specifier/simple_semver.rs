@@ -3,6 +3,7 @@ use node_semver::Version;
 use std::cmp::Ordering;
 
 use super::{
+  parser,
   regexes::{
     CARET, CARET_TAG, GT, GTE, GTE_TAG, GT_TAG, LT, LTE, LTE_TAG, LT_TAG, RANGE_CHARS, TILDE,
     TILDE_TAG,
@@ -79,15 +80,23 @@ pub enum SimpleSemver {
 }
 
 impl SimpleSemver {
-  pub fn new(specifier: &AnySpecifier) -> Self {
-    match specifier {
-      AnySpecifier::Exact(s) => SimpleSemver::Exact(s.clone()),
-      AnySpecifier::Latest(s) => SimpleSemver::Latest(s.clone()),
-      AnySpecifier::Major(s) => SimpleSemver::Major(s.clone()),
-      AnySpecifier::Minor(s) => SimpleSemver::Minor(s.clone()),
-      AnySpecifier::Range(s) => SimpleSemver::Range(s.clone()),
-      AnySpecifier::RangeMinor(s) => SimpleSemver::RangeMinor(s.clone()),
-      _ => panic!("{specifier:?} is not SimpleSemver"),
+  pub fn new(specifier: &String) -> Self {
+    let str = parser::sanitise(specifier);
+    let string = str.to_string();
+    if parser::is_exact(str) {
+      Self::Exact(string)
+    } else if parser::is_latest(str) {
+      Self::Latest(string)
+    } else if parser::is_major(str) {
+      Self::Major(string)
+    } else if parser::is_minor(str) {
+      Self::Minor(string)
+    } else if parser::is_range(str) {
+      Self::Range(string)
+    } else if parser::is_range_minor(str) {
+      Self::RangeMinor(string)
+    } else {
+      panic!("{specifier:?} is not SimpleSemver");
     }
   }
 
@@ -111,7 +120,7 @@ impl SimpleSemver {
       }
       SimpleSemver::Exact(exact) => {
         let next_range = range.unwrap();
-        SimpleSemver::new(&AnySpecifier::new(&format!("{next_range}{exact}")))
+        SimpleSemver::new(&format!("{next_range}{exact}"))
       }
       SimpleSemver::Major(s)
       | SimpleSemver::Minor(s)
@@ -119,7 +128,7 @@ impl SimpleSemver {
       | SimpleSemver::RangeMinor(s) => {
         let exact = RANGE_CHARS.replace(s, "");
         let next_range = range.unwrap();
-        SimpleSemver::new(&AnySpecifier::new(&format!("{next_range}{exact}")))
+        SimpleSemver::new(&format!("{next_range}{exact}"))
       }
     }
   }
@@ -269,7 +278,7 @@ mod tests {
     ];
     for (str, expected) in cases {
       let raw = str.to_string();
-      let semver = SimpleSemver::new(&AnySpecifier::new(&raw));
+      let semver = SimpleSemver::new(&raw);
       let orderable = semver.get_orderable();
       assert_eq!(orderable.range, expected.range, "range");
       assert_eq!(
@@ -342,10 +351,8 @@ mod tests {
       ("1.0.0-rc.0", "~0.0.0-rc.0", Ordering::Greater),
     ];
     for (str_a, str_b, expected) in cases {
-      let a = AnySpecifier::new(&str_a.to_string());
-      let a = SimpleSemver::new(&a);
-      let b = AnySpecifier::new(&str_b.to_string());
-      let b = SimpleSemver::new(&b);
+      let a = SimpleSemver::new(&str_a.to_string());
+      let b = SimpleSemver::new(&str_b.to_string());
       let ordering = a.cmp(&b);
       assert_eq!(ordering, expected, "{str_a} should {expected:?} {str_b}");
     }
@@ -358,10 +365,8 @@ mod tests {
       ("0.0.0", "0.0.1", true),
     ];
     for (str_a, str_b, expected) in cases {
-      let a = AnySpecifier::new(&str_a.to_string());
-      let a = SimpleSemver::new(&a);
-      let b = AnySpecifier::new(&str_b.to_string());
-      let b = SimpleSemver::new(&b);
+      let a = SimpleSemver::new(&str_a.to_string());
+      let b = SimpleSemver::new(&str_b.to_string());
       let ordering = a.cmp(&b);
       assert_eq!(
         a.has_same_range(&b),

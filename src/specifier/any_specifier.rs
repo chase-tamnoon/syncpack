@@ -32,7 +32,37 @@ pub enum AnySpecifier {
 
 impl AnySpecifier {
   pub fn new(specifier: &String) -> Self {
-    parser::parse(specifier)
+    let str = parser::sanitise(specifier);
+    let string = str.to_string();
+    if parser::is_exact(str) {
+      Self::Exact(string)
+    } else if parser::is_range(str) {
+      Self::Range(string)
+    } else if parser::is_latest(str) {
+      Self::Latest(string)
+    } else if parser::is_workspace_protocol(str) {
+      Self::WorkspaceProtocol(string)
+    } else if parser::is_alias(str) {
+      Self::Alias(string)
+    } else if parser::is_major(str) {
+      Self::Major(string)
+    } else if parser::is_minor(str) {
+      Self::Minor(string)
+    } else if parser::is_tag(str) {
+      Self::Tag(string)
+    } else if parser::is_git(str) {
+      Self::Git(string)
+    } else if parser::is_url(str) {
+      Self::Url(string)
+    } else if parser::is_range_minor(str) {
+      Self::RangeMinor(string)
+    } else if parser::is_file(str) {
+      Self::File(string)
+    } else if parser::is_complex_range(str) {
+      Self::RangeComplex(string)
+    } else {
+      Self::Unsupported(string)
+    }
   }
 
   // @TODO: impl Eq

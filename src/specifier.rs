@@ -1,5 +1,6 @@
 use any_specifier::AnySpecifier;
 use semver::Semver;
+use simple_semver::SimpleSemver;
 
 use crate::specifier::non_semver::NonSemver;
 
@@ -19,23 +20,37 @@ pub enum Specifier {
 }
 
 impl Specifier {
-  pub fn new(specifier: &AnySpecifier) -> Self {
-    match specifier {
-      AnySpecifier::Exact(_)
-      | AnySpecifier::Latest(_)
-      | AnySpecifier::Major(_)
-      | AnySpecifier::Minor(_)
-      | AnySpecifier::Range(_)
-      | AnySpecifier::RangeComplex(_)
-      | AnySpecifier::RangeMinor(_) => Specifier::Semver(Semver::new(specifier)),
-      AnySpecifier::Alias(_)
-      | AnySpecifier::File(_)
-      | AnySpecifier::Git(_)
-      | AnySpecifier::Tag(_)
-      | AnySpecifier::Unsupported(_)
-      | AnySpecifier::Url(_)
-      | AnySpecifier::WorkspaceProtocol(_) => Specifier::NonSemver(NonSemver::new(specifier)),
-      AnySpecifier::None => Specifier::None,
+  pub fn new(specifier: &String) -> Self {
+    let str = parser::sanitise(specifier);
+    let string = str.to_string();
+    if parser::is_exact(str) {
+      Self::Semver(Semver::Simple(SimpleSemver::Exact(string)))
+    } else if parser::is_latest(str) {
+      Self::Semver(Semver::Simple(SimpleSemver::Latest(string)))
+    } else if parser::is_major(str) {
+      Self::Semver(Semver::Simple(SimpleSemver::Major(string)))
+    } else if parser::is_minor(str) {
+      Self::Semver(Semver::Simple(SimpleSemver::Minor(string)))
+    } else if parser::is_range(str) {
+      Self::Semver(Semver::Simple(SimpleSemver::Range(string)))
+    } else if parser::is_range_minor(str) {
+      Self::Semver(Semver::Simple(SimpleSemver::RangeMinor(string)))
+    } else if parser::is_complex_range(str) {
+      Self::Semver(Semver::Complex(string))
+    } else if parser::is_alias(str) {
+      Self::NonSemver(NonSemver::Alias(string))
+    } else if parser::is_file(str) {
+      Self::NonSemver(NonSemver::File(string))
+    } else if parser::is_git(str) {
+      Self::NonSemver(NonSemver::Git(string))
+    } else if parser::is_tag(str) {
+      Self::NonSemver(NonSemver::Tag(string))
+    } else if parser::is_url(str) {
+      Self::NonSemver(NonSemver::Url(string))
+    } else if parser::is_workspace_protocol(str) {
+      Self::NonSemver(NonSemver::WorkspaceProtocol(string))
+    } else {
+      Self::NonSemver(NonSemver::Unsupported(string))
     }
   }
 

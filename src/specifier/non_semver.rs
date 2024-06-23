@@ -1,4 +1,4 @@
-use super::AnySpecifier;
+use crate::specifier::parser;
 
 #[derive(Clone, Debug)]
 pub enum NonSemver {
@@ -19,16 +19,23 @@ pub enum NonSemver {
 }
 
 impl NonSemver {
-  pub fn new(specifier: &AnySpecifier) -> Self {
-    match specifier {
-      AnySpecifier::Alias(s) => NonSemver::Alias(s.clone()),
-      AnySpecifier::File(s) => NonSemver::File(s.clone()),
-      AnySpecifier::Git(s) => NonSemver::Git(s.clone()),
-      AnySpecifier::Tag(s) => NonSemver::Tag(s.clone()),
-      AnySpecifier::Unsupported(s) => NonSemver::Unsupported(s.clone()),
-      AnySpecifier::Url(s) => NonSemver::Url(s.clone()),
-      AnySpecifier::WorkspaceProtocol(s) => NonSemver::WorkspaceProtocol(s.clone()),
-      _ => panic!("{specifier:?} is not NonSemver"),
+  pub fn new(specifier: &String) -> Self {
+    let str = parser::sanitise(specifier);
+    let string = str.to_string();
+    if parser::is_alias(str) {
+      Self::Alias(string)
+    } else if parser::is_file(str) {
+      Self::File(string)
+    } else if parser::is_git(str) {
+      Self::Git(string)
+    } else if parser::is_tag(str) {
+      Self::Tag(string)
+    } else if parser::is_url(str) {
+      Self::Url(string)
+    } else if parser::is_workspace_protocol(str) {
+      Self::WorkspaceProtocol(string)
+    } else {
+      Self::Unsupported(string)
     }
   }
 }
