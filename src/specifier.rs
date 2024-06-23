@@ -55,6 +55,104 @@ lazy_static! {
 }
 
 #[derive(Clone, Eq, Debug, Hash, PartialEq)]
+pub enum SimpleSemver {
+  /// eg. `1.2.3`
+  Exact(String),
+  /// eg. `*`
+  Latest(String),
+  /// eg. `1`
+  Major(String),
+  /// eg. `1.2`
+  Minor(String),
+  /// eg. `>1.2.3`
+  Range(String),
+  /// eg. `^1.2`
+  RangeMinor(String),
+}
+
+impl SimpleSemver {
+  pub fn new(specifier: &Specifier) -> Self {
+    match specifier {
+      Specifier::Exact(s) => SimpleSemver::Exact(s.clone()),
+      Specifier::Latest(s) => SimpleSemver::Latest(s.clone()),
+      Specifier::Major(s) => SimpleSemver::Major(s.clone()),
+      Specifier::Minor(s) => SimpleSemver::Minor(s.clone()),
+      Specifier::Range(s) => SimpleSemver::Range(s.clone()),
+      Specifier::RangeMinor(s) => SimpleSemver::RangeMinor(s.clone()),
+      _ => panic!("{specifier:?} is not SimpleSemver"),
+    }
+  }
+}
+
+pub enum Semver {
+  Simple(SimpleSemver),
+  Complex(String),
+}
+
+impl Semver {
+  pub fn new(specifier: &Specifier) -> Self {
+    match specifier {
+      Specifier::Exact(_) | Specifier::Latest(_) | Specifier::Major(_) | Specifier::Minor(_) | Specifier::Range(_) | Specifier::RangeMinor(_) => Semver::Simple(SimpleSemver::new(specifier)),
+      Specifier::RangeComplex(s) => Semver::Complex(s.clone()),
+      _ => panic!("{specifier:?} is not Semver"),
+    }
+  }
+}
+
+#[derive(Clone, Eq, Debug, Hash, PartialEq)]
+pub enum NonSemver {
+  /// eg. `npm:1.2.3`
+  Alias(String),
+  /// eg. `file:./path/to/package`
+  File(String),
+  /// eg. `git://github.com/user/repo.git`
+  Git(String),
+  /// eg. `alpha`
+  Tag(String),
+  /// eg. `{wh}at[the]fuu`
+  Unsupported(String),
+  /// eg. `https://example.com`
+  Url(String),
+  /// eg. `workspace:*`
+  WorkspaceProtocol(String),
+}
+
+impl NonSemver {
+  pub fn new(specifier: &Specifier) -> Self {
+    match specifier {
+      Specifier::Alias(s) => NonSemver::Alias(s.clone()),
+      Specifier::File(s) => NonSemver::File(s.clone()),
+      Specifier::Git(s) => NonSemver::Git(s.clone()),
+      Specifier::Tag(s) => NonSemver::Tag(s.clone()),
+      Specifier::Unsupported(s) => NonSemver::Unsupported(s.clone()),
+      Specifier::Url(s) => NonSemver::Url(s.clone()),
+      Specifier::WorkspaceProtocol(s) => NonSemver::WorkspaceProtocol(s.clone()),
+      _ => panic!("{specifier:?} is not NonSemver"),
+    }
+  }
+}
+
+pub enum SpecifierTree {
+  Semver(Semver),
+  NonSemver(NonSemver),
+  None,
+}
+
+impl SpecifierTree {
+  pub fn new(specifier: &Specifier) -> Self {
+    match specifier {
+      Specifier::Exact(_) | Specifier::Latest(_) | Specifier::Major(_) | Specifier::Minor(_) | Specifier::Range(_) | Specifier::RangeComplex(_) | Specifier::RangeMinor(_) => SpecifierTree::Semver(Semver::new(specifier)),
+      Specifier::Alias(_) | Specifier::File(_) | Specifier::Git(_) | Specifier::Tag(_) | Specifier::Unsupported(_) | Specifier::Url(_) | Specifier::WorkspaceProtocol(_) => SpecifierTree::NonSemver(NonSemver::new(specifier)),
+      Specifier::None => SpecifierTree::None,
+    }
+  }
+}
+
+/// General purpose version specifier.
+///
+/// Use `SpecifierTree` for operations which are only applicable to specific
+/// types of specifiers (only semver specifiers are sortable, for example)
+#[derive(Clone, Eq, Debug, Hash, PartialEq)]
 pub enum Specifier {
   // Semver
   Exact(String),
