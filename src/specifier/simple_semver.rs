@@ -36,7 +36,7 @@ impl PartialOrd for OrderableSimpleSemver {
 
 impl PartialEq for OrderableSimpleSemver {
   fn eq(&self, other: &Self) -> bool {
-    &self == &other
+    self.cmp(&other) == Ordering::Equal
   }
 }
 
@@ -148,16 +148,7 @@ impl SimpleSemver {
 
 impl Ord for SimpleSemver {
   fn cmp(&self, other: &Self) -> Ordering {
-    Ordering::Equal
-    // if self.get_exact().unwrap() == other.get_exact().unwrap() {
-    //   let a = self.get_semver_range();
-    //   let b = other.get_semver_range();
-    //   return a.cmp(&b);
-    // } else {
-    //   let a = self.unwrap().parse::<Version>().unwrap();
-    //   let b = other.unwrap().parse::<Version>().unwrap();
-    //   return a.cmp(&b);
-    // }
+    self.parse().cmp(&other.parse())
   }
 }
 
@@ -169,7 +160,7 @@ impl PartialOrd for SimpleSemver {
 
 impl PartialEq for SimpleSemver {
   fn eq(&self, other: &Self) -> bool {
-    true
+    self.cmp(&other) == Ordering::Equal
   }
 }
 
