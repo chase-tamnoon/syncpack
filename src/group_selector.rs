@@ -77,7 +77,7 @@ impl GroupSelector {
   }
 
   pub fn matches_specifier_types(&self, instance: &Instance) -> bool {
-    self.include_specifier_types.is_empty() || matches_identifiers(&instance.expected.get_type_name(), &self.include_specifier_types, &self.exclude_specifier_types)
+    self.include_specifier_types.is_empty() || matches_identifiers(&instance.expected.get_config_identifier(), &self.include_specifier_types, &self.exclude_specifier_types)
   }
 }
 

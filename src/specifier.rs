@@ -51,7 +51,7 @@ impl Specifier {
   }
 
   /// Get the `specifier_type` name as used in config files.
-  pub fn get_type_name(&self) -> String {
+  pub fn get_config_identifier(&self) -> String {
     match self {
       &Specifier::Exact(_) => "exact",
       &Specifier::Latest(_) => "latest",
@@ -70,36 +70,6 @@ impl Specifier {
       &Specifier::None => "missing",
     }
     .to_string()
-  }
-
-  #[deprecated]
-  pub fn get_semver_range(&self) -> Option<SemverRange> {
-    let specifier = self.unwrap();
-    if specifier == "*" {
-      return Some(SemverRange::Any);
-    }
-    if regexes::EXACT.is_match(specifier) || regexes::EXACT_TAG.is_match(specifier) {
-      return Some(SemverRange::Exact);
-    }
-    if regexes::CARET.is_match(specifier) || regexes::CARET_TAG.is_match(specifier) {
-      return Some(SemverRange::Minor);
-    }
-    if regexes::TILDE.is_match(specifier) || regexes::TILDE_TAG.is_match(specifier) {
-      return Some(SemverRange::Patch);
-    }
-    if regexes::GT.is_match(specifier) || regexes::GT_TAG.is_match(specifier) {
-      return Some(SemverRange::Gt);
-    }
-    if regexes::GTE.is_match(specifier) || regexes::GTE_TAG.is_match(specifier) {
-      return Some(SemverRange::Gte);
-    }
-    if regexes::LT.is_match(specifier) || regexes::LT_TAG.is_match(specifier) {
-      return Some(SemverRange::Lt);
-    }
-    if regexes::LTE.is_match(specifier) || regexes::LTE_TAG.is_match(specifier) {
-      return Some(SemverRange::Lte);
-    }
-    return None;
   }
 
   /// Get the specifier with the given range applied if it is valid to do so,
