@@ -107,10 +107,19 @@ mod tests {
 
   #[test]
   fn alias() {
-    let cases: Vec<String> = to_strings(vec!["npm:@minh.nguyen/plugin-transform-destructuring@^7.5.2", "npm:@types/selenium-webdriver@4.1.18", "npm:foo@1.2.3"]);
+    let cases: Vec<String> = to_strings(vec![
+      "npm:@minh.nguyen/plugin-transform-destructuring@^7.5.2",
+      "npm:@types/selenium-webdriver@4.1.18",
+      "npm:foo@1.2.3",
+    ]);
     for case in cases {
       let parsed = AnySpecifier::new(&case);
-      assert_eq!(parsed, AnySpecifier::Alias(case.to_string()), "{} should be alias", case);
+      assert_eq!(
+        parsed,
+        AnySpecifier::Alias(case.to_string()),
+        "{} should be alias",
+        case
+      );
     }
   }
 
@@ -125,7 +134,12 @@ mod tests {
     ]);
     for case in cases {
       let parsed = AnySpecifier::new(&case);
-      assert_eq!(parsed, AnySpecifier::Exact(case.clone()), "{} should be exact", case);
+      assert_eq!(
+        parsed,
+        AnySpecifier::Exact(case.clone()),
+        "{} should be exact",
+        case
+      );
     }
   }
 
@@ -152,7 +166,12 @@ mod tests {
     ]);
     for case in cases {
       let parsed = AnySpecifier::new(&case);
-      assert_eq!(parsed, AnySpecifier::File(case.clone()), "{} should be file", case);
+      assert_eq!(
+        parsed,
+        AnySpecifier::File(case.clone()),
+        "{} should be file",
+        case
+      );
     }
   }
 
@@ -194,7 +213,12 @@ mod tests {
     ]);
     for case in cases {
       let parsed = AnySpecifier::new(&case);
-      assert_eq!(parsed, AnySpecifier::Git(case.clone()), "{} should be git", case);
+      assert_eq!(
+        parsed,
+        AnySpecifier::Git(case.clone()),
+        "{} should be git",
+        case
+      );
     }
   }
 
@@ -203,7 +227,12 @@ mod tests {
     let cases: Vec<String> = to_strings(vec!["latest", "*"]);
     for case in cases {
       let parsed = AnySpecifier::new(&case);
-      assert_eq!(parsed, AnySpecifier::Latest("*".to_string()), "{} should be latest", case);
+      assert_eq!(
+        parsed,
+        AnySpecifier::Latest("*".to_string()),
+        "{} should be latest",
+        case
+      );
     }
   }
 
@@ -212,7 +241,12 @@ mod tests {
     let cases: Vec<String> = to_strings(vec!["1"]);
     for case in cases {
       let parsed = AnySpecifier::new(&case);
-      assert_eq!(parsed, AnySpecifier::Major(case.clone()), "{} should be major", case);
+      assert_eq!(
+        parsed,
+        AnySpecifier::Major(case.clone()),
+        "{} should be major",
+        case
+      );
     }
   }
 
@@ -221,14 +255,20 @@ mod tests {
     let cases: Vec<String> = to_strings(vec!["1.2"]);
     for case in cases {
       let parsed = AnySpecifier::new(&case);
-      assert_eq!(parsed, AnySpecifier::Minor(case.clone()), "{} should be minor", case);
+      assert_eq!(
+        parsed,
+        AnySpecifier::Minor(case.clone()),
+        "{} should be minor",
+        case
+      );
     }
   }
 
   #[test]
   fn range() {
     let cases: Vec<String> = to_strings(vec![
-      "^4.1.1", "~1.2.1", ">=5.0.0", "<=5.0.0", ">5.0.0", "<5.0.0",
+      "^4.1.1", "~1.2.1", ">=5.0.0", "<=5.0.0", ">5.0.0",
+      "<5.0.0",
       // ">=5.0.0 <6.0.0",
       // ">5.0.0 <6.0.0",
       // ">=5.0.0 <=6.0.0",
@@ -238,7 +278,12 @@ mod tests {
     ]);
     for case in cases {
       let parsed = AnySpecifier::new(&case);
-      assert_eq!(parsed, AnySpecifier::Range(case.clone()), "{} should be range", case);
+      assert_eq!(
+        parsed,
+        AnySpecifier::Range(case.clone()),
+        "{} should be range",
+        case
+      );
     }
   }
 
@@ -247,7 +292,12 @@ mod tests {
     let cases: Vec<String> = to_strings(vec!["^4.1", "~1.2", ">=5.0", "<=5.0", ">5.0", "<5.0"]);
     for case in cases {
       let parsed = AnySpecifier::new(&case);
-      assert_eq!(parsed, AnySpecifier::RangeMinor(case.clone()), "{} should be range-minor", case);
+      assert_eq!(
+        parsed,
+        AnySpecifier::RangeMinor(case.clone()),
+        "{} should be range-minor",
+        case
+      );
     }
   }
 
@@ -256,7 +306,12 @@ mod tests {
     let cases: Vec<String> = to_strings(vec!["alpha", "canary", "foo"]);
     for case in cases {
       let parsed = AnySpecifier::new(&case);
-      assert_eq!(parsed, AnySpecifier::Tag(case.clone()), "{} should be tag", case);
+      assert_eq!(
+        parsed,
+        AnySpecifier::Tag(case.clone()),
+        "{} should be tag",
+        case
+      );
     }
   }
 
@@ -281,16 +336,30 @@ mod tests {
     ]);
     for case in cases {
       let parsed = AnySpecifier::new(&case);
-      assert_eq!(parsed, AnySpecifier::Unsupported(case.clone()), "{} should be unsupported", case);
+      assert_eq!(
+        parsed,
+        AnySpecifier::Unsupported(case.clone()),
+        "{} should be unsupported",
+        case
+      );
     }
   }
 
   #[test]
   fn url() {
-    let cases: Vec<String> = to_strings(vec!["http://insecure.com/foo.tgz", "https://server.com/foo.tgz", "https://server.com/foo.tgz"]);
+    let cases: Vec<String> = to_strings(vec![
+      "http://insecure.com/foo.tgz",
+      "https://server.com/foo.tgz",
+      "https://server.com/foo.tgz",
+    ]);
     for case in cases {
       let parsed = AnySpecifier::new(&case);
-      assert_eq!(parsed, AnySpecifier::Url(case.clone()), "{} should be url", &case);
+      assert_eq!(
+        parsed,
+        AnySpecifier::Url(case.clone()),
+        "{} should be url",
+        &case
+      );
     }
   }
 
@@ -299,7 +368,12 @@ mod tests {
     let cases: Vec<String> = to_strings(vec!["workspace:*", "workspace:^", "workspace:~"]);
     for case in cases {
       let parsed = AnySpecifier::new(&case);
-      assert_eq!(parsed, AnySpecifier::WorkspaceProtocol(case.clone()), "{} should be workspace-protocol", case);
+      assert_eq!(
+        parsed,
+        AnySpecifier::WorkspaceProtocol(case.clone()),
+        "{} should be workspace-protocol",
+        case
+      );
     }
   }
 
@@ -317,20 +391,40 @@ mod tests {
     ]);
     for case in cases {
       let parsed = AnySpecifier::new(&case);
-      assert_eq!(parsed, AnySpecifier::RangeComplex(case.clone()), "{} should be range-complex", case);
+      assert_eq!(
+        parsed,
+        AnySpecifier::RangeComplex(case.clone()),
+        "{} should be range-complex",
+        case
+      );
     }
   }
 
   #[test]
   fn change_semver_range() {
-    let cases: Vec<(&str, &str)> = vec![("^", "^1.2.3"), ("~", "~1.2.3"), (">=", ">=1.2.3"), ("<=", "<=1.2.3"), (">", ">1.2.3"), ("<", "<1.2.3"), ("", "1.2.3")];
+    let cases: Vec<(&str, &str)> = vec![
+      ("^", "^1.2.3"),
+      ("~", "~1.2.3"),
+      (">=", ">=1.2.3"),
+      ("<=", "<=1.2.3"),
+      (">", ">1.2.3"),
+      ("<", "<1.2.3"),
+      ("", "1.2.3"),
+    ];
     for (_, initial) in &cases {
       let initial = initial.to_string();
       for (range, expected) in &cases {
         let range = SemverRange::new(&range.to_string()).unwrap();
         let expected = expected.to_string();
         let parsed = AnySpecifier::new(&initial);
-        assert_eq!(parsed.with_range_if_semver(&range), AnySpecifier::new(&expected.clone()), "{} + {:?} should produce {}", initial, range, expected);
+        assert_eq!(
+          parsed.with_range_if_semver(&range),
+          AnySpecifier::new(&expected.clone()),
+          "{} + {:?} should produce {}",
+          initial,
+          range,
+          expected
+        );
       }
     }
   }

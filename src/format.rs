@@ -78,7 +78,10 @@ fn sort_exports(rcfile: &Rcfile, package: &mut PackageJson) {
 /// Sort the values of the given keys alphabetically
 fn sort_az(rcfile: &Rcfile, package: &mut PackageJson) {
   rcfile.sort_az.iter().for_each(|key| {
-    package.contents.pointer_mut(format!("/{}", key).as_str()).map(sort_alphabetically);
+    package
+      .contents
+      .pointer_mut(format!("/{}", key).as_str())
+      .map(sort_alphabetically);
   });
 }
 
@@ -96,10 +99,18 @@ fn sort_first(rcfile: &Rcfile, package: &mut PackageJson) {
 /// * `order`: The keys to sort first, in order.
 /// * `obj`: The JSON object to sort.
 /// * `sort_remaining_keys`: Whether to sort the remaining keys alphabetically.
-fn sort_keys_with_priority(order: &Vec<String>, obj: &mut Map<String, Value>, sort_remaining_keys: bool) {
+fn sort_keys_with_priority(
+  order: &Vec<String>,
+  obj: &mut Map<String, Value>,
+  sort_remaining_keys: bool,
+) {
   let order_set: HashSet<_> = order.into_iter().collect();
   let mut sorted_obj: Map<String, Value> = Map::new();
-  let mut remaining_keys: Vec<_> = obj.keys().filter(|k| !order_set.contains(*k)).cloned().collect();
+  let mut remaining_keys: Vec<_> = obj
+    .keys()
+    .filter(|k| !order_set.contains(*k))
+    .cloned()
+    .collect();
 
   if sort_remaining_keys {
     let collator = get_locale_collator();
@@ -131,7 +142,13 @@ fn sort_alphabetically(value: &mut Value) {
       *value = Value::Object(Map::from_iter(entries.into_iter()));
     }
     Value::Array(arr) => {
-      arr.sort_by(|a, b| if let (Some(a), Some(b)) = (a.as_str(), b.as_str()) { collator.compare(a, b) } else { Ordering::Equal });
+      arr.sort_by(|a, b| {
+        if let (Some(a), Some(b)) = (a.as_str(), b.as_str()) {
+          collator.compare(a, b)
+        } else {
+          Ordering::Equal
+        }
+      });
     }
     _ => {}
   }
@@ -153,7 +170,9 @@ fn format_bugs(package: &mut PackageJson) {
 }
 
 fn get_formatted_bugs(package: &PackageJson) -> Option<Value> {
-  package.get_prop("/bugs/url").map(|bugs_url| bugs_url.clone())
+  package
+    .get_prop("/bugs/url")
+    .map(|bugs_url| bugs_url.clone())
 }
 
 fn format_bugs_is_valid(package: &PackageJson) -> bool {
@@ -172,7 +191,11 @@ fn get_formatted_repository(package: &PackageJson) -> Option<Value> {
     package
       .get_prop("/repository/url")
       .and_then(|repository_url| repository_url.as_str())
-      .and_then(|url| Regex::new(r#".+github\.com/"#).ok().map(|re| re.replace(url, "").to_string()))
+      .and_then(|url| {
+        Regex::new(r#".+github\.com/"#)
+          .ok()
+          .map(|re| re.replace(url, "").to_string())
+      })
       .map(|next_url| json!(next_url))
   } else {
     None
@@ -198,6 +221,9 @@ mod tests {
     })]);
     let package = packages.by_name.get("a").unwrap();
 
-    assert_eq!(get_formatted_bugs(&package), Some(json!("https://github.com/User/repo/issues")));
+    assert_eq!(
+      get_formatted_bugs(&package),
+      Some(json!("https://github.com/User/repo/issues"))
+    );
   }
 }

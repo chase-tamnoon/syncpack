@@ -50,7 +50,12 @@ pub fn parse(specifier: &String) -> AnySpecifier {
 }
 
 fn is_simple_semver(str: &str) -> bool {
-  is_exact(str) || is_latest(str) || is_major(str) || is_minor(str) || is_range(str) || is_range_minor(str)
+  is_exact(str)
+    || is_latest(str)
+    || is_major(str)
+    || is_minor(str)
+    || is_range(str)
+    || is_range_minor(str)
 }
 
 fn is_exact(str: &str) -> bool {
@@ -100,7 +105,13 @@ pub fn is_complex_range(specifier: &str) -> bool {
     .split(specifier)
     .map(|str| str.trim())
     .filter(|str| str.len() > 0)
-    .all(|or_condition| or_condition.split(" ").map(|str| str.trim()).filter(|str| str.len() > 0).all(|and_condition| is_simple_semver(and_condition)))
+    .all(|or_condition| {
+      or_condition
+        .split(" ")
+        .map(|str| str.trim())
+        .filter(|str| str.len() > 0)
+        .all(|and_condition| is_simple_semver(and_condition))
+    })
 }
 
 fn is_tag(str: &str) -> bool {

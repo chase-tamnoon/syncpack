@@ -80,9 +80,17 @@ impl Instance {
   pub fn has_range_mismatch(&self, other: &AnySpecifier) -> bool {
     // it has a semver group
     self.prefer_range.is_some()
-      && match (Specifier::new(&self.actual), Specifier::new(&self.expected), Specifier::new(other)) {
+      && match (
+        Specifier::new(&self.actual),
+        Specifier::new(&self.expected),
+        Specifier::new(other),
+      ) {
         // all versions are simple semver
-        (Specifier::Semver(Semver::Simple(actual)), Specifier::Semver(Semver::Simple(expected)), Specifier::Semver(Semver::Simple(other))) => {
+        (
+          Specifier::Semver(Semver::Simple(actual)),
+          Specifier::Semver(Semver::Simple(expected)),
+          Specifier::Semver(Semver::Simple(other)),
+        ) => {
           // its own version matches its expected version (eg. "1.1.0" == "1.1.0")
           actual.has_same_version(&expected)
           // its expected version matches the expected version of the group
@@ -95,7 +103,10 @@ impl Instance {
   }
 
   pub fn get_fixed_range_mismatch(&self) -> AnySpecifier {
-    let range = self.prefer_range.as_ref().expect("Cannot fix range mismatch without a preferred range");
+    let range = self
+      .prefer_range
+      .as_ref()
+      .expect("Cannot fix range mismatch without a preferred range");
     self.expected.with_range_if_semver(&range)
   }
 
@@ -123,7 +134,12 @@ impl Instance {
         let path_to_obj = &self.dependency_type.path;
         let name = &self.name;
         let path_to_obj_str = path_to_obj.as_str();
-        let obj = package.contents.pointer_mut(path_to_obj_str).unwrap().as_object_mut().unwrap();
+        let obj = package
+          .contents
+          .pointer_mut(path_to_obj_str)
+          .unwrap()
+          .as_object_mut()
+          .unwrap();
         let value = obj.get_mut(name).unwrap();
         *value = Value::String(raw_specifier.clone());
       }

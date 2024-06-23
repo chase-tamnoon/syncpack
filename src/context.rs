@@ -28,9 +28,12 @@ impl Context {
         .iter_mut()
         .find(|vgroup| vgroup.selector.can_add(&instance))
         .inspect(|vgroup| {
-          semver_groups.iter().find(|sgroup| sgroup.selector.can_add(&instance)).inspect(|sgroup| {
-            instance.apply_semver_group(&sgroup);
-          });
+          semver_groups
+            .iter()
+            .find(|sgroup| sgroup.selector.can_add(&instance))
+            .inspect(|sgroup| {
+              instance.apply_semver_group(&sgroup);
+            });
         })
         .map(|vgroup| {
           let dependency = vgroup.get_or_create_dependency(&instance);

@@ -1,4 +1,6 @@
-use clap::{builder::ValueParser, crate_description, crate_name, crate_version, Arg, ArgMatches, Command};
+use clap::{
+  builder::ValueParser, crate_description, crate_name, crate_version, Arg, ArgMatches, Command,
+};
 use regex::Regex;
 
 #[derive(Debug)]
@@ -53,8 +55,20 @@ fn create() -> Command {
             .action(clap::ArgAction::SetTrue)
             .help("enable to lint the formatting and order of package.json files"),
         )
-        .arg(Arg::new("ranges").short('r').long("ranges").action(clap::ArgAction::SetTrue).help("enable to lint semver range mismatches"))
-        .arg(Arg::new("versions").short('v').long("versions").action(clap::ArgAction::SetTrue).help("enable to lint version mismatches"))
+        .arg(
+          Arg::new("ranges")
+            .short('r')
+            .long("ranges")
+            .action(clap::ArgAction::SetTrue)
+            .help("enable to lint semver range mismatches"),
+        )
+        .arg(
+          Arg::new("versions")
+            .short('v')
+            .long("versions")
+            .action(clap::ArgAction::SetTrue)
+            .help("enable to lint version mismatches"),
+        )
         .arg(
           Arg::new("source")
             .short('s')
@@ -81,8 +95,20 @@ fn create() -> Command {
             .action(clap::ArgAction::SetTrue)
             .help("enable to fix the formatting and order of package.json files"),
         )
-        .arg(Arg::new("ranges").short('r').long("ranges").action(clap::ArgAction::SetTrue).help("enable to fix semver range mismatches"))
-        .arg(Arg::new("versions").short('v').long("versions").action(clap::ArgAction::SetTrue).help("enable to fix version mismatches"))
+        .arg(
+          Arg::new("ranges")
+            .short('r')
+            .long("ranges")
+            .action(clap::ArgAction::SetTrue)
+            .help("enable to fix semver range mismatches"),
+        )
+        .arg(
+          Arg::new("versions")
+            .short('v')
+            .long("versions")
+            .action(clap::ArgAction::SetTrue)
+            .help("enable to fix version mismatches"),
+        )
         .arg(
           Arg::new("source")
             .short('s')
@@ -146,8 +172,14 @@ impl CliOptions {
     let use_ranges = matches.get_flag("ranges");
     let use_versions = matches.get_flag("versions");
     let use_all = !use_format && !use_ranges && !use_versions;
-    let source = matches.get_many::<String>("source").unwrap_or_default().map(|source| source.to_owned()).collect::<Vec<_>>();
-    let filter = matches.get_one::<Regex>("filter").map(|filter| filter.to_owned());
+    let source = matches
+      .get_many::<String>("source")
+      .unwrap_or_default()
+      .map(|source| source.to_owned())
+      .collect::<Vec<_>>();
+    let filter = matches
+      .get_one::<Regex>("filter")
+      .map(|filter| filter.to_owned());
 
     CliOptions {
       filter,

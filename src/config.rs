@@ -52,7 +52,12 @@ fn default_sort_exports() -> Vec<String> {
 }
 
 fn sort_first() -> Vec<String> {
-  vec!["name".to_string(), "description".to_string(), "version".to_string(), "author".to_string()]
+  vec![
+    "name".to_string(),
+    "description".to_string(),
+    "version".to_string(),
+    "author".to_string(),
+  ]
 }
 
 fn default_source() -> Vec<String> {
@@ -120,7 +125,10 @@ impl Rcfile {
       .and_then(|json| {
         serde_json::from_str::<Self>(&json)
           .inspect_err(|_| {
-            error!("config file not parseable JSON at {}", &file_path.to_str().unwrap());
+            error!(
+              "config file not parseable JSON at {}",
+              &file_path.to_str().unwrap()
+            );
           })
           .ok()
       })
@@ -139,7 +147,9 @@ impl Rcfile {
     let len = named_types.len();
     let include_all = len == 0 || len == 1 && named_types[0] == "**";
     // When any dependency types are explicitly disabled, all others are enabled
-    let contains_explicitly_disabled = named_types.iter().any(|named_type| named_type.starts_with('!'));
+    let contains_explicitly_disabled = named_types
+      .iter()
+      .any(|named_type| named_type.starts_with('!'));
 
     let is_enabled = |type_name: &String| -> bool {
       // All are enabled by default
@@ -179,14 +189,22 @@ impl Rcfile {
 
   /// Create every semver group defined in the rcfile.
   pub fn get_semver_groups(&self) -> Vec<SemverGroup> {
-    let mut user_groups: Vec<SemverGroup> = self.semver_groups.iter().map(|group| SemverGroup::from_config(group)).collect();
+    let mut user_groups: Vec<SemverGroup> = self
+      .semver_groups
+      .iter()
+      .map(|group| SemverGroup::from_config(group))
+      .collect();
     user_groups.push(SemverGroup::get_catch_all());
     user_groups
   }
 
   /// Create every version group defined in the rcfile.
   pub fn get_version_groups(&self, local_package_names: &Vec<String>) -> Vec<VersionGroup> {
-    let mut user_groups: Vec<VersionGroup> = self.version_groups.iter().map(|group| VersionGroup::from_config(group, local_package_names)).collect();
+    let mut user_groups: Vec<VersionGroup> = self
+      .version_groups
+      .iter()
+      .map(|group| VersionGroup::from_config(group, local_package_names))
+      .collect();
     user_groups.push(VersionGroup::get_catch_all());
     user_groups
   }
@@ -296,7 +314,14 @@ impl Config {
 
     let rcfile = fs::read_to_string(&file_path)
       .inspect_err(|_| {
-        info!("{}", format!("? using default config: {} not found", &file_path.to_str().unwrap()).dimmed());
+        info!(
+          "{}",
+          format!(
+            "? using default config: {} not found",
+            &file_path.to_str().unwrap()
+          )
+          .dimmed()
+        );
       })
       .or_else(|_| Ok("{}".to_string()))
       .and_then(|json| serde_json::from_str::<Rcfile>(&json))

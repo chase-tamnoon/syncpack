@@ -21,10 +21,20 @@ pub enum Specifier {
 impl Specifier {
   pub fn new(specifier: &AnySpecifier) -> Self {
     match specifier {
-      AnySpecifier::Exact(_) | AnySpecifier::Latest(_) | AnySpecifier::Major(_) | AnySpecifier::Minor(_) | AnySpecifier::Range(_) | AnySpecifier::RangeComplex(_) | AnySpecifier::RangeMinor(_) => Specifier::Semver(Semver::new(specifier)),
-      AnySpecifier::Alias(_) | AnySpecifier::File(_) | AnySpecifier::Git(_) | AnySpecifier::Tag(_) | AnySpecifier::Unsupported(_) | AnySpecifier::Url(_) | AnySpecifier::WorkspaceProtocol(_) => {
-        Specifier::NonSemver(NonSemver::new(specifier))
-      }
+      AnySpecifier::Exact(_)
+      | AnySpecifier::Latest(_)
+      | AnySpecifier::Major(_)
+      | AnySpecifier::Minor(_)
+      | AnySpecifier::Range(_)
+      | AnySpecifier::RangeComplex(_)
+      | AnySpecifier::RangeMinor(_) => Specifier::Semver(Semver::new(specifier)),
+      AnySpecifier::Alias(_)
+      | AnySpecifier::File(_)
+      | AnySpecifier::Git(_)
+      | AnySpecifier::Tag(_)
+      | AnySpecifier::Unsupported(_)
+      | AnySpecifier::Url(_)
+      | AnySpecifier::WorkspaceProtocol(_) => Specifier::NonSemver(NonSemver::new(specifier)),
       AnySpecifier::None => Specifier::None,
     }
   }

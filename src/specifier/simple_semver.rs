@@ -3,7 +3,10 @@ use node_semver::Version;
 use std::cmp::Ordering;
 
 use super::{
-  regexes::{CARET, CARET_TAG, GT, GTE, GTE_TAG, GT_TAG, LT, LTE, LTE_TAG, LT_TAG, RANGE_CHARS, TILDE, TILDE_TAG},
+  regexes::{
+    CARET, CARET_TAG, GT, GTE, GTE_TAG, GT_TAG, LT, LTE, LTE_TAG, LT_TAG, RANGE_CHARS, TILDE,
+    TILDE_TAG,
+  },
   semver_range::SemverRange,
   AnySpecifier,
 };
@@ -110,7 +113,10 @@ impl SimpleSemver {
         let next_range = range.unwrap();
         SimpleSemver::new(&AnySpecifier::new(&format!("{next_range}{exact}")))
       }
-      SimpleSemver::Major(s) | SimpleSemver::Minor(s) | SimpleSemver::Range(s) | SimpleSemver::RangeMinor(s) => {
+      SimpleSemver::Major(s)
+      | SimpleSemver::Minor(s)
+      | SimpleSemver::Range(s)
+      | SimpleSemver::RangeMinor(s) => {
         let exact = RANGE_CHARS.replace(s, "");
         let next_range = range.unwrap();
         SimpleSemver::new(&AnySpecifier::new(&format!("{next_range}{exact}")))
@@ -165,7 +171,9 @@ impl SimpleSemver {
       SimpleSemver::Exact(s) => Version::parse(s).unwrap(),
       SimpleSemver::Latest(_) => {
         let huge_version = "9999.9999.9999";
-        warn!("Cannot parse {self:?} for ordering, working around by treating it as {huge_version}");
+        warn!(
+          "Cannot parse {self:?} for ordering, working around by treating it as {huge_version}"
+        );
         Version::parse(huge_version).unwrap()
       }
       SimpleSemver::Major(s) => Version::parse(&format!("{}.0.0", s)).unwrap(),
@@ -251,7 +259,10 @@ mod tests {
             minor: 2,
             patch: 3,
             build: vec![],
-            pre_release: vec![Identifier::AlphaNumeric("rc".to_string()), Identifier::Numeric(18)],
+            pre_release: vec![
+              Identifier::AlphaNumeric("rc".to_string()),
+              Identifier::Numeric(18),
+            ],
           },
         },
       ),
@@ -261,11 +272,26 @@ mod tests {
       let semver = SimpleSemver::new(&AnySpecifier::new(&raw));
       let orderable = semver.get_orderable();
       assert_eq!(orderable.range, expected.range, "range");
-      assert_eq!(orderable.version.major, expected.version.major, "version.major");
-      assert_eq!(orderable.version.minor, expected.version.minor, "version.minor");
-      assert_eq!(orderable.version.patch, expected.version.patch, "version.patch");
-      assert_eq!(orderable.version.build, expected.version.build, "version.build");
-      assert_eq!(orderable.version.pre_release, expected.version.pre_release, "version.pre_release");
+      assert_eq!(
+        orderable.version.major, expected.version.major,
+        "version.major"
+      );
+      assert_eq!(
+        orderable.version.minor, expected.version.minor,
+        "version.minor"
+      );
+      assert_eq!(
+        orderable.version.patch, expected.version.patch,
+        "version.patch"
+      );
+      assert_eq!(
+        orderable.version.build, expected.version.build,
+        "version.build"
+      );
+      assert_eq!(
+        orderable.version.pre_release, expected.version.pre_release,
+        "version.pre_release"
+      );
     }
   }
 
@@ -337,7 +363,11 @@ mod tests {
       let b = AnySpecifier::new(&str_b.to_string());
       let b = SimpleSemver::new(&b);
       let ordering = a.cmp(&b);
-      assert_eq!(a.has_same_range(&b), expected, "{str_a} has same range as {str_b} should be {expected}");
+      assert_eq!(
+        a.has_same_range(&b),
+        expected,
+        "{str_a} has same range as {str_b} should be {expected}"
+      );
     }
   }
 }

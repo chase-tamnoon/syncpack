@@ -29,7 +29,10 @@ impl PackageJson {
   pub fn from_file(file_path: &PathBuf) -> Option<Self> {
     fs::read_to_string(&file_path)
       .inspect_err(|_| {
-        error!("package.json not readable at {}", &file_path.to_str().unwrap());
+        error!(
+          "package.json not readable at {}",
+          &file_path.to_str().unwrap()
+        );
       })
       .ok()
       .and_then(|json| {
@@ -48,7 +51,11 @@ impl PackageJson {
 
   /// Convenience method to get the name of the package
   pub fn get_name(&self) -> String {
-    self.get_prop("/name").and_then(|name| name.as_str()).expect("package.json file has no .name property").to_string()
+    self
+      .get_prop("/name")
+      .and_then(|name| name.as_str())
+      .expect("package.json file has no .name property")
+      .to_string()
   }
 
   /// Deeply get a property in the parsed package.json
@@ -81,7 +88,10 @@ impl PackageJson {
     let buffer = Vec::new();
     let mut serializer = Serializer::with_formatter(buffer, formatter);
     // Write pretty JSON to the buffer
-    self.contents.serialize(&mut serializer).expect("Failed to serialize package.json");
+    self
+      .contents
+      .serialize(&mut serializer)
+      .expect("Failed to serialize package.json");
     // Append a new line to the buffer
     let mut writer = serializer.into_inner();
     writer.extend(b"\n");

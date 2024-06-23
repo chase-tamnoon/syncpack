@@ -45,7 +45,12 @@ pub struct Dependency {
 }
 
 impl Dependency {
-  pub fn new(name: String, variant: Variant, pinned_specifier: Option<AnySpecifier>, snapped_to_package_names: Option<Vec<String>>) -> Dependency {
+  pub fn new(
+    name: String,
+    variant: Variant,
+    pinned_specifier: Option<AnySpecifier>,
+    snapped_to_package_names: Option<Vec<String>>,
+  ) -> Dependency {
     Dependency {
       all: vec![],
       local_instance_id: None,
@@ -67,7 +72,11 @@ impl Dependency {
   }
 
   pub fn get_instances<'a>(&'a self, instances_by_id: &'a InstancesById) -> Vec<&'a Instance> {
-    self.all.iter().map(move |instance_id| instances_by_id.get(instance_id).unwrap()).collect()
+    self
+      .all
+      .iter()
+      .map(move |instance_id| instances_by_id.get(instance_id).unwrap())
+      .collect()
   }
 
   pub fn has_local_instance(&self) -> bool {
@@ -75,30 +84,53 @@ impl Dependency {
   }
 
   pub fn has_preferred_ranges(&self, instances_by_id: &InstancesById) -> bool {
-    self.get_instances(instances_by_id).iter().any(|instance| instance.prefer_range.is_some())
+    self
+      .get_instances(instances_by_id)
+      .iter()
+      .any(|instance| instance.prefer_range.is_some())
   }
 
   pub fn get_local_specifier(&self, instances_by_id: &InstancesById) -> Option<AnySpecifier> {
-    self.get_instances(instances_by_id).iter().find(|instance| instance.is_local).map(|instance| instance.actual.clone())
+    self
+      .get_instances(instances_by_id)
+      .iter()
+      .find(|instance| instance.is_local)
+      .map(|instance| instance.actual.clone())
   }
 
   pub fn all_are_semver(&self, instances_by_id: &InstancesById) -> bool {
-    self.get_instances(instances_by_id).iter().map(|instance| Specifier::new(&instance.actual)).all(|specifier| specifier.is_simple_semver())
+    self
+      .get_instances(instances_by_id)
+      .iter()
+      .map(|instance| Specifier::new(&instance.actual))
+      .all(|specifier| specifier.is_simple_semver())
   }
 
-  pub fn get_unique_expected_and_actual_specifiers(&self, instances_by_id: &InstancesById) -> HashSet<AnySpecifier> {
-    self.get_instances(instances_by_id).iter().fold(HashSet::new(), |mut uniques, instance| {
-      uniques.insert(instance.actual.clone());
-      uniques.insert(instance.expected.clone());
-      uniques
-    })
+  pub fn get_unique_expected_and_actual_specifiers(
+    &self,
+    instances_by_id: &InstancesById,
+  ) -> HashSet<AnySpecifier> {
+    self
+      .get_instances(instances_by_id)
+      .iter()
+      .fold(HashSet::new(), |mut uniques, instance| {
+        uniques.insert(instance.actual.clone());
+        uniques.insert(instance.expected.clone());
+        uniques
+      })
   }
 
-  pub fn get_unique_expected_specifiers(&self, instances_by_id: &InstancesById) -> HashSet<AnySpecifier> {
-    self.get_instances(instances_by_id).iter().fold(HashSet::new(), |mut uniques, instance| {
-      uniques.insert(instance.expected.clone());
-      uniques
-    })
+  pub fn get_unique_expected_specifiers(
+    &self,
+    instances_by_id: &InstancesById,
+  ) -> HashSet<AnySpecifier> {
+    self
+      .get_instances(instances_by_id)
+      .iter()
+      .fold(HashSet::new(), |mut uniques, instance| {
+        uniques.insert(instance.expected.clone());
+        uniques
+      })
   }
 
   /// Is the exact same specifier used by all instances in this group?
@@ -127,7 +159,11 @@ impl Dependency {
   ///
   /// We compare the expected (not actual) specifier because we're looking for
   /// what we should suggest as the correct specifier once `fix` is applied
-  pub fn get_highest_or_lowest_semver(&self, instances_by_id: &InstancesById, preferred_order: Cmp) -> Option<AnySpecifier> {
+  pub fn get_highest_or_lowest_semver(
+    &self,
+    instances_by_id: &InstancesById,
+    preferred_order: Cmp,
+  ) -> Option<AnySpecifier> {
     self
       .get_instances(instances_by_id)
       .iter()
@@ -159,7 +195,10 @@ impl Dependency {
   ///
   /// We should compare the actual and expected specifier of each instance to
   /// determine what to do
-  pub fn get_same_range_mismatches<'a>(&'a self, instances_by_id: &'a InstancesById) -> HashMap<AnySpecifier, Vec<AnySpecifier>> {
+  pub fn get_same_range_mismatches<'a>(
+    &'a self,
+    instances_by_id: &'a InstancesById,
+  ) -> HashMap<AnySpecifier, Vec<AnySpecifier>> {
     let get_range = |specifier: &AnySpecifier| specifier.unwrap().parse::<Range>().unwrap();
     let mut mismatches_by_specifier: HashMap<AnySpecifier, Vec<AnySpecifier>> = HashMap::new();
     let unique_semver_specifiers: Vec<AnySpecifier> = self
@@ -178,7 +217,10 @@ impl Dependency {
         if range_a.allows_all(&range_b) {
           return;
         }
-        mismatches_by_specifier.entry(specifier_a.clone()).or_insert(vec![]).push(specifier_b.clone());
+        mismatches_by_specifier
+          .entry(specifier_a.clone())
+          .or_insert(vec![])
+          .push(specifier_b.clone());
       });
     });
     mismatches_by_specifier
@@ -192,7 +234,10 @@ impl Dependency {
   ///
   /// Even though the actual specifiers on disk might currently match, we should
   /// suggest it match what we the snapped to specifier should be once fixed
-  pub fn get_snapped_to_specifier<'a>(&self, instances_by_id: &'a InstancesById) -> Option<AnySpecifier> {
+  pub fn get_snapped_to_specifier<'a>(
+    &self,
+    instances_by_id: &'a InstancesById,
+  ) -> Option<AnySpecifier> {
     if let Some(snapped_to_package_names) = &self.snapped_to_package_names {
       for instance in instances_by_id.values() {
         if instance.name == *self.name {

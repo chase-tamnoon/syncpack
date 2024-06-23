@@ -18,7 +18,11 @@ pub struct FixEffects<'a> {
 
 impl<'a> FixEffects<'a> {
   pub fn new(config: &'a Config) -> Self {
-    Self { config, is_valid: true, packages: None }
+    Self {
+      config,
+      is_valid: true,
+      packages: None,
+    }
   }
 }
 
@@ -45,7 +49,11 @@ impl Effects for FixEffects<'_> {
         let print_width = 80;
         let label = &group.label;
         let header = format!("= {label} ");
-        let divider = if header.len() < print_width { "=".repeat(print_width - header.len()) } else { "".to_string() };
+        let divider = if header.len() < print_width {
+          "=".repeat(print_width - header.len())
+        } else {
+          "".to_string()
+        };
         let full_header = format!("{header}{divider}");
         info!("{}", full_header.blue());
       }

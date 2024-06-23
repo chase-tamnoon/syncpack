@@ -552,18 +552,20 @@ mod tests {
 
     visit_packages(&config, packages, &mut effects);
 
-    expect(&effects).to_have_instance_mismatches_highest_or_lowest_semver(vec![]).to_have_instance_matches_highest_or_lowest_semver(vec![
-      ExpectedMatchEvent {
-        dependency_name: "good",
-        instance_id: "good in /dependencies of package-a",
-        actual: "1.0.0",
-      },
-      ExpectedMatchEvent {
-        dependency_name: "good",
-        instance_id: "good in /dependencies of package-b",
-        actual: "2.0.0",
-      },
-    ]);
+    expect(&effects)
+      .to_have_instance_mismatches_highest_or_lowest_semver(vec![])
+      .to_have_instance_matches_highest_or_lowest_semver(vec![
+        ExpectedMatchEvent {
+          dependency_name: "good",
+          instance_id: "good in /dependencies of package-a",
+          actual: "1.0.0",
+        },
+        ExpectedMatchEvent {
+          dependency_name: "good",
+          instance_id: "good in /dependencies of package-b",
+          actual: "2.0.0",
+        },
+      ]);
   }
 
   #[test]
@@ -796,11 +798,13 @@ mod tests {
         actual: "1.0.0",
         expected: ">1.0.0",
       }])
-      .to_have_instance_matches_highest_or_lowest_semver_but_mismatches_semver_group(vec![ExpectedMismatchEvent {
-        dependency_name: "foo",
-        instance_id: "foo in /devDependencies of package-a",
-        actual: "1.0.0",
-        expected: ">1.0.0",
-      }]);
+      .to_have_instance_matches_highest_or_lowest_semver_but_mismatches_semver_group(vec![
+        ExpectedMismatchEvent {
+          dependency_name: "foo",
+          instance_id: "foo in /devDependencies of package-a",
+          actual: "1.0.0",
+          expected: ">1.0.0",
+        },
+      ]);
   }
 }

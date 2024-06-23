@@ -1,4 +1,8 @@
-use crate::{context::InstancesById, dependency::Dependency, group_selector::GroupSelector, instance::InstanceId, package_json::PackageJson, packages::Packages, specifier::any_specifier::AnySpecifier};
+use crate::{
+  context::InstancesById, dependency::Dependency, group_selector::GroupSelector,
+  instance::InstanceId, package_json::PackageJson, packages::Packages,
+  specifier::any_specifier::AnySpecifier,
+};
 
 /// Side effects in Syncpack commands are handled by structs which implement
 /// this trait. Multiple commands such as `lint`, `fix`, and `json` all depend

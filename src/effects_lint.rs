@@ -20,7 +20,11 @@ pub struct LintEffects<'a> {
 
 impl<'a> LintEffects<'a> {
   pub fn new(config: &'a Config) -> Self {
-    Self { config, is_valid: true, packages: None }
+    Self {
+      config,
+      is_valid: true,
+      packages: None,
+    }
   }
 }
 
@@ -47,7 +51,11 @@ impl Effects for LintEffects<'_> {
         let print_width = 80;
         let label = &group.label;
         let header = format!("= {label} ");
-        let divider = if header.len() < print_width { "=".repeat(print_width - header.len()) } else { "".to_string() };
+        let divider = if header.len() < print_width {
+          "=".repeat(print_width - header.len())
+        } else {
+          "".to_string()
+        };
         let full_header = format!("{header}{divider}");
         info!("{}", full_header.blue());
       }
@@ -272,9 +280,14 @@ fn get_expected_hint(dependency: &Dependency, expected: &Option<AnySpecifier>) -
     None => match dependency.variant {
       Variant::Banned => "is banned".dimmed(),
       Variant::SameRange => "requires all ranges to satisfy each other".dimmed(),
-      Variant::HighestSemver | Variant::LowestSemver => "has non semver mismatches syncpack cannot fix".dimmed(),
+      Variant::HighestSemver | Variant::LowestSemver => {
+        "has non semver mismatches syncpack cannot fix".dimmed()
+      }
       _ => {
-        panic!("{} ({:?}) should have an expected specifier", dependency.name, dependency.variant);
+        panic!(
+          "{} ({:?}) should have an expected specifier",
+          dependency.name, dependency.variant
+        );
       }
     },
   }
