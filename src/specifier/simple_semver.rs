@@ -287,6 +287,14 @@ mod tests {
       ("0.0.0-rc.0.0.1", "0.0.0-rc.0.0.0", Ordering::Greater),
       ("0.0.0-rc.0.1.0", "0.0.0-rc.0.0.0", Ordering::Greater),
       ("0.0.0-rc.1.0.0", "0.0.0-rc.0.0.0", Ordering::Greater),
+      /* range greediness is the same on prereleases */
+      ("0.0.0-rc.0", "~0.0.1-rc.0", Ordering::Less),
+      ("0.0.0-rc.0", "~0.1.0-rc.0", Ordering::Less),
+      ("0.0.0-rc.0", "~1.0.0-rc.0", Ordering::Less),
+      ("0.0.0-rc.0", "~0.0.0-rc.0", Ordering::Less),
+      ("0.0.1-rc.0", "~0.0.0-rc.0", Ordering::Greater),
+      ("0.1.0-rc.0", "~0.0.0-rc.0", Ordering::Greater),
+      ("1.0.0-rc.0", "~0.0.0-rc.0", Ordering::Greater),
     ];
     for (str_a, str_b, expected) in cases {
       let a = Specifier::new(&str_a.to_string());
