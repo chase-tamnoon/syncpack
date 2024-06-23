@@ -1,16 +1,9 @@
-use log::debug;
 use semver::Semver;
 
-use crate::specifier::{
-  regexes::{
-    REGEX_ALIAS, REGEX_CARET, REGEX_CARET_MINOR, REGEX_CARET_TAG, REGEX_EXACT, REGEX_EXACT_TAG, REGEX_FILE, REGEX_GIT, REGEX_GT, REGEX_GTE, REGEX_GTE_MINOR, REGEX_GTE_TAG, REGEX_GT_MINOR, REGEX_GT_TAG, REGEX_LT, REGEX_LTE, REGEX_LTE_MINOR,
-    REGEX_LTE_TAG, REGEX_LT_MINOR, REGEX_LT_TAG, REGEX_MAJOR, REGEX_MINOR, REGEX_OR_OPERATOR, REGEX_TAG, REGEX_TILDE, REGEX_TILDE_MINOR, REGEX_TILDE_TAG, REGEX_URL, REGEX_WORKSPACE_PROTOCOL,
-  },
-  semver_range::SemverRange,
-  specifier_tree::SpecifierTree,
-};
+use crate::specifier::{semver_range::SemverRange, specifier_tree::SpecifierTree};
 
 pub mod non_semver;
+pub mod parser;
 pub mod regexes;
 pub mod semver;
 pub mod semver_range;
@@ -49,7 +42,7 @@ pub enum Specifier {
 
 impl Specifier {
   pub fn new(specifier: &String) -> Self {
-    Specifier::parse(specifier, false)
+    parser::parse(specifier, false)
   }
 
   // @TODO: impl Eq
@@ -85,25 +78,25 @@ impl Specifier {
     if specifier == "*" {
       return Some(SemverRange::Any);
     }
-    if REGEX_EXACT.is_match(specifier) || REGEX_EXACT_TAG.is_match(specifier) {
+    if regexes::REGEX_EXACT.is_match(specifier) || regexes::REGEX_EXACT_TAG.is_match(specifier) {
       return Some(SemverRange::Exact);
     }
-    if REGEX_CARET.is_match(specifier) || REGEX_CARET_TAG.is_match(specifier) {
+    if regexes::REGEX_CARET.is_match(specifier) || regexes::REGEX_CARET_TAG.is_match(specifier) {
       return Some(SemverRange::Minor);
     }
-    if REGEX_TILDE.is_match(specifier) || REGEX_TILDE_TAG.is_match(specifier) {
+    if regexes::REGEX_TILDE.is_match(specifier) || regexes::REGEX_TILDE_TAG.is_match(specifier) {
       return Some(SemverRange::Patch);
     }
-    if REGEX_GT.is_match(specifier) || REGEX_GT_TAG.is_match(specifier) {
+    if regexes::REGEX_GT.is_match(specifier) || regexes::REGEX_GT_TAG.is_match(specifier) {
       return Some(SemverRange::Gt);
     }
-    if REGEX_GTE.is_match(specifier) || REGEX_GTE_TAG.is_match(specifier) {
+    if regexes::REGEX_GTE.is_match(specifier) || regexes::REGEX_GTE_TAG.is_match(specifier) {
       return Some(SemverRange::Gte);
     }
-    if REGEX_LT.is_match(specifier) || REGEX_LT_TAG.is_match(specifier) {
+    if regexes::REGEX_LT.is_match(specifier) || regexes::REGEX_LT_TAG.is_match(specifier) {
       return Some(SemverRange::Lt);
     }
-    if REGEX_LTE.is_match(specifier) || REGEX_LTE_TAG.is_match(specifier) {
+    if regexes::REGEX_LTE.is_match(specifier) || regexes::REGEX_LTE_TAG.is_match(specifier) {
       return Some(SemverRange::Lte);
     }
     return None;
@@ -141,86 +134,6 @@ impl Specifier {
         panic!("Cannot unwrap a Specifier::None");
       }
     }
-  }
-
-  /// Convert non-semver specifiers to semver when behaviour is identical
-  fn sanitise(specifier: &String) -> &str {
-    let specifier = specifier.as_str();
-    if specifier == "latest" || specifier == "x" {
-      debug!("Sanitising specifier: {} → *", specifier);
-      "*"
-    } else {
-      specifier
-    }
-  }
-
-  /// Convert a raw string version specifier into a `Specifier` enum serving as a
-  /// branded type
-  fn parse(specifier: &String, is_recursive: bool) -> Specifier {
-    let str = Specifier::sanitise(specifier);
-    let string = str.to_string();
-    if REGEX_EXACT.is_match(str) || REGEX_EXACT_TAG.is_match(str) {
-      Specifier::Exact(string)
-    } else if Specifier::is_range(str) {
-      Specifier::Range(string)
-    } else if str == "*" || str == "latest" || str == "x" {
-      Specifier::Latest(string)
-    } else if REGEX_WORKSPACE_PROTOCOL.is_match(str) {
-      Specifier::WorkspaceProtocol(string)
-    } else if REGEX_ALIAS.is_match(str) {
-      Specifier::Alias(string)
-    } else if REGEX_MAJOR.is_match(str) {
-      Specifier::Major(string)
-    } else if REGEX_MINOR.is_match(str) {
-      Specifier::Minor(string)
-    } else if REGEX_TAG.is_match(str) {
-      Specifier::Tag(string)
-    } else if REGEX_GIT.is_match(str) {
-      Specifier::Git(string)
-    } else if REGEX_URL.is_match(str) {
-      Specifier::Url(string)
-    } else if Specifier::is_range_minor(str) {
-      Specifier::RangeMinor(string)
-    } else if REGEX_FILE.is_match(str) {
-      Specifier::File(string)
-    } else if !is_recursive && Specifier::is_complex_range(str) {
-      Specifier::RangeComplex(string)
-    } else {
-      Specifier::Unsupported(string)
-    }
-  }
-
-  /// Is this a semver range containing multiple parts?
-  /// Such as OR (" || ") or AND (" ")
-  fn is_complex_range(specifier: &str) -> bool {
-    REGEX_OR_OPERATOR.split(specifier).map(|str| str.trim()).filter(|str| str.len() > 0).all(|or_condition| {
-      or_condition
-        .split(" ")
-        .map(|str| str.trim())
-        .filter(|str| str.len() > 0)
-        .map(|and_condition| Specifier::parse(&and_condition.to_string(), true))
-        .map(|specifier| SpecifierTree::new(&specifier))
-        .all(|specifier_tree| specifier_tree.is_simple_semver())
-    })
-  }
-
-  fn is_range(specifier: &str) -> bool {
-    REGEX_CARET.is_match(specifier)
-      || REGEX_CARET_TAG.is_match(specifier)
-      || REGEX_TILDE.is_match(specifier)
-      || REGEX_TILDE_TAG.is_match(specifier)
-      || REGEX_GT.is_match(specifier)
-      || REGEX_GT_TAG.is_match(specifier)
-      || REGEX_GTE.is_match(specifier)
-      || REGEX_GTE_TAG.is_match(specifier)
-      || REGEX_LT.is_match(specifier)
-      || REGEX_LT_TAG.is_match(specifier)
-      || REGEX_LTE.is_match(specifier)
-      || REGEX_LTE_TAG.is_match(specifier)
-  }
-
-  fn is_range_minor(specifier: &str) -> bool {
-    REGEX_CARET_MINOR.is_match(specifier) || REGEX_TILDE_MINOR.is_match(specifier) || REGEX_GT_MINOR.is_match(specifier) || REGEX_GTE_MINOR.is_match(specifier) || REGEX_LT_MINOR.is_match(specifier) || REGEX_LTE_MINOR.is_match(specifier)
   }
 }
 
