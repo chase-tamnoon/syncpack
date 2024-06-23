@@ -2,10 +2,14 @@ use log::warn;
 use node_semver::Version;
 use std::cmp::Ordering;
 
-use super::{semver_range::SemverRange, Specifier, REGEX_CARET, REGEX_GT, REGEX_GTE, REGEX_LT, REGEX_LTE, REGEX_RANGE_CHAR, REGEX_TILDE};
+use super::{
+  regexes::{REGEX_CARET, REGEX_CARET_TAG, REGEX_GT, REGEX_GTE, REGEX_GTE_TAG, REGEX_GT_TAG, REGEX_LT, REGEX_LTE, REGEX_LTE_TAG, REGEX_LT_TAG, REGEX_RANGE_CHAR, REGEX_TILDE, REGEX_TILDE_TAG},
+  semver_range::SemverRange,
+  Specifier,
+};
 
 #[derive(Clone, Debug)]
-pub struct OrderableSimpleSemver {
+struct OrderableSimpleSemver {
   pub range: SemverRange,
   pub version: Version,
 }
@@ -71,29 +75,6 @@ impl SimpleSemver {
     }
   }
 
-  pub fn parse(&self) -> OrderableSimpleSemver {
-    let range = self.get_range();
-    let version = match self {
-      SimpleSemver::Exact(s) => Version::parse(s).unwrap(),
-      SimpleSemver::Latest(_) => {
-        let huge_version = "9999.9999.9999";
-        warn!("Cannot parse {self:?} for ordering, working around by treating it as {huge_version}");
-        Version::parse(huge_version).unwrap()
-      }
-      SimpleSemver::Major(s) => Version::parse(&format!("{}.0.0", s)).unwrap(),
-      SimpleSemver::Minor(s) => Version::parse(&format!("{}.0", s)).unwrap(),
-      SimpleSemver::Range(s) => {
-        let exact = REGEX_RANGE_CHAR.replace(s, "");
-        Version::parse(&exact).unwrap()
-      }
-      SimpleSemver::RangeMinor(s) => {
-        let exact = REGEX_RANGE_CHAR.replace(s, "");
-        Version::parse(&format!("{}.0", exact)).unwrap()
-      }
-    };
-    OrderableSimpleSemver { range, version }
-  }
-
   /// Replace this version's semver range with another one
   pub fn with_range(&self, range: &SemverRange) -> SimpleSemver {
     match self {
@@ -122,33 +103,57 @@ impl SimpleSemver {
       SimpleSemver::Major(s) => SemverRange::Exact,
       SimpleSemver::Minor(s) => SemverRange::Exact,
       SimpleSemver::Range(s) | SimpleSemver::RangeMinor(s) => {
-        if REGEX_CARET.is_match(s) {
+        if REGEX_CARET.is_match(s) || REGEX_CARET_TAG.is_match(s) {
           return SemverRange::Minor;
         }
-        if REGEX_TILDE.is_match(s) {
+        if REGEX_TILDE.is_match(s) || REGEX_TILDE_TAG.is_match(s) {
           return SemverRange::Patch;
         }
-        if REGEX_GT.is_match(s) {
+        if REGEX_GT.is_match(s) || REGEX_GT_TAG.is_match(s) {
           return SemverRange::Gt;
         }
-        if REGEX_GTE.is_match(s) {
+        if REGEX_GTE.is_match(s) || REGEX_GTE_TAG.is_match(s) {
           return SemverRange::Gte;
         }
-        if REGEX_LT.is_match(s) {
+        if REGEX_LT.is_match(s) || REGEX_LT_TAG.is_match(s) {
           return SemverRange::Lt;
         }
-        if REGEX_LTE.is_match(s) {
+        if REGEX_LTE.is_match(s) || REGEX_LTE_TAG.is_match(s) {
           return SemverRange::Lte;
         }
         panic!("'{s}' has unrecognised semver range specifier");
       }
     }
   }
+
+  /// Parse this version specifier into a struct w can compare and order
+  fn get_orderable(&self) -> OrderableSimpleSemver {
+    let range = self.get_range();
+    let version = match self {
+      SimpleSemver::Exact(s) => Version::parse(s).unwrap(),
+      SimpleSemver::Latest(_) => {
+        let huge_version = "9999.9999.9999";
+        warn!("Cannot parse {self:?} for ordering, working around by treating it as {huge_version}");
+        Version::parse(huge_version).unwrap()
+      }
+      SimpleSemver::Major(s) => Version::parse(&format!("{}.0.0", s)).unwrap(),
+      SimpleSemver::Minor(s) => Version::parse(&format!("{}.0", s)).unwrap(),
+      SimpleSemver::Range(s) => {
+        let exact = REGEX_RANGE_CHAR.replace(s, "");
+        Version::parse(&exact).unwrap()
+      }
+      SimpleSemver::RangeMinor(s) => {
+        let exact = REGEX_RANGE_CHAR.replace(s, "");
+        Version::parse(&format!("{}.0", exact)).unwrap()
+      }
+    };
+    OrderableSimpleSemver { range, version }
+  }
 }
 
 impl Ord for SimpleSemver {
   fn cmp(&self, other: &Self) -> Ordering {
-    self.parse().cmp(&other.parse())
+    self.get_orderable().cmp(&other.get_orderable())
   }
 }
 
@@ -176,23 +181,46 @@ mod tests {
   }
 
   #[test]
-  fn parse() {
-    let raw = "0.0.0".to_string();
-    let semver = SimpleSemver::new(&Specifier::new(&raw));
-    let parsed = semver.parse();
-    assert_eq!(
-      parsed,
-      OrderableSimpleSemver {
-        range: SemverRange::Exact,
-        version: Version {
-          major: 0,
-          minor: 0,
-          patch: 0,
-          build: vec![],
-          pre_release: vec![],
+  fn get_orderable() {
+    let cases: Vec<(&str, OrderableSimpleSemver)> = vec![
+      (
+        "0.0.0",
+        OrderableSimpleSemver {
+          range: SemverRange::Exact,
+          version: Version {
+            major: 0,
+            minor: 0,
+            patch: 0,
+            build: vec![],
+            pre_release: vec![],
+          },
         },
-      }
-    );
+      ),
+      (
+        "0.0.0-alpha",
+        OrderableSimpleSemver {
+          range: SemverRange::Exact,
+          version: Version {
+            major: 0,
+            minor: 0,
+            patch: 0,
+            build: vec![],
+            pre_release: vec![],
+          },
+        },
+      ),
+    ];
+    for (str, expected) in cases {
+      let raw = str.to_string();
+      let semver = SimpleSemver::new(&Specifier::new(&raw));
+      let orderable = semver.get_orderable();
+      assert_eq!(orderable.range, expected.range);
+      assert_eq!(orderable.version.major, expected.version.major);
+      assert_eq!(orderable.version.minor, expected.version.minor);
+      assert_eq!(orderable.version.patch, expected.version.patch);
+      assert_eq!(orderable.version.build, expected.version.build);
+      assert_eq!(orderable.version.pre_release, expected.version.pre_release);
+    }
   }
 
   #[test]

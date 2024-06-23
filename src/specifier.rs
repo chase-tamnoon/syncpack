@@ -2,8 +2,8 @@ use log::debug;
 
 use crate::specifier::{
   regexes::{
-    REGEX_ALIAS, REGEX_CARET, REGEX_CARET_MINOR, REGEX_EXACT, REGEX_FILE, REGEX_GIT, REGEX_GT, REGEX_GTE, REGEX_GTE_MINOR, REGEX_GT_MINOR, REGEX_LT, REGEX_LTE, REGEX_LTE_MINOR, REGEX_LT_MINOR, REGEX_MAJOR, REGEX_MINOR, REGEX_OR_OPERATOR,
-    REGEX_RANGE_CHAR, REGEX_TAG, REGEX_TILDE, REGEX_TILDE_MINOR, REGEX_URL, REGEX_WORKSPACE_PROTOCOL,
+    REGEX_ALIAS, REGEX_CARET, REGEX_CARET_MINOR, REGEX_CARET_TAG, REGEX_EXACT, REGEX_EXACT_TAG, REGEX_FILE, REGEX_GIT, REGEX_GT, REGEX_GTE, REGEX_GTE_MINOR, REGEX_GTE_TAG, REGEX_GT_MINOR, REGEX_GT_TAG, REGEX_LT, REGEX_LTE, REGEX_LTE_MINOR,
+    REGEX_LTE_TAG, REGEX_LT_MINOR, REGEX_LT_TAG, REGEX_MAJOR, REGEX_MINOR, REGEX_OR_OPERATOR, REGEX_TAG, REGEX_TILDE, REGEX_TILDE_MINOR, REGEX_TILDE_TAG, REGEX_URL, REGEX_WORKSPACE_PROTOCOL,
   },
   semver_range::SemverRange,
   specifier_tree::SpecifierTree,
@@ -86,25 +86,25 @@ impl Specifier {
     if specifier == "*" {
       return Some(SemverRange::Any);
     }
-    if REGEX_EXACT.is_match(specifier) {
+    if REGEX_EXACT.is_match(specifier) || REGEX_EXACT_TAG.is_match(specifier) {
       return Some(SemverRange::Exact);
     }
-    if REGEX_CARET.is_match(specifier) {
+    if REGEX_CARET.is_match(specifier) || REGEX_CARET_TAG.is_match(specifier) {
       return Some(SemverRange::Minor);
     }
-    if REGEX_TILDE.is_match(specifier) {
+    if REGEX_TILDE.is_match(specifier) || REGEX_TILDE_TAG.is_match(specifier) {
       return Some(SemverRange::Patch);
     }
-    if REGEX_GT.is_match(specifier) {
+    if REGEX_GT.is_match(specifier) || REGEX_GT_TAG.is_match(specifier) {
       return Some(SemverRange::Gt);
     }
-    if REGEX_GTE.is_match(specifier) {
+    if REGEX_GTE.is_match(specifier) || REGEX_GTE_TAG.is_match(specifier) {
       return Some(SemverRange::Gte);
     }
-    if REGEX_LT.is_match(specifier) {
+    if REGEX_LT.is_match(specifier) || REGEX_LT_TAG.is_match(specifier) {
       return Some(SemverRange::Lt);
     }
-    if REGEX_LTE.is_match(specifier) {
+    if REGEX_LTE.is_match(specifier) || REGEX_LTE_TAG.is_match(specifier) {
       return Some(SemverRange::Lte);
     }
     return None;
@@ -196,7 +196,7 @@ impl Specifier {
   fn parse(specifier: &String, is_recursive: bool) -> Specifier {
     let str = Specifier::sanitise(specifier);
     let string = str.to_string();
-    if REGEX_EXACT.is_match(str) {
+    if REGEX_EXACT.is_match(str) || REGEX_EXACT_TAG.is_match(str) {
       Specifier::Exact(string)
     } else if Specifier::is_range(str) {
       Specifier::Range(string)
@@ -240,7 +240,18 @@ impl Specifier {
   }
 
   fn is_range(specifier: &str) -> bool {
-    REGEX_CARET.is_match(specifier) || REGEX_TILDE.is_match(specifier) || REGEX_GT.is_match(specifier) || REGEX_GTE.is_match(specifier) || REGEX_LT.is_match(specifier) || REGEX_LTE.is_match(specifier)
+    REGEX_CARET.is_match(specifier)
+      || REGEX_CARET_TAG.is_match(specifier)
+      || REGEX_TILDE.is_match(specifier)
+      || REGEX_TILDE_TAG.is_match(specifier)
+      || REGEX_GT.is_match(specifier)
+      || REGEX_GT_TAG.is_match(specifier)
+      || REGEX_GTE.is_match(specifier)
+      || REGEX_GTE_TAG.is_match(specifier)
+      || REGEX_LT.is_match(specifier)
+      || REGEX_LT_TAG.is_match(specifier)
+      || REGEX_LTE.is_match(specifier)
+      || REGEX_LTE_TAG.is_match(specifier)
   }
 
   fn is_range_minor(specifier: &str) -> bool {
