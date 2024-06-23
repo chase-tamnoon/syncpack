@@ -5,7 +5,7 @@ use crate::{
   dependency_type::{DependencyType, Strategy},
   package_json::PackageJson,
   semver_group::SemverGroup,
-  specifier::{semver_range::SemverRange, Specifier},
+  specifier::{semver::Semver, semver_range::SemverRange, specifier_tree::SpecifierTree, Specifier},
 };
 
 pub type InstanceId = String;
@@ -65,10 +65,8 @@ impl Instance {
   /// preferred semver range of the given semver group
   pub fn apply_semver_group(&mut self, group: &SemverGroup) -> () {
     group.range.as_ref().map(|range| {
-      if self.expected.is_simple_semver() {
-        self.prefer_range = Some(range.clone());
-        self.expected = self.expected.with_range_if_semver(&range);
-      }
+      self.prefer_range = Some(range.clone());
+      self.expected = self.expected.with_range_if_semver(&range);
     });
   }
 
@@ -79,15 +77,21 @@ impl Instance {
   /// ✓ its own version matches its expected version (eg. "1.1.0" == "1.1.0")
   /// ✓ its expected version matches the expected version of the group
   /// ✘ only its own semver range is different
-  pub fn has_range_mismatch(&self, expected: &Specifier) -> bool {
+  pub fn has_range_mismatch(&self, other: &Specifier) -> bool {
     // it has a semver group
     self.prefer_range.is_some()
-    // its own version matches its expected version (eg. "1.1.0" == "1.1.0")
-    && self.expected.get_exact() == self.actual.get_exact()
-    // its expected version matches the expected version of the group
-    && self.expected.get_exact() == expected.get_exact()
-    // only its own semver range is different
-    && self.expected.get_semver_range() != self.actual.get_semver_range()
+      && match (SpecifierTree::new(&self.actual), SpecifierTree::new(&self.expected), SpecifierTree::new(other)) {
+        // all versions are simple semver
+        (SpecifierTree::Semver(Semver::Simple(actual)), SpecifierTree::Semver(Semver::Simple(expected)), SpecifierTree::Semver(Semver::Simple(other))) => {
+          // its own version matches its expected version (eg. "1.1.0" == "1.1.0")
+          actual.has_same_version(&expected)
+          // its expected version matches the expected version of the group
+          && expected.has_same_version(&other)
+          // only its own semver range is different
+          && !expected.has_same_range(&actual)
+        }
+        _ => false,
+      }
   }
 
   pub fn get_fixed_range_mismatch(&self) -> Specifier {

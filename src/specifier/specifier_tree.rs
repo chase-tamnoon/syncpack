@@ -15,4 +15,8 @@ impl SpecifierTree {
       Specifier::None => SpecifierTree::None,
     }
   }
+
+  pub fn is_simple_semver(&self) -> bool {
+    matches!(self, SpecifierTree::Semver(Semver::Simple(_)))
+  }
 }

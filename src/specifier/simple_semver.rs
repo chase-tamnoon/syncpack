@@ -118,6 +118,14 @@ impl SimpleSemver {
     }
   }
 
+  pub fn has_same_range(&self, other: &SimpleSemver) -> bool {
+    self.get_range() == other.get_range()
+  }
+
+  pub fn has_same_version(&self, other: &SimpleSemver) -> bool {
+    self.get_orderable().version == other.get_orderable().version
+  }
+
   /// Get the semver range of this version, a simple semver specifier always has
   /// a semver range, even if it's `Exact`
   pub fn get_range(&self) -> SemverRange {
@@ -314,6 +322,22 @@ mod tests {
       let b = SimpleSemver::new(&b);
       let ordering = a.cmp(&b);
       assert_eq!(ordering, expected, "{str_a} should {expected:?} {str_b}");
+    }
+  }
+
+  #[test]
+  fn has_same_range() {
+    let cases: Vec<(&str, &str, bool)> = vec![
+      //
+      ("0.0.0", "0.0.1", true),
+    ];
+    for (str_a, str_b, expected) in cases {
+      let a = Specifier::new(&str_a.to_string());
+      let a = SimpleSemver::new(&a);
+      let b = Specifier::new(&str_b.to_string());
+      let b = SimpleSemver::new(&b);
+      let ordering = a.cmp(&b);
+      assert_eq!(a.has_same_range(&b), expected, "{str_a} has same range as {str_b} should be {expected}");
     }
   }
 }

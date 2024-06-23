@@ -1,7 +1,5 @@
 use log::debug;
-use non_semver::NonSemver;
 use semver::Semver;
-use simple_semver::SimpleSemver;
 
 use crate::specifier::{
   regexes::{
@@ -52,10 +50,6 @@ pub enum Specifier {
 impl Specifier {
   pub fn new(specifier: &String) -> Self {
     Specifier::parse(specifier, false)
-  }
-
-  pub fn is_simple_semver(&self) -> bool {
-    matches!(SpecifierTree::new(self), SpecifierTree::Semver(Semver::Simple(_)))
   }
 
   // @TODO: impl Eq
@@ -113,16 +107,6 @@ impl Specifier {
       return Some(SemverRange::Lte);
     }
     return None;
-  }
-
-  #[deprecated]
-  pub fn has_range(&self, expected_range: &SemverRange) -> bool {
-    self.get_semver_range().map_or(false, |range| range == *expected_range)
-  }
-
-  #[deprecated]
-  pub fn get_exact(&self) -> Self {
-    self.with_range_if_semver(&SemverRange::Exact)
   }
 
   /// Get the specifier with the given range applied if it is valid to do so,
@@ -473,66 +457,6 @@ mod tests {
         let parsed = Specifier::new(&initial);
         assert_eq!(parsed.with_range_if_semver(&range), Specifier::new(&expected.clone()), "{} + {:?} should produce {}", initial, range, expected);
       }
-    }
-  }
-
-  #[test]
-  fn has_semver_range() {
-    let cases: Vec<(&str, &str, bool)> = vec![
-      ("^", "^1.2.3", true),
-      ("^", "~1.2.3", false),
-      ("^", ">=1.2.3", false),
-      ("^", "<=1.2.3", false),
-      ("^", ">1.2.3", false),
-      ("^", "<1.2.3", false),
-      ("^", "1.2.3", false),
-      ("~", "^1.2.3", false),
-      ("~", "~1.2.3", true),
-      ("~", ">=1.2.3", false),
-      ("~", "<=1.2.3", false),
-      ("~", ">1.2.3", false),
-      ("~", "<1.2.3", false),
-      ("~", "1.2.3", false),
-      (">=", "^1.2.3", false),
-      (">=", "~1.2.3", false),
-      (">=", ">=1.2.3", true),
-      (">=", "<=1.2.3", false),
-      (">=", ">1.2.3", false),
-      (">=", "<1.2.3", false),
-      (">=", "1.2.3", false),
-      ("<=", "^1.2.3", false),
-      ("<=", "~1.2.3", false),
-      ("<=", ">=1.2.3", false),
-      ("<=", "<=1.2.3", true),
-      ("<=", ">1.2.3", false),
-      ("<=", "<1.2.3", false),
-      ("<=", "1.2.3", false),
-      (">", "^1.2.3", false),
-      (">", "~1.2.3", false),
-      (">", ">=1.2.3", false),
-      (">", "<=1.2.3", false),
-      (">", ">1.2.3", true),
-      (">", "<1.2.3", false),
-      (">", "1.2.3", false),
-      ("<", "^1.2.3", false),
-      ("<", "~1.2.3", false),
-      ("<", ">=1.2.3", false),
-      ("<", "<=1.2.3", false),
-      ("<", ">1.2.3", false),
-      ("<", "<1.2.3", true),
-      ("<", "1.2.3", false),
-      ("", "^1.2.3", false),
-      ("", "~1.2.3", false),
-      ("", ">=1.2.3", false),
-      ("", "<=1.2.3", false),
-      ("", ">1.2.3", false),
-      ("", "<1.2.3", false),
-      ("", "1.2.3", true),
-    ];
-    for (range, specifier, expected) in cases {
-      let range = SemverRange::new(&range.to_string()).unwrap();
-      let parsed = Specifier::new(&specifier.to_string());
-      assert_eq!(parsed.has_range(&range), expected, "{} has range {:?} should be {}", specifier, range, expected);
     }
   }
 }
