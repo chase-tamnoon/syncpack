@@ -1,6 +1,6 @@
 use crate::specifier::parser;
 
-#[derive(Clone, Debug, Hash, Eq)]
+#[derive(Clone, Debug, Hash, Eq, PartialEq)]
 pub enum NonSemver {
   /// eg. `npm:1.2.3`
   Alias(String),

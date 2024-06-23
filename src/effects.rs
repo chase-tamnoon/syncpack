@@ -1,7 +1,6 @@
 use crate::{
   context::InstancesById, dependency::Dependency, group_selector::GroupSelector,
-  instance::InstanceId, package_json::PackageJson, packages::Packages,
-  specifier::any_specifier::AnySpecifier,
+  instance::InstanceId, package_json::PackageJson, packages::Packages, specifier::Specifier,
 };
 
 /// Side effects in Syncpack commands are handled by structs which implement
@@ -24,9 +23,9 @@ pub enum Event<'a> {
   EnterVersionsAndRanges,
   /// A version/semver group is next to be processed
   GroupVisited(&'a GroupSelector),
-  DependencyValid(&'a Dependency, Option<AnySpecifier>),
-  DependencyInvalid(&'a Dependency, Option<AnySpecifier>),
-  DependencyWarning(&'a Dependency, Option<AnySpecifier>),
+  DependencyValid(&'a Dependency, Option<Specifier>),
+  DependencyInvalid(&'a Dependency, Option<Specifier>),
+  DependencyWarning(&'a Dependency, Option<Specifier>),
   /// Syncpack is about to lint/fix formatting, if enabled
   EnterFormat,
   /// Linting/fixing of formatting of a package.json file has completed and the

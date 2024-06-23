@@ -9,7 +9,6 @@ use super::{
     TILDE_TAG,
   },
   semver_range::SemverRange,
-  AnySpecifier,
 };
 
 #[derive(Clone, Debug, Hash)]
@@ -63,7 +62,7 @@ impl PartialEq for OrderableSimpleSemver {
 
 impl Eq for OrderableSimpleSemver {}
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Hash)]
 pub enum SimpleSemver {
   /// eg. `1.2.3`
   Exact(String),
@@ -97,17 +96,6 @@ impl SimpleSemver {
       Self::RangeMinor(string)
     } else {
       panic!("{specifier:?} is not SimpleSemver");
-    }
-  }
-
-  pub fn to_specifier(&self) -> AnySpecifier {
-    match self {
-      SimpleSemver::Exact(s) => AnySpecifier::Exact(s.clone()),
-      SimpleSemver::Latest(s) => AnySpecifier::Latest(s.clone()),
-      SimpleSemver::Major(s) => AnySpecifier::Major(s.clone()),
-      SimpleSemver::Minor(s) => AnySpecifier::Minor(s.clone()),
-      SimpleSemver::Range(s) => AnySpecifier::Range(s.clone()),
-      SimpleSemver::RangeMinor(s) => AnySpecifier::RangeMinor(s.clone()),
     }
   }
 

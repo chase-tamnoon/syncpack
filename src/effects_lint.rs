@@ -7,7 +7,7 @@ use crate::{
   dependency::Dependency,
   effects::{Effects, Event, InstanceEvent, InstanceEventVariant},
   packages::Packages,
-  specifier::any_specifier::AnySpecifier,
+  specifier::Specifier,
   version_group::Variant,
 };
 
@@ -245,7 +245,7 @@ fn icon_arrow() -> ColoredString {
 }
 
 // @TODO: write a .resolution enum on Dependency in visit_packages instead
-fn get_expected_hint(dependency: &Dependency, expected: &Option<AnySpecifier>) -> ColoredString {
+fn get_expected_hint(dependency: &Dependency, expected: &Option<Specifier>) -> ColoredString {
   match expected {
     Some(specifier) => match dependency.variant {
       Variant::Banned => {

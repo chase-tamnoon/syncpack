@@ -1,4 +1,3 @@
-use any_specifier::AnySpecifier;
 use semver::Semver;
 use simple_semver::SimpleSemver;
 
@@ -12,7 +11,7 @@ pub mod semver;
 pub mod semver_range;
 pub mod simple_semver;
 
-#[derive(Clone, Debug, Eq, Hash)]
+#[derive(Clone, Debug, Eq, PartialEq, Hash)]
 pub enum Specifier {
   Semver(Semver),
   NonSemver(NonSemver),
@@ -52,6 +51,28 @@ impl Specifier {
     } else {
       Self::NonSemver(NonSemver::Unsupported(string))
     }
+  }
+
+  /// Get the `specifier_type` name as used in config files.
+  pub fn get_config_identifier(&self) -> String {
+    match self {
+      Self::Semver(Semver::Simple(SimpleSemver::Exact(_))) => "exact",
+      Self::Semver(Semver::Simple(SimpleSemver::Latest(_))) => "latest",
+      Self::Semver(Semver::Simple(SimpleSemver::Major(_))) => "major",
+      Self::Semver(Semver::Simple(SimpleSemver::Minor(_))) => "minor",
+      Self::Semver(Semver::Simple(SimpleSemver::Range(_))) => "range",
+      Self::Semver(Semver::Simple(SimpleSemver::RangeMinor(_))) => "range-minor",
+      Self::Semver(Semver::Complex(_)) => "range-complex",
+      Self::NonSemver(NonSemver::Alias(_)) => "alias",
+      Self::NonSemver(NonSemver::File(_)) => "file",
+      Self::NonSemver(NonSemver::Git(_)) => "git",
+      Self::NonSemver(NonSemver::Tag(_)) => "tag",
+      Self::NonSemver(NonSemver::Url(_)) => "url",
+      Self::NonSemver(NonSemver::WorkspaceProtocol(_)) => "workspace-protocol",
+      Self::NonSemver(NonSemver::Unsupported(_)) => "unsupported",
+      Self::None => "missing",
+    }
+    .to_string()
   }
 
   pub fn unwrap(&self) -> String {
