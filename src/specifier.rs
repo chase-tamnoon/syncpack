@@ -1,13 +1,15 @@
 use std::cmp::Ordering;
 
 use lazy_static::lazy_static;
-use log::debug;
+use log::{debug, warn};
 use node_semver::Version;
 use regex::Regex;
 
 use crate::semver_range::SemverRange;
 
 lazy_static! {
+  /// Any character used in a semver range
+  static ref REGEX_RANGE_CHAR: Regex = Regex::new(r"[~><=*^]").unwrap();
   /// "1.2.3"
   static ref REGEX_EXACT: Regex = Regex::new(r"^\d+\.\d+\.\d+$").unwrap();
   /// "^1.2.3"
@@ -80,6 +82,57 @@ impl SimpleSemver {
       Specifier::Range(s) => SimpleSemver::Range(s.clone()),
       Specifier::RangeMinor(s) => SimpleSemver::RangeMinor(s.clone()),
       _ => panic!("{specifier:?} is not SimpleSemver"),
+    }
+  }
+
+  /// Replace this version's semver range with another one
+  pub fn with_range(&self, range: &SemverRange) -> SimpleSemver {
+    match self {
+      SimpleSemver::Latest(_) => {
+        warn!("Cannot convert {self:?} to {range:?}, keeping as is");
+        self.clone()
+      }
+      SimpleSemver::Exact(exact) => {
+        let next_range = range.unwrap();
+        SimpleSemver::new(&Specifier::new(&format!("{next_range}{exact}")))
+      }
+      SimpleSemver::Major(s) | SimpleSemver::Minor(s) | SimpleSemver::Range(s) | SimpleSemver::RangeMinor(s) => {
+        let exact = REGEX_RANGE_CHAR.replace(s, "");
+        let next_range = range.unwrap();
+        SimpleSemver::new(&Specifier::new(&format!("{next_range}{exact}")))
+      }
+    }
+  }
+
+  /// Get the semver range of this version, a simple semver specifier always has
+  /// a semver range, even if it's `Exact`
+  pub fn get_range(&self) -> SemverRange {
+    match self {
+      SimpleSemver::Exact(s) => SemverRange::Exact,
+      SimpleSemver::Latest(s) => SemverRange::Any,
+      SimpleSemver::Major(s) => SemverRange::Exact,
+      SimpleSemver::Minor(s) => SemverRange::Exact,
+      SimpleSemver::Range(s) | SimpleSemver::RangeMinor(s) => {
+        if REGEX_CARET.is_match(s) {
+          return SemverRange::Minor;
+        }
+        if REGEX_TILDE.is_match(s) {
+          return SemverRange::Patch;
+        }
+        if REGEX_GT.is_match(s) {
+          return SemverRange::Gt;
+        }
+        if REGEX_GTE.is_match(s) {
+          return SemverRange::Gte;
+        }
+        if REGEX_LT.is_match(s) {
+          return SemverRange::Lt;
+        }
+        if REGEX_LTE.is_match(s) {
+          return SemverRange::Lte;
+        }
+        panic!("'{s}' has unrecognised semver range specifier");
+      }
     }
   }
 }
@@ -184,10 +237,7 @@ impl Specifier {
   }
 
   pub fn is_semver(&self) -> bool {
-    match self {
-      Self::Exact(_) | Self::Latest(_) | Self::Major(_) | Self::Minor(_) | Self::Range(_) | Self::RangeComplex(_) | Self::RangeMinor(_) => true,
-      Self::Alias(_) | Self::File(_) | Self::Git(_) | Self::Tag(_) | Self::Unsupported(_) | Self::Url(_) | Self::WorkspaceProtocol(_) | Self::None => false,
-    }
+    matches!(SpecifierTree::new(self), SpecifierTree::Semver(_))
   }
 
   pub fn matches(&self, specifier: &Specifier) -> bool {
