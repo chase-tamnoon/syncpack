@@ -216,7 +216,7 @@ pub fn visit_packages(config: &Config, packages: Packages, effects: &mut impl Ef
                 dependency.all.iter().for_each(|instance_id| {
                   let instance = instances_by_id.get_mut(instance_id).unwrap();
                   // CHECK THIS Eq WORKS
-                  if instance.actual==*pinned {
+                  if instance.actual == *pinned {
                     expected = Some(pinned.clone());
                     queue.push(InstanceEvent {
                       dependency: &dependency,
