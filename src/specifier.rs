@@ -56,7 +56,6 @@ lazy_static! {
   static ref REGEX_OR_OPERATOR:Regex = Regex::new(r" ?\|\| ?").unwrap();
 }
 
-#[derive(Clone, Eq, Debug, Hash, PartialEq)]
 pub enum SimpleSemver {
   /// eg. `1.2.3`
   Exact(String),
@@ -136,6 +135,26 @@ impl SimpleSemver {
     }
   }
 }
+
+impl Ord for SimpleSemver {
+  fn cmp(&self, other: &Self) -> Ordering {
+    Ordering::Equal
+  }
+}
+
+impl PartialOrd for SimpleSemver {
+  fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+    Some(self.cmp(other))
+  }
+}
+
+impl PartialEq for SimpleSemver {
+  fn eq(&self, other: &Self) -> bool {
+    true
+  }
+}
+
+impl Eq for SimpleSemver {}
 
 pub enum Semver {
   Simple(SimpleSemver),
