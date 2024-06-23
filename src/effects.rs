@@ -1,4 +1,4 @@
-use crate::{context::InstancesById, dependency::Dependency, group_selector::GroupSelector, instance::InstanceId, package_json::PackageJson, packages::Packages, specifier::Specifier};
+use crate::{context::InstancesById, dependency::Dependency, group_selector::GroupSelector, instance::InstanceId, package_json::PackageJson, packages::Packages, specifier::AnySpecifier};
 
 /// Side effects in Syncpack commands are handled by structs which implement
 /// this trait. Multiple commands such as `lint`, `fix`, and `json` all depend
@@ -20,9 +20,9 @@ pub enum Event<'a> {
   EnterVersionsAndRanges,
   /// A version/semver group is next to be processed
   GroupVisited(&'a GroupSelector),
-  DependencyValid(&'a Dependency, Option<Specifier>),
-  DependencyInvalid(&'a Dependency, Option<Specifier>),
-  DependencyWarning(&'a Dependency, Option<Specifier>),
+  DependencyValid(&'a Dependency, Option<AnySpecifier>),
+  DependencyInvalid(&'a Dependency, Option<AnySpecifier>),
+  DependencyWarning(&'a Dependency, Option<AnySpecifier>),
   /// Syncpack is about to lint/fix formatting, if enabled
   EnterFormat,
   /// Linting/fixing of formatting of a package.json file has completed and the

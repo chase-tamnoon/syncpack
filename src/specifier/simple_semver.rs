@@ -5,7 +5,7 @@ use std::cmp::Ordering;
 use super::{
   regexes::{CARET, CARET_TAG, GT, GTE, GTE_TAG, GT_TAG, LT, LTE, LTE_TAG, LT_TAG, RANGE_CHARS, TILDE, TILDE_TAG},
   semver_range::SemverRange,
-  Specifier,
+  AnySpecifier,
 };
 
 #[derive(Clone, Debug)]
@@ -76,26 +76,26 @@ pub enum SimpleSemver {
 }
 
 impl SimpleSemver {
-  pub fn new(specifier: &Specifier) -> Self {
+  pub fn new(specifier: &AnySpecifier) -> Self {
     match specifier {
-      Specifier::Exact(s) => SimpleSemver::Exact(s.clone()),
-      Specifier::Latest(s) => SimpleSemver::Latest(s.clone()),
-      Specifier::Major(s) => SimpleSemver::Major(s.clone()),
-      Specifier::Minor(s) => SimpleSemver::Minor(s.clone()),
-      Specifier::Range(s) => SimpleSemver::Range(s.clone()),
-      Specifier::RangeMinor(s) => SimpleSemver::RangeMinor(s.clone()),
+      AnySpecifier::Exact(s) => SimpleSemver::Exact(s.clone()),
+      AnySpecifier::Latest(s) => SimpleSemver::Latest(s.clone()),
+      AnySpecifier::Major(s) => SimpleSemver::Major(s.clone()),
+      AnySpecifier::Minor(s) => SimpleSemver::Minor(s.clone()),
+      AnySpecifier::Range(s) => SimpleSemver::Range(s.clone()),
+      AnySpecifier::RangeMinor(s) => SimpleSemver::RangeMinor(s.clone()),
       _ => panic!("{specifier:?} is not SimpleSemver"),
     }
   }
 
-  pub fn to_specifier(&self) -> Specifier {
+  pub fn to_specifier(&self) -> AnySpecifier {
     match self {
-      SimpleSemver::Exact(s) => Specifier::Exact(s.clone()),
-      SimpleSemver::Latest(s) => Specifier::Latest(s.clone()),
-      SimpleSemver::Major(s) => Specifier::Major(s.clone()),
-      SimpleSemver::Minor(s) => Specifier::Minor(s.clone()),
-      SimpleSemver::Range(s) => Specifier::Range(s.clone()),
-      SimpleSemver::RangeMinor(s) => Specifier::RangeMinor(s.clone()),
+      SimpleSemver::Exact(s) => AnySpecifier::Exact(s.clone()),
+      SimpleSemver::Latest(s) => AnySpecifier::Latest(s.clone()),
+      SimpleSemver::Major(s) => AnySpecifier::Major(s.clone()),
+      SimpleSemver::Minor(s) => AnySpecifier::Minor(s.clone()),
+      SimpleSemver::Range(s) => AnySpecifier::Range(s.clone()),
+      SimpleSemver::RangeMinor(s) => AnySpecifier::RangeMinor(s.clone()),
     }
   }
 
@@ -108,12 +108,12 @@ impl SimpleSemver {
       }
       SimpleSemver::Exact(exact) => {
         let next_range = range.unwrap();
-        SimpleSemver::new(&Specifier::new(&format!("{next_range}{exact}")))
+        SimpleSemver::new(&AnySpecifier::new(&format!("{next_range}{exact}")))
       }
       SimpleSemver::Major(s) | SimpleSemver::Minor(s) | SimpleSemver::Range(s) | SimpleSemver::RangeMinor(s) => {
         let exact = RANGE_CHARS.replace(s, "");
         let next_range = range.unwrap();
-        SimpleSemver::new(&Specifier::new(&format!("{next_range}{exact}")))
+        SimpleSemver::new(&AnySpecifier::new(&format!("{next_range}{exact}")))
       }
     }
   }
@@ -258,7 +258,7 @@ mod tests {
     ];
     for (str, expected) in cases {
       let raw = str.to_string();
-      let semver = SimpleSemver::new(&Specifier::new(&raw));
+      let semver = SimpleSemver::new(&AnySpecifier::new(&raw));
       let orderable = semver.get_orderable();
       assert_eq!(orderable.range, expected.range, "range");
       assert_eq!(orderable.version.major, expected.version.major, "version.major");
@@ -316,9 +316,9 @@ mod tests {
       ("1.0.0-rc.0", "~0.0.0-rc.0", Ordering::Greater),
     ];
     for (str_a, str_b, expected) in cases {
-      let a = Specifier::new(&str_a.to_string());
+      let a = AnySpecifier::new(&str_a.to_string());
       let a = SimpleSemver::new(&a);
-      let b = Specifier::new(&str_b.to_string());
+      let b = AnySpecifier::new(&str_b.to_string());
       let b = SimpleSemver::new(&b);
       let ordering = a.cmp(&b);
       assert_eq!(ordering, expected, "{str_a} should {expected:?} {str_b}");
@@ -332,9 +332,9 @@ mod tests {
       ("0.0.0", "0.0.1", true),
     ];
     for (str_a, str_b, expected) in cases {
-      let a = Specifier::new(&str_a.to_string());
+      let a = AnySpecifier::new(&str_a.to_string());
       let a = SimpleSemver::new(&a);
-      let b = Specifier::new(&str_b.to_string());
+      let b = AnySpecifier::new(&str_b.to_string());
       let b = SimpleSemver::new(&b);
       let ordering = a.cmp(&b);
       assert_eq!(a.has_same_range(&b), expected, "{str_a} has same range as {str_b} should be {expected}");

@@ -1,6 +1,6 @@
 use log::debug;
 
-use crate::specifier::{regexes, specifier_tree::SpecifierTree, Specifier};
+use crate::specifier::{regexes, specifier_tree::SpecifierTree, AnySpecifier};
 
 /// Convert non-semver specifiers to semver when behaviour is identical
 pub fn sanitise(specifier: &String) -> &str {
@@ -15,37 +15,37 @@ pub fn sanitise(specifier: &String) -> &str {
 
 /// Convert a raw string version specifier into a `Specifier` enum serving as a
 /// branded type
-pub fn parse(specifier: &String, is_recursive: bool) -> Specifier {
+pub fn parse(specifier: &String, is_recursive: bool) -> AnySpecifier {
   let str = sanitise(specifier);
   let string = str.to_string();
   if regexes::EXACT.is_match(str) || regexes::EXACT_TAG.is_match(str) {
-    Specifier::Exact(string)
+    AnySpecifier::Exact(string)
   } else if is_range(str) {
-    Specifier::Range(string)
+    AnySpecifier::Range(string)
   } else if str == "*" || str == "latest" || str == "x" {
-    Specifier::Latest(string)
+    AnySpecifier::Latest(string)
   } else if regexes::WORKSPACE_PROTOCOL.is_match(str) {
-    Specifier::WorkspaceProtocol(string)
+    AnySpecifier::WorkspaceProtocol(string)
   } else if regexes::ALIAS.is_match(str) {
-    Specifier::Alias(string)
+    AnySpecifier::Alias(string)
   } else if regexes::MAJOR.is_match(str) {
-    Specifier::Major(string)
+    AnySpecifier::Major(string)
   } else if regexes::MINOR.is_match(str) {
-    Specifier::Minor(string)
+    AnySpecifier::Minor(string)
   } else if regexes::TAG.is_match(str) {
-    Specifier::Tag(string)
+    AnySpecifier::Tag(string)
   } else if regexes::GIT.is_match(str) {
-    Specifier::Git(string)
+    AnySpecifier::Git(string)
   } else if regexes::URL.is_match(str) {
-    Specifier::Url(string)
+    AnySpecifier::Url(string)
   } else if is_range_minor(str) {
-    Specifier::RangeMinor(string)
+    AnySpecifier::RangeMinor(string)
   } else if regexes::FILE.is_match(str) {
-    Specifier::File(string)
+    AnySpecifier::File(string)
   } else if !is_recursive && is_complex_range(str) {
-    Specifier::RangeComplex(string)
+    AnySpecifier::RangeComplex(string)
   } else {
-    Specifier::Unsupported(string)
+    AnySpecifier::Unsupported(string)
   }
 }
 

@@ -7,7 +7,7 @@ use crate::{
   context::Context,
   effects::{Effects, Event, InstanceEvent, InstanceEventVariant},
   packages::Packages,
-  specifier::Specifier,
+  specifier::AnySpecifier,
   version_group::Variant,
 };
 
@@ -44,7 +44,7 @@ pub fn visit_packages(config: &Config, packages: Packages, effects: &mut impl Ef
         effects.on(Event::GroupVisited(&group.selector), &mut instances_by_id);
 
         group.dependencies.values().for_each(|dependency| {
-          let mut expected: Option<Specifier> = None;
+          let mut expected: Option<AnySpecifier> = None;
           let mut queue: Vec<InstanceEvent> = vec![];
           let mut severity = VALID;
           let mut mark_as = |level: u8| {
@@ -66,7 +66,7 @@ pub fn visit_packages(config: &Config, packages: Packages, effects: &mut impl Ef
                   });
                 } else {
                   mark_as(INVALID);
-                  instance.expected = Specifier::None;
+                  instance.expected = AnySpecifier::None;
                   queue.push(InstanceEvent {
                     dependency: &dependency,
                     instance_id: instance_id.clone(),
@@ -188,7 +188,7 @@ pub fn visit_packages(config: &Config, packages: Packages, effects: &mut impl Ef
                     mark_as(INVALID);
                     dependency.all.iter().for_each(|instance_id| {
                       let instance = instances_by_id.get_mut(instance_id).unwrap();
-                      instance.expected = Specifier::None;
+                      instance.expected = AnySpecifier::None;
                       queue.push(InstanceEvent {
                         dependency: &dependency,
                         instance_id: instance_id.clone(),
@@ -273,7 +273,7 @@ pub fn visit_packages(config: &Config, packages: Packages, effects: &mut impl Ef
                     if mismatches.contains_key(&instance.actual) {
                       if mismatches.contains_key(&instance.expected) {
                         mark_as(INVALID);
-                        instance.expected = Specifier::None;
+                        instance.expected = AnySpecifier::None;
                         queue.push(InstanceEvent {
                           dependency: &dependency,
                           instance_id: instance_id.clone(),
@@ -281,7 +281,7 @@ pub fn visit_packages(config: &Config, packages: Packages, effects: &mut impl Ef
                         });
                       } else {
                         mark_as(INVALID);
-                        instance.expected = Specifier::None;
+                        instance.expected = AnySpecifier::None;
                         queue.push(InstanceEvent {
                           dependency: &dependency,
                           instance_id: instance_id.clone(),
@@ -291,7 +291,7 @@ pub fn visit_packages(config: &Config, packages: Packages, effects: &mut impl Ef
                     } else {
                       if mismatches.contains_key(&instance.expected) {
                         mark_as(INVALID);
-                        instance.expected = Specifier::None;
+                        instance.expected = AnySpecifier::None;
                         queue.push(InstanceEvent {
                           dependency: &dependency,
                           instance_id: instance_id.clone(),
@@ -299,7 +299,7 @@ pub fn visit_packages(config: &Config, packages: Packages, effects: &mut impl Ef
                         });
                       } else {
                         mark_as(INVALID);
-                        instance.expected = Specifier::None;
+                        instance.expected = AnySpecifier::None;
                         queue.push(InstanceEvent {
                           dependency: &dependency,
                           instance_id: instance_id.clone(),
@@ -310,7 +310,7 @@ pub fn visit_packages(config: &Config, packages: Packages, effects: &mut impl Ef
                   } else {
                     if mismatches.contains_key(&instance.actual) {
                       mark_as(INVALID);
-                      instance.expected = Specifier::None;
+                      instance.expected = AnySpecifier::None;
                       queue.push(InstanceEvent {
                         dependency: &dependency,
                         instance_id: instance_id.clone(),
@@ -340,7 +340,7 @@ pub fn visit_packages(config: &Config, packages: Packages, effects: &mut impl Ef
                 mark_as(INVALID);
                 dependency.all.iter().for_each(|instance_id| {
                   let instance = instances_by_id.get_mut(instance_id).unwrap();
-                  instance.expected = Specifier::None;
+                  instance.expected = AnySpecifier::None;
                   queue.push(InstanceEvent {
                     dependency: &dependency,
                     instance_id: instance_id.clone(),
@@ -352,7 +352,7 @@ pub fn visit_packages(config: &Config, packages: Packages, effects: &mut impl Ef
             Variant::SnappedTo => {
               let snapped_to_specifier = dependency.get_snapped_to_specifier(&instances_by_id);
               // @FIXME
-              expected = Some(Specifier::new(&"0.0.0".to_string()));
+              expected = Some(AnySpecifier::new(&"0.0.0".to_string()));
             }
           };
 
@@ -369,11 +369,11 @@ pub fn visit_packages(config: &Config, packages: Packages, effects: &mut impl Ef
             let a = &instances_by_id.get(&a.instance_id).unwrap();
             let b = &instances_by_id.get(&b.instance_id).unwrap();
 
-            if matches!(&a.actual, Specifier::None) {
+            if matches!(&a.actual, AnySpecifier::None) {
               return Ordering::Greater;
             }
 
-            if matches!(&b.actual, Specifier::None) {
+            if matches!(&b.actual, AnySpecifier::None) {
               return Ordering::Less;
             }
 

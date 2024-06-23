@@ -5,7 +5,7 @@ use crate::{
   dependency_type::{DependencyType, Strategy},
   package_json::PackageJson,
   semver_group::SemverGroup,
-  specifier::{semver::Semver, semver_range::SemverRange, specifier_tree::SpecifierTree, Specifier},
+  specifier::{semver::Semver, semver_range::SemverRange, specifier_tree::SpecifierTree, AnySpecifier},
 };
 
 pub type InstanceId = String;
@@ -14,11 +14,11 @@ pub type InstanceId = String;
 pub struct Instance {
   /// The original version specifier, which should never be mutated.
   /// eg. `Specifier::Exact("16.8.0")`, `Specifier::Range("^16.8.0")`
-  pub actual: Specifier,
+  pub actual: AnySpecifier,
   /// The dependency type to use to read/write this instance
   pub dependency_type: DependencyType,
   /// The latest version specifier which is mutated by Syncpack
-  pub expected: Specifier,
+  pub expected: AnySpecifier,
   /// The file path of the package.json file this instance belongs to
   pub file_path: PathBuf,
   /// A unique identifier for this instance
@@ -46,7 +46,7 @@ impl Instance {
     package: &PackageJson,
   ) -> Instance {
     let package_name = package.get_name();
-    let specifier = Specifier::new(&raw_specifier);
+    let specifier = AnySpecifier::new(&raw_specifier);
     Instance {
       actual: specifier.clone(),
       dependency_type: dependency_type.clone(),
@@ -77,7 +77,7 @@ impl Instance {
   /// ✓ its own version matches its expected version (eg. "1.1.0" == "1.1.0")
   /// ✓ its expected version matches the expected version of the group
   /// ✘ only its own semver range is different
-  pub fn has_range_mismatch(&self, other: &Specifier) -> bool {
+  pub fn has_range_mismatch(&self, other: &AnySpecifier) -> bool {
     // it has a semver group
     self.prefer_range.is_some()
       && match (SpecifierTree::new(&self.actual), SpecifierTree::new(&self.expected), SpecifierTree::new(other)) {
@@ -94,13 +94,13 @@ impl Instance {
       }
   }
 
-  pub fn get_fixed_range_mismatch(&self) -> Specifier {
+  pub fn get_fixed_range_mismatch(&self) -> AnySpecifier {
     let range = self.prefer_range.as_ref().expect("Cannot fix range mismatch without a preferred range");
     self.expected.with_range_if_semver(&range)
   }
 
   /// Write a version to the package.json
-  pub fn set_specifier(&mut self, package: &mut PackageJson, specifier: &Specifier) {
+  pub fn set_specifier(&mut self, package: &mut PackageJson, specifier: &AnySpecifier) {
     let raw_specifier = specifier.unwrap();
     match self.dependency_type.strategy {
       Strategy::NameAndVersionProps => {

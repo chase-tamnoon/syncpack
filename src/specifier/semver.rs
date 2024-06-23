@@ -1,4 +1,4 @@
-use super::{simple_semver::SimpleSemver, Specifier};
+use super::{simple_semver::SimpleSemver, AnySpecifier};
 
 #[derive(Clone, Debug)]
 pub enum Semver {
@@ -7,10 +7,10 @@ pub enum Semver {
 }
 
 impl Semver {
-  pub fn new(specifier: &Specifier) -> Self {
+  pub fn new(specifier: &AnySpecifier) -> Self {
     match specifier {
-      Specifier::Exact(_) | Specifier::Latest(_) | Specifier::Major(_) | Specifier::Minor(_) | Specifier::Range(_) | Specifier::RangeMinor(_) => Semver::Simple(SimpleSemver::new(specifier)),
-      Specifier::RangeComplex(s) => Semver::Complex(s.clone()),
+      AnySpecifier::Exact(_) | AnySpecifier::Latest(_) | AnySpecifier::Major(_) | AnySpecifier::Minor(_) | AnySpecifier::Range(_) | AnySpecifier::RangeMinor(_) => Semver::Simple(SimpleSemver::new(specifier)),
+      AnySpecifier::RangeComplex(s) => Semver::Complex(s.clone()),
       _ => panic!("{specifier:?} is not Semver"),
     }
   }

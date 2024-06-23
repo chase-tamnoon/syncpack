@@ -1,4 +1,4 @@
-use super::Specifier;
+use super::AnySpecifier;
 
 #[derive(Clone, Debug)]
 pub enum NonSemver {
@@ -19,15 +19,15 @@ pub enum NonSemver {
 }
 
 impl NonSemver {
-  pub fn new(specifier: &Specifier) -> Self {
+  pub fn new(specifier: &AnySpecifier) -> Self {
     match specifier {
-      Specifier::Alias(s) => NonSemver::Alias(s.clone()),
-      Specifier::File(s) => NonSemver::File(s.clone()),
-      Specifier::Git(s) => NonSemver::Git(s.clone()),
-      Specifier::Tag(s) => NonSemver::Tag(s.clone()),
-      Specifier::Unsupported(s) => NonSemver::Unsupported(s.clone()),
-      Specifier::Url(s) => NonSemver::Url(s.clone()),
-      Specifier::WorkspaceProtocol(s) => NonSemver::WorkspaceProtocol(s.clone()),
+      AnySpecifier::Alias(s) => NonSemver::Alias(s.clone()),
+      AnySpecifier::File(s) => NonSemver::File(s.clone()),
+      AnySpecifier::Git(s) => NonSemver::Git(s.clone()),
+      AnySpecifier::Tag(s) => NonSemver::Tag(s.clone()),
+      AnySpecifier::Unsupported(s) => NonSemver::Unsupported(s.clone()),
+      AnySpecifier::Url(s) => NonSemver::Url(s.clone()),
+      AnySpecifier::WorkspaceProtocol(s) => NonSemver::WorkspaceProtocol(s.clone()),
       _ => panic!("{specifier:?} is not NonSemver"),
     }
   }

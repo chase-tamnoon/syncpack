@@ -1,7 +1,7 @@
 use serde::Deserialize;
 use std::{collections::BTreeMap, vec};
 
-use crate::{dependency::Dependency, group_selector::GroupSelector, instance::Instance, specifier::Specifier};
+use crate::{dependency::Dependency, group_selector::GroupSelector, instance::Instance, specifier::AnySpecifier};
 
 /// What behaviour has this group been configured to exhibit?
 #[derive(Clone, Debug)]
@@ -24,7 +24,7 @@ pub struct VersionGroup {
   /// Group instances of each dependency together for comparison.
   pub dependencies: BTreeMap<String, Dependency>,
   /// The version to pin all instances to when variant is `Pinned`
-  pub pin_version: Option<Specifier>,
+  pub pin_version: Option<AnySpecifier>,
   /// `name` properties of package.json files developed in the monorepo when variant is `SnappedTo`
   pub snap_to: Option<Vec<String>>,
 }
@@ -93,7 +93,7 @@ impl VersionGroup {
         variant: Variant::Pinned,
         selector,
         dependencies: BTreeMap::new(),
-        pin_version: Some(Specifier::new(pin_version)),
+        pin_version: Some(AnySpecifier::new(pin_version)),
         snap_to: None,
       };
     }
@@ -140,8 +140,8 @@ impl VersionGroup {
 
 struct SnapToMismatches {
   pub instance_ids: Vec<String>,
-  pub actual_specifier: Specifier,
-  pub expected_specifier: Specifier,
+  pub actual_specifier: AnySpecifier,
+  pub expected_specifier: AnySpecifier,
   pub snap_to_instance_id: String,
 }
 

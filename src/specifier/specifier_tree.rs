@@ -1,4 +1,4 @@
-use super::{non_semver::NonSemver, semver::Semver, Specifier};
+use super::{non_semver::NonSemver, semver::Semver, AnySpecifier};
 
 #[derive(Clone, Debug)]
 pub enum SpecifierTree {
@@ -8,11 +8,15 @@ pub enum SpecifierTree {
 }
 
 impl SpecifierTree {
-  pub fn new(specifier: &Specifier) -> Self {
+  pub fn new(specifier: &AnySpecifier) -> Self {
     match specifier {
-      Specifier::Exact(_) | Specifier::Latest(_) | Specifier::Major(_) | Specifier::Minor(_) | Specifier::Range(_) | Specifier::RangeComplex(_) | Specifier::RangeMinor(_) => SpecifierTree::Semver(Semver::new(specifier)),
-      Specifier::Alias(_) | Specifier::File(_) | Specifier::Git(_) | Specifier::Tag(_) | Specifier::Unsupported(_) | Specifier::Url(_) | Specifier::WorkspaceProtocol(_) => SpecifierTree::NonSemver(NonSemver::new(specifier)),
-      Specifier::None => SpecifierTree::None,
+      AnySpecifier::Exact(_) | AnySpecifier::Latest(_) | AnySpecifier::Major(_) | AnySpecifier::Minor(_) | AnySpecifier::Range(_) | AnySpecifier::RangeComplex(_) | AnySpecifier::RangeMinor(_) => {
+        SpecifierTree::Semver(Semver::new(specifier))
+      }
+      AnySpecifier::Alias(_) | AnySpecifier::File(_) | AnySpecifier::Git(_) | AnySpecifier::Tag(_) | AnySpecifier::Unsupported(_) | AnySpecifier::Url(_) | AnySpecifier::WorkspaceProtocol(_) => {
+        SpecifierTree::NonSemver(NonSemver::new(specifier))
+      }
+      AnySpecifier::None => SpecifierTree::None,
     }
   }
 

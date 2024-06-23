@@ -15,7 +15,7 @@ pub mod specifier_tree;
 /// Use `SpecifierTree` for operations which are only applicable to specific
 /// types of specifiers (only semver specifiers are sortable, for example)
 #[derive(Clone, Eq, Debug, Hash, PartialEq)]
-pub enum Specifier {
+pub enum AnySpecifier {
   // Semver
   Exact(String),
   Latest(String),
@@ -40,34 +40,34 @@ pub enum Specifier {
   None,
 }
 
-impl Specifier {
+impl AnySpecifier {
   pub fn new(specifier: &String) -> Self {
     parser::parse(specifier, false)
   }
 
   // @TODO: impl Eq
-  pub fn matches(&self, specifier: &Specifier) -> bool {
+  pub fn matches(&self, specifier: &AnySpecifier) -> bool {
     *self == *specifier
   }
 
   /// Get the `specifier_type` name as used in config files.
   pub fn get_config_identifier(&self) -> String {
     match self {
-      &Specifier::Exact(_) => "exact",
-      &Specifier::Latest(_) => "latest",
-      &Specifier::Major(_) => "major",
-      &Specifier::Minor(_) => "minor",
-      &Specifier::Range(_) => "range",
-      &Specifier::RangeMinor(_) => "range-minor",
-      &Specifier::RangeComplex(_) => "range-complex",
-      &Specifier::Alias(_) => "alias",
-      &Specifier::File(_) => "file",
-      &Specifier::Git(_) => "git",
-      &Specifier::Tag(_) => "tag",
-      &Specifier::Unsupported(_) => "unsupported",
-      &Specifier::Url(_) => "url",
-      &Specifier::WorkspaceProtocol(_) => "workspace-protocol",
-      &Specifier::None => "missing",
+      &AnySpecifier::Exact(_) => "exact",
+      &AnySpecifier::Latest(_) => "latest",
+      &AnySpecifier::Major(_) => "major",
+      &AnySpecifier::Minor(_) => "minor",
+      &AnySpecifier::Range(_) => "range",
+      &AnySpecifier::RangeMinor(_) => "range-minor",
+      &AnySpecifier::RangeComplex(_) => "range-complex",
+      &AnySpecifier::Alias(_) => "alias",
+      &AnySpecifier::File(_) => "file",
+      &AnySpecifier::Git(_) => "git",
+      &AnySpecifier::Tag(_) => "tag",
+      &AnySpecifier::Unsupported(_) => "unsupported",
+      &AnySpecifier::Url(_) => "url",
+      &AnySpecifier::WorkspaceProtocol(_) => "workspace-protocol",
+      &AnySpecifier::None => "missing",
     }
     .to_string()
   }
@@ -86,21 +86,21 @@ impl Specifier {
   /// Get the raw specifier value
   pub fn unwrap(&self) -> &String {
     match &self {
-      &Specifier::Exact(specifier) => specifier,
-      &Specifier::Latest(specifier) => specifier,
-      &Specifier::Major(specifier) => specifier,
-      &Specifier::Minor(specifier) => specifier,
-      &Specifier::Range(specifier) => specifier,
-      &Specifier::RangeMinor(specifier) => specifier,
-      &Specifier::RangeComplex(specifier) => specifier,
-      &Specifier::Alias(specifier) => specifier,
-      &Specifier::File(specifier) => specifier,
-      &Specifier::Git(specifier) => specifier,
-      &Specifier::Tag(specifier) => specifier,
-      &Specifier::Unsupported(specifier) => specifier,
-      &Specifier::Url(specifier) => specifier,
-      &Specifier::WorkspaceProtocol(specifier) => specifier,
-      &Specifier::None => {
+      &AnySpecifier::Exact(specifier) => specifier,
+      &AnySpecifier::Latest(specifier) => specifier,
+      &AnySpecifier::Major(specifier) => specifier,
+      &AnySpecifier::Minor(specifier) => specifier,
+      &AnySpecifier::Range(specifier) => specifier,
+      &AnySpecifier::RangeMinor(specifier) => specifier,
+      &AnySpecifier::RangeComplex(specifier) => specifier,
+      &AnySpecifier::Alias(specifier) => specifier,
+      &AnySpecifier::File(specifier) => specifier,
+      &AnySpecifier::Git(specifier) => specifier,
+      &AnySpecifier::Tag(specifier) => specifier,
+      &AnySpecifier::Unsupported(specifier) => specifier,
+      &AnySpecifier::Url(specifier) => specifier,
+      &AnySpecifier::WorkspaceProtocol(specifier) => specifier,
+      &AnySpecifier::None => {
         panic!("Cannot unwrap a Specifier::None");
       }
     }
@@ -119,8 +119,8 @@ mod tests {
   fn alias() {
     let cases: Vec<String> = to_strings(vec!["npm:@minh.nguyen/plugin-transform-destructuring@^7.5.2", "npm:@types/selenium-webdriver@4.1.18", "npm:foo@1.2.3"]);
     for case in cases {
-      let parsed = Specifier::new(&case);
-      assert_eq!(parsed, Specifier::Alias(case.to_string()), "{} should be alias", case);
+      let parsed = AnySpecifier::new(&case);
+      assert_eq!(parsed, AnySpecifier::Alias(case.to_string()), "{} should be alias", case);
     }
   }
 
@@ -134,8 +134,8 @@ mod tests {
       // "1.2.3+build.123",
     ]);
     for case in cases {
-      let parsed = Specifier::new(&case);
-      assert_eq!(parsed, Specifier::Exact(case.clone()), "{} should be exact", case);
+      let parsed = AnySpecifier::new(&case);
+      assert_eq!(parsed, AnySpecifier::Exact(case.clone()), "{} should be exact", case);
     }
   }
 
@@ -161,8 +161,8 @@ mod tests {
       "file:path/to/foo",
     ]);
     for case in cases {
-      let parsed = Specifier::new(&case);
-      assert_eq!(parsed, Specifier::File(case.clone()), "{} should be file", case);
+      let parsed = AnySpecifier::new(&case);
+      assert_eq!(parsed, AnySpecifier::File(case.clone()), "{} should be file", case);
     }
   }
 
@@ -203,8 +203,8 @@ mod tests {
       "git+ssh://git@notgithub.com/user/foo#1.2.3",
     ]);
     for case in cases {
-      let parsed = Specifier::new(&case);
-      assert_eq!(parsed, Specifier::Git(case.clone()), "{} should be git", case);
+      let parsed = AnySpecifier::new(&case);
+      assert_eq!(parsed, AnySpecifier::Git(case.clone()), "{} should be git", case);
     }
   }
 
@@ -212,8 +212,8 @@ mod tests {
   fn latest() {
     let cases: Vec<String> = to_strings(vec!["latest", "*"]);
     for case in cases {
-      let parsed = Specifier::new(&case);
-      assert_eq!(parsed, Specifier::Latest("*".to_string()), "{} should be latest", case);
+      let parsed = AnySpecifier::new(&case);
+      assert_eq!(parsed, AnySpecifier::Latest("*".to_string()), "{} should be latest", case);
     }
   }
 
@@ -221,8 +221,8 @@ mod tests {
   fn major() {
     let cases: Vec<String> = to_strings(vec!["1"]);
     for case in cases {
-      let parsed = Specifier::new(&case);
-      assert_eq!(parsed, Specifier::Major(case.clone()), "{} should be major", case);
+      let parsed = AnySpecifier::new(&case);
+      assert_eq!(parsed, AnySpecifier::Major(case.clone()), "{} should be major", case);
     }
   }
 
@@ -230,8 +230,8 @@ mod tests {
   fn minor() {
     let cases: Vec<String> = to_strings(vec!["1.2"]);
     for case in cases {
-      let parsed = Specifier::new(&case);
-      assert_eq!(parsed, Specifier::Minor(case.clone()), "{} should be minor", case);
+      let parsed = AnySpecifier::new(&case);
+      assert_eq!(parsed, AnySpecifier::Minor(case.clone()), "{} should be minor", case);
     }
   }
 
@@ -247,8 +247,8 @@ mod tests {
       // ">5.0.0 <6.0.0",
     ]);
     for case in cases {
-      let parsed = Specifier::new(&case);
-      assert_eq!(parsed, Specifier::Range(case.clone()), "{} should be range", case);
+      let parsed = AnySpecifier::new(&case);
+      assert_eq!(parsed, AnySpecifier::Range(case.clone()), "{} should be range", case);
     }
   }
 
@@ -256,8 +256,8 @@ mod tests {
   fn range_minor() {
     let cases: Vec<String> = to_strings(vec!["^4.1", "~1.2", ">=5.0", "<=5.0", ">5.0", "<5.0"]);
     for case in cases {
-      let parsed = Specifier::new(&case);
-      assert_eq!(parsed, Specifier::RangeMinor(case.clone()), "{} should be range-minor", case);
+      let parsed = AnySpecifier::new(&case);
+      assert_eq!(parsed, AnySpecifier::RangeMinor(case.clone()), "{} should be range-minor", case);
     }
   }
 
@@ -265,8 +265,8 @@ mod tests {
   fn tag() {
     let cases: Vec<String> = to_strings(vec!["alpha", "canary", "foo"]);
     for case in cases {
-      let parsed = Specifier::new(&case);
-      assert_eq!(parsed, Specifier::Tag(case.clone()), "{} should be tag", case);
+      let parsed = AnySpecifier::new(&case);
+      assert_eq!(parsed, AnySpecifier::Tag(case.clone()), "{} should be tag", case);
     }
   }
 
@@ -290,8 +290,8 @@ mod tests {
       "git+file://path/to/repo#1.2.3",
     ]);
     for case in cases {
-      let parsed = Specifier::new(&case);
-      assert_eq!(parsed, Specifier::Unsupported(case.clone()), "{} should be unsupported", case);
+      let parsed = AnySpecifier::new(&case);
+      assert_eq!(parsed, AnySpecifier::Unsupported(case.clone()), "{} should be unsupported", case);
     }
   }
 
@@ -299,8 +299,8 @@ mod tests {
   fn url() {
     let cases: Vec<String> = to_strings(vec!["http://insecure.com/foo.tgz", "https://server.com/foo.tgz", "https://server.com/foo.tgz"]);
     for case in cases {
-      let parsed = Specifier::new(&case);
-      assert_eq!(parsed, Specifier::Url(case.clone()), "{} should be url", &case);
+      let parsed = AnySpecifier::new(&case);
+      assert_eq!(parsed, AnySpecifier::Url(case.clone()), "{} should be url", &case);
     }
   }
 
@@ -308,8 +308,8 @@ mod tests {
   fn workspace_protocol() {
     let cases: Vec<String> = to_strings(vec!["workspace:*", "workspace:^", "workspace:~"]);
     for case in cases {
-      let parsed = Specifier::new(&case);
-      assert_eq!(parsed, Specifier::WorkspaceProtocol(case.clone()), "{} should be workspace-protocol", case);
+      let parsed = AnySpecifier::new(&case);
+      assert_eq!(parsed, AnySpecifier::WorkspaceProtocol(case.clone()), "{} should be workspace-protocol", case);
     }
   }
 
@@ -326,8 +326,8 @@ mod tests {
       ">1.0.0 <1.0.0",
     ]);
     for case in cases {
-      let parsed = Specifier::new(&case);
-      assert_eq!(parsed, Specifier::RangeComplex(case.clone()), "{} should be range-complex", case);
+      let parsed = AnySpecifier::new(&case);
+      assert_eq!(parsed, AnySpecifier::RangeComplex(case.clone()), "{} should be range-complex", case);
     }
   }
 
@@ -339,8 +339,8 @@ mod tests {
       for (range, expected) in &cases {
         let range = SemverRange::new(&range.to_string()).unwrap();
         let expected = expected.to_string();
-        let parsed = Specifier::new(&initial);
-        assert_eq!(parsed.with_range_if_semver(&range), Specifier::new(&expected.clone()), "{} + {:?} should produce {}", initial, range, expected);
+        let parsed = AnySpecifier::new(&initial);
+        assert_eq!(parsed.with_range_if_semver(&range), AnySpecifier::new(&expected.clone()), "{} + {:?} should produce {}", initial, range, expected);
       }
     }
   }
