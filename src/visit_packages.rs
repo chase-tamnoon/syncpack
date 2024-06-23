@@ -140,21 +140,23 @@ pub fn visit_packages(config: &Config, packages: Packages, effects: &mut impl Ef
                         dependency.all.iter().for_each(|instance_id| {
                           let instance = instances_by_id.get_mut(instance_id).unwrap();
                           if instance.actual.matches(&preferred) {
-                            expected = Some(preferred.clone());
-                            queue.push(InstanceEvent {
-                              dependency: &dependency,
-                              instance_id: instance_id.clone(),
-                              variant: InstanceEventVariant::InstanceMatchesHighestOrLowestSemver,
-                            });
-                          } else if instance.has_range_mismatch(&preferred) {
-                            mark_as(INVALID);
-                            instance.expected = instance.get_fixed_range_mismatch();
-                            expected = Some(preferred.clone());
-                            queue.push(InstanceEvent {
-                              dependency: &dependency,
-                              instance_id: instance_id.clone(),
-                              variant: InstanceEventVariant::InstanceMatchesHighestOrLowestSemverButMismatchesSemverGroup,
-                            });
+                            if instance.has_range_mismatch(&preferred) {
+                              mark_as(INVALID);
+                              instance.expected = instance.get_fixed_range_mismatch();
+                              expected = Some(preferred.clone());
+                              queue.push(InstanceEvent {
+                                dependency: &dependency,
+                                instance_id: instance_id.clone(),
+                                variant: InstanceEventVariant::InstanceMatchesHighestOrLowestSemverButMismatchesSemverGroup,
+                              });
+                            } else {
+                              expected = Some(preferred.clone());
+                              queue.push(InstanceEvent {
+                                dependency: &dependency,
+                                instance_id: instance_id.clone(),
+                                variant: InstanceEventVariant::InstanceMatchesHighestOrLowestSemver,
+                              });
+                            }
                           } else {
                             mark_as(INVALID);
                             instance.expected = preferred.clone();
@@ -767,7 +769,6 @@ mod tests {
   }
 
   #[test]
-  #[ignore]
   fn highest_version_match_becomes_mismatch_after_semver_range_has_been_fixed() {
     let config = Config::from_mock(json!({
       "semverGroups": [{

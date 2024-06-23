@@ -1,5 +1,8 @@
+use std::cmp::Ordering;
+
 use lazy_static::lazy_static;
 use log::debug;
+use node_semver::Version;
 use regex::Regex;
 
 use crate::semver_range::SemverRange;
@@ -78,17 +81,15 @@ pub enum Specifier {
 }
 
 impl Specifier {
+  pub fn new(specifier: &String) -> Self {
+    Specifier::parse(specifier, false)
+  }
+
   pub fn is_semver(&self) -> bool {
     match self {
       Self::Exact(_) | Self::Latest(_) | Self::Major(_) | Self::Minor(_) | Self::Range(_) | Self::RangeComplex(_) | Self::RangeMinor(_) => true,
       Self::Alias(_) | Self::File(_) | Self::Git(_) | Self::Tag(_) | Self::Unsupported(_) | Self::Url(_) | Self::WorkspaceProtocol(_) | Self::None => false,
     }
-  }
-}
-
-impl Specifier {
-  pub fn new(specifier: &String) -> Self {
-    parse(specifier, false)
   }
 
   pub fn matches(&self, specifier: &Specifier) -> bool {
@@ -126,10 +127,10 @@ impl Specifier {
       return Some(SemverRange::Exact);
     }
     if REGEX_CARET.is_match(specifier) {
-      return Some(SemverRange::Caret);
+      return Some(SemverRange::Minor);
     }
     if REGEX_TILDE.is_match(specifier) {
-      return Some(SemverRange::Tilde);
+      return Some(SemverRange::Patch);
     }
     if REGEX_GT.is_match(specifier) {
       return Some(SemverRange::Gt);
@@ -158,18 +159,18 @@ impl Specifier {
     let replace = |current_range: &str| {
       let specifier = self.unwrap();
       let next_range = range.unwrap();
-      parse(&specifier.replace(current_range, &next_range), false)
+      Specifier::parse(&specifier.replace(current_range, &next_range), false)
     };
     match self.get_semver_range() {
       Some(SemverRange::Exact) => {
         let specifier = self.unwrap();
         let next_range = range.unwrap();
-        return parse(&format!("{}{}", &next_range, &specifier), false);
+        return Specifier::parse(&format!("{}{}", &next_range, &specifier), false);
       }
-      Some(SemverRange::Caret) => {
+      Some(SemverRange::Minor) => {
         return replace("^");
       }
-      Some(SemverRange::Tilde) => {
+      Some(SemverRange::Patch) => {
         return replace("~");
       }
       Some(SemverRange::Gt) => {
@@ -215,86 +216,121 @@ impl Specifier {
       }
     }
   }
-}
 
-/// Convert non-semver specifiers to semver when behaviour is identical
-fn sanitise(specifier: &String) -> &str {
-  let specifier = specifier.as_str();
-  if specifier == "latest" || specifier == "x" {
-    debug!("Sanitising specifier: {} → *", specifier);
-    "*"
-  } else {
-    specifier
+  /// Convert non-semver specifiers to semver when behaviour is identical
+  fn sanitise(specifier: &String) -> &str {
+    let specifier = specifier.as_str();
+    if specifier == "latest" || specifier == "x" {
+      debug!("Sanitising specifier: {} → *", specifier);
+      "*"
+    } else {
+      specifier
+    }
   }
-}
 
-/// Convert a raw string version specifier into a `Specifier` enum serving as a
-/// branded type
-fn parse(specifier: &String, is_recursive: bool) -> Specifier {
-  let str = sanitise(specifier);
-  let string = str.to_string();
-  if REGEX_EXACT.is_match(str) {
-    Specifier::Exact(string)
-  } else if is_range(str) {
-    Specifier::Range(string)
-  } else if str == "*" || str == "latest" || str == "x" {
-    Specifier::Latest(string)
-  } else if REGEX_WORKSPACE_PROTOCOL.is_match(str) {
-    Specifier::WorkspaceProtocol(string)
-  } else if REGEX_ALIAS.is_match(str) {
-    Specifier::Alias(string)
-  } else if REGEX_MAJOR.is_match(str) {
-    Specifier::Major(string)
-  } else if REGEX_MINOR.is_match(str) {
-    Specifier::Minor(string)
-  } else if REGEX_TAG.is_match(str) {
-    Specifier::Tag(string)
-  } else if REGEX_GIT.is_match(str) {
-    Specifier::Git(string)
-  } else if REGEX_URL.is_match(str) {
-    Specifier::Url(string)
-  } else if is_range_minor(str) {
-    Specifier::RangeMinor(string)
-  } else if REGEX_FILE.is_match(str) {
-    Specifier::File(string)
-  } else if !is_recursive && is_complex_range(str) {
-    Specifier::RangeComplex(string)
-  } else {
-    Specifier::Unsupported(string)
+  /// Convert a raw string version specifier into a `Specifier` enum serving as a
+  /// branded type
+  fn parse(specifier: &String, is_recursive: bool) -> Specifier {
+    let str = Specifier::sanitise(specifier);
+    let string = str.to_string();
+    if REGEX_EXACT.is_match(str) {
+      Specifier::Exact(string)
+    } else if Specifier::is_range(str) {
+      Specifier::Range(string)
+    } else if str == "*" || str == "latest" || str == "x" {
+      Specifier::Latest(string)
+    } else if REGEX_WORKSPACE_PROTOCOL.is_match(str) {
+      Specifier::WorkspaceProtocol(string)
+    } else if REGEX_ALIAS.is_match(str) {
+      Specifier::Alias(string)
+    } else if REGEX_MAJOR.is_match(str) {
+      Specifier::Major(string)
+    } else if REGEX_MINOR.is_match(str) {
+      Specifier::Minor(string)
+    } else if REGEX_TAG.is_match(str) {
+      Specifier::Tag(string)
+    } else if REGEX_GIT.is_match(str) {
+      Specifier::Git(string)
+    } else if REGEX_URL.is_match(str) {
+      Specifier::Url(string)
+    } else if Specifier::is_range_minor(str) {
+      Specifier::RangeMinor(string)
+    } else if REGEX_FILE.is_match(str) {
+      Specifier::File(string)
+    } else if !is_recursive && Specifier::is_complex_range(str) {
+      Specifier::RangeComplex(string)
+    } else {
+      Specifier::Unsupported(string)
+    }
   }
-}
 
-/// Is this a semver range containing multiple parts?
-/// Such as OR (" || ") or AND (" ")
-fn is_complex_range(specifier: &str) -> bool {
-  REGEX_OR_OPERATOR.split(specifier).map(|str| str.trim()).filter(|str| str.len() > 0).all(|or_condition| {
-    or_condition
-      .split(" ")
-      .map(|str| str.trim())
-      .filter(|str| str.len() > 0)
-      .all(|and_condition| parse(&and_condition.to_string(), true).is_semver())
-  })
-}
+  /// Is this a semver range containing multiple parts?
+  /// Such as OR (" || ") or AND (" ")
+  fn is_complex_range(specifier: &str) -> bool {
+    REGEX_OR_OPERATOR.split(specifier).map(|str| str.trim()).filter(|str| str.len() > 0).all(|or_condition| {
+      or_condition
+        .split(" ")
+        .map(|str| str.trim())
+        .filter(|str| str.len() > 0)
+        .all(|and_condition| Specifier::parse(&and_condition.to_string(), true).is_semver())
+    })
+  }
 
-fn is_range(specifier: &str) -> bool {
-  REGEX_CARET.is_match(specifier) || REGEX_TILDE.is_match(specifier) || REGEX_GT.is_match(specifier) || REGEX_GTE.is_match(specifier) || REGEX_LT.is_match(specifier) || REGEX_LTE.is_match(specifier)
-}
+  fn is_range(specifier: &str) -> bool {
+    REGEX_CARET.is_match(specifier) || REGEX_TILDE.is_match(specifier) || REGEX_GT.is_match(specifier) || REGEX_GTE.is_match(specifier) || REGEX_LT.is_match(specifier) || REGEX_LTE.is_match(specifier)
+  }
 
-fn is_range_minor(specifier: &str) -> bool {
-  REGEX_CARET_MINOR.is_match(specifier)
-    || REGEX_TILDE_MINOR.is_match(specifier)
-    || REGEX_GT_MINOR.is_match(specifier)
-    || REGEX_GTE_MINOR.is_match(specifier)
-    || REGEX_LT_MINOR.is_match(specifier)
-    || REGEX_LTE_MINOR.is_match(specifier)
+  fn is_range_minor(specifier: &str) -> bool {
+    REGEX_CARET_MINOR.is_match(specifier) || REGEX_TILDE_MINOR.is_match(specifier) || REGEX_GT_MINOR.is_match(specifier) || REGEX_GTE_MINOR.is_match(specifier) || REGEX_LT_MINOR.is_match(specifier) || REGEX_LTE_MINOR.is_match(specifier)
+  }
+
+  pub fn compare_to(&self, other: &Specifier) -> Ordering {
+    if self.get_exact().unwrap() == other.get_exact().unwrap() {
+      let a = self.get_semver_range();
+      let b = other.get_semver_range();
+      return a.cmp(&b);
+    } else {
+      let a = self.unwrap().parse::<Version>().unwrap();
+      let b = other.unwrap().parse::<Version>().unwrap();
+      return a.cmp(&b);
+    }
+  }
 }
 
 #[cfg(test)]
 mod tests {
   use super::*;
+  use std::cmp::Ordering;
 
   fn to_strings(specifiers: Vec<&str>) -> Vec<String> {
     specifiers.iter().map(|s| s.to_string()).collect()
+  }
+
+  #[test]
+  fn compare_specifiers() {
+    let cases: Vec<(&str, &str, Ordering)> = vec![
+      /* "" */
+      ("0.0.0", "0.0.1", Ordering::Less),
+      ("0.0.0", "0.1.0", Ordering::Less),
+      ("0.0.0", "1.0.0", Ordering::Less),
+      ("0.0.0", "0.0.0", Ordering::Equal),
+      ("0.0.1", "0.0.0", Ordering::Greater),
+      ("0.1.0", "0.0.0", Ordering::Greater),
+      ("1.0.0", "0.0.0", Ordering::Greater),
+      /* ~ */
+      ("0.0.0", "~0.0.1", Ordering::Less),
+      ("0.0.0", "~0.1.0", Ordering::Less),
+      ("0.0.0", "~1.0.0", Ordering::Less),
+      ("0.0.0", "~0.0.0", Ordering::Less),
+      ("0.0.1", "~0.0.0", Ordering::Greater),
+      ("0.1.0", "~0.0.0", Ordering::Greater),
+      ("1.0.0", "~0.0.0", Ordering::Greater),
+    ];
+    for (a, b, expected) in cases {
+      let parsed = Specifier::new(&a.to_string());
+      let ordering = parsed.compare_to(&Specifier::new(&b.to_string()));
+      assert_eq!(ordering, expected, "{a} should {expected:?} {b}");
+    }
   }
 
   #[test]
@@ -420,8 +456,7 @@ mod tests {
   #[test]
   fn range() {
     let cases: Vec<String> = to_strings(vec![
-      "^4.1.1", "~1.2.1", ">=5.0.0", "<=5.0.0", ">5.0.0",
-      "<5.0.0",
+      "^4.1.1", "~1.2.1", ">=5.0.0", "<=5.0.0", ">5.0.0", "<5.0.0",
       // ">=5.0.0 <6.0.0",
       // ">5.0.0 <6.0.0",
       // ">=5.0.0 <=6.0.0",
@@ -523,14 +558,7 @@ mod tests {
         let range = SemverRange::new(&range.to_string()).unwrap();
         let expected = expected.to_string();
         let parsed = Specifier::new(&initial);
-        assert_eq!(
-          parsed.with_semver_range(&range),
-          Specifier::new(&expected.clone()),
-          "{} + {:?} should produce {}",
-          initial,
-          range,
-          expected
-        );
+        assert_eq!(parsed.with_semver_range(&range), Specifier::new(&expected.clone()), "{} + {:?} should produce {}", initial, range, expected);
       }
     }
   }
