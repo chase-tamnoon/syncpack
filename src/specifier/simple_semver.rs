@@ -12,7 +12,7 @@ use super::{
   AnySpecifier,
 };
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Hash)]
 struct OrderableSimpleSemver {
   pub range: SemverRange,
   pub version: Version,

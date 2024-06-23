@@ -1,6 +1,6 @@
 use super::{parser, simple_semver::SimpleSemver};
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Hash)]
 pub enum Semver {
   Simple(SimpleSemver),
   Complex(String),

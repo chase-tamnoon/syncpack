@@ -12,7 +12,7 @@ pub mod semver;
 pub mod semver_range;
 pub mod simple_semver;
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Eq, Hash)]
 pub enum Specifier {
   Semver(Semver),
   NonSemver(NonSemver),

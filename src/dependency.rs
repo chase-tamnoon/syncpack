@@ -8,7 +8,7 @@ use version_compare::{compare, Cmp};
 use crate::{
   context::InstancesById,
   instance::{Instance, InstanceId},
-  specifier::any_specifier::AnySpecifier,
+  specifier::Specifier,
   version_group::Variant,
 };
 
@@ -16,7 +16,7 @@ use crate::{
 /// same version specifier.
 #[derive(Debug)]
 pub struct InstanceIdsBySpecifier {
-  pub specifier: AnySpecifier,
+  pub specifier: Specifier,
   pub instance_ids: Vec<InstanceId>,
 }
 
@@ -24,7 +24,7 @@ pub struct InstanceIdsBySpecifier {
 /// same version specifier.
 #[derive(Debug)]
 pub struct InstancesBySpecifier<'a> {
-  pub specifier: AnySpecifier,
+  pub specifier: Specifier,
   pub instances: Vec<&'a Instance>,
 }
 
@@ -37,7 +37,7 @@ pub struct Dependency {
   /// The name of the dependency
   pub name: String,
   /// The version to pin all instances to when variant is `Pinned`
-  pub pinned_specifier: Option<AnySpecifier>,
+  pub pinned_specifier: Option<Specifier>,
   /// `name` properties of package.json files developed in the monorepo when variant is `SnappedTo`
   pub snapped_to_package_names: Option<Vec<String>>,
   /// What behaviour has this group been configured to exhibit?
@@ -48,7 +48,7 @@ impl Dependency {
   pub fn new(
     name: String,
     variant: Variant,
-    pinned_specifier: Option<AnySpecifier>,
+    pinned_specifier: Option<Specifier>,
     snapped_to_package_names: Option<Vec<String>>,
   ) -> Dependency {
     Dependency {
@@ -90,7 +90,7 @@ impl Dependency {
       .any(|instance| instance.prefer_range.is_some())
   }
 
-  pub fn get_local_specifier(&self, instances_by_id: &InstancesById) -> Option<AnySpecifier> {
+  pub fn get_local_specifier(&self, instances_by_id: &InstancesById) -> Option<Specifier> {
     self
       .get_instances(instances_by_id)
       .iter()
@@ -108,7 +108,7 @@ impl Dependency {
   pub fn get_unique_expected_and_actual_specifiers(
     &self,
     instances_by_id: &InstancesById,
-  ) -> HashSet<AnySpecifier> {
+  ) -> HashSet<Specifier> {
     self
       .get_instances(instances_by_id)
       .iter()
@@ -122,7 +122,7 @@ impl Dependency {
   pub fn get_unique_expected_specifiers(
     &self,
     instances_by_id: &InstancesById,
-  ) -> HashSet<AnySpecifier> {
+  ) -> HashSet<Specifier> {
     self
       .get_instances(instances_by_id)
       .iter()
@@ -134,10 +134,10 @@ impl Dependency {
 
   /// Is the exact same specifier used by all instances in this group?
   pub fn all_are_identical(&self, instances_by_id: &InstancesById) -> bool {
-    let mut previous: Option<&AnySpecifier> = None;
+    let mut previous: Option<&Specifier> = None;
     for instance in self.get_instances(instances_by_id) {
       if let Some(value) = previous {
-        if *value != instance.actual {
+        if *value.unwrap() != instance.actual.unwrap() {
           return false;
         }
       }
@@ -146,11 +146,11 @@ impl Dependency {
     return true;
   }
 
-  pub fn get_highest_semver(&self, instances_by_id: &InstancesById) -> Option<AnySpecifier> {
+  pub fn get_highest_semver(&self, instances_by_id: &InstancesById) -> Option<Specifier> {
     self.get_highest_or_lowest_semver(instances_by_id, Cmp::Gt)
   }
 
-  pub fn get_lowest_semver(&self, instances_by_id: &InstancesById) -> Option<AnySpecifier> {
+  pub fn get_lowest_semver(&self, instances_by_id: &InstancesById) -> Option<Specifier> {
     self.get_highest_or_lowest_semver(instances_by_id, Cmp::Lt)
   }
 
@@ -162,7 +162,7 @@ impl Dependency {
     &self,
     instances_by_id: &InstancesById,
     preferred_order: Cmp,
-  ) -> Option<AnySpecifier> {
+  ) -> Option<Specifier> {
     self
       .get_instances(instances_by_id)
       .iter()
@@ -197,10 +197,10 @@ impl Dependency {
   pub fn get_same_range_mismatches<'a>(
     &'a self,
     instances_by_id: &'a InstancesById,
-  ) -> HashMap<AnySpecifier, Vec<AnySpecifier>> {
-    let get_range = |specifier: &AnySpecifier| specifier.unwrap().parse::<Range>().unwrap();
-    let mut mismatches_by_specifier: HashMap<AnySpecifier, Vec<AnySpecifier>> = HashMap::new();
-    let unique_semver_specifiers: Vec<AnySpecifier> = self
+  ) -> HashMap<Specifier, Vec<Specifier>> {
+    let get_range = |specifier: &Specifier| specifier.unwrap().parse::<Range>().unwrap();
+    let mut mismatches_by_specifier: HashMap<Specifier, Vec<Specifier>> = HashMap::new();
+    let unique_semver_specifiers: Vec<Specifier> = self
       .get_unique_expected_and_actual_specifiers(&instances_by_id)
       .iter()
       .filter(|specifier| specifier.is_simple_semver())
@@ -209,7 +209,7 @@ impl Dependency {
     unique_semver_specifiers.iter().for_each(|specifier_a| {
       let range_a = get_range(specifier_a);
       unique_semver_specifiers.iter().for_each(|specifier_b| {
-        if specifier_a == specifier_b {
+        if specifier_a.unwrap() == specifier_b.unwrap() {
           return;
         }
         let range_b = get_range(specifier_b);
@@ -236,7 +236,7 @@ impl Dependency {
   pub fn get_snapped_to_specifier<'a>(
     &self,
     instances_by_id: &'a InstancesById,
-  ) -> Option<AnySpecifier> {
+  ) -> Option<Specifier> {
     if let Some(snapped_to_package_names) = &self.snapped_to_package_names {
       for instance in instances_by_id.values() {
         if instance.name == *self.name {

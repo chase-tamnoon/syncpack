@@ -1,6 +1,6 @@
 use std::cmp::Ordering;
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Hash)]
 pub enum SemverRange {
   /// *
   Any,
