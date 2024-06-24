@@ -88,7 +88,7 @@ impl<'a> Expects<'a> {
 
   // ===========================================================================
 
-  pub fn to_have_matches(&self, expected_matches: &Vec<ExpectedMatchEvent>) -> &Self {
+  pub fn to_have_matches(&self, expected_matches: Vec<ExpectedMatchEvent>) -> &Self {
     let actual_matches = &self.effects.matches;
     let expected_len = expected_matches.len();
     let actual_len = actual_matches.values().fold(0, |acc, x| acc + x.len());
@@ -96,7 +96,7 @@ impl<'a> Expects<'a> {
       self.debug();
       panic!("expected {actual_len} matches but found {expected_len}");
     }
-    'expected: for expected in expected_matches {
+    'expected: for expected in &expected_matches {
       let variant = &expected.variant;
       let dependency_name = &expected.dependency_name;
       let instance_id = &expected.instance_id;
@@ -113,13 +113,13 @@ impl<'a> Expects<'a> {
         }
       }
       self.debug();
-      println!("Expected: {:#?}", expected_matches);
+      println!("expected_matches: {:#?}", &expected_matches);
       panic!("expected a '{variant:?}' for '{instance_id}' with '{actual}'");
     }
     self
   }
 
-  pub fn to_have_mismatches(&self, expected_mismatches: &Vec<ExpectedMismatchEvent>) -> &Self {
+  pub fn to_have_mismatches(&self, expected_mismatches: Vec<ExpectedMismatchEvent>) -> &Self {
     let actual_mismatches = &self.effects.mismatches;
     let expected_len = expected_mismatches.len();
     let actual_len = actual_mismatches.values().fold(0, |acc, x| acc + x.len());
@@ -127,7 +127,7 @@ impl<'a> Expects<'a> {
       self.debug();
       panic!("expected {actual_len} mismatches but found {expected_len}");
     }
-    'expected: for expected in expected_mismatches {
+    'expected: for expected in &expected_mismatches {
       let variant = &expected.variant;
       let dependency_name = &expected.dependency_name;
       let instance_id = &expected.instance_id;
@@ -145,7 +145,7 @@ impl<'a> Expects<'a> {
         }
       }
       self.debug();
-      println!("Expected: {:#?}", expected_mismatches);
+      println!("expected_mismatches: {:#?}", &expected_mismatches);
       panic!("expected a '{variant:?}' for '{instance_id}' with '{actual}'");
     }
     self
