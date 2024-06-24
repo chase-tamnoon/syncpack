@@ -746,30 +746,6 @@ mod tests {
   }
 
   #[test]
-  #[ignore]
-  fn reports_local_version_mismatch_when_an_instance_uses_workspace_protocol() {
-    panic!("@TODO");
-  }
-
-  #[test]
-  #[ignore]
-  fn reports_unfixable_local_version_mismatch_when_local_version_is_missing() {
-    panic!("@TODO");
-  }
-
-  #[test]
-  #[ignore]
-  fn reports_unfixable_local_version_mismatch_when_local_version_is_not_exact_semver() {
-    panic!("@TODO");
-  }
-
-  #[test]
-  #[ignore]
-  fn reports_local_version_mismatch_when_an_instance_has_same_version_but_different_range() {
-    panic!("@TODO");
-  }
-
-  #[test]
   fn highest_version_match_becomes_mismatch_after_semver_range_has_been_fixed() {
     let config = Config::from_mock(json!({
       "semverGroups": [{
@@ -805,5 +781,29 @@ mod tests {
           expected: ">1.0.0",
         },
       ]);
+  }
+
+  #[test]
+  #[ignore]
+  fn reports_local_version_mismatch_when_an_instance_uses_workspace_protocol() {
+    panic!("@TODO");
+  }
+
+  #[test]
+  #[ignore]
+  fn reports_unfixable_local_version_mismatch_when_local_version_is_missing() {
+    panic!("@TODO");
+  }
+
+  #[test]
+  #[ignore]
+  fn reports_unfixable_local_version_mismatch_when_local_version_is_not_exact_semver() {
+    panic!("@TODO");
+  }
+
+  #[test]
+  #[ignore]
+  fn reports_local_version_mismatch_when_an_instance_has_same_version_but_different_range() {
+    panic!("@TODO");
   }
 }
