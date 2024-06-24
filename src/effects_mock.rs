@@ -1,3 +1,4 @@
+#[cfg(test)]
 use std::collections::HashMap;
 
 #[cfg(test)]
@@ -22,38 +23,6 @@ pub struct EventsByType {
   pub format_match: Vec<()>,
   pub format_mismatch: Vec<()>,
   pub exit_command: Vec<()>,
-  /* Ignored */
-  pub instance_is_ignored: Vec<ActualMatchEvent>,
-  /* Matches */
-  pub local_instance_is_preferred: Vec<ActualMatchEvent>,
-  pub instance_matches_local: Vec<ActualMatchEvent>,
-  pub instance_matches_highest_or_lowest_semver: Vec<ActualMatchEvent>,
-  pub instance_matches_but_is_unsupported: Vec<ActualMatchEvent>,
-  pub instance_matches_pinned: Vec<ActualMatchEvent>,
-  pub instance_matches_same_range_group: Vec<ActualMatchEvent>,
-  /* Warnings */
-  pub local_instance_mistakenly_banned: Vec<ActualMatchEvent>,
-  pub local_instance_mistakenly_mismatches_semver_group: Vec<ActualMismatchEvent>,
-  pub local_instance_mistakenly_mismatches_pinned: Vec<ActualMismatchEvent>,
-  /* Fixable Mismatches */
-  pub instance_is_banned: Vec<ActualMismatchEvent>,
-  pub instance_matches_highest_or_lowest_semver_but_mismatches_conflicting_semver_group:
-    Vec<ActualMismatchEvent>,
-  pub instance_is_highest_or_lowest_semver_once_semver_group_is_fixed: Vec<ActualMismatchEvent>,
-  pub instance_matches_local_but_mismatches_semver_group: Vec<ActualMismatchEvent>,
-  pub instance_mismatches_local: Vec<ActualMismatchEvent>,
-  pub instance_mismatches_highest_or_lowest_semver: Vec<ActualMismatchEvent>,
-  pub instance_mismatches_pinned: Vec<ActualMismatchEvent>,
-  /* Unfixable Mismatches */
-  pub instance_mismatches_and_is_unsupported: Vec<ActualMatchEvent>,
-  pub instance_matches_pinned_but_mismatches_semver_group: Vec<ActualMatchEvent>,
-  pub instance_mismatches_both_same_range_and_conflicting_semver_groups: Vec<ActualMatchEvent>,
-  pub instance_mismatches_both_same_range_and_compatible_semver_groups: Vec<ActualMatchEvent>,
-  pub instance_matches_same_range_group_but_mismatches_conflicting_semver_group:
-    Vec<ActualMatchEvent>,
-  pub instance_matches_same_range_group_but_mismatches_compatible_semver_group:
-    Vec<ActualMatchEvent>,
-  pub instance_mismatches_same_range_group: Vec<ActualMatchEvent>,
 }
 
 #[cfg(test)]
@@ -69,35 +38,6 @@ impl EventsByType {
       format_match: vec![],
       format_mismatch: vec![],
       exit_command: vec![],
-      /* Ignored */
-      instance_is_ignored: vec![],
-      /* Matches */
-      local_instance_is_preferred: vec![],
-      instance_matches_local: vec![],
-      instance_matches_highest_or_lowest_semver: vec![],
-      instance_matches_but_is_unsupported: vec![],
-      instance_matches_pinned: vec![],
-      instance_matches_same_range_group: vec![],
-      /* Warnings */
-      local_instance_mistakenly_banned: vec![],
-      local_instance_mistakenly_mismatches_semver_group: vec![],
-      local_instance_mistakenly_mismatches_pinned: vec![],
-      instance_matches_highest_or_lowest_semver_but_mismatches_conflicting_semver_group: vec![],
-      /* Fixable Mismatches */
-      instance_is_banned: vec![],
-      instance_is_highest_or_lowest_semver_once_semver_group_is_fixed: vec![],
-      instance_matches_local_but_mismatches_semver_group: vec![],
-      instance_mismatches_local: vec![],
-      instance_mismatches_highest_or_lowest_semver: vec![],
-      instance_mismatches_pinned: vec![],
-      /* Unfixable Mismatches */
-      instance_mismatches_and_is_unsupported: vec![],
-      instance_matches_pinned_but_mismatches_semver_group: vec![],
-      instance_mismatches_both_same_range_and_conflicting_semver_groups: vec![],
-      instance_mismatches_both_same_range_and_compatible_semver_groups: vec![],
-      instance_matches_same_range_group_but_mismatches_conflicting_semver_group: vec![],
-      instance_matches_same_range_group_but_mismatches_compatible_semver_group: vec![],
-      instance_mismatches_same_range_group: vec![],
     }
   }
 }
@@ -195,142 +135,5 @@ self.mismatches
 .push(ActualMismatchEvent::new(&event, &instance));
 }
 };
-
-    match &event.variant {
-      /* Ignored */
-      InstanceEventVariant::InstanceIsIgnored => {
-        self.events.instance_is_ignored.push(ActualMatchEvent::new(&event,&instance));
-      }
-      /* Matches */
-      InstanceEventVariant::LocalInstanceIsPreferred => {
-        self
-          .events
-          .local_instance_is_preferred
-          .push(ActualMatchEvent::new(&event,&instance));
-      }
-      InstanceEventVariant::InstanceMatchesLocal => {
-        self.events.instance_matches_local.push(ActualMatchEvent::new(&event,&instance));
-      }
-      InstanceEventVariant::InstanceMatchesHighestOrLowestSemver => {
-        self
-          .events
-          .instance_matches_highest_or_lowest_semver
-          .push(ActualMatchEvent::new(&event,&instance));
-      }
-      InstanceEventVariant::InstanceMatchesButIsUnsupported => {
-        self
-          .events
-          .instance_matches_but_is_unsupported
-          .push(ActualMatchEvent::new(&event,&instance));
-      }
-      InstanceEventVariant::InstanceMatchesPinned => {
-        self.events.instance_matches_pinned.push(ActualMatchEvent::new(&event,&instance));
-      }
-      InstanceEventVariant::InstanceMatchesSameRangeGroup => {
-        self
-          .events
-          .instance_matches_same_range_group
-          .push(ActualMatchEvent::new(&event,&instance));
-      }
-      /* Warnings */
-      InstanceEventVariant::LocalInstanceMistakenlyBanned => {
-        self
-          .events
-          .local_instance_mistakenly_banned
-          .push(ActualMatchEvent::new(&event,&instance));
-      }
-      InstanceEventVariant::LocalInstanceMistakenlyMismatchesSemverGroup => {
-        self
-          .events
-          .local_instance_mistakenly_mismatches_semver_group
-          .push(ActualMismatchEvent::new(&event,&instance));
-      }
-      InstanceEventVariant::LocalInstanceMistakenlyMismatchesPinned => {
-        self
-          .events
-          .local_instance_mistakenly_mismatches_pinned
-          .push(ActualMismatchEvent::new(&event,&instance));
-      }
-      InstanceEventVariant::InstanceMatchesHighestOrLowestSemverButMismatchesConflictingSemverGroup => {
-        self
-          .events
-          .instance_matches_highest_or_lowest_semver_but_mismatches_conflicting_semver_group
-          .push(ActualMismatchEvent::new(&event,&instance));
-      }
-      InstanceEventVariant::InstanceMatchesPinnedButMismatchesSemverGroup => {
-        self
-          .events
-          .instance_matches_pinned_but_mismatches_semver_group
-          .push(ActualMatchEvent::new(&event,&instance));
-      }
-      /* Fixable Mismatches */
-      InstanceEventVariant::InstanceIsBanned => {
-        self.events.instance_is_banned.push(ActualMismatchEvent::new(&event,&instance));
-      }
-      InstanceEventVariant::InstanceIsHighestOrLowestSemverOnceSemverGroupIsFixed => {
-        self.events.instance_is_banned.push(ActualMismatchEvent::new(&event,&instance));
-      }
-      InstanceEventVariant::InstanceMatchesLocalButMismatchesSemverGroup => {
-        self
-          .events
-          .instance_matches_local_but_mismatches_semver_group
-          .push(ActualMismatchEvent::new(&event,&instance));
-      }
-      InstanceEventVariant::InstanceMismatchesLocal => {
-        self
-          .events
-          .instance_mismatches_local
-          .push(ActualMismatchEvent::new(&event,&instance));
-      }
-      InstanceEventVariant::InstanceMismatchesHighestOrLowestSemver => {
-        self
-          .events
-          .instance_mismatches_highest_or_lowest_semver
-          .push(ActualMismatchEvent::new(&event,&instance));
-      }
-      InstanceEventVariant::InstanceMismatchesPinned => {
-        self
-          .events
-          .instance_mismatches_pinned
-          .push(ActualMismatchEvent::new(&event,&instance));
-      }
-      /* Unfixable Mismatches */
-      InstanceEventVariant::InstanceMismatchesAndIsUnsupported => {
-        self
-          .events
-          .instance_mismatches_and_is_unsupported
-          .push(ActualMatchEvent::new(&event,&instance));
-      }
-      InstanceEventVariant::InstanceMismatchesBothSameRangeAndConflictingSemverGroups => {
-        self
-          .events
-          .instance_mismatches_both_same_range_and_conflicting_semver_groups
-          .push(ActualMatchEvent::new(&event,&instance));
-      }
-      InstanceEventVariant::InstanceMismatchesBothSameRangeAndCompatibleSemverGroups => {
-        self
-          .events
-          .instance_mismatches_both_same_range_and_compatible_semver_groups
-          .push(ActualMatchEvent::new(&event,&instance));
-      }
-      InstanceEventVariant::InstanceMatchesSameRangeGroupButMismatchesConflictingSemverGroup => {
-        self
-          .events
-          .instance_matches_same_range_group_but_mismatches_conflicting_semver_group
-          .push(ActualMatchEvent::new(&event,&instance));
-      }
-      InstanceEventVariant::InstanceMatchesSameRangeGroupButMismatchesCompatibleSemverGroup => {
-        self
-          .events
-          .instance_matches_same_range_group_but_mismatches_compatible_semver_group
-          .push(ActualMatchEvent::new(&event,&instance));
-      }
-      InstanceEventVariant::InstanceMismatchesSameRangeGroup => {
-        self
-          .events
-          .instance_mismatches_same_range_group
-          .push(ActualMatchEvent::new(&event,&instance));
-      }
-    }
   }
 }
