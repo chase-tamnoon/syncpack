@@ -101,9 +101,12 @@ impl Effects for FixEffects<'_> {
       InstanceEventVariant::LocalInstanceMistakenlyMismatchesPinned => {
         println!("@TODO: explain LocalInstanceMistakenlyMismatchesPinned");
       }
+      InstanceEventVariant::InstanceMatchesHighestOrLowestSemverButMismatchesConflictingSemverGroup => {
+        println!("@TODO: explain InstanceEventVariant::InstanceMatchesHighestOrLowestSemverButMismatchesConflictingSemverGroup");
+      }
       /* Fixable Mismatches */
       InstanceEventVariant::InstanceIsBanned
-      | InstanceEventVariant::InstanceMatchesHighestOrLowestSemverButMismatchesConflictingSemverGroup
+      | InstanceEventVariant::InstanceIsHighestOrLowestSemverOnceSemverGroupIsFixed
       | InstanceEventVariant::InstanceMatchesLocalButMismatchesSemverGroup
       | InstanceEventVariant::InstanceMismatchesLocal
       | InstanceEventVariant::InstanceMismatchesHighestOrLowestSemver

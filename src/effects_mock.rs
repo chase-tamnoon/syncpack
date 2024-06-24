@@ -80,9 +80,9 @@ impl EventsByType {
       local_instance_mistakenly_banned: vec![],
       local_instance_mistakenly_mismatches_semver_group: vec![],
       local_instance_mistakenly_mismatches_pinned: vec![],
+      instance_matches_highest_or_lowest_semver_but_mismatches_conflicting_semver_group: vec![],
       /* Fixable Mismatches */
       instance_is_banned: vec![],
-      instance_matches_highest_or_lowest_semver_but_mismatches_conflicting_semver_group: vec![],
       instance_is_highest_or_lowest_semver_once_semver_group_is_fixed: vec![],
       instance_matches_local_but_mismatches_semver_group: vec![],
       instance_mismatches_local: vec![],
@@ -249,15 +249,6 @@ impl Effects for MockEffects<'_> {
             expected: instance.expected.unwrap().clone(),
           });
       }
-      /* Fixable Mismatches */
-      InstanceEventVariant::InstanceIsBanned => {
-        self.events.instance_is_banned.push(ActualMismatchEvent {
-          dependency_name: event.dependency.name.clone(),
-          instance_id: event.instance_id.clone(),
-          actual: instance.actual.unwrap().clone(),
-          expected: instance.expected.unwrap().clone(),
-        });
-      }
       InstanceEventVariant::InstanceMatchesHighestOrLowestSemverButMismatchesConflictingSemverGroup => {
         self
           .events
@@ -268,6 +259,33 @@ impl Effects for MockEffects<'_> {
             actual: instance.actual.unwrap().clone(),
             expected: instance.expected.unwrap().clone(),
           });
+      }
+      InstanceEventVariant::InstanceMatchesPinnedButMismatchesSemverGroup => {
+        self
+          .events
+          .instance_matches_pinned_but_mismatches_semver_group
+          .push(ActualMatchEvent {
+            dependency_name: event.dependency.name.clone(),
+            instance_id: event.instance_id.clone(),
+            actual: instance.actual.unwrap().clone(),
+          });
+      }
+      /* Fixable Mismatches */
+      InstanceEventVariant::InstanceIsBanned => {
+        self.events.instance_is_banned.push(ActualMismatchEvent {
+          dependency_name: event.dependency.name.clone(),
+          instance_id: event.instance_id.clone(),
+          actual: instance.actual.unwrap().clone(),
+          expected: instance.expected.unwrap().clone(),
+        });
+      }
+      InstanceEventVariant::InstanceIsHighestOrLowestSemverOnceSemverGroupIsFixed => {
+        self.events.instance_is_banned.push(ActualMismatchEvent {
+          dependency_name: event.dependency.name.clone(),
+          instance_id: event.instance_id.clone(),
+          actual: instance.actual.unwrap().clone(),
+          expected: instance.expected.unwrap().clone(),
+        });
       }
       InstanceEventVariant::InstanceMatchesLocalButMismatchesSemverGroup => {
         self
@@ -318,16 +336,6 @@ impl Effects for MockEffects<'_> {
         self
           .events
           .instance_mismatches_and_is_unsupported
-          .push(ActualMatchEvent {
-            dependency_name: event.dependency.name.clone(),
-            instance_id: event.instance_id.clone(),
-            actual: instance.actual.unwrap().clone(),
-          });
-      }
-      InstanceEventVariant::InstanceMatchesPinnedButMismatchesSemverGroup => {
-        self
-          .events
-          .instance_matches_pinned_but_mismatches_semver_group
           .push(ActualMatchEvent {
             dependency_name: event.dependency.name.clone(),
             instance_id: event.instance_id.clone(),

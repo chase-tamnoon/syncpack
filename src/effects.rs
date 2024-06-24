@@ -41,33 +41,39 @@ pub enum Event<'a> {
 
 #[derive(Debug)]
 pub enum InstanceEventVariant {
+  /* = Ignored ============================================================== */
+  InstanceIsIgnored,
+  /* = Matches ============================================================== */
   LocalInstanceIsPreferred,
   InstanceMatchesLocal,
   InstanceMatchesHighestOrLowestSemver,
   InstanceMatchesButIsUnsupported,
-  InstanceIsIgnored,
   InstanceMatchesPinned,
   /// ✓ Instance matches its same range group
   /// ✓ Instance matches its semver group
   InstanceMatchesSameRangeGroup,
+  /* = Warnings ============================================================= */
   /// Misconfiguration: Syncpack refuses to change local dependency specifiers
   LocalInstanceMistakenlyBanned,
-  InstanceIsBanned,
+  /// Misconfiguration: Syncpack refuses to change local dependency specifiers
+  LocalInstanceMistakenlyMismatchesSemverGroup,
+  /// Misconfiguration: Syncpack refuses to change local dependency specifiers
+  LocalInstanceMistakenlyMismatchesPinned,
+  /* = Fixable with config to resolve conflict ============================== */
+  InstanceMatchesPinnedButMismatchesSemverGroup,
+  InstanceMatchesLocalButMismatchesSemverGroup,
   /// Instance has the highest actual version but does not match its semver
   /// group, if we fix the semver group it will no longer match the highest
   /// expected version
   InstanceMatchesHighestOrLowestSemverButMismatchesConflictingSemverGroup,
+  /* = Fixable ============================================================== */
+  InstanceIsBanned,
   InstanceIsHighestOrLowestSemverOnceSemverGroupIsFixed,
-  InstanceMatchesLocalButMismatchesSemverGroup,
   InstanceMismatchesLocal,
   InstanceMismatchesHighestOrLowestSemver,
-  InstanceMismatchesAndIsUnsupported,
-  /// Misconfiguration: Syncpack refuses to change local dependency specifiers
-  LocalInstanceMistakenlyMismatchesSemverGroup,
-  InstanceMatchesPinnedButMismatchesSemverGroup,
-  /// Misconfiguration: Syncpack refuses to change local dependency specifiers
-  LocalInstanceMistakenlyMismatchesPinned,
   InstanceMismatchesPinned,
+  /* = Unfixable ============================================================ */
+  InstanceMismatchesAndIsUnsupported,
   /// ✘ Instance mismatches its same range group
   /// ✘ Instance mismatches its semver group
   /// ✘ If semver group is fixed, instance would still mismatch its same range group

@@ -127,6 +127,18 @@ impl Effects for LintEffects<'_> {
         let instance = instances_by_id.get(instance_id).unwrap();
         info!("  LocalInstanceMistakenlyMismatchesPinned");
       }
+      InstanceEventVariant::InstanceMatchesHighestOrLowestSemverButMismatchesConflictingSemverGroup => {
+        // return /*SKIP*/;
+        let instance = instances_by_id.get(instance_id).unwrap();
+        let icon = icon_fixable();
+        let actual = instance.actual.unwrap().red();
+        let high_low = high_low_hint(&dependency.variant);
+        let opposite = if matches!(dependency.variant, Variant::HighestSemver) {"lower"}else{"higher"};
+        let hint = format!("is {high_low} but mismatches its semver group, fixing its semver group would cause its version to be {opposite}").dimmed();
+        let location_hint = instance.location_hint.dimmed();
+        info!("      {icon} {actual} {hint} {location_hint}");
+        self.is_valid = false;
+      }
       /* Fixable Mismatches */
       InstanceEventVariant::InstanceIsBanned => {
         // return /*SKIP*/;
@@ -137,7 +149,7 @@ impl Effects for LintEffects<'_> {
         info!("      {icon} {hint} {location_hint}");
         self.is_valid = false;
       }
-      InstanceEventVariant::InstanceMatchesHighestOrLowestSemverButMismatchesConflictingSemverGroup => {
+      InstanceEventVariant::InstanceIsHighestOrLowestSemverOnceSemverGroupIsFixed => {
         // return /*SKIP*/;
         let instance = instances_by_id.get(instance_id).unwrap();
         let icon = icon_fixable();
@@ -145,7 +157,7 @@ impl Effects for LintEffects<'_> {
         let arrow = icon_arrow();
         let expected = instance.expected.unwrap().green();
         let high_low = high_low_hint(&dependency.variant);
-        let hint = format!("is {high_low} but mismatches its semver group").dimmed();
+        let hint = format!("mismatches its semver group but will be {high_low} once that is fixed").dimmed();
         let location_hint = instance.location_hint.dimmed();
         info!("      {icon} {actual} {arrow} {expected} {hint} {location_hint}");
         self.is_valid = false;

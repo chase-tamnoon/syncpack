@@ -148,6 +148,18 @@ impl<'a> Expects<'a> {
     self.expect_instance_mismatches(label, &expected_mismatches, actual_mismatches)
   }
 
+  pub fn to_have_instance_matches_highest_or_lowest_semver_but_mismatches_conflicting_semver_group(
+    &self,
+    expected_mismatches: Vec<ExpectedMismatchEvent>,
+  ) -> &Self {
+    let label = "instance matches highest or lowest semver but mismatches conflicting semver group";
+    let actual_mismatches = &self
+      .effects
+      .events
+      .instance_matches_highest_or_lowest_semver_but_mismatches_conflicting_semver_group;
+    self.expect_instance_mismatches(label, &expected_mismatches, actual_mismatches)
+  }
+
   /* Fixable Mismatches */
 
   pub fn to_have_instance_is_banned(
@@ -156,18 +168,6 @@ impl<'a> Expects<'a> {
   ) -> &Self {
     let label = "instance is banned";
     let actual_mismatches = &self.effects.events.instance_is_banned;
-    self.expect_instance_mismatches(label, &expected_mismatches, actual_mismatches)
-  }
-
-  pub fn to_have_instance_matches_highest_or_lowest_semver_but_mismatches_conflicting_semver_group(
-    &self,
-    expected_mismatches: Vec<ExpectedMismatchEvent>,
-  ) -> &Self {
-    let label = "instance matches highest or lowest semver but mismatches semver group";
-    let actual_mismatches = &self
-      .effects
-      .events
-      .instance_matches_highest_or_lowest_semver_but_mismatches_conflicting_semver_group;
     self.expect_instance_mismatches(label, &expected_mismatches, actual_mismatches)
   }
 

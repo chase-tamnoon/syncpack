@@ -816,8 +816,8 @@ mod tests {
           dependency_name: "foo",
           instance_id: "foo in /devDependencies of package-a",
           actual: "1.0.0",
-          // reject semver group and prefer highest version match(?)
-          expected: "1.0.0",
+          // show what the semver group expects, but ask user what they want
+          expected: ">1.0.0",
         }],
       );
   }
