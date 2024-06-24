@@ -33,11 +33,11 @@ impl Effects for FixEffects<'_> {
     packages
   }
 
-  fn set_packages(&mut self, packages: Packages) -> () {
+  fn set_packages(&mut self, packages: Packages) {
     self.packages = Some(packages);
   }
 
-  fn on(&mut self, event: Event, instances_by_id: &mut InstancesById) -> () {
+  fn on(&mut self, event: Event, instances_by_id: &mut InstancesById) {
     match &event {
       Event::EnterVersionsAndRanges => {
         info!("{}", "= SEMVER RANGES AND VERSION MISMATCHES".dimmed());
@@ -78,7 +78,7 @@ impl Effects for FixEffects<'_> {
     }
   }
 
-  fn on_instance(&mut self, event: InstanceEvent, instances_by_id: &mut InstancesById) -> () {
+  fn on_instance(&mut self, event: InstanceEvent, instances_by_id: &mut InstancesById) {
     let instance_id = &event.instance_id;
     let dependency = &event.dependency;
     match &event.variant {

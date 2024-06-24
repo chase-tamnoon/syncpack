@@ -11,10 +11,10 @@ use crate::{
 /// side effects are handled by the command-specific structs which implement
 /// this trait.
 pub trait Effects {
-  fn on(&mut self, event: Event, instances_by_id: &mut InstancesById) -> ();
-  fn on_instance(&mut self, event: InstanceEvent, instances_by_id: &mut InstancesById) -> ();
+  fn on(&mut self, event: Event, instances_by_id: &mut InstancesById);
+  fn on_instance(&mut self, event: InstanceEvent, instances_by_id: &mut InstancesById);
   fn get_packages(&mut self) -> Packages;
-  fn set_packages(&mut self, packages: Packages) -> ();
+  fn set_packages(&mut self, packages: Packages);
 }
 
 #[derive(Debug)]

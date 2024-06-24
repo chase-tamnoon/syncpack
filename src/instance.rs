@@ -63,11 +63,11 @@ impl Instance {
 
   /// Updated the expected version specifier for this instance to match the
   /// preferred semver range of the given semver group
-  pub fn apply_semver_group(&mut self, group: &SemverGroup) -> () {
+  pub fn apply_semver_group(&mut self, group: &SemverGroup) {
     group.range.as_ref().map(|range| {
       self.prefer_range = Some(range.clone());
       if let Some(expected) = self.expected.get_simple_semver() {
-        self.expected = Specifier::Semver(Semver::Simple(expected.with_range(&range)));
+        self.expected = Specifier::Semver(Semver::Simple(expected.with_range(range)));
       }
     });
   }
@@ -108,7 +108,7 @@ impl Instance {
         self
           .expected
           .get_simple_semver()
-          .map(|expected| expected.with_range(&prefer_range))
+          .map(|expected| expected.with_range(prefer_range))
       })
       .map(|simple_semver| Specifier::Semver(Semver::Simple(simple_semver)))
       .expect("Failed to fix semver range mismatch")

@@ -35,11 +35,11 @@ impl Effects for LintEffects<'_> {
     packages
   }
 
-  fn set_packages(&mut self, packages: Packages) -> () {
+  fn set_packages(&mut self, packages: Packages) {
     self.packages = Some(packages);
   }
 
-  fn on(&mut self, event: Event, instances_by_id: &mut InstancesById) -> () {
+  fn on(&mut self, event: Event, instances_by_id: &mut InstancesById) {
     match &event {
       Event::EnterVersionsAndRanges => {
         info!("{}", "= SEMVER RANGES AND VERSION MISMATCHES".dimmed());
@@ -62,13 +62,13 @@ impl Effects for LintEffects<'_> {
       Event::DependencyValid(dependency, expected) => {
         let count = render_count_column(dependency.all.len());
         let name = &dependency.name;
-        let hint = get_expected_hint(&dependency, &expected);
+        let hint = get_expected_hint(dependency, expected);
         info!("{count} {name} {hint}");
       }
       Event::DependencyInvalid(dependency, expected) => {
         let count = render_count_column(dependency.all.len());
         let name = &dependency.name;
-        let hint = get_expected_hint(&dependency, &expected);
+        let hint = get_expected_hint(dependency, expected);
         info!("{count} {name} {hint}");
       }
       Event::DependencyWarning(dependency, expected) => {
@@ -93,7 +93,7 @@ impl Effects for LintEffects<'_> {
     }
   }
 
-  fn on_instance(&mut self, event: InstanceEvent, instances_by_id: &mut InstancesById) -> () {
+  fn on_instance(&mut self, event: InstanceEvent, instances_by_id: &mut InstancesById) {
     let instance_id = &event.instance_id;
     let dependency = &event.dependency;
     println!("{:?}", instances_by_id.get(instance_id).unwrap());

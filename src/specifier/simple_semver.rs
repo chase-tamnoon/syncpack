@@ -21,24 +21,24 @@ impl Ord for OrderableSimpleSemver {
   fn cmp(&self, other: &Self) -> Ordering {
     // major
     match self.version.major.cmp(&other.version.major) {
-      Ordering::Greater => return Ordering::Greater,
-      Ordering::Less => return Ordering::Less,
+      Ordering::Greater => Ordering::Greater,
+      Ordering::Less => Ordering::Less,
       // minor
       Ordering::Equal => match self.version.minor.cmp(&other.version.minor) {
-        Ordering::Greater => return Ordering::Greater,
-        Ordering::Less => return Ordering::Less,
+        Ordering::Greater => Ordering::Greater,
+        Ordering::Less => Ordering::Less,
         // patch
         Ordering::Equal => match self.version.patch.cmp(&other.version.patch) {
-          Ordering::Greater => return Ordering::Greater,
-          Ordering::Less => return Ordering::Less,
+          Ordering::Greater => Ordering::Greater,
+          Ordering::Less => Ordering::Less,
           // build
           Ordering::Equal => match self.version.build.cmp(&other.version.build) {
-            Ordering::Greater => return Ordering::Greater,
-            Ordering::Less => return Ordering::Less,
+            Ordering::Greater => Ordering::Greater,
+            Ordering::Less => Ordering::Less,
             // pre_release
             Ordering::Equal => match self.version.pre_release.cmp(&other.version.pre_release) {
-              Ordering::Greater => return Ordering::Greater,
-              Ordering::Less => return Ordering::Less,
+              Ordering::Greater => Ordering::Greater,
+              Ordering::Less => Ordering::Less,
               Ordering::Equal => self.range.cmp(&other.range),
             },
           },
@@ -56,7 +56,7 @@ impl PartialOrd for OrderableSimpleSemver {
 
 impl PartialEq for OrderableSimpleSemver {
   fn eq(&self, other: &Self) -> bool {
-    self.cmp(&other) == Ordering::Equal
+    self.cmp(other) == Ordering::Equal
   }
 }
 
@@ -173,15 +173,15 @@ impl SimpleSemver {
         );
         Version::parse(huge_version).unwrap()
       }
-      SimpleSemver::Major(s) => Version::parse(&format!("{}.0.0", s)).unwrap(),
-      SimpleSemver::Minor(s) => Version::parse(&format!("{}.0", s)).unwrap(),
+      SimpleSemver::Major(s) => Version::parse(format!("{}.0.0", s)).unwrap(),
+      SimpleSemver::Minor(s) => Version::parse(format!("{}.0", s)).unwrap(),
       SimpleSemver::Range(s) => {
         let exact = RANGE_CHARS.replace(s, "");
-        Version::parse(&exact).unwrap()
+        Version::parse(exact).unwrap()
       }
       SimpleSemver::RangeMinor(s) => {
         let exact = RANGE_CHARS.replace(s, "");
-        Version::parse(&format!("{}.0", exact)).unwrap()
+        Version::parse(format!("{}.0", exact)).unwrap()
       }
     };
     OrderableSimpleSemver { range, version }
@@ -202,7 +202,7 @@ impl PartialOrd for SimpleSemver {
 
 impl PartialEq for SimpleSemver {
   fn eq(&self, other: &Self) -> bool {
-    self.cmp(&other) == Ordering::Equal
+    self.cmp(other) == Ordering::Equal
   }
 }
 

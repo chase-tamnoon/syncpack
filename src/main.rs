@@ -36,7 +36,7 @@ mod specifier;
 mod version_group;
 mod visit_packages;
 
-fn main() -> () {
+fn main() {
   init_logger();
 
   let cwd = current_dir().unwrap();

@@ -117,7 +117,7 @@ impl Rcfile {
 
   /// Read a rcfile from the given location
   pub fn from_file(file_path: &PathBuf) -> Option<Self> {
-    fs::read_to_string(&file_path)
+    fs::read_to_string(file_path)
       .inspect_err(|_| {
         warn!("config file not found at {}", &file_path.to_str().unwrap());
       })
@@ -192,7 +192,7 @@ impl Rcfile {
     let mut user_groups: Vec<SemverGroup> = self
       .semver_groups
       .iter()
-      .map(|group| SemverGroup::from_config(group))
+      .map(SemverGroup::from_config)
       .collect();
     user_groups.push(SemverGroup::get_catch_all());
     user_groups
@@ -213,7 +213,7 @@ impl Rcfile {
 /// Adds "!" to the start of the String
 fn negate_identifier(str: &String) -> String {
   let mut negated_str = String::from("!");
-  negated_str.push_str(&str);
+  negated_str.push_str(str);
   negated_str
 }
 

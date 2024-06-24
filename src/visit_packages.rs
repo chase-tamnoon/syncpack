@@ -20,7 +20,7 @@ pub fn visit_packages(config: &Config, packages: Packages, effects: &mut impl Ef
     mut instances_by_id,
     semver_groups,
     version_groups,
-  } = Context::create(&config, &packages);
+  } = Context::create(config, &packages);
 
   effects.set_packages(packages);
 
@@ -60,7 +60,7 @@ pub fn visit_packages(config: &Config, packages: Packages, effects: &mut impl Ef
                 if instance.is_local {
                   mark_as(WARNING);
                   queue.push(InstanceEvent {
-                    dependency: &dependency,
+                    dependency,
                     instance_id: instance_id.clone(),
                     variant: InstanceEventVariant::LocalInstanceMistakenlyBanned,
                   });
@@ -68,7 +68,7 @@ pub fn visit_packages(config: &Config, packages: Packages, effects: &mut impl Ef
                   mark_as(INVALID);
                   instance.expected = Specifier::None;
                   queue.push(InstanceEvent {
-                    dependency: &dependency,
+                    dependency,
                     instance_id: instance_id.clone(),
                     variant: InstanceEventVariant::InstanceIsBanned,
                   });
@@ -89,14 +89,14 @@ pub fn visit_packages(config: &Config, packages: Packages, effects: &mut impl Ef
                         expected = Some(local_specifier.clone());
                         instance.expected = local_specifier.clone();
                         queue.push(InstanceEvent {
-                          dependency: &dependency,
+                          dependency,
                           instance_id: instance_id.clone(),
                           variant: InstanceEventVariant::LocalInstanceMistakenlyMismatchesSemverGroup,
                         });
                       } else {
                         expected = Some(local_specifier.clone());
                         queue.push(InstanceEvent {
-                          dependency: &dependency,
+                          dependency,
                           instance_id: instance_id.clone(),
                           variant: InstanceEventVariant::LocalInstanceIsPreferred,
                         });
@@ -109,14 +109,14 @@ pub fn visit_packages(config: &Config, packages: Packages, effects: &mut impl Ef
                           instance.expected = instance.get_fixed_range_mismatch();
                           expected = Some(local_specifier.clone());
                           queue.push(InstanceEvent {
-                            dependency: &dependency,
+                            dependency,
                             instance_id: instance_id.clone(),
                             variant: InstanceEventVariant::InstanceMatchesLocalButMismatchesSemverGroup,
                           });
                         } else {
                           expected = Some(local_specifier.clone());
                           queue.push(InstanceEvent {
-                            dependency: &dependency,
+                            dependency,
                             instance_id: instance_id.clone(),
                             variant: InstanceEventVariant::InstanceMatchesLocal,
                           });
@@ -126,7 +126,7 @@ pub fn visit_packages(config: &Config, packages: Packages, effects: &mut impl Ef
                         instance.expected = local_specifier.clone();
                         expected = Some(local_specifier.clone());
                         queue.push(InstanceEvent {
-                          dependency: &dependency,
+                          dependency,
                           instance_id: instance_id.clone(),
                           variant: InstanceEventVariant::InstanceMismatchesLocal,
                         });
@@ -147,14 +147,14 @@ pub fn visit_packages(config: &Config, packages: Packages, effects: &mut impl Ef
                               instance.expected = instance.get_fixed_range_mismatch();
                               expected = Some(preferred.clone());
                               queue.push(InstanceEvent {
-                                dependency: &dependency,
+                                dependency,
                                 instance_id: instance_id.clone(),
                                 variant: InstanceEventVariant::InstanceMatchesHighestOrLowestSemverButMismatchesSemverGroup,
                               });
                             } else {
                               expected = Some(preferred.clone());
                               queue.push(InstanceEvent {
-                                dependency: &dependency,
+                                dependency,
                                 instance_id: instance_id.clone(),
                                 variant: InstanceEventVariant::InstanceMatchesHighestOrLowestSemver,
                               });
@@ -164,7 +164,7 @@ pub fn visit_packages(config: &Config, packages: Packages, effects: &mut impl Ef
                             instance.expected = preferred.clone();
                             expected = Some(preferred.clone());
                             queue.push(InstanceEvent {
-                              dependency: &dependency,
+                              dependency,
                               instance_id: instance_id.clone(),
                               variant: InstanceEventVariant::InstanceMismatchesHighestOrLowestSemver,
                             });
@@ -181,7 +181,7 @@ pub fn visit_packages(config: &Config, packages: Packages, effects: &mut impl Ef
                       let instance = instances_by_id.get(instance_id).unwrap();
                       expected = Some(instance.actual.clone());
                       queue.push(InstanceEvent {
-                        dependency: &dependency,
+                        dependency,
                         instance_id: instance_id.clone(),
                         variant: InstanceEventVariant::InstanceMatchesButIsUnsupported,
                       });
@@ -192,7 +192,7 @@ pub fn visit_packages(config: &Config, packages: Packages, effects: &mut impl Ef
                       let instance = instances_by_id.get_mut(instance_id).unwrap();
                       instance.expected = Specifier::None;
                       queue.push(InstanceEvent {
-                        dependency: &dependency,
+                        dependency,
                         instance_id: instance_id.clone(),
                         variant: InstanceEventVariant::InstanceMismatchesAndIsUnsupported,
                       });
@@ -205,7 +205,7 @@ pub fn visit_packages(config: &Config, packages: Packages, effects: &mut impl Ef
               dependency.all.iter().for_each(|instance_id| {
                 let instance = instances_by_id.get(instance_id).unwrap();
                 queue.push(InstanceEvent {
-                  dependency: &dependency,
+                  dependency,
                   instance_id: instance_id.clone(),
                   variant: InstanceEventVariant::InstanceIsIgnored,
                 });
@@ -219,16 +219,16 @@ pub fn visit_packages(config: &Config, packages: Packages, effects: &mut impl Ef
                   if instance.actual == *pinned {
                     expected = Some(pinned.clone());
                     queue.push(InstanceEvent {
-                      dependency: &dependency,
+                      dependency,
                       instance_id: instance_id.clone(),
                       variant: InstanceEventVariant::InstanceMatchesPinned,
                     });
-                  } else if instance.has_range_mismatch(&pinned) {
+                  } else if instance.has_range_mismatch(pinned) {
                     if instance.is_local {
                       mark_as(WARNING);
                       expected = Some(pinned.clone());
                       queue.push(InstanceEvent {
-                        dependency: &dependency,
+                        dependency,
                         instance_id: instance_id.clone(),
                         variant: InstanceEventVariant::LocalInstanceMistakenlyMismatchesSemverGroup,
                       });
@@ -237,7 +237,7 @@ pub fn visit_packages(config: &Config, packages: Packages, effects: &mut impl Ef
                       instance.expected = instance.get_fixed_range_mismatch();
                       expected = Some(pinned.clone());
                       queue.push(InstanceEvent {
-                        dependency: &dependency,
+                        dependency,
                         instance_id: instance_id.clone(),
                         variant: InstanceEventVariant::InstanceMatchesPinnedButMismatchesSemverGroup,
                       });
@@ -246,7 +246,7 @@ pub fn visit_packages(config: &Config, packages: Packages, effects: &mut impl Ef
                     mark_as(WARNING);
                     expected = Some(pinned.clone());
                     queue.push(InstanceEvent {
-                      dependency: &dependency,
+                      dependency,
                       instance_id: instance_id.clone(),
                       variant: InstanceEventVariant::LocalInstanceMistakenlyMismatchesPinned,
                     });
@@ -255,7 +255,7 @@ pub fn visit_packages(config: &Config, packages: Packages, effects: &mut impl Ef
                     instance.expected = pinned.clone();
                     expected = Some(pinned.clone());
                     queue.push(InstanceEvent {
-                      dependency: &dependency,
+                      dependency,
                       instance_id: instance_id.clone(),
                       variant: InstanceEventVariant::InstanceMismatchesPinned,
                     });
@@ -278,7 +278,7 @@ pub fn visit_packages(config: &Config, packages: Packages, effects: &mut impl Ef
                         mark_as(INVALID);
                         instance.expected = Specifier::None;
                         queue.push(InstanceEvent {
-                          dependency: &dependency,
+                          dependency,
                           instance_id: instance_id.clone(),
                           variant: InstanceEventVariant::InstanceMismatchesBothSameRangeAndConflictingSemverGroups,
                         });
@@ -286,46 +286,42 @@ pub fn visit_packages(config: &Config, packages: Packages, effects: &mut impl Ef
                         mark_as(INVALID);
                         instance.expected = Specifier::None;
                         queue.push(InstanceEvent {
-                          dependency: &dependency,
+                          dependency,
                           instance_id: instance_id.clone(),
                           variant: InstanceEventVariant::InstanceMismatchesBothSameRangeAndCompatibleSemverGroups,
                         });
                       }
-                    } else {
-                      if mismatches.contains_key(&instance.expected) {
-                        mark_as(INVALID);
-                        instance.expected = Specifier::None;
-                        queue.push(InstanceEvent {
-                          dependency: &dependency,
-                          instance_id: instance_id.clone(),
-                          variant: InstanceEventVariant::InstanceMatchesSameRangeGroupButMismatchesConflictingSemverGroup,
-                        });
-                      } else {
-                        mark_as(INVALID);
-                        instance.expected = Specifier::None;
-                        queue.push(InstanceEvent {
-                          dependency: &dependency,
-                          instance_id: instance_id.clone(),
-                          variant: InstanceEventVariant::InstanceMatchesSameRangeGroupButMismatchesCompatibleSemverGroup,
-                        });
-                      }
-                    }
-                  } else {
-                    if mismatches.contains_key(&instance.actual) {
+                    } else if mismatches.contains_key(&instance.expected) {
                       mark_as(INVALID);
                       instance.expected = Specifier::None;
                       queue.push(InstanceEvent {
-                        dependency: &dependency,
+                        dependency,
                         instance_id: instance_id.clone(),
-                        variant: InstanceEventVariant::InstanceMismatchesSameRangeGroup,
+                        variant: InstanceEventVariant::InstanceMatchesSameRangeGroupButMismatchesConflictingSemverGroup,
                       });
                     } else {
+                      mark_as(INVALID);
+                      instance.expected = Specifier::None;
                       queue.push(InstanceEvent {
-                        dependency: &dependency,
+                        dependency,
                         instance_id: instance_id.clone(),
-                        variant: InstanceEventVariant::InstanceMatchesSameRangeGroup,
+                        variant: InstanceEventVariant::InstanceMatchesSameRangeGroupButMismatchesCompatibleSemverGroup,
                       });
                     }
+                  } else if mismatches.contains_key(&instance.actual) {
+                    mark_as(INVALID);
+                    instance.expected = Specifier::None;
+                    queue.push(InstanceEvent {
+                      dependency,
+                      instance_id: instance_id.clone(),
+                      variant: InstanceEventVariant::InstanceMismatchesSameRangeGroup,
+                    });
+                  } else {
+                    queue.push(InstanceEvent {
+                      dependency,
+                      instance_id: instance_id.clone(),
+                      variant: InstanceEventVariant::InstanceMatchesSameRangeGroup,
+                    });
                   }
                   // /CHECK THIS OVER
                 });
@@ -334,7 +330,7 @@ pub fn visit_packages(config: &Config, packages: Packages, effects: &mut impl Ef
                 dependency.all.iter().for_each(|instance_id| {
                   let instance = instances_by_id.get(instance_id).unwrap();
                   queue.push(InstanceEvent {
-                    dependency: &dependency,
+                    dependency,
                     instance_id: instance_id.clone(),
                     variant: InstanceEventVariant::InstanceMatchesButIsUnsupported,
                   });
@@ -345,7 +341,7 @@ pub fn visit_packages(config: &Config, packages: Packages, effects: &mut impl Ef
                   let instance = instances_by_id.get_mut(instance_id).unwrap();
                   instance.expected = Specifier::None;
                   queue.push(InstanceEvent {
-                    dependency: &dependency,
+                    dependency,
                     instance_id: instance_id.clone(),
                     variant: InstanceEventVariant::InstanceMismatchesAndIsUnsupported,
                   });
@@ -380,10 +376,10 @@ pub fn visit_packages(config: &Config, packages: Packages, effects: &mut impl Ef
               return Ordering::Less;
             }
 
-            let specifier_order = a.actual.unwrap().cmp(&&b.actual.unwrap());
+            let specifier_order = a.actual.unwrap().cmp(&b.actual.unwrap());
 
             if matches!(specifier_order, Ordering::Equal) {
-              return b.package_name.cmp(&a.package_name);
+              b.package_name.cmp(&a.package_name)
             } else {
               specifier_order
             }

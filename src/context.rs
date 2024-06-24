@@ -23,7 +23,7 @@ impl Context {
     let mut version_groups = config.rcfile.get_version_groups(&packages.all_names);
     let mut instances_by_id: InstancesById = BTreeMap::new();
 
-    packages.get_all_instances(&config, |mut instance| {
+    packages.get_all_instances(config, |mut instance| {
       version_groups
         .iter_mut()
         .find(|vgroup| vgroup.selector.can_add(&instance))
@@ -32,7 +32,7 @@ impl Context {
             .iter()
             .find(|sgroup| sgroup.selector.can_add(&instance))
             .inspect(|sgroup| {
-              instance.apply_semver_group(&sgroup);
+              instance.apply_semver_group(sgroup);
             });
         })
         .map(|vgroup| {

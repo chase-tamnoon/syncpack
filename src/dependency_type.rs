@@ -44,7 +44,7 @@ impl DependencyType {
       name_path: config
         .name_path
         .as_ref()
-        .map(|name_path| normalize_path(&name_path)),
+        .map(normalize_path),
       name: name.clone(),
       path: normalize_path(&config.path),
       strategy: Strategy::new(config.strategy.as_str()),
@@ -55,6 +55,6 @@ impl DependencyType {
 /// Converts a "some.nested.prop.name" selector to "/some/nested/prop/name"
 fn normalize_path(path: &String) -> String {
   let mut normalized_path = String::from("/");
-  normalized_path.push_str(&path.replace(".", "/"));
+  normalized_path.push_str(&path.replace('.', "/"));
   normalized_path
 }

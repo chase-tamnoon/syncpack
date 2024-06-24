@@ -110,9 +110,9 @@ impl GroupSelector {
 fn create_globs(is_include: bool, patterns: &Vec<String>) -> Vec<GlobMatcher> {
   patterns
     .iter()
-    .filter(|pattern| *pattern != "**" && pattern.starts_with("!") != is_include)
+    .filter(|pattern| *pattern != "**" && pattern.starts_with('!') != is_include)
     .map(|pattern| {
-      Glob::new(&pattern.replace("!", ""))
+      Glob::new(&pattern.replace('!', ""))
         .expect("invalid glob pattern")
         .compile_matcher()
     })
@@ -120,9 +120,9 @@ fn create_globs(is_include: bool, patterns: &Vec<String>) -> Vec<GlobMatcher> {
 }
 
 fn matches_globs(value: &String, includes: &Vec<GlobMatcher>, excludes: &Vec<GlobMatcher>) -> bool {
-  let is_included = includes.is_empty() || matches_any_glob(&value, &includes);
-  let is_excluded = !excludes.is_empty() && matches_any_glob(&value, &excludes);
-  return is_included && !is_excluded;
+  let is_included = includes.is_empty() || matches_any_glob(value, includes);
+  let is_excluded = !excludes.is_empty() && matches_any_glob(value, excludes);
+  is_included && !is_excluded
 }
 
 fn matches_any_glob(value: &String, globs: &Vec<GlobMatcher>) -> bool {
@@ -133,16 +133,16 @@ fn create_identifiers(is_include: bool, patterns: &Vec<String>) -> Vec<String> {
   patterns
     .iter()
     .filter(|pattern| {
-      *pattern != "**" && *pattern != "$LOCAL" && pattern.starts_with("!") != is_include
+      *pattern != "**" && *pattern != "$LOCAL" && pattern.starts_with('!') != is_include
     })
-    .map(|pattern| pattern.replace("!", ""))
+    .map(|pattern| pattern.replace('!', ""))
     .collect()
 }
 
 fn matches_identifiers(name: &String, includes: &Vec<String>, excludes: &Vec<String>) -> bool {
-  let is_included = includes.is_empty() || matches_any_identifier(&name, &includes);
-  let is_excluded = !excludes.is_empty() && matches_any_identifier(&name, &excludes);
-  return is_included && !is_excluded;
+  let is_included = includes.is_empty() || matches_any_identifier(name, includes);
+  let is_excluded = !excludes.is_empty() && matches_any_identifier(name, excludes);
+  is_included && !is_excluded
 }
 
 fn matches_any_identifier(value: &String, identifiers: &Vec<String>) -> bool {

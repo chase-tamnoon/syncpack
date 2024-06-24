@@ -128,11 +128,11 @@ impl Effects for MockEffects<'_> {
     packages
   }
 
-  fn set_packages(&mut self, packages: Packages) -> () {
+  fn set_packages(&mut self, packages: Packages) {
     self.packages = Some(packages);
   }
 
-  fn on(&mut self, event: Event, instances_by_id: &mut InstancesById) -> () {
+  fn on(&mut self, event: Event, instances_by_id: &mut InstancesById) {
     match &event {
       Event::EnterVersionsAndRanges => self.events.enter_versions_and_ranges.push(()),
       Event::EnterFormat => self.events.enter_format.push(()),
@@ -146,7 +146,7 @@ impl Effects for MockEffects<'_> {
     };
   }
 
-  fn on_instance(&mut self, event: InstanceEvent, instances_by_id: &mut InstancesById) -> () {
+  fn on_instance(&mut self, event: InstanceEvent, instances_by_id: &mut InstancesById) {
     let instance_id = &event.instance_id;
     let dependency = &event.dependency;
     let instance = instances_by_id.get(instance_id).unwrap();

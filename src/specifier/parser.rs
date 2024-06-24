@@ -68,13 +68,13 @@ pub fn is_complex_range(specifier: &str) -> bool {
   regexes::OR_OPERATOR
     .split(specifier)
     .map(|str| str.trim())
-    .filter(|str| str.len() > 0)
+    .filter(|str| !str.is_empty())
     .all(|or_condition| {
       or_condition
-        .split(" ")
+        .split(' ')
         .map(|str| str.trim())
-        .filter(|str| str.len() > 0)
-        .all(|and_condition| is_simple_semver(and_condition))
+        .filter(|str| !str.is_empty())
+        .all(is_simple_semver)
     })
 }
 

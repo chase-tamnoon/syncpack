@@ -39,9 +39,7 @@ impl Packages {
     let file_paths = get_file_paths(config);
     let mut packages = Self::new();
     file_paths.iter().for_each(|file_path| {
-      PackageJson::from_file(&file_path).map(|package_json| {
-        packages.add_package(package_json);
-      });
+      if let Some(package_json) = PackageJson::from_file(file_path) { packages.add_package(package_json); }
     });
     packages
   }
@@ -74,15 +72,15 @@ impl Packages {
         match dependency_type.strategy {
           Strategy::NameAndVersionProps => {
             if let (Some(Value::String(name)), Some(Value::String(raw_specifier))) = (
-              package.get_prop(&dependency_type.name_path.as_ref().unwrap()),
+              package.get_prop(dependency_type.name_path.as_ref().unwrap()),
               package.get_prop(&dependency_type.path),
             ) {
               if matches_filter(name) {
                 on_instance(Instance::new(
                   name.to_string(),
                   raw_specifier.to_string(),
-                  &dependency_type,
-                  &package,
+                  dependency_type,
+                  package,
                 ));
               }
             }
@@ -94,8 +92,8 @@ impl Packages {
                   on_instance(Instance::new(
                     name.to_string(),
                     raw_specifier.to_string(),
-                    &dependency_type,
-                    &package,
+                    dependency_type,
+                    package,
                   ));
                 }
               }
@@ -107,8 +105,8 @@ impl Packages {
                 on_instance(Instance::new(
                   dependency_type.name.clone(),
                   raw_specifier.to_string(),
-                  &dependency_type,
-                  &package,
+                  dependency_type,
+                  package,
                 ));
               }
             }
@@ -121,8 +119,8 @@ impl Packages {
                     on_instance(Instance::new(
                       name.to_string(),
                       version.to_string(),
-                      &dependency_type,
-                      &package,
+                      dependency_type,
+                      package,
                     ));
                   }
                 }
@@ -177,17 +175,17 @@ fn get_source_patterns(config: &Config) -> Vec<String> {
 
 fn get_cli_patterns(cli_options: &CliOptions) -> Option<Vec<String>> {
   if cli_options.source.is_empty() {
-    return None;
+    None
   } else {
-    return Some(cli_options.source.clone());
+    Some(cli_options.source.clone())
   }
 }
 
 fn get_rcfile_patterns(rcfile: &Rcfile) -> Option<Vec<String>> {
   if rcfile.source.is_empty() {
-    return None;
+    None
   } else {
-    return Some(rcfile.source.clone());
+    Some(rcfile.source.clone())
   }
 }
 

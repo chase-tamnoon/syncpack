@@ -143,7 +143,7 @@ impl Dependency {
       }
       previous = Some(&instance.expected);
     }
-    return true;
+    true
   }
 
   pub fn get_highest_semver(&self, instances_by_id: &InstancesById) -> Option<Specifier> {
@@ -180,8 +180,7 @@ impl Dependency {
             panic!("Cannot compare {:?} and {:?}", &instance.expected, &highest);
           }
         },
-      })
-      .map(|specifier| specifier.clone())
+      }).cloned()
   }
 
   /// Get all semver specifiers which have a range that does not match all of
@@ -201,10 +200,9 @@ impl Dependency {
     let get_range = |specifier: &Specifier| specifier.unwrap().parse::<Range>().unwrap();
     let mut mismatches_by_specifier: HashMap<Specifier, Vec<Specifier>> = HashMap::new();
     let unique_semver_specifiers: Vec<Specifier> = self
-      .get_unique_expected_and_actual_specifiers(&instances_by_id)
+      .get_unique_expected_and_actual_specifiers(instances_by_id)
       .iter()
-      .filter(|specifier| specifier.is_simple_semver())
-      .map(|specifier| specifier.clone())
+      .filter(|specifier| specifier.is_simple_semver()).cloned()
       .collect();
     unique_semver_specifiers.iter().for_each(|specifier_a| {
       let range_a = get_range(specifier_a);
@@ -218,7 +216,7 @@ impl Dependency {
         }
         mismatches_by_specifier
           .entry(specifier_a.clone())
-          .or_insert(vec![])
+          .or_default()
           .push(specifier_b.clone());
       });
     });
@@ -233,9 +231,9 @@ impl Dependency {
   ///
   /// Even though the actual specifiers on disk might currently match, we should
   /// suggest it match what we the snapped to specifier should be once fixed
-  pub fn get_snapped_to_specifier<'a>(
+  pub fn get_snapped_to_specifier(
     &self,
-    instances_by_id: &'a InstancesById,
+    instances_by_id: &InstancesById,
   ) -> Option<Specifier> {
     if let Some(snapped_to_package_names) = &self.snapped_to_package_names {
       for instance in instances_by_id.values() {
@@ -248,6 +246,6 @@ impl Dependency {
         }
       }
     }
-    return None;
+    None
   }
 }

@@ -27,7 +27,7 @@ impl PackageJson {
 
   /// Read a package.json file from the given location
   pub fn from_file(file_path: &PathBuf) -> Option<Self> {
-    fs::read_to_string(&file_path)
+    fs::read_to_string(file_path)
       .inspect_err(|_| {
         error!(
           "package.json not readable at {}",
@@ -115,10 +115,9 @@ impl PackageJson {
   pub fn get_relative_file_path(&self, cwd: &PathBuf) -> String {
     self
       .file_path
-      .strip_prefix(&cwd)
+      .strip_prefix(cwd)
       .ok()
-      .map(|path| path.to_str().map(|path_str| path_str.to_string()))
-      .flatten()
+      .and_then(|path| path.to_str().map(|path_str| path_str.to_string()))
       .expect("Failed to create relative file path")
   }
 }

@@ -47,13 +47,13 @@ fn fix_package(rcfile: &Rcfile, package: &mut PackageJson) {
   if rcfile.format_repository {
     format_repository(package);
   }
-  if rcfile.sort_az.len() > 0 {
+  if !rcfile.sort_az.is_empty() {
     sort_az(rcfile, package);
   }
-  if rcfile.sort_first.len() > 0 {
+  if !rcfile.sort_first.is_empty() {
     sort_first(rcfile, package);
   }
-  if rcfile.sort_exports.len() > 0 {
+  if !rcfile.sort_exports.is_empty() {
     sort_exports(rcfile, package);
   }
 }
@@ -104,7 +104,7 @@ fn sort_keys_with_priority(
   obj: &mut Map<String, Value>,
   sort_remaining_keys: bool,
 ) {
-  let order_set: HashSet<_> = order.into_iter().collect();
+  let order_set: HashSet<_> = order.iter().collect();
   let mut sorted_obj: Map<String, Value> = Map::new();
   let mut remaining_keys: Vec<_> = obj
     .keys()
@@ -139,7 +139,7 @@ fn sort_alphabetically(value: &mut Value) {
     Value::Object(obj) => {
       let mut entries: Vec<_> = obj.clone().into_iter().collect();
       entries.sort_by(|a, b| collator.compare(&a.0, &b.0));
-      *value = Value::Object(Map::from_iter(entries.into_iter()));
+      *value = Value::Object(Map::from_iter(entries));
     }
     Value::Array(arr) => {
       arr.sort_by(|a, b| {
@@ -164,15 +164,12 @@ fn get_locale_collator() -> Collator {
 
 /// Use a shorthand format for the bugs URL when possible
 fn format_bugs(package: &mut PackageJson) {
-  get_formatted_bugs(package).map(|bugs| {
-    package.set_prop("/bugs", bugs);
-  });
+  if let Some(bugs) = get_formatted_bugs(package) { package.set_prop("/bugs", bugs); }
 }
 
 fn get_formatted_bugs(package: &PackageJson) -> Option<Value> {
   package
-    .get_prop("/bugs/url")
-    .map(|bugs_url| bugs_url.clone())
+    .get_prop("/bugs/url").cloned()
 }
 
 fn format_bugs_is_valid(package: &PackageJson) -> bool {
@@ -181,9 +178,7 @@ fn format_bugs_is_valid(package: &PackageJson) -> bool {
 
 /// Use a shorthand format for the repository URL when possible
 fn format_repository(package: &mut PackageJson) {
-  get_formatted_repository(package).map(|bugs| {
-    package.set_prop("/repository", bugs);
-  });
+  if let Some(bugs) = get_formatted_repository(package) { package.set_prop("/repository", bugs); }
 }
 
 fn get_formatted_repository(package: &PackageJson) -> Option<Value> {
@@ -222,7 +217,7 @@ mod tests {
     let package = packages.by_name.get("a").unwrap();
 
     assert_eq!(
-      get_formatted_bugs(&package),
+      get_formatted_bugs(package),
       Some(json!("https://github.com/User/repo/issues"))
     );
   }
