@@ -437,7 +437,7 @@ mod tests {
 
     expect(&effects)
       .to_have_matches(vec![ExpectedMatchEvent {
-        variant: InstanceEventVariant::InstanceMismatchesHighestOrLowestSemver,
+        variant: InstanceEventVariant::InstanceMatchesHighestOrLowestSemver,
         dependency_name: "wat",
         instance_id: "wat in /devDependencies of package-a",
         actual: "2.0.0",
@@ -842,7 +842,7 @@ mod tests {
             dependency_name: "foo",
             instance_id: "foo in /dependencies of package-a",
             actual: "1.0.0",
-            expected: ">1.0.0",
+            expected: "1.0.0",
           },
               ExpectedMismatchEvent {
                   variant: InstanceEventVariant::InstanceMatchesHighestOrLowestSemverButMismatchesConflictingSemverGroup,

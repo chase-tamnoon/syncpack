@@ -99,10 +99,12 @@ impl<'a> Expects<'a> {
       let dependency_name = &expected.dependency_name;
       let instance_id = &expected.instance_id;
       let actual = &expected.actual;
-      let matches_of_type = actual_matches
-        .get(&variant)
-        .expect("expected {variant} matches but found none");
-      for event in matches_of_type {
+      let matches_of_type = actual_matches.get(&variant);
+      if matches_of_type.is_none() {
+        self.debug();
+        panic!("expected {variant:?} matches but found none");
+      }
+      for event in matches_of_type.unwrap() {
         if event.dependency_name == dependency_name.to_string()
           && event.instance_id == instance_id.to_string()
           && event.actual == actual.to_string()
@@ -111,7 +113,7 @@ impl<'a> Expects<'a> {
         }
       }
       self.debug();
-      println!("expected_matches: {:#?}", &expected_matches);
+      println!("{expected:#?}");
       panic!("expected a '{variant:?}' for '{instance_id}' with '{actual}'");
     }
     self
@@ -130,20 +132,22 @@ impl<'a> Expects<'a> {
       let dependency_name = &expected.dependency_name;
       let instance_id = &expected.instance_id;
       let actual = &expected.actual;
-      let matches_of_type = actual_mismatches
-        .get(&variant)
-        .expect("expected {variant} mismatches but found none");
-      for event in matches_of_type {
+      let mismatches_of_type = actual_mismatches.get(&variant);
+      if mismatches_of_type.is_none() {
+        self.debug();
+        panic!("expected {variant:?} mismatches but found none");
+      }
+      for event in mismatches_of_type.unwrap() {
         if event.dependency_name == dependency_name.to_string()
           && event.instance_id == instance_id.to_string()
           && event.actual == actual.to_string()
-          && event.expected == expected.actual.to_string()
+          && event.expected == expected.expected.to_string()
         {
           continue 'expected;
         }
       }
       self.debug();
-      println!("expected_mismatches: {:#?}", &expected_mismatches);
+      println!("{expected:#?}");
       panic!("expected a '{variant:?}' for '{instance_id}' with '{actual}'");
     }
     self
