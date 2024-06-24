@@ -100,40 +100,42 @@ impl Effects for MockEffects<'_> {
     let instance = instances_by_id.get(instance_id).unwrap();
 
     match &event.variant {
-InstanceEventVariant::InstanceIsIgnored
-|InstanceEventVariant::LocalInstanceIsPreferred
-|InstanceEventVariant::InstanceMatchesLocal
-|InstanceEventVariant::InstanceMatchesHighestOrLowestSemver
-|InstanceEventVariant::InstanceMatchesButIsUnsupported
-|InstanceEventVariant::InstanceMatchesPinned
-|InstanceEventVariant::InstanceMatchesSameRangeGroup
-|InstanceEventVariant::LocalInstanceMistakenlyBanned
-|InstanceEventVariant::InstanceMismatchesAndIsUnsupported
-|InstanceEventVariant::InstanceMatchesPinnedButMismatchesSemverGroup
-|InstanceEventVariant::InstanceMismatchesBothSameRangeAndConflictingSemverGroups
-|InstanceEventVariant::InstanceMismatchesBothSameRangeAndCompatibleSemverGroups
-|InstanceEventVariant::InstanceMatchesSameRangeGroupButMismatchesConflictingSemverGroup
-|InstanceEventVariant::InstanceMatchesSameRangeGroupButMismatchesCompatibleSemverGroup
-|InstanceEventVariant::InstanceMismatchesSameRangeGroup=>{
-self.matches
-.entry(event.variant.clone())
-.or_insert_with(std::vec::Vec::new)
-.push(ActualMatchEvent::new(&event, instance));
-}
-InstanceEventVariant::LocalInstanceMistakenlyMismatchesSemverGroup
-|InstanceEventVariant::LocalInstanceMistakenlyMismatchesPinned
-|InstanceEventVariant::InstanceIsBanned
-|InstanceEventVariant::InstanceMatchesHighestOrLowestSemverButMismatchesConflictingSemverGroup
-|InstanceEventVariant::InstanceIsHighestOrLowestSemverOnceSemverGroupIsFixed
-|InstanceEventVariant::InstanceMatchesLocalButMismatchesSemverGroup
-|InstanceEventVariant::InstanceMismatchesLocal
-|InstanceEventVariant::InstanceMismatchesHighestOrLowestSemver
-|InstanceEventVariant::InstanceMismatchesPinned=>{
-self.mismatches
-.entry(event.variant.clone())
-.or_insert_with(std::vec::Vec::new)
-.push(ActualMismatchEvent::new(&event, instance));
-}
-};
+      InstanceEventVariant::InstanceIsIgnored
+      | InstanceEventVariant::LocalInstanceIsPreferred
+      | InstanceEventVariant::InstanceMatchesLocal
+      | InstanceEventVariant::InstanceMatchesHighestOrLowestSemver
+      | InstanceEventVariant::InstanceMatchesButIsUnsupported
+      | InstanceEventVariant::InstanceMatchesPinned
+      | InstanceEventVariant::InstanceMatchesSameRangeGroup
+      | InstanceEventVariant::LocalInstanceMistakenlyBanned
+      | InstanceEventVariant::InstanceMismatchesAndIsUnsupported
+      | InstanceEventVariant::InstanceMatchesPinnedButMismatchesSemverGroup
+      | InstanceEventVariant::InstanceMismatchesBothSameRangeAndConflictingSemverGroups
+      | InstanceEventVariant::InstanceMismatchesBothSameRangeAndCompatibleSemverGroups
+      | InstanceEventVariant::InstanceMatchesSameRangeGroupButMismatchesConflictingSemverGroup
+      | InstanceEventVariant::InstanceMatchesSameRangeGroupButMismatchesCompatibleSemverGroup
+      | InstanceEventVariant::InstanceMismatchesSameRangeGroup => {
+        self
+          .matches
+          .entry(event.variant.clone())
+          .or_insert_with(std::vec::Vec::new)
+          .push(ActualMatchEvent::new(&event, instance));
+      }
+      InstanceEventVariant::LocalInstanceMistakenlyMismatchesSemverGroup
+      | InstanceEventVariant::LocalInstanceMistakenlyMismatchesPinned
+      | InstanceEventVariant::InstanceIsBanned
+      | InstanceEventVariant::InstanceMatchesHighestOrLowestSemverButMismatchesConflictingSemverGroup
+      | InstanceEventVariant::InstanceIsHighestOrLowestSemverOnceSemverGroupIsFixed
+      | InstanceEventVariant::InstanceMatchesLocalButMismatchesSemverGroup
+      | InstanceEventVariant::InstanceMismatchesLocal
+      | InstanceEventVariant::InstanceMismatchesHighestOrLowestSemver
+      | InstanceEventVariant::InstanceMismatchesPinned => {
+        self
+          .mismatches
+          .entry(event.variant.clone())
+          .or_insert_with(std::vec::Vec::new)
+          .push(ActualMismatchEvent::new(&event, instance));
+      }
+    };
   }
 }

@@ -833,26 +833,23 @@ mod tests {
 
     visit_packages(&config, packages, &mut effects);
 
-    expect(&effects)
-          .to_have_matches(vec![
-
-          ])
-          .to_have_mismatches(vec![ExpectedMismatchEvent {
-              variant: InstanceEventVariant::InstanceMismatchesHighestOrLowestSemver,
-            dependency_name: "foo",
-            instance_id: "foo in /dependencies of package-a",
-            actual: "1.0.0",
-            expected: "1.0.0",
-          },
-              ExpectedMismatchEvent {
-                  variant: InstanceEventVariant::InstanceMatchesHighestOrLowestSemverButMismatchesConflictingSemverGroup,
-                dependency_name: "foo",
-                instance_id: "foo in /devDependencies of package-a",
-                actual: "1.0.0",
-                // show what the semver group expects, but ask user what they want
-                expected: ">1.0.0",
-              }
-          ]);
+    expect(&effects).to_have_matches(vec![]).to_have_mismatches(vec![
+      ExpectedMismatchEvent {
+        variant: InstanceEventVariant::InstanceMismatchesHighestOrLowestSemver,
+        dependency_name: "foo",
+        instance_id: "foo in /dependencies of package-a",
+        actual: "1.0.0",
+        expected: "1.0.0",
+      },
+      ExpectedMismatchEvent {
+        variant: InstanceEventVariant::InstanceMatchesHighestOrLowestSemverButMismatchesConflictingSemverGroup,
+        dependency_name: "foo",
+        instance_id: "foo in /devDependencies of package-a",
+        actual: "1.0.0",
+        // show what the semver group expects, but ask user what they want
+        expected: ">1.0.0",
+      },
+    ]);
   }
 
   #[test]

@@ -133,7 +133,11 @@ impl Effects for LintEffects<'_> {
         let icon = icon_fixable();
         let actual = instance.actual.unwrap().red();
         let high_low = high_low_hint(&dependency.variant);
-        let opposite = if matches!(dependency.variant, Variant::HighestSemver) {"lower"}else{"higher"};
+        let opposite = if matches!(dependency.variant, Variant::HighestSemver) {
+          "lower"
+        } else {
+          "higher"
+        };
         let hint = format!("is {high_low} but mismatches its semver group, fixing its semver group would cause its version to be {opposite}").dimmed();
         let location_hint = instance.location_hint.dimmed();
         info!("      {icon} {actual} {hint} {location_hint}");
