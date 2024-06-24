@@ -1,10 +1,14 @@
 #[cfg(test)]
 use crate::effects_mock::MockEffects;
-use crate::{effects::InstanceEvent, instance::Instance};
+use crate::{
+  effects::{InstanceEvent, InstanceEventVariant},
+  instance::Instance,
+};
 
 #[cfg(test)]
 #[derive(Debug)]
 pub struct ExpectedMatchEvent<'a> {
+  pub variant: InstanceEventVariant,
   pub dependency_name: &'a str,
   pub instance_id: &'a str,
   pub actual: &'a str,
@@ -32,6 +36,7 @@ impl ActualMatchEvent {
 #[cfg(test)]
 #[derive(Debug)]
 pub struct ExpectedMismatchEvent<'a> {
+  pub variant: InstanceEventVariant,
   pub dependency_name: &'a str,
   pub instance_id: &'a str,
   pub actual: &'a str,
@@ -80,6 +85,73 @@ impl<'a> Expects<'a> {
     println!("{:#?}", self.effects);
     self
   }
+
+  // ===========================================================================
+
+  pub fn to_have_matches(&self, expected_matches: &Vec<ExpectedMatchEvent>) -> &Self {
+    let actual_matches = &self.effects.matches;
+    let expected_len = expected_matches.len();
+    let actual_len = actual_matches.values().fold(0, |acc, x| acc + x.len());
+    if actual_len != expected_len {
+      self.debug();
+      panic!("expected {actual_len} matches but found {expected_len}");
+    }
+    'expected: for expected in expected_matches {
+      let variant = &expected.variant;
+      let dependency_name = &expected.dependency_name;
+      let instance_id = &expected.instance_id;
+      let actual = &expected.actual;
+      let matches_of_type = actual_matches
+        .get(&variant)
+        .expect("expected {variant} matches but found none");
+      for event in matches_of_type {
+        if event.dependency_name == dependency_name.to_string()
+          && event.instance_id == instance_id.to_string()
+          && event.actual == actual.to_string()
+        {
+          continue 'expected;
+        }
+      }
+      self.debug();
+      println!("Expected: {:#?}", expected_matches);
+      panic!("expected a '{variant:?}' for '{instance_id}' with '{actual}'");
+    }
+    self
+  }
+
+  pub fn to_have_mismatches(&self, expected_mismatches: &Vec<ExpectedMismatchEvent>) -> &Self {
+    let actual_mismatches = &self.effects.mismatches;
+    let expected_len = expected_mismatches.len();
+    let actual_len = actual_mismatches.values().fold(0, |acc, x| acc + x.len());
+    if actual_len != expected_len {
+      self.debug();
+      panic!("expected {actual_len} mismatches but found {expected_len}");
+    }
+    'expected: for expected in expected_mismatches {
+      let variant = &expected.variant;
+      let dependency_name = &expected.dependency_name;
+      let instance_id = &expected.instance_id;
+      let actual = &expected.actual;
+      let matches_of_type = actual_mismatches
+        .get(&variant)
+        .expect("expected {variant} mismatches but found none");
+      for event in matches_of_type {
+        if event.dependency_name == dependency_name.to_string()
+          && event.instance_id == instance_id.to_string()
+          && event.actual == actual.to_string()
+          && event.expected == expected.actual.to_string()
+        {
+          continue 'expected;
+        }
+      }
+      self.debug();
+      println!("Expected: {:#?}", expected_mismatches);
+      panic!("expected a '{variant:?}' for '{instance_id}' with '{actual}'");
+    }
+    self
+  }
+
+  // ===========================================================================
 
   pub fn to_have_local_instance_is_preferred(
     &self,
