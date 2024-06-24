@@ -99,15 +99,15 @@ impl<'a> Expects<'a> {
       let dependency_name = &expected.dependency_name;
       let instance_id = &expected.instance_id;
       let actual = &expected.actual;
-      let matches_of_type = actual_matches.get(&variant);
+      let matches_of_type = actual_matches.get(variant);
       if matches_of_type.is_none() {
         self.debug();
         panic!("expected {variant:?} matches but found none");
       }
       for event in matches_of_type.unwrap() {
-        if event.dependency_name == dependency_name.to_string()
-          && event.instance_id == instance_id.to_string()
-          && event.actual == actual.to_string()
+        if event.dependency_name == *dependency_name
+          && event.instance_id == *instance_id
+          && event.actual == *actual
         {
           continue 'expected;
         }
@@ -132,16 +132,16 @@ impl<'a> Expects<'a> {
       let dependency_name = &expected.dependency_name;
       let instance_id = &expected.instance_id;
       let actual = &expected.actual;
-      let mismatches_of_type = actual_mismatches.get(&variant);
+      let mismatches_of_type = actual_mismatches.get(variant);
       if mismatches_of_type.is_none() {
         self.debug();
         panic!("expected {variant:?} mismatches but found none");
       }
       for event in mismatches_of_type.unwrap() {
-        if event.dependency_name == dependency_name.to_string()
-          && event.instance_id == instance_id.to_string()
-          && event.actual == actual.to_string()
-          && event.expected == expected.expected.to_string()
+        if event.dependency_name == *dependency_name
+          && event.instance_id == *instance_id
+          && event.actual == *actual
+          && event.expected == *expected.expected
         {
           continue 'expected;
         }

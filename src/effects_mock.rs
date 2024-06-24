@@ -117,8 +117,8 @@ InstanceEventVariant::InstanceIsIgnored
 |InstanceEventVariant::InstanceMismatchesSameRangeGroup=>{
 self.matches
 .entry(event.variant.clone())
-.or_insert_with(|| vec![])
-.push(ActualMatchEvent::new(&event, &instance));
+.or_insert_with(std::vec::Vec::new)
+.push(ActualMatchEvent::new(&event, instance));
 }
 InstanceEventVariant::LocalInstanceMistakenlyMismatchesSemverGroup
 |InstanceEventVariant::LocalInstanceMistakenlyMismatchesPinned
@@ -131,8 +131,8 @@ InstanceEventVariant::LocalInstanceMistakenlyMismatchesSemverGroup
 |InstanceEventVariant::InstanceMismatchesPinned=>{
 self.mismatches
 .entry(event.variant.clone())
-.or_insert_with(|| vec![])
-.push(ActualMismatchEvent::new(&event, &instance));
+.or_insert_with(std::vec::Vec::new)
+.push(ActualMismatchEvent::new(&event, instance));
 }
 };
   }
