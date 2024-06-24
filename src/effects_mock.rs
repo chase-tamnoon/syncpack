@@ -118,7 +118,7 @@ impl Effects for MockEffects<'_> {
         self
           .matches
           .entry(event.variant.clone())
-          .or_insert_with(std::vec::Vec::new)
+          .or_default()
           .push(ActualMatchEvent::new(&event, instance));
       }
       InstanceEventVariant::LocalInstanceMistakenlyMismatchesSemverGroup
@@ -133,7 +133,7 @@ impl Effects for MockEffects<'_> {
         self
           .mismatches
           .entry(event.variant.clone())
-          .or_insert_with(std::vec::Vec::new)
+          .or_default()
           .push(ActualMismatchEvent::new(&event, instance));
       }
     };
