@@ -39,7 +39,7 @@ pub enum Event<'a> {
   ExitCommand,
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug, Eq, Hash, PartialEq)]
 pub enum InstanceEventVariant {
   /* = Ignored ============================================================== */
   InstanceIsIgnored,

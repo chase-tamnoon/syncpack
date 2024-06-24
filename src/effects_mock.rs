@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 #[cfg(test)]
 use crate::{
   config::Config,
@@ -107,6 +109,8 @@ pub struct MockEffects<'a> {
   pub config: &'a Config,
   pub events: EventsByType,
   pub is_valid: bool,
+  pub matches: HashMap<InstanceEventVariant, Vec<ActualMatchEvent>>,
+  pub mismatches: HashMap<InstanceEventVariant, Vec<ActualMismatchEvent>>,
   pub packages: Option<Packages>,
 }
 
@@ -117,6 +121,8 @@ impl<'a> MockEffects<'a> {
       config,
       events: EventsByType::new(),
       is_valid: true,
+      matches: HashMap::new(),
+      mismatches: HashMap::new(),
       packages: None,
     }
   }
@@ -152,245 +158,178 @@ impl Effects for MockEffects<'_> {
     let instance_id = &event.instance_id;
     let dependency = &event.dependency;
     let instance = instances_by_id.get(instance_id).unwrap();
+
+    match &event.variant {
+InstanceEventVariant::InstanceIsIgnored
+|InstanceEventVariant::LocalInstanceIsPreferred
+|InstanceEventVariant::InstanceMatchesLocal
+|InstanceEventVariant::InstanceMatchesHighestOrLowestSemver
+|InstanceEventVariant::InstanceMatchesButIsUnsupported
+|InstanceEventVariant::InstanceMatchesPinned
+|InstanceEventVariant::InstanceMatchesSameRangeGroup
+|InstanceEventVariant::LocalInstanceMistakenlyBanned
+|InstanceEventVariant::InstanceMismatchesAndIsUnsupported
+|InstanceEventVariant::InstanceMatchesPinnedButMismatchesSemverGroup
+|InstanceEventVariant::InstanceMismatchesBothSameRangeAndConflictingSemverGroups
+|InstanceEventVariant::InstanceMismatchesBothSameRangeAndCompatibleSemverGroups
+|InstanceEventVariant::InstanceMatchesSameRangeGroupButMismatchesConflictingSemverGroup
+|InstanceEventVariant::InstanceMatchesSameRangeGroupButMismatchesCompatibleSemverGroup
+|InstanceEventVariant::InstanceMismatchesSameRangeGroup=>{
+self.matches
+.entry(event.variant.clone())
+.or_insert_with(|| vec![])
+.push(ActualMatchEvent::new(&event, &instance));
+}
+InstanceEventVariant::LocalInstanceMistakenlyMismatchesSemverGroup
+|InstanceEventVariant::LocalInstanceMistakenlyMismatchesPinned
+|InstanceEventVariant::InstanceIsBanned
+|InstanceEventVariant::InstanceMatchesHighestOrLowestSemverButMismatchesConflictingSemverGroup
+|InstanceEventVariant::InstanceIsHighestOrLowestSemverOnceSemverGroupIsFixed
+|InstanceEventVariant::InstanceMatchesLocalButMismatchesSemverGroup
+|InstanceEventVariant::InstanceMismatchesLocal
+|InstanceEventVariant::InstanceMismatchesHighestOrLowestSemver
+|InstanceEventVariant::InstanceMismatchesPinned=>{
+self.mismatches
+.entry(event.variant.clone())
+.or_insert_with(|| vec![])
+.push(ActualMismatchEvent::new(&event, &instance));
+}
+};
+
     match &event.variant {
       /* Ignored */
       InstanceEventVariant::InstanceIsIgnored => {
-        self.events.instance_is_ignored.push(ActualMatchEvent {
-          dependency_name: event.dependency.name.clone(),
-          instance_id: event.instance_id.clone(),
-          actual: instance.actual.unwrap().clone(),
-        });
+        self.events.instance_is_ignored.push(ActualMatchEvent::new(&event,&instance));
       }
       /* Matches */
       InstanceEventVariant::LocalInstanceIsPreferred => {
         self
           .events
           .local_instance_is_preferred
-          .push(ActualMatchEvent {
-            dependency_name: event.dependency.name.clone(),
-            instance_id: event.instance_id.clone(),
-            actual: instance.actual.unwrap().clone(),
-          });
+          .push(ActualMatchEvent::new(&event,&instance));
       }
       InstanceEventVariant::InstanceMatchesLocal => {
-        self.events.instance_matches_local.push(ActualMatchEvent {
-          dependency_name: event.dependency.name.clone(),
-          instance_id: event.instance_id.clone(),
-          actual: instance.actual.unwrap().clone(),
-        });
+        self.events.instance_matches_local.push(ActualMatchEvent::new(&event,&instance));
       }
       InstanceEventVariant::InstanceMatchesHighestOrLowestSemver => {
         self
           .events
           .instance_matches_highest_or_lowest_semver
-          .push(ActualMatchEvent {
-            dependency_name: event.dependency.name.clone(),
-            instance_id: event.instance_id.clone(),
-            actual: instance.actual.unwrap().clone(),
-          });
+          .push(ActualMatchEvent::new(&event,&instance));
       }
       InstanceEventVariant::InstanceMatchesButIsUnsupported => {
         self
           .events
           .instance_matches_but_is_unsupported
-          .push(ActualMatchEvent {
-            dependency_name: event.dependency.name.clone(),
-            instance_id: event.instance_id.clone(),
-            actual: instance.actual.unwrap().clone(),
-          });
+          .push(ActualMatchEvent::new(&event,&instance));
       }
       InstanceEventVariant::InstanceMatchesPinned => {
-        self.events.instance_matches_pinned.push(ActualMatchEvent {
-          dependency_name: event.dependency.name.clone(),
-          instance_id: event.instance_id.clone(),
-          actual: instance.actual.unwrap().clone(),
-        });
+        self.events.instance_matches_pinned.push(ActualMatchEvent::new(&event,&instance));
       }
       InstanceEventVariant::InstanceMatchesSameRangeGroup => {
         self
           .events
           .instance_matches_same_range_group
-          .push(ActualMatchEvent {
-            dependency_name: event.dependency.name.clone(),
-            instance_id: event.instance_id.clone(),
-            actual: instance.actual.unwrap().clone(),
-          });
+          .push(ActualMatchEvent::new(&event,&instance));
       }
       /* Warnings */
       InstanceEventVariant::LocalInstanceMistakenlyBanned => {
         self
           .events
           .local_instance_mistakenly_banned
-          .push(ActualMatchEvent {
-            dependency_name: event.dependency.name.clone(),
-            instance_id: event.instance_id.clone(),
-            actual: instance.actual.unwrap().clone(),
-          });
+          .push(ActualMatchEvent::new(&event,&instance));
       }
       InstanceEventVariant::LocalInstanceMistakenlyMismatchesSemverGroup => {
         self
           .events
           .local_instance_mistakenly_mismatches_semver_group
-          .push(ActualMismatchEvent {
-            dependency_name: event.dependency.name.clone(),
-            instance_id: event.instance_id.clone(),
-            actual: instance.actual.unwrap().clone(),
-            expected: instance.expected.unwrap().clone(),
-          });
+          .push(ActualMismatchEvent::new(&event,&instance));
       }
       InstanceEventVariant::LocalInstanceMistakenlyMismatchesPinned => {
         self
           .events
           .local_instance_mistakenly_mismatches_pinned
-          .push(ActualMismatchEvent {
-            dependency_name: event.dependency.name.clone(),
-            instance_id: event.instance_id.clone(),
-            actual: instance.actual.unwrap().clone(),
-            expected: instance.expected.unwrap().clone(),
-          });
+          .push(ActualMismatchEvent::new(&event,&instance));
       }
       InstanceEventVariant::InstanceMatchesHighestOrLowestSemverButMismatchesConflictingSemverGroup => {
         self
           .events
           .instance_matches_highest_or_lowest_semver_but_mismatches_conflicting_semver_group
-          .push(ActualMismatchEvent {
-            dependency_name: event.dependency.name.clone(),
-            instance_id: event.instance_id.clone(),
-            actual: instance.actual.unwrap().clone(),
-            expected: instance.expected.unwrap().clone(),
-          });
+          .push(ActualMismatchEvent::new(&event,&instance));
       }
       InstanceEventVariant::InstanceMatchesPinnedButMismatchesSemverGroup => {
         self
           .events
           .instance_matches_pinned_but_mismatches_semver_group
-          .push(ActualMatchEvent {
-            dependency_name: event.dependency.name.clone(),
-            instance_id: event.instance_id.clone(),
-            actual: instance.actual.unwrap().clone(),
-          });
+          .push(ActualMatchEvent::new(&event,&instance));
       }
       /* Fixable Mismatches */
       InstanceEventVariant::InstanceIsBanned => {
-        self.events.instance_is_banned.push(ActualMismatchEvent {
-          dependency_name: event.dependency.name.clone(),
-          instance_id: event.instance_id.clone(),
-          actual: instance.actual.unwrap().clone(),
-          expected: instance.expected.unwrap().clone(),
-        });
+        self.events.instance_is_banned.push(ActualMismatchEvent::new(&event,&instance));
       }
       InstanceEventVariant::InstanceIsHighestOrLowestSemverOnceSemverGroupIsFixed => {
-        self.events.instance_is_banned.push(ActualMismatchEvent {
-          dependency_name: event.dependency.name.clone(),
-          instance_id: event.instance_id.clone(),
-          actual: instance.actual.unwrap().clone(),
-          expected: instance.expected.unwrap().clone(),
-        });
+        self.events.instance_is_banned.push(ActualMismatchEvent::new(&event,&instance));
       }
       InstanceEventVariant::InstanceMatchesLocalButMismatchesSemverGroup => {
         self
           .events
           .instance_matches_local_but_mismatches_semver_group
-          .push(ActualMismatchEvent {
-            dependency_name: event.dependency.name.clone(),
-            instance_id: event.instance_id.clone(),
-            actual: instance.actual.unwrap().clone(),
-            expected: instance.expected.unwrap().clone(),
-          });
+          .push(ActualMismatchEvent::new(&event,&instance));
       }
       InstanceEventVariant::InstanceMismatchesLocal => {
         self
           .events
           .instance_mismatches_local
-          .push(ActualMismatchEvent {
-            dependency_name: event.dependency.name.clone(),
-            instance_id: event.instance_id.clone(),
-            actual: instance.actual.unwrap().clone(),
-            expected: instance.expected.unwrap().clone(),
-          });
+          .push(ActualMismatchEvent::new(&event,&instance));
       }
       InstanceEventVariant::InstanceMismatchesHighestOrLowestSemver => {
         self
           .events
           .instance_mismatches_highest_or_lowest_semver
-          .push(ActualMismatchEvent {
-            dependency_name: event.dependency.name.clone(),
-            instance_id: event.instance_id.clone(),
-            actual: instance.actual.unwrap().clone(),
-            expected: instance.expected.unwrap().clone(),
-          });
+          .push(ActualMismatchEvent::new(&event,&instance));
       }
       InstanceEventVariant::InstanceMismatchesPinned => {
         self
           .events
           .instance_mismatches_pinned
-          .push(ActualMismatchEvent {
-            dependency_name: event.dependency.name.clone(),
-            instance_id: event.instance_id.clone(),
-            actual: instance.actual.unwrap().clone(),
-            expected: instance.expected.unwrap().clone(),
-          });
+          .push(ActualMismatchEvent::new(&event,&instance));
       }
       /* Unfixable Mismatches */
       InstanceEventVariant::InstanceMismatchesAndIsUnsupported => {
         self
           .events
           .instance_mismatches_and_is_unsupported
-          .push(ActualMatchEvent {
-            dependency_name: event.dependency.name.clone(),
-            instance_id: event.instance_id.clone(),
-            actual: instance.actual.unwrap().clone(),
-          });
+          .push(ActualMatchEvent::new(&event,&instance));
       }
       InstanceEventVariant::InstanceMismatchesBothSameRangeAndConflictingSemverGroups => {
         self
           .events
           .instance_mismatches_both_same_range_and_conflicting_semver_groups
-          .push(ActualMatchEvent {
-            dependency_name: event.dependency.name.clone(),
-            instance_id: event.instance_id.clone(),
-            actual: instance.actual.unwrap().clone(),
-          });
+          .push(ActualMatchEvent::new(&event,&instance));
       }
       InstanceEventVariant::InstanceMismatchesBothSameRangeAndCompatibleSemverGroups => {
         self
           .events
           .instance_mismatches_both_same_range_and_compatible_semver_groups
-          .push(ActualMatchEvent {
-            dependency_name: event.dependency.name.clone(),
-            instance_id: event.instance_id.clone(),
-            actual: instance.actual.unwrap().clone(),
-          });
+          .push(ActualMatchEvent::new(&event,&instance));
       }
       InstanceEventVariant::InstanceMatchesSameRangeGroupButMismatchesConflictingSemverGroup => {
         self
           .events
           .instance_matches_same_range_group_but_mismatches_conflicting_semver_group
-          .push(ActualMatchEvent {
-            dependency_name: event.dependency.name.clone(),
-            instance_id: event.instance_id.clone(),
-            actual: instance.actual.unwrap().clone(),
-          });
+          .push(ActualMatchEvent::new(&event,&instance));
       }
       InstanceEventVariant::InstanceMatchesSameRangeGroupButMismatchesCompatibleSemverGroup => {
         self
           .events
           .instance_matches_same_range_group_but_mismatches_compatible_semver_group
-          .push(ActualMatchEvent {
-            dependency_name: event.dependency.name.clone(),
-            instance_id: event.instance_id.clone(),
-            actual: instance.actual.unwrap().clone(),
-          });
+          .push(ActualMatchEvent::new(&event,&instance));
       }
       InstanceEventVariant::InstanceMismatchesSameRangeGroup => {
         self
           .events
           .instance_mismatches_same_range_group
-          .push(ActualMatchEvent {
-            dependency_name: event.dependency.name.clone(),
-            instance_id: event.instance_id.clone(),
-            actual: instance.actual.unwrap().clone(),
-          });
+          .push(ActualMatchEvent::new(&event,&instance));
       }
     }
   }

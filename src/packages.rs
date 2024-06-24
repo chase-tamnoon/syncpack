@@ -39,7 +39,9 @@ impl Packages {
     let file_paths = get_file_paths(config);
     let mut packages = Self::new();
     file_paths.iter().for_each(|file_path| {
-      if let Some(package_json) = PackageJson::from_file(file_path) { packages.add_package(package_json); }
+      if let Some(package_json) = PackageJson::from_file(file_path) {
+        packages.add_package(package_json);
+      }
     });
     packages
   }

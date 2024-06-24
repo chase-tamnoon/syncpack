@@ -180,7 +180,8 @@ impl Dependency {
             panic!("Cannot compare {:?} and {:?}", &instance.expected, &highest);
           }
         },
-      }).cloned()
+      })
+      .cloned()
   }
 
   /// Get all semver specifiers which have a range that does not match all of
@@ -202,7 +203,8 @@ impl Dependency {
     let unique_semver_specifiers: Vec<Specifier> = self
       .get_unique_expected_and_actual_specifiers(instances_by_id)
       .iter()
-      .filter(|specifier| specifier.is_simple_semver()).cloned()
+      .filter(|specifier| specifier.is_simple_semver())
+      .cloned()
       .collect();
     unique_semver_specifiers.iter().for_each(|specifier_a| {
       let range_a = get_range(specifier_a);
@@ -231,10 +233,7 @@ impl Dependency {
   ///
   /// Even though the actual specifiers on disk might currently match, we should
   /// suggest it match what we the snapped to specifier should be once fixed
-  pub fn get_snapped_to_specifier(
-    &self,
-    instances_by_id: &InstancesById,
-  ) -> Option<Specifier> {
+  pub fn get_snapped_to_specifier(&self, instances_by_id: &InstancesById) -> Option<Specifier> {
     if let Some(snapped_to_package_names) = &self.snapped_to_package_names {
       for instance in instances_by_id.values() {
         if instance.name == *self.name {

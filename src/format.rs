@@ -164,12 +164,13 @@ fn get_locale_collator() -> Collator {
 
 /// Use a shorthand format for the bugs URL when possible
 fn format_bugs(package: &mut PackageJson) {
-  if let Some(bugs) = get_formatted_bugs(package) { package.set_prop("/bugs", bugs); }
+  if let Some(bugs) = get_formatted_bugs(package) {
+    package.set_prop("/bugs", bugs);
+  }
 }
 
 fn get_formatted_bugs(package: &PackageJson) -> Option<Value> {
-  package
-    .get_prop("/bugs/url").cloned()
+  package.get_prop("/bugs/url").cloned()
 }
 
 fn format_bugs_is_valid(package: &PackageJson) -> bool {
@@ -178,7 +179,9 @@ fn format_bugs_is_valid(package: &PackageJson) -> bool {
 
 /// Use a shorthand format for the repository URL when possible
 fn format_repository(package: &mut PackageJson) {
-  if let Some(bugs) = get_formatted_repository(package) { package.set_prop("/repository", bugs); }
+  if let Some(bugs) = get_formatted_repository(package) {
+    package.set_prop("/repository", bugs);
+  }
 }
 
 fn get_formatted_repository(package: &PackageJson) -> Option<Value> {

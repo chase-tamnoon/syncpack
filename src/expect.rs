@@ -1,5 +1,6 @@
 #[cfg(test)]
 use crate::effects_mock::MockEffects;
+use crate::{effects::InstanceEvent, instance::Instance};
 
 #[cfg(test)]
 #[derive(Debug)]
@@ -18,6 +19,17 @@ pub struct ActualMatchEvent {
 }
 
 #[cfg(test)]
+impl ActualMatchEvent {
+  pub fn new(event: &InstanceEvent, instance: &Instance) -> Self {
+    Self {
+      dependency_name: event.dependency.name.clone(),
+      instance_id: event.instance_id.clone(),
+      actual: instance.actual.unwrap().clone(),
+    }
+  }
+}
+
+#[cfg(test)]
 #[derive(Debug)]
 pub struct ExpectedMismatchEvent<'a> {
   pub dependency_name: &'a str,
@@ -33,6 +45,18 @@ pub struct ActualMismatchEvent {
   pub instance_id: String,
   pub actual: String,
   pub expected: String,
+}
+
+#[cfg(test)]
+impl ActualMismatchEvent {
+  pub fn new(event: &InstanceEvent, instance: &Instance) -> Self {
+    Self {
+      dependency_name: event.dependency.name.clone(),
+      instance_id: event.instance_id.clone(),
+      actual: instance.actual.unwrap().clone(),
+      expected: instance.expected.unwrap().clone(),
+    }
+  }
 }
 
 #[cfg(test)]
