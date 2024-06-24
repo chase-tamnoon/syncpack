@@ -53,7 +53,11 @@ pub enum InstanceEventVariant {
   /// Misconfiguration: Syncpack refuses to change local dependency specifiers
   LocalInstanceMistakenlyBanned,
   InstanceIsBanned,
-  InstanceMatchesHighestOrLowestSemverButMismatchesSemverGroup,
+  /// Instance has the highest actual version but does not match its semver
+  /// group, if we fix the semver group it will no longer match the highest
+  /// expected version
+  InstanceMatchesHighestOrLowestSemverButMismatchesConflictingSemverGroup,
+  InstanceIsHighestOrLowestSemverOnceSemverGroupIsFixed,
   InstanceMatchesLocalButMismatchesSemverGroup,
   InstanceMismatchesLocal,
   InstanceMismatchesHighestOrLowestSemver,

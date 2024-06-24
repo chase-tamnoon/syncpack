@@ -103,7 +103,7 @@ impl Effects for FixEffects<'_> {
       }
       /* Fixable Mismatches */
       InstanceEventVariant::InstanceIsBanned
-      | InstanceEventVariant::InstanceMatchesHighestOrLowestSemverButMismatchesSemverGroup
+      | InstanceEventVariant::InstanceMatchesHighestOrLowestSemverButMismatchesConflictingSemverGroup
       | InstanceEventVariant::InstanceMatchesLocalButMismatchesSemverGroup
       | InstanceEventVariant::InstanceMismatchesLocal
       | InstanceEventVariant::InstanceMismatchesHighestOrLowestSemver

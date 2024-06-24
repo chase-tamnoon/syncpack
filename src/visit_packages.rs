@@ -149,7 +149,7 @@ pub fn visit_packages(config: &Config, packages: Packages, effects: &mut impl Ef
                               queue.push(InstanceEvent {
                                 dependency,
                                 instance_id: instance_id.clone(),
-                                variant: InstanceEventVariant::InstanceMatchesHighestOrLowestSemverButMismatchesSemverGroup,
+                                variant: InstanceEventVariant::InstanceMatchesHighestOrLowestSemverButMismatchesConflictingSemverGroup,
                               });
                             } else {
                               expected = Some(preferred.clone());
@@ -746,7 +746,7 @@ mod tests {
   }
 
   #[test]
-  fn highest_version_match_becomes_mismatch_after_semver_range_has_been_fixed() {
+  fn instance_is_highest_or_lowest_semver_once_semver_group_is_fixed() {
     let config = Config::from_mock(json!({
       "semverGroups": [{
         "dependencyTypes": ["dev"],
@@ -773,7 +773,7 @@ mod tests {
         actual: "1.0.0",
         expected: ">1.0.0",
       }])
-      .to_have_instance_matches_highest_or_lowest_semver_but_mismatches_semver_group(vec![
+      .to_have_instance_is_highest_or_lowest_semver_once_semver_group_is_fixed(vec![
         ExpectedMismatchEvent {
           dependency_name: "foo",
           instance_id: "foo in /devDependencies of package-a",
@@ -781,6 +781,45 @@ mod tests {
           expected: ">1.0.0",
         },
       ]);
+  }
+
+  #[test]
+  fn highest_version_match_becomes_mismatch_after_semver_range_has_been_fixed() {
+    let config = Config::from_mock(json!({
+      "semverGroups": [{
+        "dependencyTypes": ["dev"],
+        "range": "<"
+      }]
+    }));
+    let mut effects = MockEffects::new(&config);
+    let packages = Packages::from_mocks(vec![json!({
+      "name": "package-a",
+      "dependencies": {
+        "foo": "1.0.0"
+      },
+      "devDependencies": {
+        "foo": "1.0.0"
+      }
+    })]);
+
+    visit_packages(&config, packages, &mut effects);
+
+    expect(&effects)
+      .to_have_instance_mismatches_highest_or_lowest_semver(vec![ExpectedMismatchEvent {
+        dependency_name: "foo",
+        instance_id: "foo in /dependencies of package-a",
+        actual: "1.0.0",
+        expected: ">1.0.0",
+      }])
+      .to_have_instance_matches_highest_or_lowest_semver_but_mismatches_conflicting_semver_group(
+        vec![ExpectedMismatchEvent {
+          dependency_name: "foo",
+          instance_id: "foo in /devDependencies of package-a",
+          actual: "1.0.0",
+          // reject semver group and prefer highest version match(?)
+          expected: "1.0.0",
+        }],
+      );
   }
 
   #[test]

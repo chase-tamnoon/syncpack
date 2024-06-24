@@ -137,7 +137,7 @@ impl Effects for LintEffects<'_> {
         info!("      {icon} {hint} {location_hint}");
         self.is_valid = false;
       }
-      InstanceEventVariant::InstanceMatchesHighestOrLowestSemverButMismatchesSemverGroup => {
+      InstanceEventVariant::InstanceMatchesHighestOrLowestSemverButMismatchesConflictingSemverGroup => {
         // return /*SKIP*/;
         let instance = instances_by_id.get(instance_id).unwrap();
         let icon = icon_fixable();

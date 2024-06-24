@@ -159,7 +159,7 @@ impl<'a> Expects<'a> {
     self.expect_instance_mismatches(label, &expected_mismatches, actual_mismatches)
   }
 
-  pub fn to_have_instance_matches_highest_or_lowest_semver_but_mismatches_semver_group(
+  pub fn to_have_instance_matches_highest_or_lowest_semver_but_mismatches_conflicting_semver_group(
     &self,
     expected_mismatches: Vec<ExpectedMismatchEvent>,
   ) -> &Self {
@@ -167,7 +167,19 @@ impl<'a> Expects<'a> {
     let actual_mismatches = &self
       .effects
       .events
-      .instance_matches_highest_or_lowest_semver_but_mismatches_semver_group;
+      .instance_matches_highest_or_lowest_semver_but_mismatches_conflicting_semver_group;
+    self.expect_instance_mismatches(label, &expected_mismatches, actual_mismatches)
+  }
+
+  pub fn to_have_instance_is_highest_or_lowest_semver_once_semver_group_is_fixed(
+    &self,
+    expected_mismatches: Vec<ExpectedMismatchEvent>,
+  ) -> &Self {
+    let label = "instance is highest or lowest semver once semver group is fixed";
+    let actual_mismatches = &self
+      .effects
+      .events
+      .instance_is_highest_or_lowest_semver_once_semver_group_is_fixed;
     self.expect_instance_mismatches(label, &expected_mismatches, actual_mismatches)
   }
 

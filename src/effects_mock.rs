@@ -35,8 +35,9 @@ pub struct EventsByType {
   pub local_instance_mistakenly_mismatches_pinned: Vec<ActualMismatchEvent>,
   /* Fixable Mismatches */
   pub instance_is_banned: Vec<ActualMismatchEvent>,
-  pub instance_matches_highest_or_lowest_semver_but_mismatches_semver_group:
+  pub instance_matches_highest_or_lowest_semver_but_mismatches_conflicting_semver_group:
     Vec<ActualMismatchEvent>,
+  pub instance_is_highest_or_lowest_semver_once_semver_group_is_fixed: Vec<ActualMismatchEvent>,
   pub instance_matches_local_but_mismatches_semver_group: Vec<ActualMismatchEvent>,
   pub instance_mismatches_local: Vec<ActualMismatchEvent>,
   pub instance_mismatches_highest_or_lowest_semver: Vec<ActualMismatchEvent>,
@@ -81,7 +82,8 @@ impl EventsByType {
       local_instance_mistakenly_mismatches_pinned: vec![],
       /* Fixable Mismatches */
       instance_is_banned: vec![],
-      instance_matches_highest_or_lowest_semver_but_mismatches_semver_group: vec![],
+      instance_matches_highest_or_lowest_semver_but_mismatches_conflicting_semver_group: vec![],
+      instance_is_highest_or_lowest_semver_once_semver_group_is_fixed: vec![],
       instance_matches_local_but_mismatches_semver_group: vec![],
       instance_mismatches_local: vec![],
       instance_mismatches_highest_or_lowest_semver: vec![],
@@ -256,10 +258,10 @@ impl Effects for MockEffects<'_> {
           expected: instance.expected.unwrap().clone(),
         });
       }
-      InstanceEventVariant::InstanceMatchesHighestOrLowestSemverButMismatchesSemverGroup => {
+      InstanceEventVariant::InstanceMatchesHighestOrLowestSemverButMismatchesConflictingSemverGroup => {
         self
           .events
-          .instance_matches_highest_or_lowest_semver_but_mismatches_semver_group
+          .instance_matches_highest_or_lowest_semver_but_mismatches_conflicting_semver_group
           .push(ActualMismatchEvent {
             dependency_name: event.dependency.name.clone(),
             instance_id: event.instance_id.clone(),
