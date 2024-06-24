@@ -26,7 +26,7 @@ cargo run -- lint
 cargo run -- fix
 ```
 
-Both will check formatting and version ranges and mismatches by default, but can be filtered with `--format` and `--versions`.
+Both will check formatting and version/range mismatches by default, but can be filtered with `--format` and `--versions`.
 
 ## Build and Run (Production)
 

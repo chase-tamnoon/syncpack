@@ -56,13 +56,6 @@ fn create() -> Command {
             .help("enable to lint the formatting and order of package.json files"),
         )
         .arg(
-          Arg::new("ranges")
-            .short('r')
-            .long("ranges")
-            .action(clap::ArgAction::SetTrue)
-            .help("enable to lint semver range mismatches"),
-        )
-        .arg(
           Arg::new("versions")
             .short('v')
             .long("versions")
@@ -94,13 +87,6 @@ fn create() -> Command {
             .long("format")
             .action(clap::ArgAction::SetTrue)
             .help("enable to fix the formatting and order of package.json files"),
-        )
-        .arg(
-          Arg::new("ranges")
-            .short('r')
-            .long("ranges")
-            .action(clap::ArgAction::SetTrue)
-            .help("enable to fix semver range mismatches"),
         )
         .arg(
           Arg::new("versions")
@@ -169,9 +155,8 @@ impl CliOptions {
     // 1. if no command is true, then all of them are true
     // 2. if any commands are true, then only those are true
     let use_format = matches.get_flag("format");
-    let use_ranges = matches.get_flag("ranges");
     let use_versions = matches.get_flag("versions");
-    let use_all = !use_format && !use_ranges && !use_versions;
+    let use_all = !use_format && !use_versions;
     let source = matches
       .get_many::<String>("source")
       .unwrap_or_default()
