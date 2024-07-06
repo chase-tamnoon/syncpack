@@ -10,8 +10,7 @@ use std::{env::current_dir, process};
 use crate::{
   cli::{Cli, Subcommand},
   config::Config,
-  effects_fix::FixEffects,
-  effects_lint::LintEffects,
+  effects::{fix::FixEffects, lint::LintEffects},
   packages::Packages,
   visit_packages::visit_packages,
 };
@@ -22,9 +21,6 @@ mod context;
 mod dependency;
 mod dependency_type;
 mod effects;
-mod effects_fix;
-mod effects_lint;
-mod effects_mock;
 mod expect;
 mod format;
 mod group_selector;

@@ -414,7 +414,7 @@ pub fn visit_packages(config: &Config, packages: Packages, effects: &mut impl Ef
 mod tests {
   use super::*;
   use crate::{
-    effects_mock::MockEffects,
+    effects::mock::MockEffects,
     expect::{expect, ExpectedMatchEvent, ExpectedMismatchEvent},
   };
   use serde_json::json;

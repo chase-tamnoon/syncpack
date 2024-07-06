@@ -4,8 +4,10 @@ use log::info;
 use crate::{
   config::Config,
   context::InstancesById,
-  effects::{Effects, Event, InstanceEvent, InstanceEventVariant},
-  effects_lint::{icon_fixable, icon_valid},
+  effects::{
+    lint::{icon_fixable, icon_valid},
+    Effects, Event, InstanceEvent, InstanceEventVariant,
+  },
   packages::Packages,
 };
 

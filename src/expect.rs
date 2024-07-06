@@ -1,7 +1,6 @@
 #[cfg(test)]
 use crate::{
-  effects::{InstanceEvent, InstanceEventVariant},
-  effects_mock::MockEffects,
+  effects::{mock::MockEffects, InstanceEvent, InstanceEventVariant},
   instance::Instance,
 };
 
