@@ -1,9 +1,9 @@
 use node_semver::Range;
 use std::{
+  cmp::Ordering,
   collections::{HashMap, HashSet},
   vec,
 };
-use version_compare::{compare, Cmp};
 
 use crate::{
   context::InstancesById,
@@ -147,11 +147,11 @@ impl Dependency {
   }
 
   pub fn get_highest_semver(&self, instances_by_id: &InstancesById) -> Option<Specifier> {
-    self.get_highest_or_lowest_semver(instances_by_id, Cmp::Gt)
+    self.get_highest_or_lowest_semver(instances_by_id, Ordering::Greater)
   }
 
   pub fn get_lowest_semver(&self, instances_by_id: &InstancesById) -> Option<Specifier> {
-    self.get_highest_or_lowest_semver(instances_by_id, Cmp::Lt)
+    self.get_highest_or_lowest_semver(instances_by_id, Ordering::Less)
   }
 
   /// Get the highest or lowest semver specifier in this group.
@@ -161,25 +161,20 @@ impl Dependency {
   pub fn get_highest_or_lowest_semver(
     &self,
     instances_by_id: &InstancesById,
-    preferred_order: Cmp,
+    preferred_order: Ordering,
   ) -> Option<Specifier> {
     self
       .get_instances(instances_by_id)
       .iter()
       .fold(None, |highest, instance| match highest {
         None => Some(&instance.expected),
-        Some(highest) => match compare(instance.expected.unwrap(), highest.unwrap()) {
-          Ok(actual_order) => {
-            if actual_order == preferred_order {
-              Some(&instance.expected)
-            } else {
-              Some(highest)
-            }
+        Some(highest) => {
+          if instance.expected.cmp(highest) == preferred_order {
+            Some(&instance.expected)
+          } else {
+            Some(highest)
           }
-          Err(_) => {
-            panic!("Cannot compare {:?} and {:?}", &instance.expected, &highest);
-          }
-        },
+        }
       })
       .cloned()
   }

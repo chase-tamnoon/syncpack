@@ -1,6 +1,5 @@
 use itertools::Itertools;
 use std::cmp::Ordering;
-use version_compare::Cmp;
 
 use crate::{
   config::Config,
@@ -77,7 +76,7 @@ pub fn visit_packages(config: &Config, packages: Packages, effects: &mut impl Ef
             }
             Variant::HighestSemver | Variant::LowestSemver => {
               let prefer_highest = matches!(dependency.variant, Variant::HighestSemver);
-              let preferred_order: Cmp = if prefer_highest { Cmp::Gt } else { Cmp::Lt };
+              let preferred_order: Ordering = if prefer_highest { Ordering::Greater } else { Ordering::Less };
               let label: &str = if prefer_highest { "highest" } else { "lowest" };
               match dependency.get_local_specifier(&instances_by_id) {
                 Some(local_specifier) => {
@@ -102,7 +101,7 @@ pub fn visit_packages(config: &Config, packages: Packages, effects: &mut impl Ef
                         });
                       }
                     } else {
-                        // CHECK THIS Eq WORKS
+                      // CHECK THIS Eq WORKS
                       if instance.actual == local_specifier {
                         if instance.has_range_mismatch(&local_specifier) {
                           mark_as(INVALID);
@@ -140,7 +139,6 @@ pub fn visit_packages(config: &Config, packages: Packages, effects: &mut impl Ef
                       Some(preferred) => {
                         dependency.all.iter().for_each(|instance_id| {
                           let instance = instances_by_id.get_mut(instance_id).unwrap();
-                          // CHECK THIS Eq WORKS
                           if instance.actual == preferred {
                             if instance.has_range_mismatch(&preferred) {
                               mark_as(INVALID);
@@ -160,14 +158,29 @@ pub fn visit_packages(config: &Config, packages: Packages, effects: &mut impl Ef
                               });
                             }
                           } else {
-                            mark_as(INVALID);
-                            instance.expected = preferred.clone();
-                            expected = Some(preferred.clone());
-                            queue.push(InstanceEvent {
-                              dependency,
-                              instance_id: instance_id.clone(),
-                              variant: InstanceEventVariant::InstanceMismatchesHighestOrLowestSemver,
-                            });
+                            if instance.expected == preferred {
+                              if instance.matches_semver_group(&instance.expected) {
+                                if !instance.matches_semver_group(&instance.actual) {
+                                  mark_as(INVALID);
+                                  expected = Some(preferred.clone());
+                                  queue.push(InstanceEvent {
+                                    dependency,
+                                    instance_id: instance_id.clone(),
+                                    variant: InstanceEventVariant::InstanceIsHighestOrLowestSemverOnceSemverGroupIsFixed,
+                                  });
+                                }
+                              }
+                            } else {
+                              // check this
+                              mark_as(INVALID);
+                              instance.expected = preferred.clone();
+                              expected = Some(preferred.clone());
+                              queue.push(InstanceEvent {
+                                dependency,
+                                instance_id: instance_id.clone(),
+                                variant: InstanceEventVariant::InstanceMismatchesHighestOrLowestSemver,
+                              });
+                            }
                           }
                         });
                       }
@@ -772,7 +785,6 @@ mod tests {
   }
 
   #[test]
-  #[ignore] // TODO
   fn instance_is_highest_or_lowest_semver_once_semver_group_is_fixed() {
     let config = Config::from_mock(json!({
       "semverGroups": [{

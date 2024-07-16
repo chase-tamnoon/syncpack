@@ -79,13 +79,13 @@ impl Instance {
   /// ✓ its own version matches its expected version (eg. "1.1.0" == "1.1.0")
   /// ✓ its expected version matches the expected version of the group
   /// ✘ only its own semver range is different
-  pub fn has_range_mismatch(&self, other: &Specifier) -> bool {
+  pub fn has_range_mismatch(&self, preferred: &Specifier) -> bool {
     // it has a semver group
     self.prefer_range.is_some()
       && match (
         self.actual.get_simple_semver(),
         self.expected.get_simple_semver(),
-        other.get_simple_semver(),
+        preferred.get_simple_semver(),
       ) {
         // all versions are simple semver
         (Some(actual), Some(expected), Some(other)) => {
@@ -98,6 +98,15 @@ impl Instance {
         }
         _ => false,
       }
+  }
+
+  /// Does the given semver specifier have the expected range for this
+  /// instance's semver group?
+  pub fn matches_semver_group(&self, specifier: &Specifier) -> bool {
+    match (&self.prefer_range, specifier.get_simple_semver()) {
+      (Some(range), Some(simple_semver)) => simple_semver.get_range() == *range,
+      _ => false,
+    }
   }
 
   pub fn get_fixed_range_mismatch(&self) -> Specifier {

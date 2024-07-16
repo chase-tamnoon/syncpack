@@ -1,3 +1,5 @@
+use std::cmp::Ordering;
+
 use semver::Semver;
 use simple_semver::SimpleSemver;
 
@@ -11,7 +13,7 @@ pub mod semver;
 pub mod semver_range;
 pub mod simple_semver;
 
-#[derive(Clone, Debug, Eq, PartialEq, Hash)]
+#[derive(Clone, Debug, Hash)]
 pub enum Specifier {
   Semver(Semver),
   NonSemver(NonSemver),
@@ -110,3 +112,29 @@ impl Specifier {
     }
   }
 }
+
+impl Ord for Specifier {
+  fn cmp(&self, other: &Self) -> Ordering {
+    if let Specifier::Semver(Semver::Simple(a)) = self {
+      if let Specifier::Semver(Semver::Simple(b)) = other {
+        return a.cmp(b);
+      }
+    }
+    println!("@TODO: compare {:?} and {:?}", self, other);
+    Ordering::Equal
+  }
+}
+
+impl PartialOrd for Specifier {
+  fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+    Some(self.cmp(other))
+  }
+}
+
+impl PartialEq for Specifier {
+  fn eq(&self, other: &Self) -> bool {
+    self.cmp(other) == Ordering::Equal
+  }
+}
+
+impl Eq for Specifier {}

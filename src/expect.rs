@@ -91,7 +91,7 @@ impl<'a> Expects<'a> {
     let actual_len = actual_matches.values().fold(0, |acc, x| acc + x.len());
     if actual_len != expected_len {
       self.debug();
-      panic!("expected {actual_len} matches but found {expected_len}");
+      panic!("expected {expected_len} matches but found {actual_len}");
     }
     'expected: for expected in &expected_matches {
       let variant = &expected.variant;
@@ -101,7 +101,7 @@ impl<'a> Expects<'a> {
       let matches_of_type = actual_matches.get(variant);
       if matches_of_type.is_none() {
         self.debug();
-        panic!("expected {variant:?} matches but found none");
+        panic!("expected {variant:?} match but found none");
       }
       for event in matches_of_type.unwrap() {
         if event.dependency_name == *dependency_name
@@ -124,7 +124,7 @@ impl<'a> Expects<'a> {
     let actual_len = actual_mismatches.values().fold(0, |acc, x| acc + x.len());
     if actual_len != expected_len {
       self.debug();
-      panic!("expected {actual_len} mismatches but found {expected_len}");
+      panic!("expected {expected_len} mismatches but found {actual_len}");
     }
     'expected: for expected in &expected_mismatches {
       let variant = &expected.variant;
@@ -134,7 +134,7 @@ impl<'a> Expects<'a> {
       let mismatches_of_type = actual_mismatches.get(variant);
       if mismatches_of_type.is_none() {
         self.debug();
-        panic!("expected {variant:?} mismatches but found none");
+        panic!("expected {variant:?} mismatch but found none");
       }
       for event in mismatches_of_type.unwrap() {
         if event.dependency_name == *dependency_name
