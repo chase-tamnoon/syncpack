@@ -5,8 +5,8 @@ use std::cmp::Ordering;
 use super::{
   parser,
   regexes::{
-    CARET, CARET_TAG, GT, GTE, GTE_TAG, GT_TAG, LT, LTE, LTE_TAG, LT_TAG, RANGE_CHARS, TILDE,
-    TILDE_TAG,
+    CARET, CARET_MINOR, CARET_TAG, GT, GTE, GTE_TAG, GT_TAG, LT, LTE, LTE_TAG, LT_TAG, RANGE_CHARS,
+    TILDE, TILDE_MINOR, TILDE_TAG,
   },
   semver_range::SemverRange,
 };
@@ -138,10 +138,10 @@ impl SimpleSemver {
       SimpleSemver::Major(s) => SemverRange::Exact,
       SimpleSemver::Minor(s) => SemverRange::Exact,
       SimpleSemver::Range(s) | SimpleSemver::RangeMinor(s) => {
-        if CARET.is_match(s) || CARET_TAG.is_match(s) {
+        if CARET.is_match(s) || CARET_MINOR.is_match(s) || CARET_TAG.is_match(s) {
           return SemverRange::Minor;
         }
-        if TILDE.is_match(s) || TILDE_TAG.is_match(s) {
+        if TILDE.is_match(s) || TILDE_MINOR.is_match(s) || TILDE_TAG.is_match(s) {
           return SemverRange::Patch;
         }
         if GT.is_match(s) || GT_TAG.is_match(s) {
@@ -349,8 +349,21 @@ mod tests {
   #[test]
   fn has_same_range() {
     let cases: Vec<(&str, &str, bool)> = vec![
-      //
       ("0.0.0", "0.0.1", true),
+      ("0.0.0", "^0.0.0", false),
+      ("^0.0.0", "^0.0.0", true),
+      ("^0.0.0", "~0.0.0", false),
+      ("*", "*", true),
+      ("*", "latest", true),
+      ("^0.0.0", "^0.0", true),
+      ("0.0.0", "^0.0", false),
+      ("~0.0.0", "^0.0", false),
+      (">=0.0.0", ">=0.0.0", true),
+      (">=0.0.0", ">0.0.0", false),
+      (">0.0.0", ">=0.0.0", false),
+      ("<=0.0.0", "<=0.0.0", true),
+      ("<=0.0.0", "<0.0.0", false),
+      ("<0.0.0", "<=0.0.0", false),
     ];
     for (str_a, str_b, expected) in cases {
       let a = SimpleSemver::new(&str_a.to_string());
