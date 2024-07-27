@@ -155,14 +155,33 @@ mod tests {
       ("0.0.1", "0.0.0", Ordering::Greater),
       ("0.1.0", "0.0.0", Ordering::Greater),
       ("1.0.0", "0.0.0", Ordering::Greater),
-      /* range greediness applies only when versions are equal */
+      /* range versions where versions differ */
       ("0.0.0", "~0.0.1", Ordering::Less),
       ("0.0.0", "~0.1.0", Ordering::Less),
       ("0.0.0", "~1.0.0", Ordering::Less),
-      ("0.0.0", "~0.0.0", Ordering::Less),
       ("0.0.1", "~0.0.0", Ordering::Greater),
       ("0.1.0", "~0.0.0", Ordering::Greater),
       ("1.0.0", "~0.0.0", Ordering::Greater),
+      /* range greediness applies only when versions are equal */
+      ("0.0.0", "~0.0.0", Ordering::Less),
+      ("0.0.0", "~0.0", Ordering::Less),
+      ("0.0", "~0.0", Ordering::Less),
+      ("0", "~0.0", Ordering::Less),
+      ("0.0.0", "^0.0.0", Ordering::Less),
+      ("0.0.0", "^0.0", Ordering::Less),
+      ("0.0", "^0.0", Ordering::Less),
+      ("0", "^0.0", Ordering::Less),
+      ("0.0.0", ">0.0.0", Ordering::Less),
+      ("0.0.0", ">=0.0.0", Ordering::Less),
+      ("0.0.0", "<=0.0.0", Ordering::Greater),
+      ("0.0.0", "<0.0.0", Ordering::Greater),
+      ("0.0.0", "*", Ordering::Less),
+      ("^0.0.0", "*", Ordering::Less),
+      ("~0.0.0", "*", Ordering::Less),
+      (">0.0.0", "*", Ordering::Less),
+      (">=0.0.0", "*", Ordering::Less),
+      ("<=0.0.0", "*", Ordering::Less),
+      ("<0.0.0", "*", Ordering::Less),
       /* stable should be older than tagged */
       ("0.0.0", "0.0.0-alpha", Ordering::Less),
       /* equal tags should not affect comparison */
@@ -181,6 +200,8 @@ mod tests {
       ("0.0.0-rc.0.0.1", "0.0.0-rc.0.0.0", Ordering::Greater),
       ("0.0.0-rc.0.1.0", "0.0.0-rc.0.0.0", Ordering::Greater),
       ("0.0.0-rc.1.0.0", "0.0.0-rc.0.0.0", Ordering::Greater),
+      /* preleases should not matter when version is greater */
+      ("0.1.0-rc.0.0.0", "0.0.0-rc.0.1.0", Ordering::Greater),
       /* range greediness is the same on prereleases */
       ("0.0.0-rc.0", "~0.0.1-rc.0", Ordering::Less),
       ("0.0.0-rc.0", "~0.1.0-rc.0", Ordering::Less),
