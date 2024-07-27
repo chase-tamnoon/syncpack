@@ -706,9 +706,6 @@ mod tests {
         "name": "package-b",
         "dependencies": {
           "package-a": "1.1.0"
-        },
-        "devDependencies": {
-          "package-a": "workspace:*"
         }
       }),
     ]);
@@ -722,22 +719,13 @@ mod tests {
         instance_id: "package-a in /version of package-a",
         actual: "1.0.0",
       }])
-      .to_have_mismatches(vec![
-        ExpectedMismatchEvent {
-          variant: InstanceEventVariant::InstanceMismatchesLocal,
-          dependency_name: "package-a",
-          instance_id: "package-a in /dependencies of package-b",
-          actual: "1.1.0",
-          expected: "1.0.0",
-        },
-        ExpectedMismatchEvent {
-          variant: InstanceEventVariant::InstanceMismatchesLocal,
-          dependency_name: "package-a",
-          instance_id: "package-a in /devDependencies of package-b",
-          actual: "workspace:*",
-          expected: "1.0.0",
-        },
-      ]);
+      .to_have_mismatches(vec![ExpectedMismatchEvent {
+        variant: InstanceEventVariant::InstanceMismatchesLocal,
+        dependency_name: "package-a",
+        instance_id: "package-a in /dependencies of package-b",
+        actual: "1.1.0",
+        expected: "1.0.0",
+      }]);
   }
 
   #[test]
@@ -865,9 +853,80 @@ mod tests {
   }
 
   #[test]
-  #[ignore]
   fn reports_local_version_mismatch_when_an_instance_uses_workspace_protocol() {
-    panic!("@TODO");
+    let config = Config::new();
+    let mut effects = MockEffects::new(&config);
+    let packages = Packages::from_mocks(vec![
+      json!({
+        "name": "package-a",
+        "version": "1.0.0"
+      }),
+      json!({
+        "name": "package-b",
+        "devDependencies": {
+          "package-a": "workspace:*"
+        }
+      }),
+    ]);
+
+    visit_packages(&config, packages, &mut effects);
+
+    expect(&effects)
+      .to_have_matches(vec![ExpectedMatchEvent {
+        variant: InstanceEventVariant::LocalInstanceIsPreferred,
+        dependency_name: "package-a",
+        instance_id: "package-a in /version of package-a",
+        actual: "1.0.0",
+      }])
+      .to_have_mismatches(vec![ExpectedMismatchEvent {
+        variant: InstanceEventVariant::InstanceMismatchesLocal,
+        dependency_name: "package-a",
+        instance_id: "package-a in /devDependencies of package-b",
+        actual: "workspace:*",
+        expected: "1.0.0",
+      }]);
+  }
+
+  #[test]
+  fn protects_local_version_when_naively_pinned_to_use_workspace_protocol() {
+    let config = Config::from_mock(json!({
+      "versionGroups": [{
+        "dependencyTypes": ["**"],
+        "dependencies": ["**"],
+        "packages": ["**"],
+        "pinVersion": "workspace:*",
+      }]
+    }));
+    let mut effects = MockEffects::new(&config);
+    let packages = Packages::from_mocks(vec![
+      json!({
+        "name": "package-a",
+        "version": "1.0.0"
+      }),
+      json!({
+        "name": "package-b",
+        "devDependencies": {
+          "package-a": "workspace:*"
+        }
+      }),
+    ]);
+
+    visit_packages(&config, packages, &mut effects);
+
+    expect(&effects)
+      .to_have_matches(vec![ExpectedMatchEvent {
+        variant: InstanceEventVariant::InstanceMatchesPinned,
+        dependency_name: "package-a",
+        instance_id: "package-a in /devDependencies of package-b",
+        actual: "workspace:*",
+      }])
+      .to_have_mismatches(vec![ExpectedMismatchEvent {
+        variant: InstanceEventVariant::LocalInstanceMistakenlyMismatchesPinned,
+        dependency_name: "package-a",
+        instance_id: "package-a in /version of package-a",
+        actual: "1.0.0",
+        expected: "1.0.0",
+      }]);
   }
 
   #[test]
