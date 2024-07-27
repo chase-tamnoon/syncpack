@@ -222,6 +222,7 @@ mod tests {
       ("workspace:0.0.0", "0.0.0", Ordering::Equal),
       ("workspace:>0.0.0", "0.0.0", Ordering::Greater),
       ("workspace:<=0.0.0", "0.0.0", Ordering::Less),
+      ("workspace:0.0.0", "0.1.0", Ordering::Less),
     ];
     for (str_a, str_b, expected) in cases {
       let a = Specifier::new(&str_a.to_string());
