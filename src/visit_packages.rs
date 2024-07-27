@@ -826,8 +826,7 @@ mod tests {
   }
 
   #[test]
-  #[ignore] // TODO
-  fn highest_version_match_becomes_mismatch_after_semver_range_has_been_fixed() {
+  fn instance_is_no_longer_highest_or_lowest_semver_once_semver_group_is_fixed() {
     let config = Config::from_mock(json!({
       "semverGroups": [{
         "dependencyTypes": ["dev"],
@@ -847,21 +846,20 @@ mod tests {
 
     visit_packages(&config, packages, &mut effects);
 
-    expect(&effects).to_have_matches(vec![]).to_have_mismatches(vec![
-      ExpectedMismatchEvent {
-        variant: InstanceEventVariant::InstanceMismatchesHighestOrLowestSemver,
+    expect(&effects).to_have_matches(vec![
+      ExpectedMatchEvent {
+        variant: InstanceEventVariant::InstanceMatchesHighestOrLowestSemver,
         dependency_name: "foo",
         instance_id: "foo in /dependencies of package-a",
         actual: "1.0.0",
-        expected: "1.0.0",
       },
+    ]).to_have_mismatches(vec![
       ExpectedMismatchEvent {
         variant: InstanceEventVariant::InstanceMatchesHighestOrLowestSemverButMismatchesConflictingSemverGroup,
         dependency_name: "foo",
         instance_id: "foo in /devDependencies of package-a",
         actual: "1.0.0",
-        // show what the semver group expects, but ask user what they want
-        expected: ">1.0.0",
+        expected: "<1.0.0",
       },
     ]);
   }
