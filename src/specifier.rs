@@ -27,7 +27,9 @@ impl Specifier {
   pub fn new(specifier: &String) -> Self {
     let str = parser::sanitise(specifier);
     let string = str.to_string();
-    if parser::is_exact(str) {
+    if specifier == "" {
+      Self::None
+    } else if parser::is_exact(str) {
       Self::Semver(Semver::Simple(SimpleSemver::Exact(string)))
     } else if parser::is_latest(str) {
       Self::Semver(Semver::Simple(SimpleSemver::Latest(string)))
@@ -82,25 +84,22 @@ impl Specifier {
 
   pub fn unwrap(&self) -> String {
     match self {
-      Self::Semver(Semver::Simple(SimpleSemver::Exact(string))) => string,
-      Self::Semver(Semver::Simple(SimpleSemver::Latest(string))) => string,
-      Self::Semver(Semver::Simple(SimpleSemver::Major(string))) => string,
-      Self::Semver(Semver::Simple(SimpleSemver::Minor(string))) => string,
-      Self::Semver(Semver::Simple(SimpleSemver::Range(string))) => string,
-      Self::Semver(Semver::Simple(SimpleSemver::RangeMinor(string))) => string,
-      Self::Semver(Semver::Complex(string)) => string,
-      Self::NonSemver(NonSemver::Alias(string)) => string,
-      Self::NonSemver(NonSemver::File(string)) => string,
-      Self::NonSemver(NonSemver::Git(string)) => string,
-      Self::NonSemver(NonSemver::Tag(string)) => string,
-      Self::NonSemver(NonSemver::Url(string)) => string,
-      Self::NonSemver(NonSemver::WorkspaceProtocol(string)) => string,
-      Self::NonSemver(NonSemver::Unsupported(string)) => string,
-      Self::None => {
-        panic!("Cannot unwrap a Specifier::None");
-      }
+      Self::Semver(Semver::Simple(SimpleSemver::Exact(string))) => string.clone(),
+      Self::Semver(Semver::Simple(SimpleSemver::Latest(string))) => string.clone(),
+      Self::Semver(Semver::Simple(SimpleSemver::Major(string))) => string.clone(),
+      Self::Semver(Semver::Simple(SimpleSemver::Minor(string))) => string.clone(),
+      Self::Semver(Semver::Simple(SimpleSemver::Range(string))) => string.clone(),
+      Self::Semver(Semver::Simple(SimpleSemver::RangeMinor(string))) => string.clone(),
+      Self::Semver(Semver::Complex(string)) => string.clone(),
+      Self::NonSemver(NonSemver::Alias(string)) => string.clone(),
+      Self::NonSemver(NonSemver::File(string)) => string.clone(),
+      Self::NonSemver(NonSemver::Git(string)) => string.clone(),
+      Self::NonSemver(NonSemver::Tag(string)) => string.clone(),
+      Self::NonSemver(NonSemver::Url(string)) => string.clone(),
+      Self::NonSemver(NonSemver::WorkspaceProtocol(string)) => string.clone(),
+      Self::NonSemver(NonSemver::Unsupported(string)) => string.clone(),
+      Self::None => "VERSION_IS_MISSING".to_string(),
     }
-    .clone()
   }
 
   pub fn is_simple_semver(&self) -> bool {

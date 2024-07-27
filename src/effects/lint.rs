@@ -189,6 +189,10 @@ impl Effects for LintEffects<'_> {
         self.is_valid = false;
       }
       /* Unfixable Mismatches */
+      InstanceEventVariant::InstanceMismatchesLocalWithMissingVersion => {
+        let instance = instances_by_id.get(instance_id).unwrap();
+        info!("  InstanceMismatchesLocalWithMissingVersion");
+      }
       InstanceEventVariant::InstanceMismatchesAndIsUnsupported => {
         // return /*SKIP*/;
         let instance = instances_by_id.get(instance_id).unwrap();

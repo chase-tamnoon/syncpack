@@ -119,6 +119,10 @@ impl Effects for FixEffects<'_> {
         instance.set_specifier(package, &instance.expected.clone());
       }
       /* Unfixable Mismatches */
+      InstanceEventVariant::InstanceMismatchesLocalWithMissingVersion => {
+        println!("@TODO: explain InstanceMismatchesLocalWithMissingVersion");
+        self.is_valid = false;
+      }
       InstanceEventVariant::InstanceMismatchesAndIsUnsupported => {
         println!("@TODO: explain InstanceMismatchesAndIsUnsupported");
         self.is_valid = false;

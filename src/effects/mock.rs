@@ -107,18 +107,19 @@ impl Effects for MockEffects<'_> {
       | InstanceEventVariant::InstanceMatchesButIsUnsupported
       | InstanceEventVariant::InstanceMatchesPinned
       | InstanceEventVariant::InstanceMatchesSameRangeGroup
-      | InstanceEventVariant::LocalInstanceMistakenlyBanned
+      | InstanceEventVariant::LocalInstanceMistakenlyBanned => {
+        self.matches.entry(event.variant.clone()).or_default().push(ActualMatchEvent::new(&event, instance));
+      }
+      InstanceEventVariant::LocalInstanceMistakenlyMismatchesSemverGroup
+      | InstanceEventVariant::LocalInstanceMistakenlyMismatchesPinned
       | InstanceEventVariant::InstanceMismatchesAndIsUnsupported
+      | InstanceEventVariant::InstanceMismatchesLocalWithMissingVersion
       | InstanceEventVariant::InstanceMatchesPinnedButMismatchesSemverGroup
       | InstanceEventVariant::InstanceMismatchesBothSameRangeAndConflictingSemverGroups
       | InstanceEventVariant::InstanceMismatchesBothSameRangeAndCompatibleSemverGroups
       | InstanceEventVariant::InstanceMatchesSameRangeGroupButMismatchesConflictingSemverGroup
       | InstanceEventVariant::InstanceMatchesSameRangeGroupButMismatchesCompatibleSemverGroup
-      | InstanceEventVariant::InstanceMismatchesSameRangeGroup => {
-        self.matches.entry(event.variant.clone()).or_default().push(ActualMatchEvent::new(&event, instance));
-      }
-      InstanceEventVariant::LocalInstanceMistakenlyMismatchesSemverGroup
-      | InstanceEventVariant::LocalInstanceMistakenlyMismatchesPinned
+      | InstanceEventVariant::InstanceMismatchesSameRangeGroup
       | InstanceEventVariant::InstanceIsBanned
       | InstanceEventVariant::InstanceMatchesHighestOrLowestSemverButMismatchesConflictingSemverGroup
       | InstanceEventVariant::InstanceIsHighestOrLowestSemverOnceSemverGroupIsFixed

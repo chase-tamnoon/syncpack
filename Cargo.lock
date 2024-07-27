@@ -885,7 +885,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "syncpack"
+name = "syncpackrs"
 version = "0.1.0"
 dependencies = [
  "clap",

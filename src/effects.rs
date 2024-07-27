@@ -77,6 +77,8 @@ pub enum InstanceEventVariant {
   InstanceMismatchesHighestOrLowestSemver,
   InstanceMismatchesPinned,
   /* = Unfixable ============================================================ */
+  /// A local package is depended on but its package.json is missing a version
+  InstanceMismatchesLocalWithMissingVersion,
   InstanceMismatchesAndIsUnsupported,
   /// ✘ Instance mismatches its same range group
   /// ✘ Instance mismatches its semver group

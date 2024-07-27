@@ -1,5 +1,5 @@
 use itertools::Itertools;
-use std::cmp::Ordering;
+use std::{cmp::Ordering, collections::HashMap};
 
 use crate::{
   config::Config,
@@ -20,6 +20,22 @@ pub fn visit_packages(config: &Config, packages: Packages, effects: &mut impl Ef
     semver_groups,
     version_groups,
   } = Context::create(config, &packages);
+
+  let local_specifiers_by_name: HashMap<String, Specifier> = packages
+    .by_name
+    .iter()
+    .map(|(name, package_json)| {
+      (
+        name.clone(),
+        package_json
+          .get_prop("/version")
+          .and_then(|value| value.as_str())
+          .map(|str| str.to_string())
+          .map(|string| Specifier::new(&string))
+          .unwrap_or(Specifier::None),
+      )
+    })
+    .collect();
 
   effects.set_packages(packages);
 
@@ -78,7 +94,8 @@ pub fn visit_packages(config: &Config, packages: Packages, effects: &mut impl Ef
               let prefer_highest = matches!(dependency.variant, Variant::HighestSemver);
               let preferred_order: Ordering = if prefer_highest { Ordering::Greater } else { Ordering::Less };
               let label: &str = if prefer_highest { "highest" } else { "lowest" };
-              match dependency.get_local_specifier(&instances_by_id) {
+
+              match local_specifiers_by_name.get(&dependency.name) {
                 Some(local_specifier) => {
                   dependency.all.iter().for_each(|instance_id| {
                     let instance = instances_by_id.get_mut(instance_id).unwrap();
@@ -101,8 +118,15 @@ pub fn visit_packages(config: &Config, packages: Packages, effects: &mut impl Ef
                         });
                       }
                     } else {
-                      // CHECK THIS Eq WORKS
-                      if instance.actual == local_specifier {
+                      if matches!(local_specifier, Specifier::None) {
+                        mark_as(INVALID);
+                        instance.expected = Specifier::None;
+                        queue.push(InstanceEvent {
+                          dependency,
+                          instance_id: instance_id.clone(),
+                          variant: InstanceEventVariant::InstanceMismatchesLocalWithMissingVersion,
+                        });
+                      } else if instance.actual == *local_specifier {
                         if instance.has_range_mismatch(&local_specifier) {
                           mark_as(INVALID);
                           instance.expected = instance.get_fixed_range_mismatch();
@@ -834,22 +858,20 @@ mod tests {
 
     visit_packages(&config, packages, &mut effects);
 
-    expect(&effects).to_have_matches(vec![
-      ExpectedMatchEvent {
+    expect(&effects)
+      .to_have_matches(vec![ExpectedMatchEvent {
         variant: InstanceEventVariant::InstanceMatchesHighestOrLowestSemver,
         dependency_name: "foo",
         instance_id: "foo in /dependencies of package-a",
         actual: "1.0.0",
-      },
-    ]).to_have_mismatches(vec![
-      ExpectedMismatchEvent {
+      }])
+      .to_have_mismatches(vec![ExpectedMismatchEvent {
         variant: InstanceEventVariant::InstanceMatchesHighestOrLowestSemverButMismatchesConflictingSemverGroup,
         dependency_name: "foo",
         instance_id: "foo in /devDependencies of package-a",
         actual: "1.0.0",
         expected: "<1.0.0",
-      },
-    ]);
+      }]);
   }
 
   #[test]
@@ -930,9 +952,32 @@ mod tests {
   }
 
   #[test]
-  #[ignore]
   fn reports_unfixable_local_version_mismatch_when_local_version_is_missing() {
-    panic!("@TODO");
+    let config = Config::new();
+    let mut effects = MockEffects::new(&config);
+    let packages = Packages::from_mocks(vec![
+      json!({
+        "name": "package-a"
+      }),
+      json!({
+        "name": "package-b",
+        "devDependencies": {
+          "package-a": "0.1.0"
+        }
+      }),
+    ]);
+
+    visit_packages(&config, packages, &mut effects);
+
+    expect(&effects)
+      .to_have_matches(vec![])
+      .to_have_mismatches(vec![ExpectedMismatchEvent {
+        variant: InstanceEventVariant::InstanceMismatchesLocalWithMissingVersion,
+        dependency_name: "package-a",
+        instance_id: "package-a in /devDependencies of package-b",
+        actual: "0.1.0",
+        expected: "VERSION_IS_MISSING",
+      }]);
   }
 
   #[test]
