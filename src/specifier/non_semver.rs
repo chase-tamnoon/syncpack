@@ -1,6 +1,12 @@
-use crate::specifier::parser;
+use std::cmp::Ordering;
 
-#[derive(Clone, Debug, Hash, Eq, PartialEq)]
+use super::{
+  orderable::{IsOrderable, Orderable},
+  parser,
+  simple_semver::SimpleSemver,
+};
+
+#[derive(Clone, Debug, Hash)]
 pub enum NonSemver {
   /// eg. `npm:1.2.3`
   Alias(String),
@@ -39,3 +45,36 @@ impl NonSemver {
     }
   }
 }
+
+impl IsOrderable for NonSemver {
+  fn get_orderable(&self) -> Orderable {
+    match self {
+      Self::WorkspaceProtocol(with_workspace) => {
+        let simple_semver: &String = &with_workspace.replace("workspace:", "");
+        SimpleSemver::new(simple_semver).get_orderable()
+      }
+      // @TODO: look for semver substrings in eg URLs, file paths, etc
+      _ => Orderable::new(),
+    }
+  }
+}
+
+impl Ord for NonSemver {
+  fn cmp(&self, other: &Self) -> Ordering {
+    self.get_orderable().cmp(&other.get_orderable())
+  }
+}
+
+impl PartialOrd for NonSemver {
+  fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+    Some(self.cmp(other))
+  }
+}
+
+impl PartialEq for NonSemver {
+  fn eq(&self, other: &Self) -> bool {
+    self.cmp(other) == Ordering::Equal
+  }
+}
+
+impl Eq for NonSemver {}

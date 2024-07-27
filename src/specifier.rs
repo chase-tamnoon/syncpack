@@ -1,12 +1,15 @@
 use std::cmp::Ordering;
 
-use semver::Semver;
-use simple_semver::SimpleSemver;
-
-use crate::specifier::non_semver::NonSemver;
+use crate::specifier::{
+  non_semver::NonSemver,
+  orderable::{IsOrderable, Orderable},
+  semver::Semver,
+  simple_semver::SimpleSemver,
+};
 
 pub mod any_specifier;
 pub mod non_semver;
+pub mod orderable;
 pub mod parser;
 pub mod regexes;
 pub mod semver;
@@ -113,15 +116,19 @@ impl Specifier {
   }
 }
 
+impl IsOrderable for Specifier {
+  fn get_orderable(&self) -> Orderable {
+    match self {
+      Self::Semver(semver) => semver.get_orderable(),
+      Self::NonSemver(non_semver) => non_semver.get_orderable(),
+      Self::None => Orderable::new(),
+    }
+  }
+}
+
 impl Ord for Specifier {
   fn cmp(&self, other: &Self) -> Ordering {
-    if let Specifier::Semver(Semver::Simple(a)) = self {
-      if let Specifier::Semver(Semver::Simple(b)) = other {
-        return a.cmp(b);
-      }
-    }
-    println!("@TODO: compare {:?} and {:?}", self, other);
-    Ordering::Equal
+    self.get_orderable().cmp(&other.get_orderable())
   }
 }
 

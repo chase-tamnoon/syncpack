@@ -3,6 +3,7 @@ use node_semver::Version;
 use std::cmp::Ordering;
 
 use super::{
+  orderable::{IsOrderable, Orderable},
   parser,
   regexes::{
     CARET, CARET_MINOR, CARET_TAG, GT, GTE, GTE_TAG, GT_TAG, LT, LTE, LTE_TAG, LT_TAG, RANGE_CHARS,
@@ -10,57 +11,6 @@ use super::{
   },
   semver_range::SemverRange,
 };
-
-#[derive(Clone, Debug, Hash)]
-struct OrderableSimpleSemver {
-  pub range: SemverRange,
-  pub version: Version,
-}
-
-impl Ord for OrderableSimpleSemver {
-  fn cmp(&self, other: &Self) -> Ordering {
-    // major
-    match self.version.major.cmp(&other.version.major) {
-      Ordering::Greater => Ordering::Greater,
-      Ordering::Less => Ordering::Less,
-      // minor
-      Ordering::Equal => match self.version.minor.cmp(&other.version.minor) {
-        Ordering::Greater => Ordering::Greater,
-        Ordering::Less => Ordering::Less,
-        // patch
-        Ordering::Equal => match self.version.patch.cmp(&other.version.patch) {
-          Ordering::Greater => Ordering::Greater,
-          Ordering::Less => Ordering::Less,
-          // build
-          Ordering::Equal => match self.version.build.cmp(&other.version.build) {
-            Ordering::Greater => Ordering::Greater,
-            Ordering::Less => Ordering::Less,
-            // pre_release
-            Ordering::Equal => match self.version.pre_release.cmp(&other.version.pre_release) {
-              Ordering::Greater => Ordering::Greater,
-              Ordering::Less => Ordering::Less,
-              Ordering::Equal => self.range.cmp(&other.range),
-            },
-          },
-        },
-      },
-    }
-  }
-}
-
-impl PartialOrd for OrderableSimpleSemver {
-  fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-    Some(self.cmp(other))
-  }
-}
-
-impl PartialEq for OrderableSimpleSemver {
-  fn eq(&self, other: &Self) -> bool {
-    self.cmp(other) == Ordering::Equal
-  }
-}
-
-impl Eq for OrderableSimpleSemver {}
 
 #[derive(Clone, Debug, Hash)]
 pub enum SimpleSemver {
@@ -160,9 +110,11 @@ impl SimpleSemver {
       }
     }
   }
+}
 
+impl IsOrderable for SimpleSemver {
   /// Parse this version specifier into a struct w can compare and order
-  fn get_orderable(&self) -> OrderableSimpleSemver {
+  fn get_orderable(&self) -> Orderable {
     let range = self.get_range();
     let version = match self {
       SimpleSemver::Exact(s) => Version::parse(s).unwrap(),
@@ -184,7 +136,7 @@ impl SimpleSemver {
         Version::parse(format!("{}.0", exact)).unwrap()
       }
     };
-    OrderableSimpleSemver { range, version }
+    Orderable { range, version }
   }
 }
 
@@ -219,10 +171,10 @@ mod tests {
 
   #[test]
   fn get_orderable() {
-    let cases: Vec<(&str, OrderableSimpleSemver)> = vec![
+    let cases: Vec<(&str, Orderable)> = vec![
       (
         "0.0.0",
-        OrderableSimpleSemver {
+        Orderable {
           range: SemverRange::Exact,
           version: Version {
             major: 0,
@@ -235,7 +187,7 @@ mod tests {
       ),
       (
         "1.2.3-alpha",
-        OrderableSimpleSemver {
+        Orderable {
           range: SemverRange::Exact,
           version: Version {
             major: 1,
@@ -248,7 +200,7 @@ mod tests {
       ),
       (
         "1.2.3-rc.18",
-        OrderableSimpleSemver {
+        Orderable {
           range: SemverRange::Exact,
           version: Version {
             major: 1,
@@ -313,7 +265,6 @@ mod tests {
     for (str_a, str_b, expected) in cases {
       let a = SimpleSemver::new(&str_a.to_string());
       let b = SimpleSemver::new(&str_b.to_string());
-      let ordering = a.cmp(&b);
       assert_eq!(
         a.has_same_range(&b),
         expected,
