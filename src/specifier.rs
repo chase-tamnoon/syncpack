@@ -138,3 +138,63 @@ impl PartialEq for Specifier {
 }
 
 impl Eq for Specifier {}
+
+#[cfg(test)]
+mod tests {
+  use super::*;
+  use std::cmp::Ordering;
+
+  #[test]
+  fn compare() {
+    let cases: Vec<(&str, &str, Ordering)> = vec![
+      /* normal versions */
+      ("0.0.0", "0.0.1", Ordering::Less),
+      ("0.0.0", "0.1.0", Ordering::Less),
+      ("0.0.0", "1.0.0", Ordering::Less),
+      ("0.0.0", "0.0.0", Ordering::Equal),
+      ("0.0.1", "0.0.0", Ordering::Greater),
+      ("0.1.0", "0.0.0", Ordering::Greater),
+      ("1.0.0", "0.0.0", Ordering::Greater),
+      /* range greediness applies only when versions are equal */
+      ("0.0.0", "~0.0.1", Ordering::Less),
+      ("0.0.0", "~0.1.0", Ordering::Less),
+      ("0.0.0", "~1.0.0", Ordering::Less),
+      ("0.0.0", "~0.0.0", Ordering::Less),
+      ("0.0.1", "~0.0.0", Ordering::Greater),
+      ("0.1.0", "~0.0.0", Ordering::Greater),
+      ("1.0.0", "~0.0.0", Ordering::Greater),
+      /* stable should be older than tagged */
+      ("0.0.0", "0.0.0-alpha", Ordering::Less),
+      /* equal tags should not affect comparison */
+      ("0.0.0-alpha", "0.0.0-alpha", Ordering::Equal),
+      ("0.0.0-alpha", "0.1.0-alpha", Ordering::Less),
+      ("0.0.0-alpha", "1.0.0-alpha", Ordering::Less),
+      ("0.0.0-alpha", "0.0.0-alpha", Ordering::Equal),
+      ("0.0.1-alpha", "0.0.0-alpha", Ordering::Greater),
+      ("0.1.0-alpha", "0.0.0-alpha", Ordering::Greater),
+      ("1.0.0-alpha", "0.0.0-alpha", Ordering::Greater),
+      /* preleases should matter when version is equal */
+      ("0.0.0-rc.0.0.0", "0.0.0-rc.0.0.0", Ordering::Equal),
+      ("0.0.0-rc.0.0.0", "0.0.0-rc.0.1.0", Ordering::Less),
+      ("0.0.0-rc.0.0.0", "0.0.0-rc.1.0.0", Ordering::Less),
+      ("0.0.0-rc.0.0.0", "0.0.0-rc.0.0.0", Ordering::Equal),
+      ("0.0.0-rc.0.0.1", "0.0.0-rc.0.0.0", Ordering::Greater),
+      ("0.0.0-rc.0.1.0", "0.0.0-rc.0.0.0", Ordering::Greater),
+      ("0.0.0-rc.1.0.0", "0.0.0-rc.0.0.0", Ordering::Greater),
+      /* range greediness is the same on prereleases */
+      ("0.0.0-rc.0", "~0.0.1-rc.0", Ordering::Less),
+      ("0.0.0-rc.0", "~0.1.0-rc.0", Ordering::Less),
+      ("0.0.0-rc.0", "~1.0.0-rc.0", Ordering::Less),
+      ("0.0.0-rc.0", "~0.0.0-rc.0", Ordering::Less),
+      ("0.0.1-rc.0", "~0.0.0-rc.0", Ordering::Greater),
+      ("0.1.0-rc.0", "~0.0.0-rc.0", Ordering::Greater),
+      ("1.0.0-rc.0", "~0.0.0-rc.0", Ordering::Greater),
+    ];
+    for (str_a, str_b, expected) in cases {
+      let a = Specifier::new(&str_a.to_string());
+      let b = Specifier::new(&str_b.to_string());
+      let ordering = a.cmp(&b);
+      assert_eq!(ordering, expected, "{str_a} should {expected:?} {str_b}");
+    }
+  }
+}
