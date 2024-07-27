@@ -210,6 +210,11 @@ mod tests {
       ("0.0.1-rc.0", "~0.0.0-rc.0", Ordering::Greater),
       ("0.1.0-rc.0", "~0.0.0-rc.0", Ordering::Greater),
       ("1.0.0-rc.0", "~0.0.0-rc.0", Ordering::Greater),
+      /* workspace: protocol is treated as transparent */
+      ("workspace:*", "0.0.0", Ordering::Greater),
+      ("workspace:0.0.0", "0.0.0", Ordering::Equal),
+      ("workspace:>0.0.0", "0.0.0", Ordering::Greater),
+      ("workspace:<=0.0.0", "0.0.0", Ordering::Less),
     ];
     for (str_a, str_b, expected) in cases {
       let a = Specifier::new(&str_a.to_string());
