@@ -19,6 +19,7 @@ keywords = [
     "version-management",
     "turborepo",
 ]
+readme = "./README.md"
 publish = false
 
 [dependencies]
