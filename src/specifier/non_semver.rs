@@ -3,7 +3,6 @@ use std::cmp::Ordering;
 use super::{
   orderable::{IsOrderable, Orderable},
   parser,
-  simple_semver::SimpleSemver,
 };
 
 #[derive(Clone, Debug, Hash)]
@@ -49,10 +48,6 @@ impl NonSemver {
 impl IsOrderable for NonSemver {
   fn get_orderable(&self) -> Orderable {
     match self {
-      Self::WorkspaceProtocol(with_workspace) => {
-        let simple_semver: &String = &with_workspace.replace("workspace:", "");
-        SimpleSemver::new(simple_semver).get_orderable()
-      }
       // @TODO: look for semver substrings in eg URLs, file paths, etc
       _ => Orderable::new(),
     }

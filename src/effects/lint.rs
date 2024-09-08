@@ -96,7 +96,6 @@ impl Effects for LintEffects<'_> {
   fn on_instance(&mut self, event: InstanceEvent, instances_by_id: &mut InstancesById) {
     let instance_id = &event.instance_id;
     let dependency = &event.dependency;
-    println!("{:?}", instances_by_id.get(instance_id).unwrap());
     match &event.variant {
       /* Ignored */
       InstanceEventVariant::InstanceIsIgnored => { /*NOOP*/ }

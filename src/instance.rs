@@ -1,3 +1,4 @@
+use log::debug;
 use serde_json::Value;
 use std::path::PathBuf;
 
@@ -59,6 +60,21 @@ impl Instance {
       package_name,
       prefer_range: None,
     }
+  }
+
+  /// Log every property of this instance
+  pub fn log_debug(&self) {
+    debug!("Instance:");
+    debug!("  actual          {:?}", self.actual);
+    debug!("  dependency_type {:?}", self.dependency_type);
+    debug!("  expected        {:?}", self.expected);
+    debug!("  file_path       {:?}", self.file_path);
+    debug!("  id              {:?}", self.id);
+    debug!("  is_local        {:?}", self.is_local);
+    debug!("  location_hint   {:?}", self.location_hint);
+    debug!("  name            {:?}", self.name);
+    debug!("  package_name    {:?}", self.package_name);
+    debug!("  prefer_range    {:?}", self.prefer_range);
   }
 
   /// Updated the expected version specifier for this instance to match the
