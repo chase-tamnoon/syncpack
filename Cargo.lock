@@ -885,8 +885,8 @@ dependencies = [
 ]
 
 [[package]]
-name = "syncpackrs"
-version = "0.1.0"
+name = "syncpack"
+version = "14.0.0-rust.0"
 dependencies = [
  "clap",
  "colored",
