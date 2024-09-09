@@ -1,4 +1,4 @@
-name: Release
+name: Release rust/main
 
 on:
   workflow_dispatch:

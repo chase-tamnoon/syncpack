@@ -1,10 +1,12 @@
-name: CI
+name: Verify rust/main
 
 on:
   pull_request:
+    branches:
+      - rust/main
   push:
     branches:
-      - main
+      - rust/main
 
 jobs:
   check:
