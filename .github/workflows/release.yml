@@ -22,46 +22,46 @@ jobs:
               OS: ubuntu-22.04,
               TARGET: x86_64-unknown-linux-gnu,
             }
-          # - {
-          #     NAME: linux-arm64-glibc,
-          #     NODE_ARCH: arm64,
-          #     NODE_OS: linux,
-          #     NODE_PKG_NAME: syncpack-linux-arm64,
-          #     OS: ubuntu-22.04,
-          #     TARGET: aarch64-unknown-linux-gnu,
-          #   }
-          # - {
-          #     NAME: win32-x64-msvc,
-          #     NODE_ARCH: x64,
-          #     NODE_OS: win32,
-          #     NODE_PKG_NAME: syncpack-windows-x64,
-          #     OS: windows-2022,
-          #     TARGET: x86_64-pc-windows-msvc,
-          #   }
-          # - {
-          #     NAME: win32-arm64-msvc,
-          #     NODE_ARCH: arm64,
-          #     NODE_OS: win32,
-          #     NODE_PKG_NAME: syncpack-windows-arm64,
-          #     OS: windows-2022,
-          #     TARGET: aarch64-pc-windows-msvc,
-          #   }
-          # - {
-          #     NAME: darwin-x64,
-          #     NODE_ARCH: x64,
-          #     NODE_OS: darwin,
-          #     NODE_PKG_NAME: syncpack-darwin-x64,
-          #     OS: macos-13,
-          #     TARGET: x86_64-apple-darwin,
-          #   }
-          # - {
-          #     NAME: darwin-arm64,
-          #     NODE_ARCH: arm64,
-          #     NODE_OS: darwin,
-          #     NODE_PKG_NAME: syncpack-darwin-arm64,
-          #     OS: macos-13,
-          #     TARGET: aarch64-apple-darwin,
-          #   }
+          - {
+              NAME: linux-arm64-glibc,
+              NODE_ARCH: arm64,
+              NODE_OS: linux,
+              NODE_PKG_NAME: syncpack-linux-arm64,
+              OS: ubuntu-22.04,
+              TARGET: aarch64-unknown-linux-gnu,
+            }
+          - {
+              NAME: win32-x64-msvc,
+              NODE_ARCH: x64,
+              NODE_OS: win32,
+              NODE_PKG_NAME: syncpack-windows-x64,
+              OS: windows-2022,
+              TARGET: x86_64-pc-windows-msvc,
+            }
+          - {
+              NAME: win32-arm64-msvc,
+              NODE_ARCH: arm64,
+              NODE_OS: win32,
+              NODE_PKG_NAME: syncpack-windows-arm64,
+              OS: windows-2022,
+              TARGET: aarch64-pc-windows-msvc,
+            }
+          - {
+              NAME: darwin-x64,
+              NODE_ARCH: x64,
+              NODE_OS: darwin,
+              NODE_PKG_NAME: syncpack-darwin-x64,
+              OS: macos-13,
+              TARGET: x86_64-apple-darwin,
+            }
+          - {
+              NAME: darwin-arm64,
+              NODE_ARCH: arm64,
+              NODE_OS: darwin,
+              NODE_PKG_NAME: syncpack-darwin-arm64,
+              OS: macos-13,
+              TARGET: aarch64-apple-darwin,
+            }
     steps:
       - name: Create config
         id: config
@@ -84,7 +84,7 @@ jobs:
         with:
           command: build
           args: --release --locked --target ${{ matrix.build.TARGET }}
-          # use-cross: ${{ matrix.build.OS == 'ubuntu-22.04' }}
+          use-cross: ${{ matrix.build.OS == 'ubuntu-22.04' }}
 
       - name: Install Node
         uses: actions/setup-node@v4
@@ -114,15 +114,15 @@ jobs:
             "${node_pkg_name}"
           # PUBLISH BINARY PACKAGE TO NPM
           cd "${node_pkg_dir_path}"
-          npm publish --dry-run --access public
+          npm publish --dry-run --access public --tag rust
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
-      # - name: Upload Artifact
-      #   uses: actions/upload-artifact@v4
-      #   with:
-      #     name: syncpack-${{ matrix.build.TARGET }}
-      #     path: target/${{ matrix.build.TARGET }}/release/syncpack
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: syncpack-${{ matrix.build.TARGET }}
+          path: target/${{ matrix.build.TARGET }}/release/syncpack
 
   publish-npm-base:
     name: Publish NPM package
@@ -147,6 +147,6 @@ jobs:
           node scripts/release/npm-root.mjs
           # PUBLISH ROOT PACKAGE TO NPM
           cd npm/root
-          npm publish --dry-run --access public
+          npm publish --dry-run --access public --tag rust
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
