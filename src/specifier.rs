@@ -27,7 +27,7 @@ impl Specifier {
   pub fn new(specifier: &String) -> Self {
     let str = parser::sanitise(specifier);
     let string = str.to_string();
-    if specifier == "" {
+    if specifier.is_empty() {
       Self::None
     } else if parser::is_exact(str) {
       Self::Semver(Semver::Simple(SimpleSemver::Exact(string)))

@@ -47,10 +47,8 @@ impl NonSemver {
 
 impl IsOrderable for NonSemver {
   fn get_orderable(&self) -> Orderable {
-    match self {
-      // @TODO: look for semver substrings in eg URLs, file paths, etc
-      _ => Orderable::new(),
-    }
+    // @TODO: look for semver substrings in eg URLs, file paths, etc
+    Orderable::new()
   }
 }
 
