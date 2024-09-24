@@ -49,7 +49,7 @@ impl VersionGroup {
     }
   }
 
-  ///
+  /// Lazily create a dependency if it doesn't already exist
   pub fn get_or_create_dependency(&mut self, instance: &Instance) -> &mut Dependency {
     self
       .dependencies
