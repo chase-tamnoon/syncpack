@@ -8,145 +8,104 @@ permissions:
 
 jobs:
   publish-npm-binaries:
-    name: Publish NPM binaries
-    runs-on: ${{ matrix.build.os }}
+    name: Publish npm binaries
+    runs-on: ${{ matrix.build.OS }}
     strategy:
-      fail-fast: false
+      fail-fast: true
       matrix:
         build:
           - {
               NAME: linux-x64-glibc,
-              NODE_ARCH: x64,
-              NODE_OS: linux,
-              NODE_PKG_NAME: syncpack-linux-x64,
               OS: ubuntu-22.04,
               TARGET: x86_64-unknown-linux-gnu,
             }
-          - {
-              NAME: linux-arm64-glibc,
-              NODE_ARCH: arm64,
-              NODE_OS: linux,
-              NODE_PKG_NAME: syncpack-linux-arm64,
-              OS: ubuntu-22.04,
-              TARGET: aarch64-unknown-linux-gnu,
-            }
-          - {
-              NAME: win32-x64-msvc,
-              NODE_ARCH: x64,
-              NODE_OS: win32,
-              NODE_PKG_NAME: syncpack-windows-x64,
-              OS: windows-2022,
-              TARGET: x86_64-pc-windows-msvc,
-            }
-          - {
-              NAME: win32-arm64-msvc,
-              NODE_ARCH: arm64,
-              NODE_OS: win32,
-              NODE_PKG_NAME: syncpack-windows-arm64,
-              OS: windows-2022,
-              TARGET: aarch64-pc-windows-msvc,
-            }
-          - {
-              NAME: darwin-x64,
-              NODE_ARCH: x64,
-              NODE_OS: darwin,
-              NODE_PKG_NAME: syncpack-darwin-x64,
-              OS: macos-13,
-              TARGET: x86_64-apple-darwin,
-            }
-          - {
-              NAME: darwin-arm64,
-              NODE_ARCH: arm64,
-              NODE_OS: darwin,
-              NODE_PKG_NAME: syncpack-darwin-arm64,
-              OS: macos-13,
-              TARGET: aarch64-apple-darwin,
-            }
-    steps:
-      - name: Create config
-        id: config
-        run: |
-          echo "RUST_BINARY_PATH=target/${{ matrix.build.TARGET }}/release/syncpack" >> $GITHUB_OUTPUT
-          echo "NODE_PKG_DIR_PATH=npm/binaries/${{ matrix.build.NODE_PKG_NAME }}" >> $GITHUB_OUTPUT
+          # - {
+          #     NAME: linux-arm64-glibc,
+          #     OS: ubuntu-22.04,
+          #     TARGET: aarch64-unknown-linux-gnu,
+          #   }
+          # - {
+          #     NAME: win32-x64-msvc,
+          #     OS: windows-2022,
+          #     TARGET: x86_64-pc-windows-msvc,
+          #   }
+          # - {
+          #     NAME: win32-arm64-msvc,
+          #     OS: windows-2022,
+          #     TARGET: aarch64-pc-windows-msvc,
+          #   }
+          # - {
+          #     NAME: darwin-x64,
+          #     OS: macos-13,
+          #     TARGET: x86_64-apple-darwin,
+          #   }
+          # - {
+          #     NAME: darwin-arm64,
+          #     OS: macos-13,
+          #     TARGET: aarch64-apple-darwin,
+          #   }
 
+    steps:
       - name: Checkout
         uses: actions/checkout@v4
-
-      - name: Install Rust toolchain
-        uses: actions-rs/toolchain@v1
-        with:
-          toolchain: stable
-          target: ${{ matrix.build.TARGET }}
-          override: true
-
-      - name: Build Rust
-        uses: actions-rs/cargo@v1
-        with:
-          command: build
-          args: --release --locked --target ${{ matrix.build.TARGET }}
-          use-cross: ${{ matrix.build.OS == 'ubuntu-22.04' }}
-
-      - name: Install Node
+      - name: Install node
         uses: actions/setup-node@v4
         with:
           node-version: 20
           registry-url: "https://registry.npmjs.org"
-
-      - name: Publish Binaries to NPM
+      - name: Install rust toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: stable
+          target: ${{ matrix.build.TARGET }}
+          override: true
+          components: rustfmt, clippy
+      - name: Set up cargo cache
+        uses: Swatinem/rust-cache@v2
+      - name: Install just
+        uses: extractions/setup-just@v1
+        with:
+          just-version: 1.35.0
+      - name: Build rust binary
+        uses: actions-rs/cargo@v1
+        with:
+          command: build
+          args: --release --locked --target ${{ matrix.build.TARGET }}
+          use-cross: ${{ !env.ACT && matrix.build.OS == 'ubuntu-22.04' }}
+      - name: Publish rust binary package to npm
         shell: bash
         run: |
-          node_arch="${{ matrix.build.NODE_ARCH }}"
-          node_os="${{ matrix.build.NODE_OS }}"
-          node_pkg_dir_path="${{ steps.config.outputs.NODE_PKG_DIR_PATH }}"
-          node_pkg_name="${{ matrix.build.NODE_PKG_NAME }}"
-          rust_binary_path="${{ steps.config.outputs.RUST_BINARY_PATH }}"
-          # CREATE /BIN DIRECTORY
-          mkdir -p "${node_pkg_dir_path}/bin"
-          # COPY RUST BINARY
-          cp "${rust_binary_path}" "${node_pkg_dir_path}/bin/syncpack"
-          # COPY README.MD
-          cp README.md "${node_pkg_dir_path}/README.md"
-          # WRITE PACKAGE.JSON
-          node scripts/release/npm-binary.mjs \
-            "${node_arch}" \
-            "${node_os}" \
-            "${node_pkg_dir_path}" \
-            "${node_pkg_name}"
-          # PUBLISH BINARY PACKAGE TO NPM
-          cd "${node_pkg_dir_path}"
-          npm publish --dry-run --access public --tag rust
+          just --dotenv-filename .env.${{ matrix.build.NAME }} create-npm-binary-package
+          just --dotenv-filename .env.${{ matrix.build.NAME }} publish-npm-binary-package
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-
-      - name: Upload Artifact
+      - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: syncpack-${{ matrix.build.TARGET }}
           path: target/${{ matrix.build.TARGET }}/release/syncpack
 
   publish-npm-base:
-    name: Publish NPM package
+    name: Publish npm package
     needs: publish-npm-binaries
     runs-on: ubuntu-22.04
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-
       - name: Install node
         uses: actions/setup-node@v4
         with:
           node-version: 20
           registry-url: "https://registry.npmjs.org"
-
+      - name: Install just
+        uses: extractions/setup-just@v1
+        with:
+          just-version: 1.35.0
       - name: Publish the package
         shell: bash
         run: |
-          # COPY README.MD
-          cp README.md npm/root/README.md
-          # WRITE PACKAGE.JSON
-          node scripts/release/npm-root.mjs
-          # PUBLISH ROOT PACKAGE TO NPM
-          cd npm/root
-          npm publish --dry-run --access public --tag rust
+          just --dotenv-filename .env.linux-x64-glibc create-npm-root-package
+          just --dotenv-filename .env.linux-x64-glibc publish-npm-root-package
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
