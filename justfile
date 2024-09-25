@@ -1,23 +1,88 @@
 set dotenv-required := true
 set dotenv-filename := ".env"
 
+no_pattern := ""
+
 # List all available commands
 default:
     just --list
 
-# Build a Rust binary and corresponding NPM package for a specific target
+# ==============================================================================
+# Onboarding
+# ==============================================================================
+
+# Install other dependencies used during development
+install-system-dependencies:
+    # https://lib.rs/crates/cargo-llvm-cov
+    cargo +stable install cargo-llvm-cov
+    # https://github.com/kbknapp/cargo-outdated
+    cargo +stable install cargo-outdated
+
+# ==============================================================================
+# Lint
+# ==============================================================================
+
+lint:
+    cargo fmt -- --check
+    cargo clippy --all-targets --all-features -- -D warnings
+    cargo outdated --root-deps-only
+
+# ==============================================================================
+# GitHub Actions
+# ==============================================================================
+
+# Run the release github action locally
+run-release-action:
+    act -W .github/workflows/release.yml workflow_dispatch
+
+# ==============================================================================
+# Test
+# ==============================================================================
+
+# Run all tests and generate a coverage report
+coverage:
+    cargo llvm-cov --html --open
+
+# Run all tests
+test:
+    cargo test -- --nocapture --color=always
+
+# Run test in watch mode
+watch pattern=no_pattern:
+    cargo watch --clear --exec 'test -- --nocapture --color=always {{pattern}}'
+
+# Run the rust binary against an unformatted test fixture
+run-misc:
+    cd fixtures/misc
+    RUST_BACKTRACE=1 cargo run -- lint --source 'package.json'
+
+# Run the dev rust binary against a clone of microsoft/FluidFramework
+run-fluid:
+    cd fixtures/fluid-framework
+    RUST_BACKTRACE=1 cargo run -- lint --versions
+
+# Run the release rust binary against a clone of microsoft/FluidFramework
+run-fluid-prod:
+    cd fixtures/fluid-framework
+    ../../target/release/syncpack lint --versions --source 'package.json' --source 'packages/**/package.json'
+
+# ==============================================================================
+# Build
+# ==============================================================================
+
+# Build a rust binary and corresponding npm package for a specific target
 build-binary-package:
     just create-rust-binary
     just create-npm-binary-package
 
-# Build a Rust binary for a specific target
+# Build a rust binary for a specific target
 create-rust-binary:
     #!/usr/bin/env bash
     set -euxo pipefail
 
     cargo build --release --locked --target "$TARGET"
 
-# Once a Rust binary for a specific target has been built, create an NPM package for it
+# Once a rust binary for a specific target has been built, create an npm package for it
 create-npm-binary-package:
     #!/usr/bin/env bash
     set -euxo pipefail
@@ -28,7 +93,7 @@ create-npm-binary-package:
     cp README.md "$NODE_PKG_DIR_PATH/README.md"
     just create-npm-binary-package-json
 
-# Create the package.json file for an NPM package for a specific target
+# Create the package.json file for an npm package for a specific target
 create-npm-binary-package-json:
     #!/usr/bin/env node
     const fs = require("fs");
@@ -48,7 +113,7 @@ create-npm-binary-package-json:
     console.log(json);
     fs.writeFileSync(destPath, json);
 
-# Create the parent NPM package which delegates to each target-specific package
+# Create the parent npm package which delegates to each target-specific package
 create-npm-root-package:
     #!/usr/bin/env bash
     set -euxo pipefail
@@ -59,7 +124,7 @@ create-npm-root-package:
     cp npm/index.js "$NODE_ROOT_PKG_DIR_PATH/index.js"
     just create-npm-root-package-json
 
-# Create the package.json file for the parent NPM package
+# Create the package.json file for the parent npm package
 create-npm-root-package-json:
     #!/usr/bin/env node
     const fs = require("fs");
@@ -87,7 +152,11 @@ create-npm-root-package-json:
     console.log(json);
     fs.writeFileSync(destPath, json);
 
-# Publish the NPM package for a specific target
+# ==============================================================================
+# Publish
+# ==============================================================================
+
+# Publish the npm package for a specific target
 publish-npm-binary-package:
     #!/usr/bin/env bash
     set -euxo pipefail
@@ -95,7 +164,7 @@ publish-npm-binary-package:
     cd "$NODE_PKG_DIR_PATH"
     npm publish --dry-run --access public --tag rust
 
-# Publish the parent NPM package
+# Publish the parent npm package
 publish-npm-root-package:
     #!/usr/bin/env bash
     set -euxo pipefail

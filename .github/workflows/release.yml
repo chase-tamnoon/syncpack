@@ -7,45 +7,44 @@ permissions:
   contents: write
 
 jobs:
+  build-matrix:
+    name: Build matrix
+    runs-on: ubuntu-latest
+    outputs:
+      build_matrix: ${{ steps.set-matrix.outputs.build_matrix }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            .github/workflows/matrix.json
+          sparse-checkout-cone-mode: false
+      - id: set-matrix
+        shell: bash
+        run: |
+          if [[ $ACT == "true" ]]; then
+            echo "build_matrix=$( cat .github/workflows/matrix.json | jq --monochrome-output --compact-output '[.[] | select(.RUN_LOCALLY)]' )" >> $GITHUB_OUTPUT
+          else
+            echo "build_matrix=$( cat .github/workflows/matrix.json )" >> $GITHUB_OUTPUT
+          fi
+
   publish-npm-binaries:
     name: Publish npm binaries
+    needs: build-matrix
     runs-on: ${{ matrix.build.OS }}
     strategy:
       fail-fast: true
       matrix:
-        build:
-          - {
-              NAME: linux-x64-glibc,
-              OS: ubuntu-22.04,
-              TARGET: x86_64-unknown-linux-gnu,
-            }
-          # - {
-          #     NAME: linux-arm64-glibc,
-          #     OS: ubuntu-22.04,
-          #     TARGET: aarch64-unknown-linux-gnu,
-          #   }
-          # - {
-          #     NAME: win32-x64-msvc,
-          #     OS: windows-2022,
-          #     TARGET: x86_64-pc-windows-msvc,
-          #   }
-          # - {
-          #     NAME: win32-arm64-msvc,
-          #     OS: windows-2022,
-          #     TARGET: aarch64-pc-windows-msvc,
-          #   }
-          # - {
-          #     NAME: darwin-x64,
-          #     OS: macos-13,
-          #     TARGET: x86_64-apple-darwin,
-          #   }
-          # - {
-          #     NAME: darwin-arm64,
-          #     OS: macos-13,
-          #     TARGET: aarch64-apple-darwin,
-          #   }
-
+        build: ${{ fromJson(needs.build-matrix.outputs.build_matrix) }}
     steps:
+      - name: Debug workflow values
+        shell: bash
+        run: |
+          echo "env.ACT                  : ${{ env.ACT }}"
+          echo "matrix.build.NAME        : ${{ matrix.build.NAME }}"
+          echo "matrix.build.OS          : ${{ matrix.build.OS }}"
+          echo "matrix.build.RUN_LOCALLY : ${{ matrix.build.RUN_LOCALLY }}"
+          echo "matrix.build.TARGET      : ${{ matrix.build.TARGET }}"
       - name: Checkout
         uses: actions/checkout@v4
       - name: Install node
