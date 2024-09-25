@@ -21,8 +21,8 @@ pub enum SemverRange {
 }
 
 impl SemverRange {
-  pub fn new(range: &String) -> Option<SemverRange> {
-    match range.as_str() {
+  pub fn new(range: &str) -> Option<SemverRange> {
+    match range {
       "*" => Some(SemverRange::Any),
       "^" => Some(SemverRange::Minor),
       "" => Some(SemverRange::Exact),
@@ -109,8 +109,8 @@ mod tests {
       ("^", "~", Ordering::Greater),
     ];
     for (a, b, expected) in cases {
-      let parsed = SemverRange::new(&a.to_string());
-      let ordering = parsed.cmp(&SemverRange::new(&b.to_string()));
+      let parsed = SemverRange::new(a);
+      let ordering = parsed.cmp(&SemverRange::new(b));
       assert_eq!(ordering, expected, "'{a}' should be {expected:?} '{b}'");
     }
   }

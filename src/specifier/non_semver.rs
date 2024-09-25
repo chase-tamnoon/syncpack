@@ -24,7 +24,7 @@ pub enum NonSemver {
 }
 
 impl NonSemver {
-  pub fn new(specifier: &String) -> Self {
+  pub fn new(specifier: &str) -> Self {
     let str = parser::sanitise(specifier);
     let string = str.to_string();
     if parser::is_alias(str) {

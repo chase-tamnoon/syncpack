@@ -382,7 +382,7 @@ pub fn visit_packages(config: &Config, packages: Packages, effects: &mut impl Ef
             Variant::SnappedTo => {
               let snapped_to_specifier = dependency.get_snapped_to_specifier(&instances_by_id);
               // @FIXME
-              expected = Some(Specifier::new(&"0.0.0".to_string()));
+              expected = Some(Specifier::new("0.0.0"));
             }
           };
 

@@ -80,8 +80,8 @@ impl Instance {
   /// Updated the expected version specifier for this instance to match the
   /// preferred semver range of the given semver group
   pub fn apply_semver_group(&mut self, group: &SemverGroup) {
-    group.range.as_ref().map(|range| {
-      self.prefer_range = Some(range.clone());
+    group.range.as_ref().inspect(|range| {
+      self.prefer_range = Some((*range).clone());
       if let Some(expected) = self.expected.get_simple_semver() {
         self.expected = Specifier::Semver(Semver::Simple(expected.with_range(range)));
       }
@@ -198,10 +198,8 @@ impl Instance {
       Strategy::VersionsByName => {
         let path_to_obj = &self.dependency_type.path;
         let name = &self.name;
-        if let Some(value) = package.contents.pointer_mut(path_to_obj) {
-          if let Value::Object(obj) = value {
-            obj.remove(name);
-          }
+        if let Some(Value::Object(obj)) = package.contents.pointer_mut(path_to_obj) {
+          obj.remove(name);
         }
       }
       Strategy::InvalidConfig => {

@@ -24,7 +24,7 @@ pub enum Specifier {
 }
 
 impl Specifier {
-  pub fn new(specifier: &String) -> Self {
+  pub fn new(specifier: &str) -> Self {
     let str = parser::sanitise(specifier);
     let string = str.to_string();
     if specifier.is_empty() {
@@ -225,8 +225,8 @@ mod tests {
       ("workspace:~", "<0.0.0", Ordering::Equal),
     ];
     for (str_a, str_b, expected) in cases {
-      let a = Specifier::new(&str_a.to_string());
-      let b = Specifier::new(&str_b.to_string());
+      let a = Specifier::new(str_a);
+      let b = Specifier::new(str_b);
       let ordering = a.cmp(&b);
       assert_eq!(ordering, expected, "{str_a} should {expected:?} {str_b}");
     }

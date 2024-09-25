@@ -3,8 +3,7 @@ use log::debug;
 use super::regexes;
 
 /// Convert non-semver specifiers to semver when behaviour is identical
-pub fn sanitise(specifier: &String) -> &str {
-  let specifier = specifier.as_str();
+pub fn sanitise(specifier: &str) -> &str {
   if specifier == "latest" || specifier == "x" {
     debug!("Sanitising specifier: {} → *", specifier);
     "*"

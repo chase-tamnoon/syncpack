@@ -107,7 +107,7 @@ impl GroupSelector {
   }
 }
 
-fn create_globs(is_include: bool, patterns: &Vec<String>) -> Vec<GlobMatcher> {
+fn create_globs(is_include: bool, patterns: &[String]) -> Vec<GlobMatcher> {
   patterns
     .iter()
     .filter(|pattern| *pattern != "**" && pattern.starts_with('!') != is_include)
@@ -119,17 +119,17 @@ fn create_globs(is_include: bool, patterns: &Vec<String>) -> Vec<GlobMatcher> {
     .collect()
 }
 
-fn matches_globs(value: &String, includes: &Vec<GlobMatcher>, excludes: &Vec<GlobMatcher>) -> bool {
+fn matches_globs(value: &str, includes: &[GlobMatcher], excludes: &[GlobMatcher]) -> bool {
   let is_included = includes.is_empty() || matches_any_glob(value, includes);
   let is_excluded = !excludes.is_empty() && matches_any_glob(value, excludes);
   is_included && !is_excluded
 }
 
-fn matches_any_glob(value: &String, globs: &Vec<GlobMatcher>) -> bool {
+fn matches_any_glob(value: &str, globs: &[GlobMatcher]) -> bool {
   globs.iter().any(|glob| glob.is_match(value))
 }
 
-fn create_identifiers(is_include: bool, patterns: &Vec<String>) -> Vec<String> {
+fn create_identifiers(is_include: bool, patterns: &[String]) -> Vec<String> {
   patterns
     .iter()
     .filter(|pattern| {
@@ -139,12 +139,12 @@ fn create_identifiers(is_include: bool, patterns: &Vec<String>) -> Vec<String> {
     .collect()
 }
 
-fn matches_identifiers(name: &String, includes: &Vec<String>, excludes: &Vec<String>) -> bool {
+fn matches_identifiers(name: &str, includes: &[String], excludes: &[String]) -> bool {
   let is_included = includes.is_empty() || matches_any_identifier(name, includes);
   let is_excluded = !excludes.is_empty() && matches_any_identifier(name, excludes);
   is_included && !is_excluded
 }
 
-fn matches_any_identifier(value: &String, identifiers: &Vec<String>) -> bool {
-  identifiers.contains(value)
+fn matches_any_identifier(value: &str, identifiers: &[String]) -> bool {
+  identifiers.contains(&value.to_string())
 }

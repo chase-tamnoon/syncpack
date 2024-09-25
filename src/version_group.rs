@@ -65,7 +65,7 @@ impl VersionGroup {
   }
 
   /// Create a single version group from a config item from the rcfile.
-  pub fn from_config(group: &AnyVersionGroup, local_package_names: &Vec<String>) -> VersionGroup {
+  pub fn from_config(group: &AnyVersionGroup, local_package_names: &[String]) -> VersionGroup {
     let selector = GroupSelector::new(
       /*include_dependencies:*/
       with_resolved_keywords(&group.dependencies, local_package_names),
@@ -178,8 +178,8 @@ pub struct AnyVersionGroup {
 
 /// Resolve keywords such as `$LOCAL` and `!$LOCAL` to their actual values.
 fn with_resolved_keywords(
-  dependency_names: &Vec<String>,
-  local_package_names: &Vec<String>,
+  dependency_names: &[String],
+  local_package_names: &[String],
 ) -> Vec<String> {
   let mut resolved_dependencies: Vec<String> = vec![];
   for dependency in dependency_names.iter() {

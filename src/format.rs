@@ -100,7 +100,7 @@ fn sort_first(rcfile: &Rcfile, package: &mut PackageJson) {
 /// * `obj`: The JSON object to sort.
 /// * `sort_remaining_keys`: Whether to sort the remaining keys alphabetically.
 fn sort_keys_with_priority(
-  order: &Vec<String>,
+  order: &[String],
   obj: &mut Map<String, Value>,
   sort_remaining_keys: bool,
 ) {

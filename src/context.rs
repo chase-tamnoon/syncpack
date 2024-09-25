@@ -24,24 +24,22 @@ impl Context {
     let mut instances_by_id: InstancesById = BTreeMap::new();
 
     packages.get_all_instances(config, |mut instance| {
-      version_groups
+      if let Some(vgroup) = version_groups
         .iter_mut()
         .find(|vgroup| vgroup.selector.can_add(&instance))
-        .inspect(|vgroup| {
-          semver_groups
-            .iter()
-            .find(|sgroup| sgroup.selector.can_add(&instance))
-            .inspect(|sgroup| {
-              instance.apply_semver_group(sgroup);
-            });
-        })
-        .map(|vgroup| {
-          let dependency = vgroup.get_or_create_dependency(&instance);
-          // let the dependency briefly own the instance
-          let instance = dependency.add_instance(instance);
-          // finally move the instance to the lookup
-          instances_by_id.insert(instance.id.clone(), instance);
-        });
+      {
+        if let Some(sgroup) = semver_groups
+          .iter()
+          .find(|sgroup| sgroup.selector.can_add(&instance))
+        {
+          instance.apply_semver_group(sgroup);
+        }
+        let dependency = vgroup.get_or_create_dependency(&instance);
+        // let the dependency briefly own the instance
+        let instance = dependency.add_instance(instance);
+        // finally move the instance to the lookup
+        instances_by_id.insert(instance.id.clone(), instance);
+      }
     });
 
     Self {

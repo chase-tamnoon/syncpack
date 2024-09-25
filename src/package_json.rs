@@ -76,14 +76,14 @@ impl PackageJson {
   }
 
   /// Report whether the package in memory has changed from what's on disk
-  pub fn has_changed(&self, indent: &String) -> bool {
+  pub fn has_changed(&self, indent: &str) -> bool {
     self.json != self.to_pretty_json(self.serialize(indent))
   }
 
   /// Serialize the parsed JSON object back into pretty JSON as bytes
-  pub fn serialize(&self, indent: &String) -> Vec<u8> {
+  pub fn serialize(&self, indent: &str) -> Vec<u8> {
     // Create a pretty JSON formatter
-    let indent_with_fixed_tabs = &indent.clone().replace("\\t", "\t");
+    let indent_with_fixed_tabs = &indent.replace("\\t", "\t");
     let formatter = PrettyFormatter::with_indent(indent_with_fixed_tabs.as_bytes());
     let buffer = Vec::new();
     let mut serializer = Serializer::with_formatter(buffer, formatter);

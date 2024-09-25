@@ -199,7 +199,7 @@ impl Rcfile {
   }
 
   /// Create every version group defined in the rcfile.
-  pub fn get_version_groups(&self, local_package_names: &Vec<String>) -> Vec<VersionGroup> {
+  pub fn get_version_groups(&self, local_package_names: &[String]) -> Vec<VersionGroup> {
     let mut user_groups: Vec<VersionGroup> = self
       .version_groups
       .iter()
@@ -211,7 +211,7 @@ impl Rcfile {
 }
 
 /// Adds "!" to the start of the String
-fn negate_identifier(str: &String) -> String {
+fn negate_identifier(str: &str) -> String {
   let mut negated_str = String::from("!");
   negated_str.push_str(str);
   negated_str

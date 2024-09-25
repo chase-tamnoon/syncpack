@@ -39,18 +39,18 @@ pub struct DependencyType {
 }
 
 impl DependencyType {
-  pub fn new(name: &String, config: &config::CustomType) -> DependencyType {
+  pub fn new(name: &str, config: &config::CustomType) -> DependencyType {
     DependencyType {
-      name_path: config.name_path.as_ref().map(normalize_path),
-      name: name.clone(),
-      path: normalize_path(&config.path),
+      name_path: config.name_path.clone().map(normalize_path),
+      name: name.to_string(),
+      path: normalize_path(config.path.clone()),
       strategy: Strategy::new(config.strategy.as_str()),
     }
   }
 }
 
 /// Converts a "some.nested.prop.name" selector to "/some/nested/prop/name"
-fn normalize_path(path: &String) -> String {
+fn normalize_path(path: String) -> String {
   let mut normalized_path = String::from("/");
   normalized_path.push_str(&path.replace('.', "/"));
   normalized_path
