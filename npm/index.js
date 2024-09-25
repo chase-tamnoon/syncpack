@@ -2,40 +2,22 @@
 
 const { spawnSync } = require("child_process");
 
-/**
- * Returns the executable path which is located inside `node_modules`
- * The naming convention is app-${os}-${arch}
- * If the platform is `win32` or `cygwin`, executable will include a `.exe` extension.
- * @see https://nodejs.org/api/os.html#osarch
- * @see https://nodejs.org/api/os.html#osplatform
- * @example "x/xx/node_modules/app-darwin-arm64"
- */
-function getExePath() {
-  const arch = process.arch;
-  let os = process.platform;
-  let extension = "";
-  if (["win32", "cygwin"].includes(process.platform)) {
-    os = "windows";
-    extension = ".exe";
-  }
+const args = process.argv.slice(2);
+const arch = process.arch;
+const [os, extension] = ["win32", "cygwin"].includes(process.platform) ?
+  ["windows", ".exe"] : [process.platform, ""];
+const optionalDep = `syncpack-${os}-${arch}`
+const pkgSpecifier = `${optionalDep}/bin/syncpack${extension}`;
+const processResult = spawnSync(getPathToBinary(), args, { stdio: "inherit" });
 
+process.exit(processResult.status ?? 0);
+
+function getPathToBinary() {
   try {
-    // Since the binary will be located inside `node_modules`, we can simply call `require.resolve`
-    return require.resolve(`syncpack-${os}-${arch}/bin/syncpack${extension}`);
+    return require.resolve(pkgSpecifier);
   } catch (e) {
     throw new Error(
-      `Couldn't find application binary inside node_modules for ${os}-${arch}`,
+      `syncpack can't find its Rust binary it expected to be installed as an optionalDependency called "${optionalDep}", the Rust binary should be at ${pkgSpecifier}`,
     );
   }
 }
-
-/**
- * Runs the application with args using nodejs spawn
- */
-function run() {
-  const args = process.argv.slice(2);
-  const processResult = spawnSync(getExePath(), args, { stdio: "inherit" });
-  process.exit(processResult.status ?? 0);
-}
-
-run();
