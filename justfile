@@ -22,10 +22,21 @@ install-system-dependencies:
 # Lint
 # ==============================================================================
 
-lint:
-    cargo fmt -- --check
+# Run cargo check
+check-cargo:
+    cargo check --locked
+
+# Check for formatting issues
+check-formatting:
+    cargo fmt --all -- --check --verbose
+
+# Check for clippy warnings
+check-clippy:
     cargo clippy --tests --verbose -- -D warnings
-    cargo outdated --root-deps-only
+
+# Look for outdated dependencies
+check-for-updates:
+    cargo outdated --all
 
 # ==============================================================================
 # GitHub Actions
@@ -33,11 +44,11 @@ lint:
 
 # Run the release github action locally
 run-release-action:
-    act -W .github/workflows/release.yml workflow_dispatch
+    act --workflows .github/workflows/release.yml workflow_dispatch
 
 # Run the CI github action locally
 run-ci-action:
-    act -W .github/workflows/ci.yml pull_request rust/main
+    act --workflows .github/workflows/ci.yml pull_request
 
 # ==============================================================================
 # Test

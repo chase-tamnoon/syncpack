@@ -9,62 +9,30 @@ on:
       - rust/main
 
 jobs:
-  check:
-    name: Check
+  lint-and-test:
+    name: Lint and test
     runs-on: ubuntu-22.04
     steps:
-      - name: Install toolchain
-        uses: dtolnay/rust-toolchain@stable
       - name: Checkout
         uses: actions/checkout@v4
-      - name: Check
-        uses: actions-rs/cargo@v1
+      - name: Install rust toolchain
+        uses: actions-rs/toolchain@v1
         with:
-          command: check
-          args: --locked --verbose
-
-  test:
-    name: Test
-    runs-on: ubuntu-22.04
-    steps:
-      - name: Install toolchain
-        uses: dtolnay/rust-toolchain@stable
-      - name: Checkout
-        uses: actions/checkout@v4
-      - name: Test
-        uses: actions-rs/cargo@v1
+          profile: minimal
+          toolchain: stable
+          override: true
+          components: rustfmt, clippy
+      - name: Set up cargo cache
+        uses: Swatinem/rust-cache@v2
+      - name: Install just
+        uses: extractions/setup-just@v1
         with:
-          command: test
-          args: --verbose
-
-  lint:
-    name: Lint
-    runs-on: ubuntu-22.04
-    steps:
-      - name: Install toolchain
-        uses: dtolnay/rust-toolchain@stable
-        with:
-          components: clippy
-      - name: Checkout
-        uses: actions/checkout@v4
-      - name: Lint
-        uses: actions-rs/cargo@v1
-        with:
-          command: clippy
-          args: --tests --verbose -- -D warnings
-
-  format:
-    name: Format
-    runs-on: ubuntu-22.04
-    steps:
-      - name: Install toolchain
-        uses: dtolnay/rust-toolchain@stable
-        with:
-          components: rustfmt
-      - name: Checkout
-        uses: actions/checkout@v4
-      - name: Format
-        uses: actions-rs/cargo@v1
-        with:
-          command: fmt
-          args: --all -- --check --verbose
+          just-version: 1.35.0
+      - name: Check cargo
+        run: just check-cargo
+      - name: Lint formatting
+        run: just check-formatting
+      - name: Lint clippy
+        run: just check-clippy
+      - name: Cargo test
+        run: just test
