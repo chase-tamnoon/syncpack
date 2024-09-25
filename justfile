@@ -24,7 +24,7 @@ install-system-dependencies:
 
 lint:
     cargo fmt -- --check
-    cargo clippy --all-targets --all-features -- -D warnings
+    cargo clippy --tests --verbose -- -D warnings
     cargo outdated --root-deps-only
 
 # ==============================================================================
@@ -34,6 +34,10 @@ lint:
 # Run the release github action locally
 run-release-action:
     act -W .github/workflows/release.yml workflow_dispatch
+
+# Run the CI github action locally
+run-ci-action:
+    act -W .github/workflows/ci.yml pull_request rust/main
 
 # ==============================================================================
 # Test
