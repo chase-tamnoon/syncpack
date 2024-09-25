@@ -1,6 +1,5 @@
 use log::warn;
 use node_semver::Version;
-use std::cmp::Ordering;
 
 use super::{
   orderable::{IsOrderable, Orderable},
@@ -12,7 +11,7 @@ use super::{
   semver_range::SemverRange,
 };
 
-#[derive(Clone, Debug, Hash)]
+#[derive(Clone, Debug, Eq, Hash, PartialEq)]
 pub enum SimpleSemver {
   /// eg. `1.2.3`
   Exact(String),
@@ -139,26 +138,6 @@ impl IsOrderable for SimpleSemver {
     Orderable { range, version }
   }
 }
-
-impl Ord for SimpleSemver {
-  fn cmp(&self, other: &Self) -> Ordering {
-    self.get_orderable().cmp(&other.get_orderable())
-  }
-}
-
-impl PartialOrd for SimpleSemver {
-  fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-    Some(self.cmp(other))
-  }
-}
-
-impl PartialEq for SimpleSemver {
-  fn eq(&self, other: &Self) -> bool {
-    self.cmp(other) == Ordering::Equal
-  }
-}
-
-impl Eq for SimpleSemver {}
 
 #[cfg(test)]
 mod tests {

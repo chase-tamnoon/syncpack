@@ -8,7 +8,7 @@ use std::{
 use crate::{
   context::InstancesById,
   instance::{Instance, InstanceId},
-  specifier::Specifier,
+  specifier::{orderable::IsOrderable, Specifier},
   version_group::Variant,
 };
 
@@ -169,7 +169,9 @@ impl Dependency {
       .fold(None, |highest, instance| match highest {
         None => Some(&instance.expected),
         Some(highest) => {
-          if instance.expected.cmp(highest) == preferred_order {
+          let a = instance.expected.get_orderable();
+          let b = highest.get_orderable();
+          if a.cmp(&b) == preferred_order {
             Some(&instance.expected)
           } else {
             Some(highest)

@@ -12,7 +12,7 @@ pub trait IsOrderable: std::fmt::Debug {
   }
 }
 
-#[derive(Clone, Debug, Hash)]
+#[derive(Clone, Debug, Hash, PartialEq)]
 pub(crate) struct Orderable {
   pub range: SemverRange,
   pub version: Version,
@@ -67,12 +67,6 @@ impl Ord for Orderable {
 impl PartialOrd for Orderable {
   fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
     Some(self.cmp(other))
-  }
-}
-
-impl PartialEq for Orderable {
-  fn eq(&self, other: &Self) -> bool {
-    self.cmp(other) == Ordering::Equal
   }
 }
 

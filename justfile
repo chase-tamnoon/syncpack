@@ -19,8 +19,24 @@ install-system-dependencies:
     cargo +stable install cargo-outdated
 
 # ==============================================================================
+# Format
+# ==============================================================================
+
+# Fix formatting, indentation etc of all files
+format:
+    rustfmt --verbose ./src/**/*.rs
+    cargo clippy --fix --allow-dirty
+
+# ==============================================================================
 # Lint
 # ==============================================================================
+
+# Run all linting checks
+lint:
+    just check-cargo
+    just check-formatting
+    just check-clippy
+    just check-for-updates
 
 # Run cargo check
 check-cargo:
@@ -36,7 +52,7 @@ check-clippy:
 
 # Look for outdated dependencies
 check-for-updates:
-    cargo outdated --all
+    cargo outdated
 
 # ==============================================================================
 # GitHub Actions
@@ -68,16 +84,25 @@ watch pattern=no_pattern:
 
 # Run the rust binary against an unformatted test fixture
 run-misc:
+    #!/usr/bin/env bash
+    set -euxo pipefail
+
     cd fixtures/misc
     RUST_BACKTRACE=1 cargo run -- lint --source 'package.json'
 
 # Run the dev rust binary against a clone of microsoft/FluidFramework
 run-fluid:
+    #!/usr/bin/env bash
+    set -euxo pipefail
+
     cd fixtures/fluid-framework
     RUST_BACKTRACE=1 cargo run -- lint --versions
 
 # Run the release rust binary against a clone of microsoft/FluidFramework
 run-fluid-prod:
+    #!/usr/bin/env bash
+    set -euxo pipefail
+
     cd fixtures/fluid-framework
     ../../target/release/syncpack lint --versions --source 'package.json' --source 'packages/**/package.json'
 

@@ -1,12 +1,10 @@
-use std::cmp::Ordering;
-
 use super::{
   orderable::{IsOrderable, Orderable},
   parser,
   simple_semver::SimpleSemver,
 };
 
-#[derive(Clone, Debug, Hash)]
+#[derive(Clone, Debug, Eq, Hash, PartialEq)]
 pub enum Semver {
   Simple(SimpleSemver),
   Complex(String),
@@ -44,23 +42,3 @@ impl IsOrderable for Semver {
     }
   }
 }
-
-impl Ord for Semver {
-  fn cmp(&self, other: &Self) -> Ordering {
-    self.get_orderable().cmp(&other.get_orderable())
-  }
-}
-
-impl PartialOrd for Semver {
-  fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-    Some(self.cmp(other))
-  }
-}
-
-impl PartialEq for Semver {
-  fn eq(&self, other: &Self) -> bool {
-    self.cmp(other) == Ordering::Equal
-  }
-}
-
-impl Eq for Semver {}

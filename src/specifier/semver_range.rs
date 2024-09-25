@@ -1,6 +1,9 @@
-use std::cmp::Ordering;
+use std::{
+  cmp::Ordering,
+  hash::{Hash, Hasher},
+};
 
-#[derive(Clone, Debug, Hash)]
+#[derive(Clone, Debug)]
 pub enum SemverRange {
   /// *
   Any,
@@ -83,6 +86,12 @@ impl PartialEq for SemverRange {
 }
 
 impl Eq for SemverRange {}
+
+impl Hash for SemverRange {
+  fn hash<H: Hasher>(&self, state: &mut H) {
+    self.get_score().hash(state);
+  }
+}
 
 #[cfg(test)]
 mod tests {

@@ -1,5 +1,3 @@
-use std::cmp::Ordering;
-
 use crate::specifier::{
   non_semver::NonSemver,
   orderable::{IsOrderable, Orderable},
@@ -16,7 +14,7 @@ pub mod semver;
 pub mod semver_range;
 pub mod simple_semver;
 
-#[derive(Clone, Debug, Hash)]
+#[derive(Clone, Debug, Eq, Hash, PartialEq)]
 pub enum Specifier {
   Semver(Semver),
   NonSemver(NonSemver),
@@ -125,26 +123,6 @@ impl IsOrderable for Specifier {
   }
 }
 
-impl Ord for Specifier {
-  fn cmp(&self, other: &Self) -> Ordering {
-    self.get_orderable().cmp(&other.get_orderable())
-  }
-}
-
-impl PartialOrd for Specifier {
-  fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-    Some(self.cmp(other))
-  }
-}
-
-impl PartialEq for Specifier {
-  fn eq(&self, other: &Self) -> bool {
-    self.cmp(other) == Ordering::Equal
-  }
-}
-
-impl Eq for Specifier {}
-
 #[cfg(test)]
 mod tests {
   use super::*;
@@ -227,7 +205,7 @@ mod tests {
     for (str_a, str_b, expected) in cases {
       let a = Specifier::new(str_a);
       let b = Specifier::new(str_b);
-      let ordering = a.cmp(&b);
+      let ordering = a.get_orderable().cmp(&b.get_orderable());
       assert_eq!(ordering, expected, "{str_a} should {expected:?} {str_b}");
     }
   }
