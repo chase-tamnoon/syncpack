@@ -24,6 +24,7 @@ pub enum SemverRange {
 }
 
 impl SemverRange {
+  /// Create a SemverRange if the given string is a valid range
   pub fn new(range: &str) -> Option<SemverRange> {
     match range {
       "*" => Some(SemverRange::Any),
@@ -38,6 +39,7 @@ impl SemverRange {
     }
   }
 
+  /// Get the string representation of the range
   pub fn unwrap(&self) -> String {
     match self {
       SemverRange::Any => "*",
@@ -52,7 +54,7 @@ impl SemverRange {
     .to_string()
   }
 
-  /// Rank according to its greediness
+  /// Get a numeric rank according to its greediness, for use in sorting
   pub fn get_score(&self) -> u8 {
     match self {
       SemverRange::Any => 7,
@@ -95,16 +97,37 @@ impl Hash for SemverRange {
 
 #[cfg(test)]
 mod tests {
-  use std::cmp::Ordering;
+  use std::{cmp::Ordering, collections::HashMap};
 
   use super::*;
 
-  fn to_strings(specifiers: Vec<&str>) -> Vec<String> {
-    specifiers.iter().map(|s| s.to_string()).collect()
+  #[test]
+  fn creates_a_semver_range_from_a_string() {
+    let cases: Vec<(&str, SemverRange)> = vec![
+      ("*", SemverRange::Any),
+      ("^", SemverRange::Minor),
+      ("", SemverRange::Exact),
+      (">", SemverRange::Gt),
+      (">=", SemverRange::Gte),
+      ("<", SemverRange::Lt),
+      ("<=", SemverRange::Lte),
+      ("~", SemverRange::Patch),
+    ];
+    for (input, expected) in cases {
+      let parsed = SemverRange::new(input).unwrap();
+      assert_eq!(parsed, expected, "'{input}' should be '{expected:?}'");
+      assert_eq!(parsed.unwrap(), input, "'{parsed:?}' should unwrap to '{input}'");
+    }
   }
 
   #[test]
-  fn compare_ranges() {
+  fn returns_none_for_unrecognised_ranges() {
+    let parsed = SemverRange::new("wat");
+    assert_eq!(parsed, None);
+  }
+
+  #[test]
+  fn compares_ranges_according_to_their_greediness() {
     let cases: Vec<(&str, &str, Ordering)> = vec![
       ("", "", Ordering::Equal),
       ("", "<", Ordering::Greater),
@@ -122,5 +145,31 @@ mod tests {
       let ordering = parsed.cmp(&SemverRange::new(b));
       assert_eq!(ordering, expected, "'{a}' should be {expected:?} '{b}'");
     }
+  }
+
+  #[test]
+  fn sorts_ranges_according_to_their_greediness() {
+    fn to_ranges(ranges: Vec<&str>) -> Vec<SemverRange> {
+      ranges.iter().map(|r| SemverRange::new(r).unwrap()).collect()
+    }
+    let mut ranges = to_ranges(vec!["", "<", "*", ">", ">=", "<=", "^", "~"]);
+    let expected = to_ranges(vec!["<", "<=", "", "~", "^", ">=", ">", "*"]);
+
+    ranges.sort();
+    assert_eq!(ranges, expected, "{ranges:?}, {expected:?}");
+  }
+
+  #[test]
+  fn implements_hash() {
+    let semver1 = SemverRange::new("^").unwrap();
+    let semver2 = SemverRange::new("~").unwrap();
+    let mut map = HashMap::new();
+
+    map.insert(&semver1, "value1");
+    map.insert(&semver2, "value2");
+
+    // Retrieve values from the map to verify the hash implementation
+    assert_eq!(map.get(&semver1), Some(&"value1"));
+    assert_eq!(map.get(&semver2), Some(&"value2"));
   }
 }
