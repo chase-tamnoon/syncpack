@@ -1,6 +1,6 @@
 use crate::{
-  context::InstancesById, dependency::Dependency, group_selector::GroupSelector,
-  instance::InstanceId, package_json::PackageJson, packages::Packages, specifier::Specifier,
+  context::InstancesById, dependency::Dependency, group_selector::GroupSelector, instance::InstanceId,
+  package_json::PackageJson, packages::Packages, specifier::Specifier,
 };
 
 pub mod fix;

@@ -104,10 +104,7 @@ impl<'a> Expects<'a> {
         panic!("expected {variant:?} match but found none");
       }
       for event in matches_of_type.unwrap() {
-        if event.dependency_name == *dependency_name
-          && event.instance_id == *instance_id
-          && event.actual == *actual
-        {
+        if event.dependency_name == *dependency_name && event.instance_id == *instance_id && event.actual == *actual {
           continue 'expected;
         }
       }

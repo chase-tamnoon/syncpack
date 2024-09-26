@@ -15,17 +15,22 @@ default:
 install-system-dependencies:
     # https://lib.rs/crates/cargo-llvm-cov
     cargo +stable install cargo-llvm-cov
-    # https://github.com/kbknapp/cargo-outdated
-    cargo +stable install cargo-outdated
+    # https://github.com/killercup/cargo-edit
+    cargo +stable install cargo-edit
 
 # ==============================================================================
-# Format
+# Write
 # ==============================================================================
 
 # Fix formatting, indentation etc of all files
 format:
-    rustfmt --verbose ./src/**/*.rs
+    cargo fmt --all -- --verbose
     cargo clippy --fix --allow-dirty
+
+# Update dependencies in Cargo.toml and Cargo.lock
+update-dependencies:
+    cargo upgrade
+    cargo update
 
 # ==============================================================================
 # Lint
@@ -52,7 +57,7 @@ check-clippy:
 
 # Look for outdated dependencies
 check-for-updates:
-    cargo outdated
+    cargo upgrade --dry-run
 
 # ==============================================================================
 # GitHub Actions
@@ -72,7 +77,12 @@ run-ci-action:
 
 # Run all tests and generate a coverage report
 coverage:
-    cargo llvm-cov --html --open
+    rm -rf target/llvm-cov/html
+    cargo llvm-cov test --html
+
+# Open coverage report (on http server to allow Dark Reader Browser Extension)
+serve-coverage:
+    npx http-server -so --port 7357 target/llvm-cov/html
 
 # Run all tests
 test:
@@ -80,7 +90,11 @@ test:
 
 # Run test in watch mode
 watch pattern=no_pattern:
-    cargo watch --clear --exec 'test -- --nocapture --color=always {{pattern}}'
+    tput rmam && cargo watch --clear --exec 'test -- --nocapture --color=always {{pattern}}'
+
+# Run test in watch mode with coverage
+watch-coverage:
+    tput rmam && cargo watch --clear --exec 'llvm-cov test --html -- --nocapture --color=always'
 
 # Run the rust binary against an unformatted test fixture
 run-misc:

@@ -44,6 +44,18 @@ lazy_static! {
   pub static ref LT_MINOR: Regex = Regex::new(r"^<(\d+\.\d+)$").unwrap();
   /// "<=1.2"
   pub static ref LTE_MINOR: Regex = Regex::new(r"^<=(\d+\.\d+)$").unwrap();
+  /// "^1"
+  pub static ref CARET_MAJOR: Regex = Regex::new(r"^\^(\d+)$").unwrap();
+  /// "~1"
+  pub static ref TILDE_MAJOR: Regex = Regex::new(r"^~(\d+)$").unwrap();
+  /// ">1"
+  pub static ref GT_MAJOR: Regex = Regex::new(r"^>(\d+)$").unwrap();
+  /// ">=1"
+  pub static ref GTE_MAJOR: Regex = Regex::new(r"^>=(\d+)$").unwrap();
+  /// "<1"
+  pub static ref LT_MAJOR: Regex = Regex::new(r"^<(\d+)$").unwrap();
+  /// "<=1"
+  pub static ref LTE_MAJOR: Regex = Regex::new(r"^<=(\d+)$").unwrap();
   /// "1"
   pub static ref MAJOR: Regex = Regex::new(r"^(\d+)$").unwrap();
   /// "1.2"
@@ -62,4 +74,9 @@ lazy_static! {
   pub static ref TAG: Regex = Regex::new(r"^[a-zA-Z0-9-]+$").unwrap();
   /// a logical OR in a semver range
   pub static ref OR_OPERATOR:Regex = Regex::new(r" ?\|\| ?").unwrap();
+}
+
+/// Check if a string matches any of the regexes
+pub fn matches_any(regexes: Vec<&Regex>, string: &str) -> bool {
+  regexes.iter().any(|re| re.is_match(string))
 }

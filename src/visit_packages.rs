@@ -631,24 +631,22 @@ mod tests {
 
     visit_packages(&config, packages, &mut effects);
 
-    expect(&effects)
-      .to_have_matches(vec![])
-      .to_have_mismatches(vec![
-        ExpectedMismatchEvent {
-          variant: InstanceEventVariant::LocalInstanceMistakenlyMismatchesPinned,
-          dependency_name: "package-a",
-          instance_id: "package-a in /version of package-a",
-          actual: "1.0.0",
-          expected: "1.0.0",
-        },
-        ExpectedMismatchEvent {
-          variant: InstanceEventVariant::InstanceMismatchesPinned,
-          dependency_name: "package-a",
-          instance_id: "package-a in /dependencies of package-b",
-          actual: "1.1.0",
-          expected: "1.2.0",
-        },
-      ]);
+    expect(&effects).to_have_matches(vec![]).to_have_mismatches(vec![
+      ExpectedMismatchEvent {
+        variant: InstanceEventVariant::LocalInstanceMistakenlyMismatchesPinned,
+        dependency_name: "package-a",
+        instance_id: "package-a in /version of package-a",
+        actual: "1.0.0",
+        expected: "1.0.0",
+      },
+      ExpectedMismatchEvent {
+        variant: InstanceEventVariant::InstanceMismatchesPinned,
+        dependency_name: "package-a",
+        instance_id: "package-a in /dependencies of package-b",
+        actual: "1.1.0",
+        expected: "1.2.0",
+      },
+    ]);
   }
 
   #[test]
@@ -769,25 +767,23 @@ mod tests {
 
     visit_packages(&config, packages, &mut effects);
 
-    expect(&effects)
-      .to_have_matches(vec![])
-      .to_have_mismatches(vec![
-        // refuse to break local package's version
-        ExpectedMismatchEvent {
-          variant: InstanceEventVariant::LocalInstanceMistakenlyMismatchesSemverGroup,
-          dependency_name: "package-a",
-          instance_id: "package-a in /version of package-a",
-          actual: "1.0.0",
-          expected: "1.0.0",
-        },
-        ExpectedMismatchEvent {
-          variant: InstanceEventVariant::InstanceMatchesLocalButMismatchesSemverGroup,
-          dependency_name: "package-a",
-          instance_id: "package-a in /dependencies of package-b",
-          actual: "1.0.0",
-          expected: "^1.0.0",
-        },
-      ]);
+    expect(&effects).to_have_matches(vec![]).to_have_mismatches(vec![
+      // refuse to break local package's version
+      ExpectedMismatchEvent {
+        variant: InstanceEventVariant::LocalInstanceMistakenlyMismatchesSemverGroup,
+        dependency_name: "package-a",
+        instance_id: "package-a in /version of package-a",
+        actual: "1.0.0",
+        expected: "1.0.0",
+      },
+      ExpectedMismatchEvent {
+        variant: InstanceEventVariant::InstanceMatchesLocalButMismatchesSemverGroup,
+        dependency_name: "package-a",
+        instance_id: "package-a in /dependencies of package-b",
+        actual: "1.0.0",
+        expected: "^1.0.0",
+      },
+    ]);
   }
 
   #[test]
@@ -811,24 +807,22 @@ mod tests {
 
     visit_packages(&config, packages, &mut effects);
 
-    expect(&effects)
-      .to_have_matches(vec![])
-      .to_have_mismatches(vec![
-        ExpectedMismatchEvent {
-          variant: InstanceEventVariant::InstanceMismatchesHighestOrLowestSemver,
-          dependency_name: "foo",
-          instance_id: "foo in /dependencies of package-a",
-          actual: "1.0.0",
-          expected: ">1.0.0",
-        },
-        ExpectedMismatchEvent {
-          variant: InstanceEventVariant::InstanceIsHighestOrLowestSemverOnceSemverGroupIsFixed,
-          dependency_name: "foo",
-          instance_id: "foo in /devDependencies of package-a",
-          actual: "1.0.0",
-          expected: ">1.0.0",
-        },
-      ]);
+    expect(&effects).to_have_matches(vec![]).to_have_mismatches(vec![
+      ExpectedMismatchEvent {
+        variant: InstanceEventVariant::InstanceMismatchesHighestOrLowestSemver,
+        dependency_name: "foo",
+        instance_id: "foo in /dependencies of package-a",
+        actual: "1.0.0",
+        expected: ">1.0.0",
+      },
+      ExpectedMismatchEvent {
+        variant: InstanceEventVariant::InstanceIsHighestOrLowestSemverOnceSemverGroupIsFixed,
+        dependency_name: "foo",
+        instance_id: "foo in /devDependencies of package-a",
+        actual: "1.0.0",
+        expected: ">1.0.0",
+      },
+    ]);
   }
 
   #[test]

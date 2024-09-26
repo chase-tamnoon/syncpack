@@ -152,12 +152,10 @@ fn get_file_paths(config: &Config) -> Vec<PathBuf> {
     })
     .flat_map(|pattern| glob(&pattern).ok())
     .flat_map(|paths| {
-      paths
-        .filter_map(Result::ok)
-        .fold(vec![], |mut paths, path| {
-          paths.push(path.clone());
-          paths
-        })
+      paths.filter_map(Result::ok).fold(vec![], |mut paths, path| {
+        paths.push(path.clone());
+        paths
+      })
     })
     .collect()
 }

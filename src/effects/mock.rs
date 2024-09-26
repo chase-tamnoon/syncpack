@@ -108,7 +108,11 @@ impl Effects for MockEffects<'_> {
       | InstanceEventVariant::InstanceMatchesPinned
       | InstanceEventVariant::InstanceMatchesSameRangeGroup
       | InstanceEventVariant::LocalInstanceMistakenlyBanned => {
-        self.matches.entry(event.variant.clone()).or_default().push(ActualMatchEvent::new(&event, instance));
+        self
+          .matches
+          .entry(event.variant.clone())
+          .or_default()
+          .push(ActualMatchEvent::new(&event, instance));
       }
       InstanceEventVariant::LocalInstanceMistakenlyMismatchesSemverGroup
       | InstanceEventVariant::LocalInstanceMistakenlyMismatchesPinned
@@ -127,7 +131,11 @@ impl Effects for MockEffects<'_> {
       | InstanceEventVariant::InstanceMismatchesLocal
       | InstanceEventVariant::InstanceMismatchesHighestOrLowestSemver
       | InstanceEventVariant::InstanceMismatchesPinned => {
-        self.mismatches.entry(event.variant.clone()).or_default().push(ActualMismatchEvent::new(&event, instance));
+        self
+          .mismatches
+          .entry(event.variant.clone())
+          .or_default()
+          .push(ActualMismatchEvent::new(&event, instance));
       }
     };
   }

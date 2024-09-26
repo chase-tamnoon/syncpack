@@ -105,10 +105,7 @@ impl Dependency {
       .all(|instance| instance.actual.is_simple_semver())
   }
 
-  pub fn get_unique_expected_and_actual_specifiers(
-    &self,
-    instances_by_id: &InstancesById,
-  ) -> HashSet<Specifier> {
+  pub fn get_unique_expected_and_actual_specifiers(&self, instances_by_id: &InstancesById) -> HashSet<Specifier> {
     self
       .get_instances(instances_by_id)
       .iter()
@@ -119,10 +116,7 @@ impl Dependency {
       })
   }
 
-  pub fn get_unique_expected_specifiers(
-    &self,
-    instances_by_id: &InstancesById,
-  ) -> HashSet<Specifier> {
+  pub fn get_unique_expected_specifiers(&self, instances_by_id: &InstancesById) -> HashSet<Specifier> {
     self
       .get_instances(instances_by_id)
       .iter()

@@ -99,18 +99,10 @@ fn sort_first(rcfile: &Rcfile, package: &mut PackageJson) {
 /// * `order`: The keys to sort first, in order.
 /// * `obj`: The JSON object to sort.
 /// * `sort_remaining_keys`: Whether to sort the remaining keys alphabetically.
-fn sort_keys_with_priority(
-  order: &[String],
-  obj: &mut Map<String, Value>,
-  sort_remaining_keys: bool,
-) {
+fn sort_keys_with_priority(order: &[String], obj: &mut Map<String, Value>, sort_remaining_keys: bool) {
   let order_set: HashSet<_> = order.iter().collect();
   let mut sorted_obj: Map<String, Value> = Map::new();
-  let mut remaining_keys: Vec<_> = obj
-    .keys()
-    .filter(|k| !order_set.contains(*k))
-    .cloned()
-    .collect();
+  let mut remaining_keys: Vec<_> = obj.keys().filter(|k| !order_set.contains(*k)).cloned().collect();
 
   if sort_remaining_keys {
     let collator = get_locale_collator();

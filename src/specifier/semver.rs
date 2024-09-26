@@ -24,6 +24,8 @@ impl Semver {
       Self::Simple(SimpleSemver::Minor(string))
     } else if parser::is_range(str) {
       Self::Simple(SimpleSemver::Range(string))
+    } else if parser::is_range_major(str) {
+      Self::Simple(SimpleSemver::RangeMajor(string))
     } else if parser::is_range_minor(str) {
       Self::Simple(SimpleSemver::RangeMinor(string))
     } else if parser::is_complex_range(str) {

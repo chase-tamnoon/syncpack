@@ -5,7 +5,6 @@ use crate::specifier::{
   simple_semver::SimpleSemver,
 };
 
-pub mod any_specifier;
 pub mod non_semver;
 pub mod orderable;
 pub mod parser;
@@ -27,83 +26,78 @@ impl Specifier {
     let string = str.to_string();
     if specifier.is_empty() {
       Self::None
-    } else if parser::is_exact(str) {
-      Self::Semver(Semver::Simple(SimpleSemver::Exact(string)))
-    } else if parser::is_latest(str) {
-      Self::Semver(Semver::Simple(SimpleSemver::Latest(string)))
-    } else if parser::is_major(str) {
-      Self::Semver(Semver::Simple(SimpleSemver::Major(string)))
-    } else if parser::is_minor(str) {
-      Self::Semver(Semver::Simple(SimpleSemver::Minor(string)))
-    } else if parser::is_range(str) {
-      Self::Semver(Semver::Simple(SimpleSemver::Range(string)))
-    } else if parser::is_range_minor(str) {
-      Self::Semver(Semver::Simple(SimpleSemver::RangeMinor(string)))
+    } else if let Ok(simple_semver) = SimpleSemver::new(&string) {
+      Self::Semver(Semver::Simple(simple_semver))
     } else if parser::is_complex_range(str) {
       Self::Semver(Semver::Complex(string))
-    } else if parser::is_alias(str) {
-      Self::NonSemver(NonSemver::Alias(string))
-    } else if parser::is_file(str) {
-      Self::NonSemver(NonSemver::File(string))
-    } else if parser::is_git(str) {
-      Self::NonSemver(NonSemver::Git(string))
-    } else if parser::is_tag(str) {
-      Self::NonSemver(NonSemver::Tag(string))
-    } else if parser::is_url(str) {
-      Self::NonSemver(NonSemver::Url(string))
-    } else if parser::is_workspace_protocol(str) {
-      Self::NonSemver(NonSemver::WorkspaceProtocol(string))
     } else {
-      Self::NonSemver(NonSemver::Unsupported(string))
+      Self::NonSemver(NonSemver::new(&string))
     }
   }
 
   /// Get the `specifier_type` name as used in config files.
   pub fn get_config_identifier(&self) -> String {
     match self {
-      Self::Semver(Semver::Simple(SimpleSemver::Exact(_))) => "exact",
-      Self::Semver(Semver::Simple(SimpleSemver::Latest(_))) => "latest",
-      Self::Semver(Semver::Simple(SimpleSemver::Major(_))) => "major",
-      Self::Semver(Semver::Simple(SimpleSemver::Minor(_))) => "minor",
-      Self::Semver(Semver::Simple(SimpleSemver::Range(_))) => "range",
-      Self::Semver(Semver::Simple(SimpleSemver::RangeMinor(_))) => "range-minor",
-      Self::Semver(Semver::Complex(_)) => "range-complex",
-      Self::NonSemver(NonSemver::Alias(_)) => "alias",
-      Self::NonSemver(NonSemver::File(_)) => "file",
-      Self::NonSemver(NonSemver::Git(_)) => "git",
-      Self::NonSemver(NonSemver::Tag(_)) => "tag",
-      Self::NonSemver(NonSemver::Url(_)) => "url",
-      Self::NonSemver(NonSemver::WorkspaceProtocol(_)) => "workspace-protocol",
-      Self::NonSemver(NonSemver::Unsupported(_)) => "unsupported",
+      Self::Semver(simple_semver) => match simple_semver {
+        Semver::Simple(variant) => match variant {
+          SimpleSemver::Exact(_) => "exact",
+          SimpleSemver::Latest(_) => "latest",
+          SimpleSemver::Major(_) => "major",
+          SimpleSemver::Minor(_) => "minor",
+          SimpleSemver::Range(_) => "range",
+          SimpleSemver::RangeMajor(_) => "range-major",
+          SimpleSemver::RangeMinor(_) => "range-minor",
+        },
+        Semver::Complex(_) => "range-complex",
+      },
+      Self::NonSemver(non_semver) => match non_semver {
+        NonSemver::Alias(_) => "alias",
+        NonSemver::File(_) => "file",
+        NonSemver::Git(_) => "git",
+        NonSemver::Tag(_) => "tag",
+        NonSemver::Url(_) => "url",
+        NonSemver::WorkspaceProtocol(_) => "workspace-protocol",
+        NonSemver::Unsupported(_) => "unsupported",
+      },
       Self::None => "missing",
     }
     .to_string()
   }
 
+  /// Get the raw string value of the specifier, eg "^1.4.1"
   pub fn unwrap(&self) -> String {
     match self {
-      Self::Semver(Semver::Simple(SimpleSemver::Exact(string))) => string.clone(),
-      Self::Semver(Semver::Simple(SimpleSemver::Latest(string))) => string.clone(),
-      Self::Semver(Semver::Simple(SimpleSemver::Major(string))) => string.clone(),
-      Self::Semver(Semver::Simple(SimpleSemver::Minor(string))) => string.clone(),
-      Self::Semver(Semver::Simple(SimpleSemver::Range(string))) => string.clone(),
-      Self::Semver(Semver::Simple(SimpleSemver::RangeMinor(string))) => string.clone(),
-      Self::Semver(Semver::Complex(string)) => string.clone(),
-      Self::NonSemver(NonSemver::Alias(string)) => string.clone(),
-      Self::NonSemver(NonSemver::File(string)) => string.clone(),
-      Self::NonSemver(NonSemver::Git(string)) => string.clone(),
-      Self::NonSemver(NonSemver::Tag(string)) => string.clone(),
-      Self::NonSemver(NonSemver::Url(string)) => string.clone(),
-      Self::NonSemver(NonSemver::WorkspaceProtocol(string)) => string.clone(),
-      Self::NonSemver(NonSemver::Unsupported(string)) => string.clone(),
+      Self::Semver(simple_semver) => match simple_semver {
+        Semver::Simple(variant) => match variant {
+          SimpleSemver::Exact(string) => string.clone(),
+          SimpleSemver::Latest(string) => string.clone(),
+          SimpleSemver::Major(string) => string.clone(),
+          SimpleSemver::Minor(string) => string.clone(),
+          SimpleSemver::Range(string) => string.clone(),
+          SimpleSemver::RangeMajor(string) => string.clone(),
+          SimpleSemver::RangeMinor(string) => string.clone(),
+        },
+        Semver::Complex(string) => string.clone(),
+      },
+      Self::NonSemver(non_semver) => match non_semver {
+        NonSemver::Alias(string) => string.clone(),
+        NonSemver::File(string) => string.clone(),
+        NonSemver::Git(string) => string.clone(),
+        NonSemver::Tag(string) => string.clone(),
+        NonSemver::Url(string) => string.clone(),
+        NonSemver::WorkspaceProtocol(string) => string.clone(),
+        NonSemver::Unsupported(string) => string.clone(),
+      },
       Self::None => "VERSION_IS_MISSING".to_string(),
     }
   }
 
+  /// Is this specifier semver, without &&s or ||s?
   pub fn is_simple_semver(&self) -> bool {
     matches!(self, Specifier::Semver(Semver::Simple(_)))
   }
 
+  /// If this specifier is a simple semver, return it
   pub fn get_simple_semver(&self) -> Option<SimpleSemver> {
     if let Specifier::Semver(Semver::Simple(simple_semver)) = self {
       Some(simple_semver.clone())
@@ -114,6 +108,7 @@ impl Specifier {
 }
 
 impl IsOrderable for Specifier {
+  /// Return a struct which can be used to check equality or sort specifiers
   fn get_orderable(&self) -> Orderable {
     match self {
       Self::Semver(semver) => semver.get_orderable(),
@@ -129,7 +124,167 @@ mod tests {
   use std::cmp::Ordering;
 
   #[test]
-  fn compare() {
+  fn parses_node_specifier_strings() {
+    let cases: Vec<(&str, &str, bool)> = vec![
+      ("*", "latest", true),
+      ("1", "major", true),
+      ("1.2", "minor", true),
+      // exact semver versions
+      ("0.0.0", "exact", true),
+      ("1.2.3-alpha", "exact", true),
+      ("1.2.3-rc.1", "exact", true),
+      ("1.2.3-alpha", "exact", true),
+      ("1.2.3-rc.0", "exact", true),
+      // complex semver queries
+      ("1.3.0 || <1.0.0 >2.0.0", "range-complex", false),
+      ("<1.0.0 >2.0.0", "range-complex", false),
+      ("<1.0.0 >=2.0.0", "range-complex", false),
+      ("<1.5.0 || >=1.6.0", "range-complex", false),
+      ("<1.6.16 || >=1.7.0 <1.7.11 || >=1.8.0 <1.8.2", "range-complex", false),
+      ("<=1.6.16 || >=1.7.0 <1.7.11 || >=1.8.0 <1.8.2", "range-complex", false),
+      (">1.0.0 <1.0.0", "range-complex", false),
+      (">1.0.0 <=2.0.0", "range-complex", false),
+      (">=2.3.4 || <=1.2.3", "range-complex", false),
+      // workspace protocol
+      ("workspace:*", "workspace-protocol", false),
+      ("workspace:^", "workspace-protocol", false),
+      ("workspace:~", "workspace-protocol", false),
+      // simple semver with a semver range
+      ("<1.2.3-alpha", "range", true),
+      ("<1.2.3-rc.0", "range", true),
+      ("<=1.2.3-alpha", "range", true),
+      ("<=1.2.3-rc.0", "range", true),
+      (">1.2.3-alpha", "range", true),
+      (">1.2.3-rc.0", "range", true),
+      (">=1.2.3-alpha", "range", true),
+      (">=1.2.3-rc.0", "range", true),
+      ("^1.2.3", "range", true),
+      ("^1.2.3-alpha", "range", true),
+      ("^1.2.3-rc.0", "range", true),
+      ("~1.2.3-alpha", "range", true),
+      ("~1.2.3-rc.0", "range", true),
+      // unsupported
+      ("$typescript", "unsupported", false),
+      ("/path/to/foo", "unsupported", false),
+      ("/path/to/foo.tar", "unsupported", false),
+      ("/path/to/foo.tgz", "unsupported", false),
+      ("1.typo.wat", "unsupported", false),
+      ("=v1.2.3", "unsupported", false),
+      ("@f fo o al/ a d s ;f", "unsupported", false),
+      ("@foo/bar", "unsupported", false),
+      ("@foo/bar@", "unsupported", false),
+      ("git+file://path/to/repo#1.2.3", "unsupported", false),
+      ("not-git@hostname.com:some/repo", "unsupported", false),
+      ("user/foo#1234::path:dist", "unsupported", false),
+      ("user/foo#notimplemented:value", "unsupported", false),
+      ("user/foo#path:dist", "unsupported", false),
+      ("user/foo#semver:^1.2.3", "unsupported", false),
+      // tags
+      ("alpha", "tag", false),
+      ("beta", "tag", false),
+      ("canary", "tag", false),
+      // range major
+      ("~1", "range-major", true),
+      // range minor
+      ("<5.0", "range-minor", true),
+      ("<=5.0", "range-minor", true),
+      (">5.0", "range-minor", true),
+      (">=5.0", "range-minor", true),
+      ("^4.1", "range-minor", true),
+      ("~1.2", "range-minor", true),
+      ("~1.2", "range-minor", true),
+      // npm aliases
+      ("npm:@minh.nguyen/plugin-transform-destructuring@^7.5.2", "alias", false),
+      ("npm:@types/selenium-webdriver@4.1.18", "alias", false),
+      ("npm:foo@1.2.3", "alias", false),
+      // file paths
+      ("file:../path/to/foo", "file", false),
+      ("file:./path/to/foo", "file", false),
+      ("file:/../path/to/foo", "file", false),
+      ("file:/./path/to/foo", "file", false),
+      ("file:/.path/to/foo", "file", false),
+      ("file://.", "file", false),
+      ("file://../path/to/foo", "file", false),
+      ("file://./path/to/foo", "file", false),
+      ("file:////path/to/foo", "file", false),
+      ("file:///path/to/foo", "file", false),
+      ("file://path/to/foo", "file", false),
+      ("file:/path/to/foo", "file", false),
+      ("file:/~path/to/foo", "file", false),
+      ("file:path/to/directory", "file", false),
+      ("file:path/to/foo", "file", false),
+      ("file:path/to/foo.tar.gz", "file", false),
+      ("file:path/to/foo.tgz", "file", false),
+      // git urls
+      ("git+https://github.com/user/foo", "git", false),
+      ("git+ssh://git@github.com/user/foo#1.2.3", "git", false),
+      ("git+ssh://git@github.com/user/foo#semver:^1.2.3", "git", false),
+      ("git+ssh://git@github.com:user/foo#semver:^1.2.3", "git", false),
+      ("git+ssh://git@notgithub.com/user/foo", "git", false),
+      ("git+ssh://git@notgithub.com/user/foo#1.2.3", "git", false),
+      ("git+ssh://git@notgithub.com/user/foo#semver:^1.2.3", "git", false),
+      ("git+ssh://git@notgithub.com:user/foo", "git", false),
+      ("git+ssh://git@notgithub.com:user/foo#1.2.3", "git", false),
+      ("git+ssh://git@notgithub.com:user/foo#semver:^1.2.3", "git", false),
+      ("git+ssh://github.com/user/foo", "git", false),
+      ("git+ssh://github.com/user/foo#1.2.3", "git", false),
+      ("git+ssh://github.com/user/foo#semver:^1.2.3", "git", false),
+      ("git+ssh://mydomain.com:1234#1.2.3", "git", false),
+      ("git+ssh://mydomain.com:1234/hey", "git", false),
+      ("git+ssh://mydomain.com:1234/hey#1.2.3", "git", false),
+      ("git+ssh://mydomain.com:foo", "git", false),
+      ("git+ssh://mydomain.com:foo#1.2.3", "git", false),
+      ("git+ssh://mydomain.com:foo/bar#1.2.3", "git", false),
+      ("git+ssh://notgithub.com/user/foo", "git", false),
+      ("git+ssh://notgithub.com/user/foo#1.2.3", "git", false),
+      ("git+ssh://notgithub.com/user/foo#semver:^1.2.3", "git", false),
+      ("git+ssh://username:password@mydomain.com:1234/hey#1.2.3", "git", false),
+      ("git://github.com/user/foo", "git", false),
+      ("git://github.com/user/foo#1.2.3", "git", false),
+      ("git://github.com/user/foo#semver:^1.2.3", "git", false),
+      ("git://notgithub.com/user/foo", "git", false),
+      ("git://notgithub.com/user/foo#1.2.3", "git", false),
+      ("git://notgithub.com/user/foo#semver:^1.2.3", "git", false),
+      // urls
+      ("http://insecure.com/foo.tgz", "url", false),
+      ("https://server.com/foo.tgz", "url", false),
+      ("https://server.com/foo.tgz", "url", false),
+    ];
+    for (value, expected_id, expected_is_simple_semver) in cases {
+      let spec = Specifier::new(value);
+      assert_eq!(
+        spec.get_config_identifier(),
+        expected_id,
+        "{value} should have ID of {expected_id}"
+      );
+      assert_eq!(spec.unwrap(), value, "{value} should unwrap to {value}");
+      assert_eq!(
+        spec.is_simple_semver(),
+        expected_is_simple_semver,
+        "{value} is_simple_semver should be {expected_is_simple_semver}"
+      );
+      assert_eq!(spec.get_simple_semver().is_some(), expected_is_simple_semver);
+    }
+  }
+
+  #[test]
+  fn normalises_some_node_specifier_strings() {
+    let cases: Vec<(&str, &str, bool, &str)> = vec![
+      ("latest", "latest", true, "*"),
+      ("x", "latest", true, "*"),
+      ("", "missing", false, "VERSION_IS_MISSING"),
+    ];
+    for (value, expected_id, expected_is_simple_semver, expected_normalisation) in cases {
+      let spec = Specifier::new(value);
+      assert_eq!(spec.get_config_identifier(), expected_id);
+      assert_eq!(spec.unwrap(), expected_normalisation);
+      assert_eq!(spec.is_simple_semver(), expected_is_simple_semver);
+      assert_eq!(spec.get_simple_semver().is_some(), expected_is_simple_semver);
+    }
+  }
+
+  #[test]
+  fn compares_and_sorts_semver_specifiers() {
     let cases: Vec<(&str, &str, Ordering)> = vec![
       /* normal versions */
       ("0.0.0", "0.0.1", Ordering::Less),
@@ -146,15 +301,18 @@ mod tests {
       ("0.0.1", "~0.0.0", Ordering::Greater),
       ("0.1.0", "~0.0.0", Ordering::Greater),
       ("1.0.0", "~0.0.0", Ordering::Greater),
+      ("0.0.0", "^0.0", Ordering::Less),
+      ("0", "~0.0", Ordering::Greater),
+      ("0", "^0.0", Ordering::Greater),
       /* range greediness applies only when versions are equal */
       ("0.0.0", "~0.0.0", Ordering::Less),
       ("0.0.0", "~0.0", Ordering::Less),
-      ("0.0", "~0.0", Ordering::Less),
-      ("0", "~0.0", Ordering::Less),
       ("0.0.0", "^0.0.0", Ordering::Less),
-      ("0.0.0", "^0.0", Ordering::Less),
+      ("0.0", "~0.0", Ordering::Less),
       ("0.0", "^0.0", Ordering::Less),
-      ("0", "^0.0", Ordering::Less),
+      ("~0", "^0", Ordering::Less),
+      ("0", "~0", Ordering::Less),
+      ("0", "^0", Ordering::Less),
       ("0.0.0", ">0.0.0", Ordering::Less),
       ("0.0.0", ">=0.0.0", Ordering::Less),
       ("0.0.0", "<=0.0.0", Ordering::Greater),
@@ -166,6 +324,9 @@ mod tests {
       (">=0.0.0", "*", Ordering::Less),
       ("<=0.0.0", "*", Ordering::Less),
       ("<0.0.0", "*", Ordering::Less),
+      /* an empty or missing specifier is always bottom rank */
+      ("", "0.0.0", Ordering::Less),
+      ("", "<0.0.0", Ordering::Equal),
       /* stable should be older than tagged */
       ("0.0.0", "0.0.0-alpha", Ordering::Less),
       /* equal tags should not affect comparison */
@@ -194,6 +355,12 @@ mod tests {
       ("0.0.1-rc.0", "~0.0.0-rc.0", Ordering::Greater),
       ("0.1.0-rc.0", "~0.0.0-rc.0", Ordering::Greater),
       ("1.0.0-rc.0", "~0.0.0-rc.0", Ordering::Greater),
+      ("0.0.0-rc.0", "~0.0.0-rc.0", Ordering::Less),
+      ("0.0.0-rc.0", "^0.0.0-rc.0", Ordering::Less),
+      ("0.0.0-rc.0", ">0.0.0-rc.0", Ordering::Less),
+      ("0.0.0-rc.0", ">=0.0.0-rc.0", Ordering::Less),
+      ("0.0.0-rc.0", "<=0.0.0-rc.0", Ordering::Greater),
+      ("0.0.0-rc.0", "<0.0.0-rc.0", Ordering::Greater),
       /* workspace: protocol is treated as <0.0.0 for now */
       ("workspace:*", "<0.0.0", Ordering::Equal),
       ("workspace:0.0.0", "<0.0.0", Ordering::Equal),
@@ -205,8 +372,13 @@ mod tests {
     for (str_a, str_b, expected) in cases {
       let a = Specifier::new(str_a);
       let b = Specifier::new(str_b);
-      let ordering = a.get_orderable().cmp(&b.get_orderable());
-      assert_eq!(ordering, expected, "{str_a} should {expected:?} {str_b}");
+      let orderable_a = a.get_orderable();
+      let orderable_b = b.get_orderable();
+      let ordering = orderable_a.cmp(&orderable_b);
+      assert_eq!(
+        ordering, expected,
+        "{a:?} should be {expected:?} {b:?} ({orderable_a:#?} {orderable_b:#?})"
+      );
     }
   }
 }

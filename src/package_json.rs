@@ -29,10 +29,7 @@ impl PackageJson {
   pub fn from_file(file_path: &PathBuf) -> Option<Self> {
     fs::read_to_string(file_path)
       .inspect_err(|_| {
-        error!(
-          "package.json not readable at {}",
-          &file_path.to_str().unwrap()
-        );
+        error!("package.json not readable at {}", &file_path.to_str().unwrap());
       })
       .ok()
       .and_then(|json| {

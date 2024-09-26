@@ -1,6 +1,4 @@
-use clap::{
-  builder::ValueParser, crate_description, crate_name, crate_version, Arg, ArgMatches, Command,
-};
+use clap::{builder::ValueParser, crate_description, crate_name, crate_version, Arg, ArgMatches, Command};
 use regex::Regex;
 
 #[derive(Debug)]
@@ -162,9 +160,7 @@ impl CliOptions {
       .unwrap_or_default()
       .map(|source| source.to_owned())
       .collect::<Vec<_>>();
-    let filter = matches
-      .get_one::<Regex>("filter")
-      .map(|filter| filter.to_owned());
+    let filter = matches.get_one::<Regex>("filter").map(|filter| filter.to_owned());
 
     CliOptions {
       filter,

@@ -28,10 +28,7 @@ impl Context {
         .iter_mut()
         .find(|vgroup| vgroup.selector.can_add(&instance))
       {
-        if let Some(sgroup) = semver_groups
-          .iter()
-          .find(|sgroup| sgroup.selector.can_add(&instance))
-        {
+        if let Some(sgroup) = semver_groups.iter().find(|sgroup| sgroup.selector.can_add(&instance)) {
           instance.apply_semver_group(sgroup);
         }
         let dependency = vgroup.get_or_create_dependency(&instance);

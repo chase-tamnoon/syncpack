@@ -18,6 +18,7 @@ pub fn is_simple_semver(str: &str) -> bool {
     || is_major(str)
     || is_minor(str)
     || is_range(str)
+    || is_range_major(str)
     || is_range_minor(str)
 }
 
@@ -50,6 +51,15 @@ pub fn is_range(specifier: &str) -> bool {
     || regexes::LT_TAG.is_match(specifier)
     || regexes::LTE.is_match(specifier)
     || regexes::LTE_TAG.is_match(specifier)
+}
+
+pub fn is_range_major(specifier: &str) -> bool {
+  regexes::CARET_MAJOR.is_match(specifier)
+    || regexes::TILDE_MAJOR.is_match(specifier)
+    || regexes::GT_MAJOR.is_match(specifier)
+    || regexes::GTE_MAJOR.is_match(specifier)
+    || regexes::LT_MAJOR.is_match(specifier)
+    || regexes::LTE_MAJOR.is_match(specifier)
 }
 
 pub fn is_range_minor(specifier: &str) -> bool {
