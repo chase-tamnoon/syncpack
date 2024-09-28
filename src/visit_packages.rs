@@ -978,5 +978,6 @@ mod tests {
   #[ignore]
   fn reports_local_version_mismatch_when_an_instance_has_same_version_but_different_range() {
     panic!("@TODO");
+    panic!("@TODO");
   }
 }

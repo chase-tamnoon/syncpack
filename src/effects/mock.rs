@@ -99,44 +99,51 @@ impl Effects for MockEffects<'_> {
     let dependency = &event.dependency;
     let instance = instances_by_id.get(instance_id).unwrap();
 
+    let mut record_match_event = || {
+      self
+        .matches
+        .entry(event.variant.clone())
+        .or_default()
+        .push(ActualMatchEvent::new(&event, instance))
+    };
+
+    let mut record_mismatch_event = || {
+      self
+        .mismatches
+        .entry(event.variant.clone())
+        .or_default()
+        .push(ActualMismatchEvent::new(&event, instance));
+    };
+
     match &event.variant {
-      InstanceEventVariant::InstanceIsIgnored
-      | InstanceEventVariant::LocalInstanceIsPreferred
-      | InstanceEventVariant::InstanceMatchesLocal
-      | InstanceEventVariant::InstanceMatchesHighestOrLowestSemver
-      | InstanceEventVariant::InstanceMatchesButIsUnsupported
-      | InstanceEventVariant::InstanceMatchesPinned
-      | InstanceEventVariant::InstanceMatchesSameRangeGroup
-      | InstanceEventVariant::LocalInstanceMistakenlyBanned => {
-        self
-          .matches
-          .entry(event.variant.clone())
-          .or_default()
-          .push(ActualMatchEvent::new(&event, instance));
+      InstanceEventVariant::InstanceIsIgnored => record_match_event(),
+      InstanceEventVariant::LocalInstanceIsPreferred => record_match_event(),
+      InstanceEventVariant::InstanceMatchesLocal => record_match_event(),
+      InstanceEventVariant::InstanceMatchesHighestOrLowestSemver => record_match_event(),
+      InstanceEventVariant::InstanceMatchesButIsUnsupported => record_match_event(),
+      InstanceEventVariant::InstanceMatchesPinned => record_match_event(),
+      InstanceEventVariant::InstanceMatchesSameRangeGroup => record_match_event(),
+      InstanceEventVariant::LocalInstanceMistakenlyBanned => record_match_event(),
+
+      InstanceEventVariant::LocalInstanceMistakenlyMismatchesSemverGroup => record_mismatch_event(),
+      InstanceEventVariant::LocalInstanceMistakenlyMismatchesPinned => record_mismatch_event(),
+      InstanceEventVariant::InstanceMismatchesAndIsUnsupported => record_mismatch_event(),
+      InstanceEventVariant::InstanceMismatchesLocalWithMissingVersion => record_mismatch_event(),
+      InstanceEventVariant::InstanceMatchesPinnedButMismatchesSemverGroup => record_mismatch_event(),
+      InstanceEventVariant::InstanceMismatchesBothSameRangeAndConflictingSemverGroups => record_mismatch_event(),
+      InstanceEventVariant::InstanceMismatchesBothSameRangeAndCompatibleSemverGroups => record_mismatch_event(),
+      InstanceEventVariant::InstanceMatchesSameRangeGroupButMismatchesConflictingSemverGroup => record_mismatch_event(),
+      InstanceEventVariant::InstanceMatchesSameRangeGroupButMismatchesCompatibleSemverGroup => record_mismatch_event(),
+      InstanceEventVariant::InstanceMismatchesSameRangeGroup => record_mismatch_event(),
+      InstanceEventVariant::InstanceIsBanned => record_mismatch_event(),
+      InstanceEventVariant::InstanceMatchesHighestOrLowestSemverButMismatchesConflictingSemverGroup => {
+        record_mismatch_event()
       }
-      InstanceEventVariant::LocalInstanceMistakenlyMismatchesSemverGroup
-      | InstanceEventVariant::LocalInstanceMistakenlyMismatchesPinned
-      | InstanceEventVariant::InstanceMismatchesAndIsUnsupported
-      | InstanceEventVariant::InstanceMismatchesLocalWithMissingVersion
-      | InstanceEventVariant::InstanceMatchesPinnedButMismatchesSemverGroup
-      | InstanceEventVariant::InstanceMismatchesBothSameRangeAndConflictingSemverGroups
-      | InstanceEventVariant::InstanceMismatchesBothSameRangeAndCompatibleSemverGroups
-      | InstanceEventVariant::InstanceMatchesSameRangeGroupButMismatchesConflictingSemverGroup
-      | InstanceEventVariant::InstanceMatchesSameRangeGroupButMismatchesCompatibleSemverGroup
-      | InstanceEventVariant::InstanceMismatchesSameRangeGroup
-      | InstanceEventVariant::InstanceIsBanned
-      | InstanceEventVariant::InstanceMatchesHighestOrLowestSemverButMismatchesConflictingSemverGroup
-      | InstanceEventVariant::InstanceIsHighestOrLowestSemverOnceSemverGroupIsFixed
-      | InstanceEventVariant::InstanceMatchesLocalButMismatchesSemverGroup
-      | InstanceEventVariant::InstanceMismatchesLocal
-      | InstanceEventVariant::InstanceMismatchesHighestOrLowestSemver
-      | InstanceEventVariant::InstanceMismatchesPinned => {
-        self
-          .mismatches
-          .entry(event.variant.clone())
-          .or_default()
-          .push(ActualMismatchEvent::new(&event, instance));
-      }
+      InstanceEventVariant::InstanceIsHighestOrLowestSemverOnceSemverGroupIsFixed => record_mismatch_event(),
+      InstanceEventVariant::InstanceMatchesLocalButMismatchesSemverGroup => record_mismatch_event(),
+      InstanceEventVariant::InstanceMismatchesLocal => record_mismatch_event(),
+      InstanceEventVariant::InstanceMismatchesHighestOrLowestSemver => record_mismatch_event(),
+      InstanceEventVariant::InstanceMismatchesPinned => record_mismatch_event(),
     };
   }
 }
