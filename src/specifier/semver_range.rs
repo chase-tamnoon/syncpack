@@ -55,7 +55,7 @@ impl SemverRange {
   }
 
   /// Get a numeric rank according to its greediness, for use in sorting
-  pub fn get_score(&self) -> u8 {
+  pub fn get_greediness_ranking(&self) -> u8 {
     match self {
       SemverRange::Any => 7,
       SemverRange::Gt => 6,
@@ -71,7 +71,7 @@ impl SemverRange {
 
 impl Ord for SemverRange {
   fn cmp(&self, other: &Self) -> Ordering {
-    self.get_score().cmp(&other.get_score())
+    self.get_greediness_ranking().cmp(&other.get_greediness_ranking())
   }
 }
 
@@ -83,7 +83,7 @@ impl PartialOrd for SemverRange {
 
 impl PartialEq for SemverRange {
   fn eq(&self, other: &Self) -> bool {
-    self.get_score() == other.get_score()
+    self.get_greediness_ranking() == other.get_greediness_ranking()
   }
 }
 
@@ -91,7 +91,7 @@ impl Eq for SemverRange {}
 
 impl Hash for SemverRange {
   fn hash<H: Hasher>(&self, state: &mut H) {
-    self.get_score().hash(state);
+    self.get_greediness_ranking().hash(state);
   }
 }
 

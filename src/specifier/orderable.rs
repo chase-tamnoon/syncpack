@@ -1,15 +1,11 @@
 use std::cmp::Ordering;
 
-use log::debug;
 use node_semver::Version;
 
 use super::semver_range::SemverRange;
 
 pub trait IsOrderable: std::fmt::Debug {
-  fn get_orderable(&self) -> Orderable {
-    debug!("Default Orderable used for {:?}", self);
-    Orderable::new()
-  }
+  fn get_orderable(&self) -> Orderable;
 }
 
 #[derive(Clone, Debug, Hash, PartialEq)]
@@ -26,6 +22,8 @@ impl Orderable {
         major: 0,
         minor: 0,
         patch: 0,
+        // "Build metadata MUST be ignored when determining version precedence"
+        // https://semver.org/spec/v2.0.0.html#spec-item-10
         build: vec![],
         pre_release: vec![],
       },
@@ -47,16 +45,11 @@ impl Ord for Orderable {
         Ordering::Equal => match self.version.patch.cmp(&other.version.patch) {
           Ordering::Greater => Ordering::Greater,
           Ordering::Less => Ordering::Less,
-          // build
-          Ordering::Equal => match self.version.build.cmp(&other.version.build) {
+          // pre_release
+          Ordering::Equal => match self.version.pre_release.cmp(&other.version.pre_release) {
             Ordering::Greater => Ordering::Greater,
             Ordering::Less => Ordering::Less,
-            // pre_release
-            Ordering::Equal => match self.version.pre_release.cmp(&other.version.pre_release) {
-              Ordering::Greater => Ordering::Greater,
-              Ordering::Less => Ordering::Less,
-              Ordering::Equal => self.range.cmp(&other.range),
-            },
+            Ordering::Equal => self.range.cmp(&other.range),
           },
         },
       },

@@ -33,7 +33,7 @@ pub enum SimpleSemver {
 }
 
 impl SimpleSemver {
-  pub fn new(specifier: &String) -> Result<Self, String> {
+  pub fn new(specifier: &str) -> Result<Self, String> {
     let str = parser::sanitise(specifier);
     let string = str.to_string();
     if parser::is_exact(str) {
@@ -157,7 +157,7 @@ mod tests {
   #[test]
   fn returns_err_when_specifier_is_not_simple_semver() {
     assert_eq!(
-      SimpleSemver::new(&"<2 || >3".to_string()),
+      SimpleSemver::new("<2 || >3"),
       Err("'<2 || >3' was expected to be a simple semver specifier but was not recognised".to_string())
     );
   }
@@ -271,7 +271,7 @@ mod tests {
       ("^0.0", SemverRange::Patch, SimpleSemver::RangeMinor("~0.0".to_string())),
     ];
     for (before, range, expected) in cases {
-      let semver = SimpleSemver::new(&before.to_string()).unwrap();
+      let semver = SimpleSemver::new(before).unwrap();
       let after = semver.with_range(&range);
       assert_eq!(after, expected);
     }
@@ -279,7 +279,7 @@ mod tests {
 
   #[test]
   fn cannot_replace_the_semver_range_of_latest_since_the_version_is_not_known() {
-    let before = SimpleSemver::new(&"*".to_string()).unwrap();
+    let before = SimpleSemver::new("*").unwrap();
     let after = before.with_range(&SemverRange::Exact);
     assert_eq!(after, SimpleSemver::Latest("*".to_string()));
   }
@@ -309,8 +309,8 @@ mod tests {
       ("<0.0.0", "<=0.0.0", false),
     ];
     for (str_a, str_b, expected) in cases {
-      let a = SimpleSemver::new(&str_a.to_string()).unwrap();
-      let b = SimpleSemver::new(&str_b.to_string()).unwrap();
+      let a = SimpleSemver::new(str_a).unwrap();
+      let b = SimpleSemver::new(str_b).unwrap();
       assert_eq!(
         a.has_same_range(&b),
         expected,

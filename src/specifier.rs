@@ -15,9 +15,9 @@ pub mod simple_semver;
 
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]
 pub enum Specifier {
+  None,
   Semver(Semver),
   NonSemver(NonSemver),
-  None,
 }
 
 impl Specifier {
@@ -26,12 +26,10 @@ impl Specifier {
     let string = str.to_string();
     if specifier.is_empty() {
       Self::None
-    } else if let Ok(simple_semver) = SimpleSemver::new(&string) {
-      Self::Semver(Semver::Simple(simple_semver))
-    } else if parser::is_complex_range(str) {
-      Self::Semver(Semver::Complex(string))
+    } else if let Ok(semver) = Semver::new(str) {
+      Self::Semver(semver)
     } else {
-      Self::NonSemver(NonSemver::new(&string))
+      Self::NonSemver(NonSemver::new(str))
     }
   }
 
@@ -284,7 +282,7 @@ mod tests {
   }
 
   #[test]
-  fn compares_and_sorts_semver_specifiers() {
+  fn compares_simple_semver_specifiers_according_to_highest_version_and_greediest_range() {
     let cases: Vec<(&str, &str, Ordering)> = vec![
       /* normal versions */
       ("0.0.0", "0.0.1", Ordering::Less),
@@ -347,6 +345,10 @@ mod tests {
       ("0.0.0-rc.1.0.0", "0.0.0-rc.0.0.0", Ordering::Greater),
       /* preleases should not matter when version is greater */
       ("0.1.0-rc.0.0.0", "0.0.0-rc.0.1.0", Ordering::Greater),
+      /* compares tags a-z */
+      ("0.0.0-alpha", "0.0.0-alpha", Ordering::Equal),
+      ("0.0.0-alpha", "0.0.0-beta", Ordering::Less),
+      ("0.0.0-beta", "0.0.0-alpha", Ordering::Greater),
       /* range greediness is the same on prereleases */
       ("0.0.0-rc.0", "~0.0.1-rc.0", Ordering::Less),
       ("0.0.0-rc.0", "~0.1.0-rc.0", Ordering::Less),
@@ -380,5 +382,21 @@ mod tests {
         "{a:?} should be {expected:?} {b:?} ({orderable_a:#?} {orderable_b:#?})"
       );
     }
+  }
+
+  #[test]
+  fn sorts_simple_semver_specifiers_according_to_highest_version_and_greediest_range() {
+    fn to_specifiers(specifiers: Vec<&str>) -> Vec<Specifier> {
+      specifiers.iter().map(|r| Specifier::new(r)).collect()
+    }
+    let mut specifiers = to_specifiers(vec![
+      "0.0.0", "<0.0.0", "*", ">0.0.0", ">=0.0.0", "<=0.0.0", "^0.0.0", "~0.0.0",
+    ]);
+    let expected = to_specifiers(vec![
+      "<0.0.0", "<=0.0.0", "0.0.0", "~0.0.0", "^0.0.0", ">=0.0.0", ">0.0.0", "*",
+    ]);
+
+    specifiers.sort_by_key(|s| s.get_orderable());
+    assert_eq!(specifiers, expected, "{specifiers:?}, {expected:?}");
   }
 }
