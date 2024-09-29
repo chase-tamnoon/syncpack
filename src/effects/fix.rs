@@ -11,6 +11,8 @@ use crate::{
   packages::Packages,
 };
 
+use super::FormatEventVariant;
+
 /// The implementation of the `fix` command's side effects
 pub struct FixEffects<'a> {
   pub config: &'a Config,
@@ -39,7 +41,7 @@ impl Effects for FixEffects<'_> {
     self.packages = Some(packages);
   }
 
-  fn on(&mut self, event: Event, instances_by_id: &mut InstancesById) {
+  fn on(&mut self, event: Event) {
     match &event {
       Event::EnterVersionsAndRanges => {
         info!("{}", "= SEMVER RANGES AND VERSION MISMATCHES".dimmed());
@@ -62,13 +64,41 @@ impl Effects for FixEffects<'_> {
       Event::DependencyValid(dependency, expected) => { /*NOOP*/ }
       Event::DependencyInvalid(dependency, expected) => { /*NOOP*/ }
       Event::DependencyWarning(dependency, expected) => { /*NOOP*/ }
-      Event::FormatMatch(_) => {
+      Event::PackageFormatMatch(_) => {
         // @TODO
       }
-      Event::FormatMismatch(_) => {
-        // @TODO
+      Event::PackageFormatMismatch(event) => {
+        let packages = self.packages.as_mut().unwrap();
+        let package = packages.by_name.get_mut(&event.package_name).unwrap();
+        let file_path = package.get_relative_file_path(&self.config.cwd);
+
+        event.formatting_mismatches.iter().for_each(|mismatch| {
+          let property_path = &mismatch.property_path;
+          let expected = &mismatch.expected;
+          match &mismatch.variant {
+            FormatEventVariant::BugsPropertyIsNotFormatted => {
+              package.set_prop(mismatch.property_path.as_str(), mismatch.expected.clone());
+            }
+            FormatEventVariant::RepositoryPropertyIsNotFormatted => {
+              package.set_prop(mismatch.property_path.as_str(), mismatch.expected.clone());
+            }
+            FormatEventVariant::ExportsPropertyIsNotSorted => {
+              package.set_prop(mismatch.property_path.as_str(), mismatch.expected.clone());
+            }
+            FormatEventVariant::PropertyIsNotSortedAz => {
+              package.set_prop(mismatch.property_path.as_str(), mismatch.expected.clone());
+            }
+            FormatEventVariant::PackagePropertiesAreNotSorted => {
+              package.set_prop(mismatch.property_path.as_str(), mismatch.expected.clone());
+            }
+          }
+        });
       }
       Event::ExitCommand => {
+        let mut packages = self.get_packages();
+        for package in packages.by_name.values_mut() {
+          package.write_to_disk(self.config);
+        }
         if self.is_valid {
           let icon = icon_valid();
           info!("\n{icon} valid");

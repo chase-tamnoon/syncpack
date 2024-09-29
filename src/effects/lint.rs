@@ -11,6 +11,8 @@ use crate::{
   version_group::Variant,
 };
 
+use super::FormatEventVariant;
+
 /// The implementation of the `lint` command's side effects
 pub struct LintEffects<'a> {
   pub config: &'a Config,
@@ -39,7 +41,7 @@ impl Effects for LintEffects<'_> {
     self.packages = Some(packages);
   }
 
-  fn on(&mut self, event: Event, instances_by_id: &mut InstancesById) {
+  fn on(&mut self, event: Event) {
     match &event {
       Event::EnterVersionsAndRanges => {
         info!("{}", "= SEMVER RANGES AND VERSION MISMATCHES".dimmed());
@@ -77,11 +79,44 @@ impl Effects for LintEffects<'_> {
         let hint = "has name or specifiers unsupported by syncpack".dimmed();
         info!("{count} {name} {hint}");
       }
-      Event::FormatMatch(_) => {
-        // @TODO
+      Event::PackageFormatMatch(package_name) => {
+        let packages = self.packages.as_mut().unwrap();
+        let package = packages.by_name.get_mut(package_name).unwrap();
+        let file_path = package.get_relative_file_path(&self.config.cwd);
+        info!("{} {file_path}", icon_valid());
       }
-      Event::FormatMismatch(_) => {
-        // @TODO
+      Event::PackageFormatMismatch(event) => {
+        let packages = self.packages.as_mut().unwrap();
+        let package = packages.by_name.get_mut(&event.package_name).unwrap();
+        let file_path = package.get_relative_file_path(&self.config.cwd);
+        info!("{} {file_path}", icon_fixable());
+        event.formatting_mismatches.iter().for_each(|mismatch| {
+          let property_path = &mismatch.property_path.dimmed();
+          let expected = &mismatch.expected;
+          match &mismatch.variant {
+            FormatEventVariant::BugsPropertyIsNotFormatted => {
+              let message = "is not in shorthand format".dimmed();
+              info!("  {property_path} {message}");
+            }
+            FormatEventVariant::RepositoryPropertyIsNotFormatted => {
+              let message = "is not in shorthand format".dimmed();
+              info!("  {property_path} {message}");
+            }
+            FormatEventVariant::ExportsPropertyIsNotSorted => {
+              let message = "is not sorted".dimmed();
+              info!("  {property_path} {message}");
+            }
+            FormatEventVariant::PropertyIsNotSortedAz => {
+              let message = "is not sorted alphabetically".dimmed();
+              info!("  {property_path} {message}");
+            }
+            FormatEventVariant::PackagePropertiesAreNotSorted => {
+              let message = "root properties are not sorted".dimmed();
+              info!("  {message}");
+            }
+          }
+        });
+        self.is_valid = false;
       }
       Event::ExitCommand => {
         if self.is_valid {

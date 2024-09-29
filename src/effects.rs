@@ -1,6 +1,8 @@
+use serde_json::Value;
+
 use crate::{
   context::InstancesById, dependency::Dependency, group_selector::GroupSelector, instance::InstanceId,
-  package_json::PackageJson, packages::Packages, specifier::Specifier,
+  packages::Packages, specifier::Specifier,
 };
 
 pub mod fix;
@@ -15,7 +17,7 @@ pub mod mock;
 /// side effects are handled by the command-specific structs which implement
 /// this trait.
 pub trait Effects {
-  fn on(&mut self, event: Event, instances_by_id: &mut InstancesById);
+  fn on(&mut self, event: Event);
   fn on_instance(&mut self, event: InstanceEvent, instances_by_id: &mut InstancesById);
   fn get_packages(&mut self) -> Packages;
   fn set_packages(&mut self, packages: Packages);
@@ -34,11 +36,11 @@ pub enum Event<'a> {
   EnterFormat,
   /// Linting/fixing of formatting of a package.json file has completed and the
   /// package was already valid
-  FormatMatch(&'a FormatEvent<'a>),
+  PackageFormatMatch(String),
   /// Linting/fixing of formatting of a package.json file has completed and the
   /// package was initially invalid. In the case of fixing, they are now valid
   /// but were invalid beforehand
-  FormatMismatch(&'a FormatEvent<'a>),
+  PackageFormatMismatch(PackageFormatEvent),
   /// Linting/fixing has completed
   ExitCommand,
 }
@@ -109,18 +111,41 @@ pub struct InstanceEvent<'a> {
   pub variant: InstanceEventVariant,
 }
 
+#[derive(Clone, Debug, Eq, Hash, PartialEq)]
+pub enum FormatEventVariant {
+  /// ✓ `rcFile.formatBugs` is enabled
+  /// ✘ The `bugs` property is not formatted
+  BugsPropertyIsNotFormatted,
+  /// ✓ `rcFile.formatRepository` is enabled
+  /// ✘ The `repository` property is not formatted
+  RepositoryPropertyIsNotFormatted,
+  /// ✓ `rcFile.sortAz` is enabled
+  /// ✘ This property is not sorted alphabetically
+  PropertyIsNotSortedAz,
+  /// ✓ `rcFile.sortPackages` is enabled
+  /// ✘ This package.json's properties are not sorted
+  PackagePropertiesAreNotSorted,
+  /// ✓ `rcFile.sortExports` is enabled
+  /// ✘ The `exports` property is not sorted
+  ExportsPropertyIsNotSorted,
+}
+
 #[derive(Debug)]
-pub struct FormatEvent<'a> {
-  /// The package.json file being linted
-  pub package_json: &'a PackageJson,
-  /// Whether `rcfile.format_bugs` is enabled and matches
-  pub format_bugs_is_valid: Option<bool>,
-  /// Whether `rcfile.format_repository` is enabled and matches
-  pub format_repository_is_valid: Option<bool>,
-  /// Whether `rcfile.sort_az` is enabled and matches
-  pub sort_az_is_valid: Option<bool>,
-  /// Whether `rcfile.sort_first` is enabled and matches
-  pub sort_first_is_valid: Option<bool>,
-  /// Whether `rcfile.sort_exports` is enabled and matches
-  pub sort_exports_is_valid: Option<bool>,
+pub struct PackageFormatEvent {
+  /// The name of the package.json file with formatting issues
+  pub package_name: String,
+  /// Each formatting issue in this file
+  pub formatting_mismatches: Vec<FormatEvent>,
+}
+
+#[derive(Debug)]
+pub struct FormatEvent {
+  /// The formatted value
+  pub expected: Value,
+  /// The name of the package.json file being linted
+  pub package_name: String,
+  /// The path to the property that was linted
+  pub property_path: String,
+  /// The broken linting rule
+  pub variant: FormatEventVariant,
 }

@@ -67,7 +67,9 @@ impl PackageJson {
 
   /// Deeply set a property in the parsed package.json
   pub fn set_prop(&mut self, pointer: &str, next_value: serde_json::Value) {
-    if let Some(value) = self.contents.pointer_mut(pointer) {
+    if pointer == "/" {
+      self.contents = next_value;
+    } else if let Some(value) = self.contents.pointer_mut(pointer) {
       *value = next_value;
     }
   }

@@ -6,11 +6,7 @@ use regex::Regex;
 use serde_json::{self, json, Map, Value};
 use std::{cmp::Ordering, collections::HashSet};
 
-use crate::{
-  config::{Config, Rcfile},
-  package_json::PackageJson,
-  packages::Packages,
-};
+use crate::{config::Rcfile, package_json::PackageJson};
 
 /// Packages have been formatted in memory, but not written to disk. This struct
 /// describes what state each package was in prior to formatting.
@@ -21,75 +17,85 @@ pub struct InMemoryFormattingStatus<'a> {
   pub was_valid: Vec<&'a PackageJson>,
 }
 
-/// Fix the formatting of every package in-memory and report on their status
-pub fn fix<'a>(config: &'a Config, packages: &'a mut Packages) -> InMemoryFormattingStatus<'a> {
-  let mut status = InMemoryFormattingStatus {
-    was_invalid: Vec::new(),
-    was_valid: Vec::new(),
-  };
-  packages.by_name.values_mut().for_each(|package| {
-    // to lint, apply all configured formatting to the clone...
-    fix_package(&config.rcfile, package);
-    // ...and if it has changed we know it is invalid
-    if package.has_changed(&config.rcfile.indent) {
-      status.was_invalid.push(package);
-    } else {
-      status.was_valid.push(package);
-    }
-  });
-  status
+/// Use a shorthand format for the bugs URL when possible
+pub fn get_formatted_bugs(package: &PackageJson) -> Option<Value> {
+  package.get_prop("/bugs/url").cloned()
 }
 
-fn fix_package(rcfile: &Rcfile, package: &mut PackageJson) {
-  if rcfile.format_bugs {
-    format_bugs(package);
-  }
-  if rcfile.format_repository {
-    format_repository(package);
-  }
-  if !rcfile.sort_az.is_empty() {
-    sort_az(rcfile, package);
-  }
-  if !rcfile.sort_first.is_empty() {
-    sort_first(rcfile, package);
-  }
-  if !rcfile.sort_exports.is_empty() {
-    sort_exports(rcfile, package);
+/// Use a shorthand format for the repository URL when possible
+pub fn get_formatted_repository(package: &PackageJson) -> Option<Value> {
+  if package.get_prop("/repository/directory").is_none() {
+    package
+      .get_prop("/repository/url")
+      .and_then(|repository_url| repository_url.as_str())
+      .and_then(|url| {
+        Regex::new(r#".+github\.com/"#)
+          .ok()
+          .map(|re| re.replace(url, "").to_string())
+      })
+      .map(|next_url| json!(next_url))
+  } else {
+    None
   }
 }
 
-/// Sorts conditional exports and conditional exports subpaths
-fn sort_exports(rcfile: &Rcfile, package: &mut PackageJson) {
-  if let Some(exports) = package.get_prop_mut("/exports") {
-    visit_node(&rcfile.sort_exports, exports);
-  }
-
+/// Get sorted conditional exports and conditional exports subpaths
+pub fn get_sorted_exports(rcfile: &Rcfile, package: &PackageJson) -> Option<Value> {
   /// Recursively visit and sort nested objects of the exports object
-  fn visit_node(sort_exports: &Vec<String>, value: &mut Value) {
+  fn sort_nested_objects(sort_exports: &Vec<String>, value: &mut Value) {
     if let Value::Object(obj) = value {
-      sort_keys_with_priority(sort_exports, obj, false);
+      sort_keys_with_priority(sort_exports, false, obj);
       for next_value in obj.values_mut() {
-        visit_node(sort_exports, next_value);
+        sort_nested_objects(sort_exports, next_value);
       }
     }
   }
-}
-
-/// Sort the values of the given keys alphabetically
-fn sort_az(rcfile: &Rcfile, package: &mut PackageJson) {
-  rcfile.sort_az.iter().for_each(|key| {
-    package
-      .contents
-      .pointer_mut(format!("/{}", key).as_str())
-      .map(sort_alphabetically);
-  });
-}
-
-/// Sort package.json with the given keys first
-fn sort_first(rcfile: &Rcfile, package: &mut PackageJson) {
-  if let Value::Object(obj) = &mut package.contents {
-    sort_keys_with_priority(&rcfile.sort_first, obj, rcfile.sort_packages);
+  if let Some(exports) = package.get_prop("/exports") {
+    let mut sorted_exports = exports.clone();
+    sort_nested_objects(&rcfile.sort_exports, &mut sorted_exports);
+    if !is_identical(exports, &sorted_exports) {
+      return Some(sorted_exports);
+    }
   }
+  None
+}
+
+/// Get a sorted version of the given property from package.json
+pub fn get_sorted_az(key: &str, package: &PackageJson) -> Option<Value> {
+  if let Some(value) = package.get_prop(format!("/{}", key).as_str()) {
+    let mut sorted = value.clone();
+    sort_alphabetically(&mut sorted);
+    if !is_identical(value, &sorted) {
+      return Some(sorted);
+    }
+  }
+  None
+}
+
+/// Get a new package.json with its keys sorted to match the rcfile
+pub fn get_sorted_first(rcfile: &Rcfile, package: &PackageJson) -> Option<Value> {
+  if let Value::Object(value) = &package.contents {
+    let mut sorted = value.clone();
+    sort_keys_with_priority(&rcfile.sort_first, rcfile.sort_packages, &mut sorted);
+    if !has_same_key_order(value, &sorted) {
+      return Some(serde_json::Value::Object(sorted));
+    }
+  }
+  None
+}
+
+/// Do both of these objects have the same order keys?
+fn has_same_key_order(a: &Map<String, Value>, b: &Map<String, Value>) -> bool {
+  let a_keys = a.keys().collect::<Vec<_>>();
+  let b_keys = b.keys().collect::<Vec<_>>();
+  a_keys == b_keys
+}
+
+/// Are these two values identical including their order?
+#[allow(clippy::cmp_owned)]
+fn is_identical(a: &Value, b: &Value) -> bool {
+  // @TODO: serde_json with feature = "preserve_order" ignores order when compared
+  a.to_string() == b.to_string()
 }
 
 /// Sort the keys in a JSON object, with the given keys first
@@ -99,7 +105,7 @@ fn sort_first(rcfile: &Rcfile, package: &mut PackageJson) {
 /// * `order`: The keys to sort first, in order.
 /// * `obj`: The JSON object to sort.
 /// * `sort_remaining_keys`: Whether to sort the remaining keys alphabetically.
-fn sort_keys_with_priority(order: &[String], obj: &mut Map<String, Value>, sort_remaining_keys: bool) {
+fn sort_keys_with_priority(order: &[String], sort_remaining_keys: bool, obj: &mut Map<String, Value>) {
   let order_set: HashSet<_> = order.iter().collect();
   let mut sorted_obj: Map<String, Value> = Map::new();
   let mut remaining_keys: Vec<_> = obj.keys().filter(|k| !order_set.contains(*k)).cloned().collect();
@@ -109,7 +115,7 @@ fn sort_keys_with_priority(order: &[String], obj: &mut Map<String, Value>, sort_
     remaining_keys.sort_by(|a, b| collator.compare(a, b));
   }
 
-  for key in order.iter() {
+  for (i, key) in order.iter().enumerate() {
     if let Some(val) = obj.remove(key) {
       sorted_obj.insert(key.clone(), val);
     }
@@ -154,66 +160,270 @@ fn get_locale_collator() -> Collator {
   collator
 }
 
-/// Use a shorthand format for the bugs URL when possible
-fn format_bugs(package: &mut PackageJson) {
-  if let Some(bugs) = get_formatted_bugs(package) {
-    package.set_prop("/bugs", bugs);
-  }
-}
-
-fn get_formatted_bugs(package: &PackageJson) -> Option<Value> {
-  package.get_prop("/bugs/url").cloned()
-}
-
-fn format_bugs_is_valid(package: &PackageJson) -> bool {
-  get_formatted_bugs(package).is_none()
-}
-
-/// Use a shorthand format for the repository URL when possible
-fn format_repository(package: &mut PackageJson) {
-  if let Some(bugs) = get_formatted_repository(package) {
-    package.set_prop("/repository", bugs);
-  }
-}
-
-fn get_formatted_repository(package: &PackageJson) -> Option<Value> {
-  if package.get_prop("/repository/directory").is_none() {
-    package
-      .get_prop("/repository/url")
-      .and_then(|repository_url| repository_url.as_str())
-      .and_then(|url| {
-        Regex::new(r#".+github\.com/"#)
-          .ok()
-          .map(|re| re.replace(url, "").to_string())
-      })
-      .map(|next_url| json!(next_url))
-  } else {
-    None
-  }
-}
-
-fn format_repository_is_valid(package: &PackageJson) -> bool {
-  get_formatted_repository(package).is_none()
-}
-
 #[cfg(test)]
 mod tests {
   use super::*;
   use serde_json::json;
 
   #[test]
-  fn format_repository() {
-    let packages = Packages::from_mocks(vec![json!({
-      "name": "a",
-      "bugs": {
-        "url": "https://github.com/User/repo/issues"
-      }
-    })]);
-    let package = packages.by_name.get("a").unwrap();
-
+  fn formats_bugs_into_github_shorthand() {
     assert_eq!(
-      get_formatted_bugs(package),
+      get_formatted_bugs(&PackageJson::from_value(json!({
+        "name": "a",
+        "bugs": {
+          "url": "https://github.com/User/repo/issues"
+        }
+      }))),
       Some(json!("https://github.com/User/repo/issues"))
+    );
+  }
+
+  #[test]
+  fn formats_repository_into_gitlab_shorthand() {
+    assert_eq!(
+      get_formatted_repository(&PackageJson::from_value(json!({
+        "name": "a",
+        "repository": {
+          "url": "git://gitlab.com/User/repo",
+          "type": "git",
+        },
+      }))),
+      Some(json!("git://gitlab.com/User/repo"))
+    );
+  }
+
+  #[test]
+  fn formats_repository_into_github_shorthand() {
+    assert_eq!(
+      get_formatted_repository(&PackageJson::from_value(json!({
+        "name": "a",
+        "repository": {
+          "url": "git://github.com/User/repo",
+          "type": "git",
+        },
+      }))),
+      Some(json!("User/repo"))
+    );
+  }
+
+  #[test]
+  fn retains_long_format_when_directory_property_used() {
+    assert_eq!(
+      get_formatted_repository(&PackageJson::from_value(json!({
+        "name": "a",
+        "repository": {
+          "url": "git://gitlab.com/User/repo",
+          "type": "git",
+          "directory": "packages/foo",
+        },
+      }))),
+      None
+    );
+  }
+
+  #[test]
+  fn sorts_conditional_exports() {
+    assert_eq!(
+      get_sorted_exports(
+        &Rcfile::new(),
+        &PackageJson::from_value(json!({
+          "name": "a",
+          "exports": {
+              "require": "./index-require.cjs",
+              "import": "./index-module.js",
+          },
+        }))
+      ),
+      Some(json!({
+        "import": "./index-module.js",
+        "require": "./index-require.cjs",
+      })),
+    )
+  }
+
+  #[test]
+  fn returns_none_when_conditional_exports_already_sorted() {
+    assert_eq!(
+      get_sorted_exports(
+        &Rcfile::new(),
+        &PackageJson::from_value(json!({
+          "name": "a",
+          "exports": {
+              "import": "./index-module.js",
+              "require": "./index-require.cjs",
+          },
+        }))
+      ),
+      None
+    )
+  }
+
+  #[test]
+  fn sorts_conditional_exports_sub_paths() {
+    assert_eq!(
+      get_sorted_exports(
+        &Rcfile::new(),
+        &PackageJson::from_value(json!({
+          "name": "a",
+          "exports": {
+            ".": "./index.js",
+            "./feature.js": {
+              "default": "./feature.js",
+              "node": "./feature-node.js",
+            },
+          },
+        }))
+      ),
+      Some(json!({
+        ".": "./index.js",
+        "./feature.js": {
+          "node": "./feature-node.js",
+          "default": "./feature.js",
+        },
+      })),
+    )
+  }
+
+  #[test]
+  fn returns_none_when_conditional_exports_sub_paths_already_sorted() {
+    assert_eq!(
+      get_sorted_exports(
+        &Rcfile::new(),
+        &PackageJson::from_value(json!({
+          "name": "a",
+          "exports": {
+              ".": "./index.js",
+              "./feature.js": {
+                "node": "./feature-node.js",
+                "default": "./feature.js",
+              },
+          },
+        }))
+      ),
+      None
+    )
+  }
+
+  #[test]
+  fn sorts_object_properties_alphabetically_by_key() {
+    assert_eq!(
+      get_sorted_az(
+        "dependencies",
+        &PackageJson::from_value(json!({
+            "dependencies": {
+                "B": "",
+                "@B": "",
+                "1B": "",
+                "A": "",
+                "@A": "",
+                "1A": "",
+            },
+        }))
+      ),
+      Some(json!({
+          "@A": "",
+          "@B": "",
+          "1A": "",
+          "1B": "",
+          "A": "",
+          "B": "",
+      }))
+    );
+  }
+  #[test]
+  fn sorts_array_members_alphabetically_by_value() {
+    assert_eq!(
+      get_sorted_az(
+        "keywords",
+        &PackageJson::from_value(json!({
+            "keywords": ["B", "@B", "1B", "A", "@A", "1A"],
+        }))
+      ),
+      Some(json!(["@A", "@B", "1A", "1B", "A", "B"]))
+    );
+  }
+
+  #[test]
+  fn sorts_named_root_properties_first_leaving_the_rest_alone() {
+    assert_eq!(
+      get_sorted_first(
+        &Rcfile::from_mock(json!({
+            "sortFirst": ["name", "F", "E", "D"],
+            "sortPackages": false,
+        })),
+        &PackageJson::from_value(json!({
+            "D": "",
+            "B": "",
+            "name": "a",
+            "F": "",
+            "A": "",
+            "E": "",
+        }))
+      ),
+      Some(json!({
+          "name": "a",
+          "F": "",
+          "E": "",
+          "D": "",
+          "B": "",
+          "A": "",
+      }))
+    );
+  }
+
+  #[test]
+  fn sorts_all_root_properties_alphabetically() {
+    assert_eq!(
+      get_sorted_first(
+        &Rcfile::from_mock(json!({
+            "sortFirst": [],
+            "sortPackages": true,
+        })),
+        &PackageJson::from_value(json!({
+            "D": "",
+            "B": "",
+            "name": "a",
+            "F": "",
+            "A": "",
+            "E": "",
+        }))
+      ),
+      Some(json!({
+          "A": "",
+          "B": "",
+          "D": "",
+          "E": "",
+          "F": "",
+          "name": "a",
+      }))
+    );
+  }
+
+  #[test]
+  fn sorts_named_properties_first_then_the_rest_alphabetically() {
+    assert_eq!(
+      get_sorted_first(
+        &Rcfile::from_mock(json!({
+            "sortFirst": ["name", "F", "E", "D"],
+            "sortPackages": true,
+        })),
+        &PackageJson::from_value(json!({
+            "name": "a",
+            "A": "",
+            "F": "",
+            "B": "",
+            "D": "",
+            "E": "",
+        }))
+      ),
+      Some(json!({
+          "name": "a",
+          "F": "",
+          "E": "",
+          "D": "",
+          "A": "",
+          "B": "",
+      }))
     );
   }
 }

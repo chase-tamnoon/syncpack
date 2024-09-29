@@ -22,6 +22,8 @@ pub struct EventsByType {
   pub dependency_warning: Vec<()>,
   pub format_match: Vec<()>,
   pub format_mismatch: Vec<()>,
+  pub package_format_match: Vec<()>,
+  pub package_format_mismatch: Vec<()>,
   pub exit_command: Vec<()>,
 }
 
@@ -37,6 +39,8 @@ impl EventsByType {
       dependency_warning: vec![],
       format_match: vec![],
       format_mismatch: vec![],
+      package_format_match: vec![],
+      package_format_mismatch: vec![],
       exit_command: vec![],
     }
   }
@@ -80,7 +84,7 @@ impl Effects for MockEffects<'_> {
     self.packages = Some(packages);
   }
 
-  fn on(&mut self, event: Event, instances_by_id: &mut InstancesById) {
+  fn on(&mut self, event: Event) {
     match &event {
       Event::EnterVersionsAndRanges => self.events.enter_versions_and_ranges.push(()),
       Event::EnterFormat => self.events.enter_format.push(()),
@@ -88,8 +92,8 @@ impl Effects for MockEffects<'_> {
       Event::DependencyValid(_, _) => self.events.dependency_valid.push(()),
       Event::DependencyInvalid(_, _) => self.events.dependency_invalid.push(()),
       Event::DependencyWarning(_, _) => self.events.dependency_warning.push(()),
-      Event::FormatMatch(_) => self.events.format_match.push(()),
-      Event::FormatMismatch(_) => self.events.format_mismatch.push(()),
+      Event::PackageFormatMatch(_) => self.events.package_format_match.push(()),
+      Event::PackageFormatMismatch(_) => self.events.package_format_mismatch.push(()),
       Event::ExitCommand => self.events.exit_command.push(()),
     };
   }

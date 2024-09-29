@@ -4,7 +4,8 @@ use std::{cmp::Ordering, collections::HashMap};
 use crate::{
   config::Config,
   context::Context,
-  effects::{Effects, Event, InstanceEvent, InstanceEventVariant},
+  effects::{Effects, Event, FormatEvent, FormatEventVariant, InstanceEvent, InstanceEventVariant, PackageFormatEvent},
+  format,
   packages::Packages,
   specifier::Specifier,
   version_group::Variant,
@@ -40,7 +41,7 @@ pub fn visit_packages(config: &Config, packages: Packages, effects: &mut impl Ef
   effects.set_packages(packages);
 
   if config.cli.options.versions {
-    effects.on(Event::EnterVersionsAndRanges, &mut instances_by_id);
+    effects.on(Event::EnterVersionsAndRanges);
 
     version_groups
       .iter()
@@ -56,7 +57,7 @@ pub fn visit_packages(config: &Config, packages: Packages, effects: &mut impl Ef
         }
       })
       .for_each(|group| {
-        effects.on(Event::GroupVisited(&group.selector), &mut instances_by_id);
+        effects.on(Event::GroupVisited(&group.selector));
 
         group.dependencies.values().for_each(|dependency| {
           let mut expected: Option<Specifier> = None;
@@ -387,11 +388,11 @@ pub fn visit_packages(config: &Config, packages: Packages, effects: &mut impl Ef
           };
 
           if severity == VALID {
-            effects.on(Event::DependencyValid(dependency, expected), &mut instances_by_id);
+            effects.on(Event::DependencyValid(dependency, expected));
           } else if severity == WARNING {
-            effects.on(Event::DependencyWarning(dependency, expected), &mut instances_by_id);
+            effects.on(Event::DependencyWarning(dependency, expected));
           } else {
-            effects.on(Event::DependencyInvalid(dependency, expected), &mut instances_by_id);
+            effects.on(Event::DependencyInvalid(dependency, expected));
           }
 
           // Sort instances by actual specifier and then package name
@@ -423,7 +424,89 @@ pub fn visit_packages(config: &Config, packages: Packages, effects: &mut impl Ef
       });
   }
 
-  // @TODO
+  if config.cli.options.format {
+    effects.on(Event::EnterFormat);
+
+    // take the packages back so we can loop over them
+    let packages = effects.get_packages();
+    // queue up the events because we can't mutate the packages while we're
+    // iterating over them
+    let mut queue: Vec<Event> = Vec::new();
+
+    // check each formatting rule
+    packages.by_name.values().for_each(|package| {
+      let mut formatting_mismatches: Vec<FormatEvent> = Vec::new();
+      if config.rcfile.format_bugs {
+        if let Some(expected) = format::get_formatted_bugs(package) {
+          formatting_mismatches.push(FormatEvent {
+            expected,
+            package_name: package.get_name(),
+            property_path: "/bugs".to_string(),
+            variant: FormatEventVariant::BugsPropertyIsNotFormatted,
+          });
+        }
+      }
+      if config.rcfile.format_repository {
+        if let Some(expected) = format::get_formatted_repository(package) {
+          formatting_mismatches.push(FormatEvent {
+            expected,
+            package_name: package.get_name(),
+            property_path: "/repository".to_string(),
+            variant: FormatEventVariant::RepositoryPropertyIsNotFormatted,
+          });
+        }
+      }
+      if !config.rcfile.sort_exports.is_empty() {
+        if let Some(expected) = format::get_sorted_exports(&config.rcfile, package) {
+          formatting_mismatches.push(FormatEvent {
+            expected,
+            package_name: package.get_name(),
+            property_path: "/exports".to_string(),
+            variant: FormatEventVariant::ExportsPropertyIsNotSorted,
+          });
+        }
+      }
+      if !config.rcfile.sort_az.is_empty() {
+        for key in config.rcfile.sort_az.iter() {
+          if let Some(expected) = format::get_sorted_az(key, package) {
+            formatting_mismatches.push(FormatEvent {
+              expected,
+              package_name: package.get_name(),
+              property_path: format!("/{}", key),
+              variant: FormatEventVariant::PropertyIsNotSortedAz,
+            });
+          }
+        }
+      }
+      if config.rcfile.sort_packages || !config.rcfile.sort_first.is_empty() {
+        if let Some(expected) = format::get_sorted_first(&config.rcfile, package) {
+          formatting_mismatches.push(FormatEvent {
+            expected,
+            package_name: package.get_name(),
+            property_path: "/".to_string(),
+            variant: FormatEventVariant::PackagePropertiesAreNotSorted,
+          });
+        }
+      }
+      queue.push(if formatting_mismatches.is_empty() {
+        Event::PackageFormatMatch(package.get_name())
+      } else {
+        Event::PackageFormatMismatch(PackageFormatEvent {
+          package_name: package.get_name(),
+          formatting_mismatches,
+        })
+      });
+    });
+
+    // give the packages back so effects can update them
+    effects.set_packages(packages);
+
+    // let the effects handle the events
+    queue.into_iter().for_each(|event| {
+      effects.on(event);
+    });
+  }
+
   // if config.cli.options.format {
   //   effects.on(Event::EnterFormat, &mut instances_by_id);
 
@@ -438,7 +521,7 @@ pub fn visit_packages(config: &Config, packages: Packages, effects: &mut impl Ef
   //   }
   // }
 
-  effects.on(Event::ExitCommand, &mut instances_by_id);
+  effects.on(Event::ExitCommand);
 }
 
 #[cfg(test)]
