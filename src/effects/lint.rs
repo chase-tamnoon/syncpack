@@ -3,7 +3,6 @@ use log::info;
 
 use crate::{
   config::Config,
-  context::InstancesById,
   dependency::Dependency,
   effects::{Effects, Event, InstanceEvent, InstanceEventVariant},
   packages::Packages,
@@ -52,19 +51,19 @@ impl Effects for LintEffects<'_> {
         info!("{}", full_header.blue());
       }
       Event::DependencyValid(dependency, expected) => {
-        let count = render_count_column(dependency.all.len());
+        let count = render_count_column(dependency.all.borrow().len());
         let name = &dependency.name;
         let hint = get_expected_hint(dependency, expected);
         info!("{count} {name} {hint}");
       }
       Event::DependencyInvalid(dependency, expected) => {
-        let count = render_count_column(dependency.all.len());
+        let count = render_count_column(dependency.all.borrow().len());
         let name = &dependency.name;
         let hint = get_expected_hint(dependency, expected);
         info!("{count} {name} {hint}");
       }
       Event::DependencyWarning(dependency, expected) => {
-        let count = render_count_column(dependency.all.len());
+        let count = render_count_column(dependency.all.borrow().len());
         let name = &dependency.name;
         let hint = "has name or specifiers unsupported by syncpack".dimmed();
         info!("{count} {name} {hint}");
@@ -116,8 +115,8 @@ impl Effects for LintEffects<'_> {
     }
   }
 
-  fn on_instance(&mut self, event: InstanceEvent, instances_by_id: &mut InstancesById) {
-    let instance_id = &event.instance_id;
+  fn on_instance(&mut self, event: InstanceEvent) {
+    let instance = &event.instance;
     let dependency = &event.dependency;
     match &event.variant {
       /* Ignored */
@@ -130,7 +129,6 @@ impl Effects for LintEffects<'_> {
       | InstanceEventVariant::InstanceMatchesPinned
       | InstanceEventVariant::InstanceMatchesSameRangeGroup => {
         // return /*SKIP*/;
-        let instance = instances_by_id.get(instance_id).unwrap();
         let icon = icon_valid();
         let actual = instance.actual.unwrap().green();
         let location_hint = instance.location_hint.dimmed();
@@ -138,20 +136,16 @@ impl Effects for LintEffects<'_> {
       }
       /* Warnings */
       InstanceEventVariant::LocalInstanceMistakenlyBanned => {
-        let instance = instances_by_id.get(instance_id).unwrap();
         info!("  LocalInstanceMistakenlyBanned");
       }
       InstanceEventVariant::LocalInstanceMistakenlyMismatchesSemverGroup => {
-        let instance = instances_by_id.get(instance_id).unwrap();
         info!("  LocalInstanceMistakenlyMismatchesSemverGroup");
       }
       InstanceEventVariant::LocalInstanceMistakenlyMismatchesPinned => {
-        let instance = instances_by_id.get(instance_id).unwrap();
         info!("  LocalInstanceMistakenlyMismatchesPinned");
       }
       InstanceEventVariant::InstanceMatchesHighestOrLowestSemverButMismatchesConflictingSemverGroup => {
         // return /*SKIP*/;
-        let instance = instances_by_id.get(instance_id).unwrap();
         let icon = icon_fixable();
         let actual = instance.actual.unwrap().red();
         let high_low = high_low_hint(&dependency.variant);
@@ -168,7 +162,6 @@ impl Effects for LintEffects<'_> {
       /* Fixable Mismatches */
       InstanceEventVariant::InstanceIsBanned => {
         // return /*SKIP*/;
-        let instance = instances_by_id.get(instance_id).unwrap();
         let icon = icon_fixable();
         let hint = "banned".red();
         let location_hint = instance.location_hint.dimmed();
@@ -177,7 +170,6 @@ impl Effects for LintEffects<'_> {
       }
       InstanceEventVariant::InstanceIsHighestOrLowestSemverOnceSemverGroupIsFixed => {
         // return /*SKIP*/;
-        let instance = instances_by_id.get(instance_id).unwrap();
         let icon = icon_fixable();
         let actual = instance.actual.unwrap().red();
         let arrow = icon_arrow();
@@ -189,16 +181,13 @@ impl Effects for LintEffects<'_> {
         self.is_valid = false;
       }
       InstanceEventVariant::InstanceMatchesLocalButMismatchesSemverGroup => {
-        let instance = instances_by_id.get(instance_id).unwrap();
         info!("  InstanceMatchesLocalButMismatchesSemverGroup");
       }
       InstanceEventVariant::InstanceMismatchesLocal => {
-        let instance = instances_by_id.get(instance_id).unwrap();
         info!("  InstanceMismatchesLocal");
       }
       InstanceEventVariant::InstanceMismatchesHighestOrLowestSemver => {
         // return /*SKIP*/;
-        let instance = instances_by_id.get(instance_id).unwrap();
         let icon = icon_fixable();
         let actual = instance.actual.unwrap().red();
         let location_hint = instance.location_hint.dimmed();
@@ -207,7 +196,6 @@ impl Effects for LintEffects<'_> {
       }
       InstanceEventVariant::InstanceMismatchesPinned => {
         // return /*SKIP*/;
-        let instance = instances_by_id.get(instance_id).unwrap();
         let icon = icon_fixable();
         let actual = instance.actual.unwrap().red();
         let location_hint = instance.location_hint.dimmed();
@@ -216,12 +204,10 @@ impl Effects for LintEffects<'_> {
       }
       /* Unfixable Mismatches */
       InstanceEventVariant::InstanceMismatchesLocalWithMissingVersion => {
-        let instance = instances_by_id.get(instance_id).unwrap();
         info!("  InstanceMismatchesLocalWithMissingVersion");
       }
       InstanceEventVariant::InstanceMismatchesAndIsUnsupported => {
         // return /*SKIP*/;
-        let instance = instances_by_id.get(instance_id).unwrap();
         let icon = icon_unfixable();
         let actual = instance.actual.unwrap().red();
         let location_hint = instance.location_hint.dimmed();
@@ -229,27 +215,21 @@ impl Effects for LintEffects<'_> {
         self.is_valid = false;
       }
       InstanceEventVariant::InstanceMatchesPinnedButMismatchesSemverGroup => {
-        let instance = instances_by_id.get(instance_id).unwrap();
         info!("  InstanceMatchesPinnedButMismatchesSemverGroup");
       }
       InstanceEventVariant::InstanceMismatchesBothSameRangeAndConflictingSemverGroups => {
-        let instance = instances_by_id.get(instance_id).unwrap();
         info!("  InstanceMismatchesBothSameRangeAndConflictingSemverGroups");
       }
       InstanceEventVariant::InstanceMismatchesBothSameRangeAndCompatibleSemverGroups => {
-        let instance = instances_by_id.get(instance_id).unwrap();
         info!("  InstanceMismatchesBothSameRangeAndCompatibleSemverGroups");
       }
       InstanceEventVariant::InstanceMatchesSameRangeGroupButMismatchesConflictingSemverGroup => {
-        let instance = instances_by_id.get(instance_id).unwrap();
         info!("  InstanceMatchesSameRangeGroupButMismatchesConflictingSemverGroup");
       }
       InstanceEventVariant::InstanceMatchesSameRangeGroupButMismatchesCompatibleSemverGroup => {
-        let instance = instances_by_id.get(instance_id).unwrap();
         info!("  InstanceMatchesSameRangeGroupButMismatchesCompatibleSemverGroup");
       }
       InstanceEventVariant::InstanceMismatchesSameRangeGroup => {
-        let instance = instances_by_id.get(instance_id).unwrap();
         info!("  InstanceMismatchesSameRangeGroup");
       }
     }

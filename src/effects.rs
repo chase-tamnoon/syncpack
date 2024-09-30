@@ -1,9 +1,8 @@
+use std::rc::Rc;
+
 use serde_json::Value;
 
-use crate::{
-  context::InstancesById, dependency::Dependency, group_selector::GroupSelector, instance::InstanceId,
-  specifier::Specifier,
-};
+use crate::{dependency::Dependency, group_selector::GroupSelector, instance::Instance, specifier::Specifier};
 
 pub mod fix;
 pub mod lint;
@@ -17,7 +16,7 @@ pub mod lint;
 /// this trait.
 pub trait Effects {
   fn on(&mut self, event: Event);
-  fn on_instance(&mut self, event: InstanceEvent, instances_by_id: &mut InstancesById);
+  fn on_instance(&mut self, event: InstanceEvent);
 }
 
 #[derive(Debug)]
@@ -104,7 +103,7 @@ pub enum InstanceEventVariant {
 #[derive(Debug)]
 pub struct InstanceEvent<'a> {
   pub dependency: &'a Dependency,
-  pub instance_id: InstanceId,
+  pub instance: Rc<Instance>,
   pub variant: InstanceEventVariant,
 }
 

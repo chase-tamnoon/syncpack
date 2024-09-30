@@ -2,7 +2,6 @@ use std::collections::HashMap;
 
 use crate::{
   config::Config,
-  context::InstancesById,
   effects::{Effects, Event, InstanceEvent, InstanceEventVariant},
   packages::Packages,
   test::expect::{ActualMatchEvent, ActualMismatchEvent},
@@ -68,10 +67,9 @@ impl Effects for MockEffects<'_> {
     };
   }
 
-  fn on_instance(&mut self, event: InstanceEvent, instances_by_id: &mut InstancesById) {
-    let instance_id = &event.instance_id;
+  fn on_instance(&mut self, event: InstanceEvent) {
+    let instance = &event.instance;
     let dependency = &event.dependency;
-    let instance = instances_by_id.get(instance_id).unwrap();
 
     let mut record_match_event = || {
       self

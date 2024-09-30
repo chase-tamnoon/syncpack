@@ -1,5 +1,5 @@
 use serde::Deserialize;
-use std::{collections::BTreeMap, vec};
+use std::{cell::RefCell, collections::BTreeMap, rc::Rc, vec};
 
 use crate::{dependency::Dependency, group_selector::GroupSelector, instance::Instance, specifier::Specifier};
 
@@ -22,7 +22,7 @@ pub struct VersionGroup {
   /// Data to determine which instances should be added to this group
   pub selector: GroupSelector,
   /// Group instances of each dependency together for comparison.
-  pub dependencies: BTreeMap<String, Dependency>,
+  pub dependencies: RefCell<BTreeMap<String, Dependency>>,
   /// The version to pin all instances to when variant is `Pinned`
   pub pin_version: Option<Specifier>,
   /// `name` properties of package.json files developed in the monorepo when variant is `SnappedTo`
@@ -41,22 +41,24 @@ impl VersionGroup {
         /*include_packages:*/ vec![],
         /*include_specifier_types:*/ vec![],
       ),
-      dependencies: BTreeMap::new(),
+      dependencies: RefCell::new(BTreeMap::new()),
       pin_version: None,
       snap_to: None,
     }
   }
 
-  /// Lazily create a dependency if it doesn't already exist
-  pub fn get_or_create_dependency(&mut self, instance: &Instance) -> &mut Dependency {
-    self.dependencies.entry(instance.name.clone()).or_insert_with(|| {
+  pub fn add_instance(&self, instance: Rc<Instance>) {
+    let mut dependencies = self.dependencies.borrow_mut();
+    let dependency = dependencies.entry(instance.name.clone()).or_insert_with(|| {
       Dependency::new(
         /*name:*/ instance.name.clone(),
         /*variant:*/ self.variant.clone(),
         /*pin_version:*/ self.pin_version.clone(),
         /*snap_to:*/ self.snap_to.clone(),
       )
-    })
+    });
+    dependency.add_instance(Rc::clone(&instance));
+    std::mem::drop(dependencies);
   }
 
   /// Create a single version group from a config item from the rcfile.
@@ -74,7 +76,7 @@ impl VersionGroup {
       return VersionGroup {
         variant: Variant::Banned,
         selector,
-        dependencies: BTreeMap::new(),
+        dependencies: RefCell::new(BTreeMap::new()),
         pin_version: None,
         snap_to: None,
       };
@@ -83,7 +85,7 @@ impl VersionGroup {
       return VersionGroup {
         variant: Variant::Ignored,
         selector,
-        dependencies: BTreeMap::new(),
+        dependencies: RefCell::new(BTreeMap::new()),
         pin_version: None,
         snap_to: None,
       };
@@ -92,7 +94,7 @@ impl VersionGroup {
       return VersionGroup {
         variant: Variant::Pinned,
         selector,
-        dependencies: BTreeMap::new(),
+        dependencies: RefCell::new(BTreeMap::new()),
         pin_version: Some(Specifier::new(pin_version)),
         snap_to: None,
       };
@@ -102,7 +104,7 @@ impl VersionGroup {
         return VersionGroup {
           variant: Variant::SameRange,
           selector,
-          dependencies: BTreeMap::new(),
+          dependencies: RefCell::new(BTreeMap::new()),
           pin_version: None,
           snap_to: None,
         };
@@ -114,7 +116,7 @@ impl VersionGroup {
       return VersionGroup {
         variant: Variant::SnappedTo,
         selector,
-        dependencies: BTreeMap::new(),
+        dependencies: RefCell::new(BTreeMap::new()),
         pin_version: None,
         snap_to: Some(snap_to.clone()),
       };
@@ -127,7 +129,7 @@ impl VersionGroup {
           Variant::HighestSemver
         },
         selector,
-        dependencies: BTreeMap::new(),
+        dependencies: RefCell::new(BTreeMap::new()),
         pin_version: None,
         snap_to: None,
       };
@@ -135,7 +137,7 @@ impl VersionGroup {
     VersionGroup {
       variant: Variant::HighestSemver,
       selector,
-      dependencies: BTreeMap::new(),
+      dependencies: RefCell::new(BTreeMap::new()),
       pin_version: None,
       snap_to: None,
     }

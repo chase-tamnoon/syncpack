@@ -23,7 +23,7 @@ impl ActualMatchEvent {
   pub fn new(event: &InstanceEvent, instance: &Instance) -> Self {
     Self {
       dependency_name: event.dependency.name.clone(),
-      instance_id: event.instance_id.clone(),
+      instance_id: event.instance.id.clone(),
       actual: instance.actual.unwrap().clone(),
     }
   }
@@ -50,7 +50,7 @@ impl ActualMismatchEvent {
   pub fn new(event: &InstanceEvent, instance: &Instance) -> Self {
     Self {
       dependency_name: event.dependency.name.clone(),
-      instance_id: event.instance_id.clone(),
+      instance_id: event.instance.id.clone(),
       actual: instance.actual.unwrap().clone(),
       expected: instance.expected.borrow().unwrap().clone(),
     }

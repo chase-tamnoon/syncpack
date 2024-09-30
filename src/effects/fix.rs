@@ -3,7 +3,6 @@ use log::info;
 
 use crate::{
   config::Config,
-  context::InstancesById,
   effects::{
     lint::{icon_fixable, icon_valid},
     Effects, Event, InstanceEvent, InstanceEventVariant,
@@ -98,8 +97,8 @@ impl Effects for FixEffects<'_> {
     }
   }
 
-  fn on_instance(&mut self, event: InstanceEvent, instances_by_id: &mut InstancesById) {
-    let instance_id = &event.instance_id;
+  fn on_instance(&mut self, event: InstanceEvent) {
+    let instance = &event.instance;
     let dependency = &event.dependency;
     match &event.variant {
       /* Ignored */
@@ -131,7 +130,6 @@ impl Effects for FixEffects<'_> {
       | InstanceEventVariant::InstanceMismatchesLocal
       | InstanceEventVariant::InstanceMismatchesHighestOrLowestSemver
       | InstanceEventVariant::InstanceMismatchesPinned => {
-        let instance = instances_by_id.get(instance_id).unwrap();
         let package = self.packages.by_name.get(&instance.package_name).unwrap();
         instance.set_specifier(package, &instance.expected.borrow().clone());
       }

@@ -1,4 +1,4 @@
-use std::collections::BTreeMap;
+use std::{collections::BTreeMap, rc::Rc};
 
 use crate::{
   config::Config,
@@ -9,7 +9,7 @@ use crate::{
 };
 
 /// The location which owns all instances
-pub type InstancesById = BTreeMap<InstanceId, Instance>;
+pub type InstancesById = BTreeMap<InstanceId, Rc<Instance>>;
 
 pub struct Context {
   pub instances_by_id: InstancesById,
@@ -20,22 +20,19 @@ pub struct Context {
 impl Context {
   pub fn create(config: &Config, packages: &Packages) -> Self {
     let semver_groups = config.rcfile.get_semver_groups();
-    let mut version_groups = config.rcfile.get_version_groups(&packages.all_names);
+    let version_groups = config.rcfile.get_version_groups(&packages.all_names);
     let mut instances_by_id: InstancesById = BTreeMap::new();
 
     packages.get_all_instances(config, |instance| {
-      if let Some(vgroup) = version_groups
-        .iter_mut()
-        .find(|vgroup| vgroup.selector.can_add(&instance))
-      {
+      // first move the instance to the lookup
+      let instance = Rc::new(instance);
+      instances_by_id.insert(instance.id.clone(), Rc::clone(&instance));
+
+      if let Some(vgroup) = version_groups.iter().find(|vgroup| vgroup.selector.can_add(&instance)) {
         if let Some(sgroup) = semver_groups.iter().find(|sgroup| sgroup.selector.can_add(&instance)) {
           instance.apply_semver_group(sgroup);
         }
-        let dependency = vgroup.get_or_create_dependency(&instance);
-        // let the dependency briefly own the instance
-        let instance = dependency.add_instance(instance);
-        // finally move the instance to the lookup
-        instances_by_id.insert(instance.id.clone(), instance);
+        vgroup.add_instance(instance);
       }
     });
 

@@ -3,7 +3,7 @@
 mod visit_packages_test;
 
 use itertools::Itertools;
-use std::{cmp::Ordering, collections::HashMap};
+use std::{cmp::Ordering, collections::HashMap, rc::Rc};
 
 use crate::{
   config::Config,
@@ -21,7 +21,7 @@ pub fn visit_packages(config: &Config, packages: &Packages, effects: &mut impl E
   const INVALID: u8 = 2;
 
   let Context {
-    mut instances_by_id,
+    instances_by_id,
     semver_groups,
     version_groups,
   } = Context::create(config, packages);
@@ -59,7 +59,7 @@ pub fn visit_packages(config: &Config, packages: &Packages, effects: &mut impl E
       .for_each(|group| {
         effects.on(Event::GroupVisited(&group.selector));
 
-        group.dependencies.values().for_each(|dependency| {
+        group.dependencies.borrow().values().for_each(|dependency| {
           let mut expected: Option<Specifier> = None;
           let mut queue: Vec<InstanceEvent> = vec![];
           let mut severity = VALID;
@@ -71,13 +71,12 @@ pub fn visit_packages(config: &Config, packages: &Packages, effects: &mut impl E
 
           match dependency.variant {
             Variant::Banned => {
-              dependency.all.iter().for_each(|instance_id| {
-                let instance = instances_by_id.get_mut(instance_id).unwrap();
+              dependency.all.borrow().iter().for_each(|instance| {
                 if instance.is_local {
                   mark_as(WARNING);
                   queue.push(InstanceEvent {
                     dependency,
-                    instance_id: instance_id.clone(),
+                    instance: Rc::clone(instance),
                     variant: InstanceEventVariant::LocalInstanceMistakenlyBanned,
                   });
                 } else {
@@ -85,7 +84,7 @@ pub fn visit_packages(config: &Config, packages: &Packages, effects: &mut impl E
                   *instance.expected.borrow_mut() = Specifier::None;
                   queue.push(InstanceEvent {
                     dependency,
-                    instance_id: instance_id.clone(),
+                    instance: Rc::clone(instance),
                     variant: InstanceEventVariant::InstanceIsBanned,
                   });
                 }
@@ -98,8 +97,7 @@ pub fn visit_packages(config: &Config, packages: &Packages, effects: &mut impl E
 
               match local_specifiers_by_name.get(&dependency.name) {
                 Some(local_specifier) => {
-                  dependency.all.iter().for_each(|instance_id| {
-                    let instance = instances_by_id.get_mut(instance_id).unwrap();
+                  dependency.all.borrow().iter().for_each(|instance| {
                     if instance.is_local {
                       if instance.has_range_mismatch(local_specifier) {
                         mark_as(WARNING);
@@ -107,14 +105,14 @@ pub fn visit_packages(config: &Config, packages: &Packages, effects: &mut impl E
                        *instance.expected.borrow_mut() = local_specifier.clone();
                         queue.push(InstanceEvent {
                           dependency,
-                          instance_id: instance_id.clone(),
+                          instance: Rc::clone(instance),
                           variant: InstanceEventVariant::LocalInstanceMistakenlyMismatchesSemverGroup,
                         });
                       } else {
                         expected = Some(local_specifier.clone());
                         queue.push(InstanceEvent {
                           dependency,
-                          instance_id: instance_id.clone(),
+                          instance: Rc::clone(instance),
                           variant: InstanceEventVariant::LocalInstanceIsPreferred,
                         });
                       }
@@ -123,7 +121,7 @@ pub fn visit_packages(config: &Config, packages: &Packages, effects: &mut impl E
                      *instance.expected.borrow_mut() = Specifier::None;
                       queue.push(InstanceEvent {
                         dependency,
-                        instance_id: instance_id.clone(),
+                        instance: Rc::clone(instance),
                         variant: InstanceEventVariant::InstanceMismatchesLocalWithMissingVersion,
                       });
                     } else if instance.actual == *local_specifier {
@@ -133,14 +131,14 @@ pub fn visit_packages(config: &Config, packages: &Packages, effects: &mut impl E
                         expected = Some(local_specifier.clone());
                         queue.push(InstanceEvent {
                           dependency,
-                          instance_id: instance_id.clone(),
+                          instance: Rc::clone(instance),
                           variant: InstanceEventVariant::InstanceMatchesLocalButMismatchesSemverGroup,
                         });
                       } else {
                         expected = Some(local_specifier.clone());
                         queue.push(InstanceEvent {
                           dependency,
-                          instance_id: instance_id.clone(),
+                          instance: Rc::clone(instance),
                           variant: InstanceEventVariant::InstanceMatchesLocal,
                         });
                       }
@@ -150,18 +148,17 @@ pub fn visit_packages(config: &Config, packages: &Packages, effects: &mut impl E
                       expected = Some(local_specifier.clone());
                       queue.push(InstanceEvent {
                         dependency,
-                        instance_id: instance_id.clone(),
+                        instance: Rc::clone(instance),
                         variant: InstanceEventVariant::InstanceMismatchesLocal,
                       });
                     }
                   });
                 }
                 None => {
-                  if dependency.all_are_semver(&instances_by_id) {
-                    match dependency.get_highest_or_lowest_semver(&instances_by_id, preferred_order) {
+                  if dependency.all_are_semver() {
+                    match dependency.get_highest_or_lowest_semver( preferred_order) {
                       Some(preferred) => {
-                        dependency.all.iter().for_each(|instance_id| {
-                          let instance = instances_by_id.get_mut(instance_id).unwrap();
+                        dependency.all.borrow().iter().for_each(|instance| {
                           if instance.actual == preferred {
                             if instance.has_range_mismatch(&preferred) {
                               mark_as(INVALID);
@@ -169,14 +166,14 @@ pub fn visit_packages(config: &Config, packages: &Packages, effects: &mut impl E
                               expected = Some(preferred.clone());
                               queue.push(InstanceEvent {
                                 dependency,
-                                instance_id: instance_id.clone(),
+                                instance: Rc::clone(instance),
                                 variant: InstanceEventVariant::InstanceMatchesHighestOrLowestSemverButMismatchesConflictingSemverGroup,
                               });
                             } else {
                               expected = Some(preferred.clone());
                               queue.push(InstanceEvent {
                                 dependency,
-                                instance_id: instance_id.clone(),
+                                instance: Rc::clone(instance),
                                 variant: InstanceEventVariant::InstanceMatchesHighestOrLowestSemver,
                               });
                             }
@@ -186,7 +183,7 @@ pub fn visit_packages(config: &Config, packages: &Packages, effects: &mut impl E
                               expected = Some(preferred.clone());
                               queue.push(InstanceEvent {
                                 dependency,
-                                instance_id: instance_id.clone(),
+                                instance: Rc::clone(instance),
                                 variant: InstanceEventVariant::InstanceIsHighestOrLowestSemverOnceSemverGroupIsFixed,
                               });
                             }
@@ -197,7 +194,7 @@ pub fn visit_packages(config: &Config, packages: &Packages, effects: &mut impl E
                             expected = Some(preferred.clone());
                             queue.push(InstanceEvent {
                               dependency,
-                              instance_id: instance_id.clone(),
+                              instance: Rc::clone(instance),
                               variant: InstanceEventVariant::InstanceMismatchesHighestOrLowestSemver,
                             });
                           }
@@ -207,25 +204,23 @@ pub fn visit_packages(config: &Config, packages: &Packages, effects: &mut impl E
                         panic!("No {} semver found for dependency {:?}", label, dependency);
                       }
                     }
-                  } else if dependency.all_are_identical(&instances_by_id) {
+                  } else if dependency.all_are_identical() {
                     mark_as(WARNING);
-                    dependency.all.iter().for_each(|instance_id| {
-                      let instance = instances_by_id.get(instance_id).unwrap();
+                    dependency.all.borrow().iter().for_each(|instance| {
                       expected = Some(instance.actual.clone());
                       queue.push(InstanceEvent {
                         dependency,
-                        instance_id: instance_id.clone(),
+                        instance: Rc::clone(instance),
                         variant: InstanceEventVariant::InstanceMatchesButIsUnsupported,
                       });
                     });
                   } else {
                     mark_as(INVALID);
-                    dependency.all.iter().for_each(|instance_id| {
-                      let instance = instances_by_id.get_mut(instance_id).unwrap();
+                    dependency.all.borrow().iter().for_each(|instance| {
                      *instance.expected.borrow_mut() = Specifier::None;
                       queue.push(InstanceEvent {
                         dependency,
-                        instance_id: instance_id.clone(),
+                        instance: Rc::clone(instance),
                         variant: InstanceEventVariant::InstanceMismatchesAndIsUnsupported,
                       });
                     });
@@ -234,25 +229,23 @@ pub fn visit_packages(config: &Config, packages: &Packages, effects: &mut impl E
               }
             }
             Variant::Ignored => {
-              dependency.all.iter().for_each(|instance_id| {
-                let instance = instances_by_id.get(instance_id).unwrap();
+              dependency.all.borrow().iter().for_each(|instance| {
                 queue.push(InstanceEvent {
                   dependency,
-                  instance_id: instance_id.clone(),
+                  instance: Rc::clone(instance),
                   variant: InstanceEventVariant::InstanceIsIgnored,
                 });
               });
             }
             Variant::Pinned => match &dependency.pinned_specifier {
               Some(pinned) => {
-                dependency.all.iter().for_each(|instance_id| {
-                  let instance = instances_by_id.get_mut(instance_id).unwrap();
+                dependency.all.borrow().iter().for_each(|instance| {
                   // CHECK THIS Eq WORKS
                   if instance.actual == *pinned {
                     expected = Some(pinned.clone());
                     queue.push(InstanceEvent {
                       dependency,
-                      instance_id: instance_id.clone(),
+                      instance: Rc::clone(instance),
                       variant: InstanceEventVariant::InstanceMatchesPinned,
                     });
                   } else if instance.has_range_mismatch(pinned) {
@@ -261,7 +254,7 @@ pub fn visit_packages(config: &Config, packages: &Packages, effects: &mut impl E
                       expected = Some(pinned.clone());
                       queue.push(InstanceEvent {
                         dependency,
-                        instance_id: instance_id.clone(),
+                        instance: Rc::clone(instance),
                         variant: InstanceEventVariant::LocalInstanceMistakenlyMismatchesSemverGroup,
                       });
                     } else {
@@ -270,7 +263,7 @@ pub fn visit_packages(config: &Config, packages: &Packages, effects: &mut impl E
                       expected = Some(pinned.clone());
                       queue.push(InstanceEvent {
                         dependency,
-                        instance_id: instance_id.clone(),
+                        instance: Rc::clone(instance),
                         variant: InstanceEventVariant::InstanceMatchesPinnedButMismatchesSemverGroup,
                       });
                     }
@@ -279,7 +272,7 @@ pub fn visit_packages(config: &Config, packages: &Packages, effects: &mut impl E
                     expected = Some(pinned.clone());
                     queue.push(InstanceEvent {
                       dependency,
-                      instance_id: instance_id.clone(),
+                      instance: Rc::clone(instance),
                       variant: InstanceEventVariant::LocalInstanceMistakenlyMismatchesPinned,
                     });
                   } else {
@@ -288,7 +281,7 @@ pub fn visit_packages(config: &Config, packages: &Packages, effects: &mut impl E
                     expected = Some(pinned.clone());
                     queue.push(InstanceEvent {
                       dependency,
-                      instance_id: instance_id.clone(),
+                      instance: Rc::clone(instance),
                       variant: InstanceEventVariant::InstanceMismatchesPinned,
                     });
                   }
@@ -299,10 +292,9 @@ pub fn visit_packages(config: &Config, packages: &Packages, effects: &mut impl E
               }
             },
             Variant::SameRange => {
-              if dependency.all_are_semver(&instances_by_id) {
-                let mismatches = dependency.get_same_range_mismatches(&instances_by_id);
-                dependency.all.iter().for_each(|instance_id| {
-                  let instance = instances_by_id.get_mut(instance_id).unwrap();
+              if dependency.all_are_semver() {
+                let mismatches = dependency.get_same_range_mismatches();
+                dependency.all.borrow().iter().for_each(|instance| {
                   // CHECK THIS OVER
                   if instance.has_range_mismatch(&instance.expected.borrow()) {
                     if mismatches.contains_key(&instance.actual) {
@@ -311,7 +303,7 @@ pub fn visit_packages(config: &Config, packages: &Packages, effects: &mut impl E
                        *instance.expected.borrow_mut() = Specifier::None;
                         queue.push(InstanceEvent {
                           dependency,
-                          instance_id: instance_id.clone(),
+                          instance: Rc::clone(instance),
                           variant: InstanceEventVariant::InstanceMismatchesBothSameRangeAndConflictingSemverGroups,
                         });
                       } else {
@@ -319,7 +311,7 @@ pub fn visit_packages(config: &Config, packages: &Packages, effects: &mut impl E
                        *instance.expected.borrow_mut() = Specifier::None;
                         queue.push(InstanceEvent {
                           dependency,
-                          instance_id: instance_id.clone(),
+                          instance: Rc::clone(instance),
                           variant: InstanceEventVariant::InstanceMismatchesBothSameRangeAndCompatibleSemverGroups,
                         });
                       }
@@ -328,7 +320,7 @@ pub fn visit_packages(config: &Config, packages: &Packages, effects: &mut impl E
                      *instance.expected.borrow_mut() = Specifier::None;
                       queue.push(InstanceEvent {
                         dependency,
-                        instance_id: instance_id.clone(),
+                        instance: Rc::clone(instance),
                         variant: InstanceEventVariant::InstanceMatchesSameRangeGroupButMismatchesConflictingSemverGroup,
                       });
                     } else {
@@ -336,7 +328,7 @@ pub fn visit_packages(config: &Config, packages: &Packages, effects: &mut impl E
                      *instance.expected.borrow_mut() = Specifier::None;
                       queue.push(InstanceEvent {
                         dependency,
-                        instance_id: instance_id.clone(),
+                        instance: Rc::clone(instance),
                         variant: InstanceEventVariant::InstanceMatchesSameRangeGroupButMismatchesCompatibleSemverGroup,
                       });
                     }
@@ -345,43 +337,41 @@ pub fn visit_packages(config: &Config, packages: &Packages, effects: &mut impl E
                    *instance.expected.borrow_mut() = Specifier::None;
                     queue.push(InstanceEvent {
                       dependency,
-                      instance_id: instance_id.clone(),
+                      instance: Rc::clone(instance),
                       variant: InstanceEventVariant::InstanceMismatchesSameRangeGroup,
                     });
                   } else {
                     queue.push(InstanceEvent {
                       dependency,
-                      instance_id: instance_id.clone(),
+                      instance: Rc::clone(instance),
                       variant: InstanceEventVariant::InstanceMatchesSameRangeGroup,
                     });
                   }
                   // /CHECK THIS OVER
                 });
-              } else if dependency.all_are_identical(&instances_by_id) {
+              } else if dependency.all_are_identical() {
                 mark_as(WARNING);
-                dependency.all.iter().for_each(|instance_id| {
-                  let instance = instances_by_id.get(instance_id).unwrap();
+                dependency.all.borrow().iter().for_each(|instance| {
                   queue.push(InstanceEvent {
                     dependency,
-                    instance_id: instance_id.clone(),
+                    instance: Rc::clone(instance),
                     variant: InstanceEventVariant::InstanceMatchesButIsUnsupported,
                   });
                 });
               } else {
                 mark_as(INVALID);
-                dependency.all.iter().for_each(|instance_id| {
-                  let instance = instances_by_id.get_mut(instance_id).unwrap();
+                dependency.all.borrow().iter().for_each(|instance| {
                  *instance.expected.borrow_mut() = Specifier::None;
                   queue.push(InstanceEvent {
                     dependency,
-                    instance_id: instance_id.clone(),
+                    instance: Rc::clone(instance),
                     variant: InstanceEventVariant::InstanceMismatchesAndIsUnsupported,
                   });
                 });
               }
             }
             Variant::SnappedTo => {
-              let snapped_to_specifier = dependency.get_snapped_to_specifier(&instances_by_id);
+              let snapped_to_specifier = dependency.get_snapped_to_specifier();
               // @FIXME
               expected = Some(Specifier::new("0.0.0"));
             }
@@ -397,8 +387,8 @@ pub fn visit_packages(config: &Config, packages: &Packages, effects: &mut impl E
 
           // Sort instances by actual specifier and then package name
           queue.sort_by(|a, b| {
-            let a = &instances_by_id.get(&a.instance_id).unwrap();
-            let b = &instances_by_id.get(&b.instance_id).unwrap();
+            let a = &a.instance;
+            let b = &b.instance;
 
             if matches!(&a.actual, Specifier::None) {
               return Ordering::Greater;
@@ -418,7 +408,7 @@ pub fn visit_packages(config: &Config, packages: &Packages, effects: &mut impl E
           });
 
           while let Some(event) = queue.pop() {
-            effects.on_instance(event, &mut instances_by_id);
+            effects.on_instance(event);
           }
         });
       });
