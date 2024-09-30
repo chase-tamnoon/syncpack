@@ -21,7 +21,6 @@ pub fn visit_packages(config: &Config, packages: &Packages, effects: &mut impl E
   const INVALID: u8 = 2;
 
   let Context {
-    instances_by_id,
     semver_groups,
     version_groups,
   } = Context::create(config, packages);
