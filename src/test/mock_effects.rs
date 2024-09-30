@@ -54,16 +54,6 @@ pub struct MockEffects<'a> {
 }
 
 impl Effects for MockEffects<'_> {
-  fn get_packages(&mut self) -> Packages {
-    let packages = self.packages.take().unwrap();
-    self.packages = None;
-    packages
-  }
-
-  fn set_packages(&mut self, packages: Packages) {
-    self.packages = Some(packages);
-  }
-
   fn on(&mut self, event: Event) {
     match &event {
       Event::EnterVersionsAndRanges => self.events.enter_versions_and_ranges.push(()),

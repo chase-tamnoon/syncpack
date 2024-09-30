@@ -46,7 +46,7 @@ impl Instance {
     dependency_type: &DependencyType,
     package: &PackageJson,
   ) -> Instance {
-    let package_name = package.get_name();
+    let package_name = package.get_name_unsafe();
     let specifier = Specifier::new(&raw_specifier);
     Instance {
       actual: specifier.clone(),
@@ -140,40 +140,32 @@ impl Instance {
   }
 
   /// Write a version to the package.json
-  pub fn set_specifier(&mut self, package: &mut PackageJson, specifier: &Specifier) {
+  pub fn set_specifier(&mut self, package: &PackageJson, specifier: &Specifier) {
     match self.dependency_type.strategy {
       Strategy::NameAndVersionProps => {
-        let path_to_prop = &self.dependency_type.path;
-        let path_to_prop_str = path_to_prop.as_str();
+        let path_to_prop_str = &self.dependency_type.path.as_str();
         let raw_specifier = specifier.unwrap();
         package.set_prop(path_to_prop_str, Value::String(raw_specifier));
       }
       Strategy::NamedVersionString => {
-        let path_to_prop = &self.dependency_type.path;
-        let path_to_prop_str = path_to_prop.as_str();
+        let path_to_prop_str = &self.dependency_type.path.as_str();
         let raw_specifier = specifier.unwrap();
         let full_value = format!("{}@{}", self.name, raw_specifier);
         package.set_prop(path_to_prop_str, Value::String(full_value));
       }
       Strategy::UnnamedVersionString => {
-        let path_to_prop = &self.dependency_type.path;
-        let path_to_prop_str = path_to_prop.as_str();
+        let path_to_prop_str = &self.dependency_type.path.as_str();
         let raw_specifier = specifier.unwrap();
         package.set_prop(path_to_prop_str, Value::String(raw_specifier));
       }
       Strategy::VersionsByName => {
-        let path_to_obj = &self.dependency_type.path;
-        let name = &self.name;
-        let path_to_obj_str = path_to_obj.as_str();
-        let obj = package
-          .contents
-          .pointer_mut(path_to_obj_str)
-          .unwrap()
-          .as_object_mut()
-          .unwrap();
-        let value = obj.get_mut(name).unwrap();
+        let path_to_obj_str = &self.dependency_type.path.as_str();
         let raw_specifier = specifier.unwrap();
-        *value = Value::String(raw_specifier);
+        let mut contents = package.contents.borrow_mut();
+        let versions_by_name = contents.pointer_mut(path_to_obj_str).unwrap().as_object_mut().unwrap();
+        let old_specifier = versions_by_name.get_mut(&self.name).unwrap();
+        *old_specifier = Value::String(raw_specifier);
+        std::mem::drop(contents);
       }
       Strategy::InvalidConfig => {
         panic!("unrecognised strategy");
@@ -184,7 +176,7 @@ impl Instance {
   }
 
   /// Delete a version/dependency/instance from the package.json
-  pub fn remove_from(&self, package: &mut PackageJson) {
+  pub fn remove_from(&self, package: &PackageJson) {
     match self.dependency_type.strategy {
       Strategy::NameAndVersionProps => {
         println!("@TODO: remove instance for NameAndVersionProps");
@@ -198,7 +190,7 @@ impl Instance {
       Strategy::VersionsByName => {
         let path_to_obj = &self.dependency_type.path;
         let name = &self.name;
-        if let Some(Value::Object(obj)) = package.contents.pointer_mut(path_to_obj) {
+        if let Some(Value::Object(obj)) = package.contents.borrow_mut().pointer_mut(path_to_obj) {
           obj.remove(name);
         }
       }

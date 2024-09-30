@@ -17,30 +17,20 @@ use super::FormatEventVariant;
 pub struct FixEffects<'a> {
   pub config: &'a Config,
   pub is_valid: bool,
-  pub packages: Option<Packages>,
+  pub packages: &'a Packages,
 }
 
 impl<'a> FixEffects<'a> {
-  pub fn new(config: &'a Config) -> Self {
+  pub fn new(config: &'a Config, packages: &'a Packages) -> Self {
     Self {
       config,
       is_valid: true,
-      packages: None,
+      packages,
     }
   }
 }
 
 impl Effects for FixEffects<'_> {
-  fn get_packages(&mut self) -> Packages {
-    let packages = self.packages.take().unwrap();
-    self.packages = None;
-    packages
-  }
-
-  fn set_packages(&mut self, packages: Packages) {
-    self.packages = Some(packages);
-  }
-
   fn on(&mut self, event: Event) {
     match &event {
       Event::EnterVersionsAndRanges => {
@@ -68,8 +58,7 @@ impl Effects for FixEffects<'_> {
         // @TODO
       }
       Event::PackageFormatMismatch(event) => {
-        let packages = self.packages.as_mut().unwrap();
-        let package = packages.by_name.get_mut(&event.package_name).unwrap();
+        let package = self.packages.by_name.get(&event.package_name).unwrap();
         let file_path = package.get_relative_file_path(&self.config.cwd);
 
         event.formatting_mismatches.iter().for_each(|mismatch| {
@@ -95,8 +84,7 @@ impl Effects for FixEffects<'_> {
         });
       }
       Event::ExitCommand => {
-        let mut packages = self.get_packages();
-        for package in packages.by_name.values_mut() {
+        for package in self.packages.by_name.values() {
           package.write_to_disk(self.config);
         }
         if self.is_valid {
@@ -144,8 +132,7 @@ impl Effects for FixEffects<'_> {
       | InstanceEventVariant::InstanceMismatchesHighestOrLowestSemver
       | InstanceEventVariant::InstanceMismatchesPinned => {
         let instance = instances_by_id.get_mut(instance_id).unwrap();
-        let packages = self.packages.as_mut().unwrap();
-        let package = packages.by_name.get_mut(&instance.package_name).unwrap();
+        let package = self.packages.by_name.get(&instance.package_name).unwrap();
         instance.set_specifier(package, &instance.expected.clone());
       }
       /* Unfixable Mismatches */

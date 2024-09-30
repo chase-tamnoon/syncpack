@@ -2,7 +2,7 @@ use serde_json::Value;
 
 use crate::{
   context::InstancesById, dependency::Dependency, group_selector::GroupSelector, instance::InstanceId,
-  packages::Packages, specifier::Specifier,
+  specifier::Specifier,
 };
 
 pub mod fix;
@@ -18,8 +18,6 @@ pub mod lint;
 pub trait Effects {
   fn on(&mut self, event: Event);
   fn on_instance(&mut self, event: InstanceEvent, instances_by_id: &mut InstancesById);
-  fn get_packages(&mut self) -> Packages;
-  fn set_packages(&mut self, packages: Packages);
 }
 
 #[derive(Debug)]

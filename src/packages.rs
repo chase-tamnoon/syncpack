@@ -39,7 +39,7 @@ impl Packages {
 
   /// Add a package.json file to this collection
   pub fn add_package(&mut self, package_json: PackageJson) -> &mut Self {
-    let name = package_json.get_name();
+    let name = package_json.get_name_unsafe();
     self.all_names.push(name.clone());
     self.by_name.insert(name, package_json);
     self
@@ -68,7 +68,7 @@ impl Packages {
               package.get_prop(dependency_type.name_path.as_ref().unwrap()),
               package.get_prop(&dependency_type.path),
             ) {
-              if matches_filter(name) {
+              if matches_filter(&name) {
                 on_instance(Instance::new(
                   name.to_string(),
                   raw_specifier.to_string(),
@@ -107,7 +107,7 @@ impl Packages {
           Strategy::VersionsByName => {
             if let Some(Value::Object(versions_by_name)) = package.get_prop(&dependency_type.path) {
               for (name, raw_specifier) in versions_by_name {
-                if matches_filter(name) {
+                if matches_filter(&name) {
                   if let Value::String(version) = raw_specifier {
                     on_instance(Instance::new(
                       name.to_string(),

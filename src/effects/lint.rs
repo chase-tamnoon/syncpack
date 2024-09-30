@@ -17,30 +17,20 @@ use super::FormatEventVariant;
 pub struct LintEffects<'a> {
   pub config: &'a Config,
   pub is_valid: bool,
-  pub packages: Option<Packages>,
+  pub packages: &'a Packages,
 }
 
 impl<'a> LintEffects<'a> {
-  pub fn new(config: &'a Config) -> Self {
+  pub fn new(config: &'a Config, packages: &'a Packages) -> Self {
     Self {
       config,
       is_valid: true,
-      packages: None,
+      packages,
     }
   }
 }
 
 impl Effects for LintEffects<'_> {
-  fn get_packages(&mut self) -> Packages {
-    let packages = self.packages.take().unwrap();
-    self.packages = None;
-    packages
-  }
-
-  fn set_packages(&mut self, packages: Packages) {
-    self.packages = Some(packages);
-  }
-
   fn on(&mut self, event: Event) {
     match &event {
       Event::EnterVersionsAndRanges => {
@@ -80,14 +70,12 @@ impl Effects for LintEffects<'_> {
         info!("{count} {name} {hint}");
       }
       Event::PackageFormatMatch(package_name) => {
-        let packages = self.packages.as_mut().unwrap();
-        let package = packages.by_name.get_mut(package_name).unwrap();
+        let package = self.packages.by_name.get(package_name).unwrap();
         let file_path = package.get_relative_file_path(&self.config.cwd);
         info!("{} {file_path}", icon_valid());
       }
       Event::PackageFormatMismatch(event) => {
-        let packages = self.packages.as_mut().unwrap();
-        let package = packages.by_name.get_mut(&event.package_name).unwrap();
+        let package = self.packages.by_name.get(&event.package_name).unwrap();
         let file_path = package.get_relative_file_path(&self.config.cwd);
         info!("{} {file_path}", icon_fixable());
         event.formatting_mismatches.iter().for_each(|mismatch| {

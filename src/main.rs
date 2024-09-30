@@ -45,15 +45,15 @@ fn main() {
 
   match config.cli.command_name {
     Subcommand::Fix => {
-      let mut effects = FixEffects::new(&config);
-      visit_packages(&config, packages, &mut effects);
+      let mut effects = FixEffects::new(&config, &packages);
+      visit_packages(&config, &packages, &mut effects);
       if !effects.is_valid {
         process::exit(1);
       }
     }
     Subcommand::Lint => {
-      let mut effects = LintEffects::new(&config);
-      visit_packages(&config, packages, &mut effects);
+      let mut effects = LintEffects::new(&config, &packages);
+      visit_packages(&config, &packages, &mut effects);
       if !effects.is_valid {
         process::exit(1);
       }

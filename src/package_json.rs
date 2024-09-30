@@ -1,7 +1,7 @@
 use log::error;
 use serde::Serialize;
-use serde_json::{ser::PrettyFormatter, Serializer};
-use std::{fs, path::PathBuf};
+use serde_json::{ser::PrettyFormatter, Serializer, Value};
+use std::{cell::RefCell, fs, path::PathBuf};
 
 use crate::config::Config;
 
@@ -10,18 +10,18 @@ pub struct PackageJson {
   /// The path to the package.json file
   pub file_path: PathBuf,
   /// The original, unedited raw JSON string
-  pub json: String,
+  pub json: RefCell<String>,
   /// The parsed JSON object
-  pub contents: serde_json::Value,
+  pub contents: RefCell<Value>,
 }
 
 impl PackageJson {
   /// Parse a package.json string
-  pub fn from_value(contents: serde_json::Value) -> Self {
+  pub fn from_value(contents: Value) -> Self {
     Self {
       file_path: PathBuf::new(),
-      json: contents.to_string(),
-      contents,
+      json: RefCell::new(contents.to_string()),
+      contents: RefCell::new(contents),
     }
   }
 
@@ -37,46 +37,54 @@ impl PackageJson {
           .inspect_err(|_| {
             error!("file is not valid JSON at {}", &file_path.to_str().unwrap());
           })
-          .map(|contents| Self {
+          .map(|contents: Value| Self {
             file_path: file_path.clone(),
-            json,
-            contents,
+            json: RefCell::new(contents.to_string()),
+            contents: RefCell::new(contents),
           })
           .ok()
       })
   }
 
+  /// Does a property exist at this path of the parsed package.json?
+  pub fn has_prop(&self, pointer: &str) -> bool {
+    self.contents.borrow().pointer(pointer).is_some()
+  }
+
+  /// Convenience method to get a string property from the parsed package.json
+  pub fn get_string(&self, pointer: &str) -> Option<String> {
+    if let Some(Value::String(name)) = self.get_prop(pointer) {
+      Some(name)
+    } else {
+      None
+    }
+  }
+
   /// Convenience method to get the name of the package
-  pub fn get_name(&self) -> String {
+  pub fn get_name_unsafe(&self) -> String {
+    let file_path = &self.file_path;
     self
-      .get_prop("/name")
-      .and_then(|name| name.as_str())
-      .expect("package.json file has no .name property")
-      .to_string()
+      .get_string("/name")
+      .expect("package.json file at {file_path} has no name property")
   }
 
   /// Deeply get a property in the parsed package.json
-  pub fn get_prop(&self, pointer: &str) -> Option<&serde_json::Value> {
-    self.contents.pointer(pointer)
-  }
-
-  /// Deeply get a property in the parsed package.json as mutable
-  pub fn get_prop_mut(&mut self, pointer: &str) -> Option<&mut serde_json::Value> {
-    self.contents.pointer_mut(pointer)
+  pub fn get_prop(&self, pointer: &str) -> Option<Value> {
+    self.contents.borrow().pointer(pointer).cloned()
   }
 
   /// Deeply set a property in the parsed package.json
-  pub fn set_prop(&mut self, pointer: &str, next_value: serde_json::Value) {
+  pub fn set_prop(&self, pointer: &str, next_value: Value) {
     if pointer == "/" {
-      self.contents = next_value;
-    } else if let Some(value) = self.contents.pointer_mut(pointer) {
+      *self.contents.borrow_mut() = next_value;
+    } else if let Some(value) = self.contents.borrow_mut().pointer_mut(pointer) {
       *value = next_value;
     }
   }
 
   /// Report whether the package in memory has changed from what's on disk
   pub fn has_changed(&self, indent: &str) -> bool {
-    self.json != self.to_pretty_json(self.serialize(indent))
+    *self.json.borrow() != self.to_pretty_json(self.serialize(indent))
   }
 
   /// Serialize the parsed JSON object back into pretty JSON as bytes
@@ -104,10 +112,10 @@ impl PackageJson {
   }
 
   /// Write the package.json to disk
-  pub fn write_to_disk(&mut self, config: &Config) {
+  pub fn write_to_disk(&self, config: &Config) {
     let vec = self.serialize(&config.rcfile.indent);
     std::fs::write(&self.file_path, &vec).expect("Failed to write package.json to disk");
-    self.json = self.to_pretty_json(vec);
+    *self.json.borrow_mut() = self.to_pretty_json(vec);
   }
 
   /// Return a short path for logging to the terminal

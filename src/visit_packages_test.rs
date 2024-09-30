@@ -20,7 +20,7 @@ fn reports_one_highest_version_mismatch_in_one_file() {
     }
   })]);
 
-  visit_packages(&config, packages, &mut effects);
+  visit_packages(&config, &packages, &mut effects);
 
   expect(&effects)
     .to_have_matches(vec![ExpectedMatchEvent {
@@ -55,7 +55,7 @@ fn reports_many_highest_version_mismatches_in_one_file() {
     }
   })]);
 
-  visit_packages(&config, packages, &mut effects);
+  visit_packages(&config, &packages, &mut effects);
 
   expect(&effects)
     .to_have_matches(vec![ExpectedMatchEvent {
@@ -101,7 +101,7 @@ fn reports_highest_version_mismatches_in_many_files() {
     }),
   ]);
 
-  visit_packages(&config, packages, &mut effects);
+  visit_packages(&config, &packages, &mut effects);
 
   expect(&effects)
     .to_have_matches(vec![ExpectedMatchEvent {
@@ -143,7 +143,7 @@ fn does_not_consider_instances_in_different_version_groups_a_highest_version_mis
     }),
   ]);
 
-  visit_packages(&config, packages, &mut effects);
+  visit_packages(&config, &packages, &mut effects);
 
   expect(&effects)
     .to_have_matches(vec![
@@ -185,7 +185,7 @@ fn rejects_pinned_version_when_it_would_replace_local_version() {
     }),
   ]);
 
-  visit_packages(&config, packages, &mut effects);
+  visit_packages(&config, &packages, &mut effects);
 
   expect(&effects).to_have_matches(vec![]).to_have_mismatches(vec![
     ExpectedMismatchEvent {
@@ -230,7 +230,7 @@ fn does_not_confuse_highest_version_matches_and_mismatches() {
     }),
   ]);
 
-  visit_packages(&config, packages, &mut effects);
+  visit_packages(&config, &packages, &mut effects);
 
   expect(&effects)
     .to_have_matches(vec![
@@ -282,7 +282,7 @@ fn reports_local_version_mismatch_when_an_instance_uses_a_higher_version() {
     }),
   ]);
 
-  visit_packages(&config, packages, &mut effects);
+  visit_packages(&config, &packages, &mut effects);
 
   expect(&effects)
     .to_have_matches(vec![ExpectedMatchEvent {
@@ -321,7 +321,7 @@ fn instance_has_same_version_as_local_package_but_does_not_match_its_semver_grou
     }),
   ]);
 
-  visit_packages(&config, packages, &mut effects);
+  visit_packages(&config, &packages, &mut effects);
 
   expect(&effects).to_have_matches(vec![]).to_have_mismatches(vec![
     // refuse to break local package's version
@@ -361,7 +361,7 @@ fn instance_is_highest_or_lowest_semver_once_semver_group_is_fixed() {
     }
   })]);
 
-  visit_packages(&config, packages, &mut effects);
+  visit_packages(&config, &packages, &mut effects);
 
   expect(&effects).to_have_matches(vec![]).to_have_mismatches(vec![
     ExpectedMismatchEvent {
@@ -400,7 +400,7 @@ fn instance_is_no_longer_highest_or_lowest_semver_once_semver_group_is_fixed() {
     }
   })]);
 
-  visit_packages(&config, packages, &mut effects);
+  visit_packages(&config, &packages, &mut effects);
 
   expect(&effects)
     .to_have_matches(vec![ExpectedMatchEvent {
@@ -435,7 +435,7 @@ fn reports_local_version_mismatch_when_an_instance_uses_workspace_protocol() {
     }),
   ]);
 
-  visit_packages(&config, packages, &mut effects);
+  visit_packages(&config, &packages, &mut effects);
 
   expect(&effects)
     .to_have_matches(vec![ExpectedMatchEvent {
@@ -477,7 +477,7 @@ fn protects_local_version_when_naively_pinned_to_use_workspace_protocol() {
     }),
   ]);
 
-  visit_packages(&config, packages, &mut effects);
+  visit_packages(&config, &packages, &mut effects);
 
   expect(&effects)
     .to_have_matches(vec![ExpectedMatchEvent {
@@ -511,7 +511,7 @@ fn reports_unfixable_local_version_mismatch_when_local_version_is_missing() {
     }),
   ]);
 
-  visit_packages(&config, packages, &mut effects);
+  visit_packages(&config, &packages, &mut effects);
 
   expect(&effects)
     .to_have_matches(vec![])

@@ -7,37 +7,29 @@ use icu::{
   locid::{locale, Locale},
 };
 use regex::Regex;
-use serde_json::{self, json, Map, Value};
+use serde_json::{self, Map, Value};
 use std::{cmp::Ordering, collections::HashSet};
 
 use crate::{config::Rcfile, package_json::PackageJson};
 
-/// Packages have been formatted in memory, but not written to disk. This struct
-/// describes what state each package was in prior to formatting.
-pub struct InMemoryFormattingStatus<'a> {
-  /// On disk, these packages have invalid formatting
-  pub was_invalid: Vec<&'a PackageJson>,
-  /// On disk, these packages have valid formatting
-  pub was_valid: Vec<&'a PackageJson>,
-}
-
 /// Use a shorthand format for the bugs URL when possible
 pub fn get_formatted_bugs(package: &PackageJson) -> Option<Value> {
-  package.get_prop("/bugs/url").cloned()
+  package.get_prop("/bugs/url")
 }
 
 /// Use a shorthand format for the repository URL when possible
 pub fn get_formatted_repository(package: &PackageJson) -> Option<Value> {
-  if package.get_prop("/repository/directory").is_none() {
-    package
-      .get_prop("/repository/url")
-      .and_then(|repository_url| repository_url.as_str())
-      .and_then(|url| {
+  if !package.has_prop("/repository/directory") {
+    package.get_prop("/repository/url").and_then(|url| {
+      if let Value::String(url) = url {
         Regex::new(r#".+github\.com/"#)
           .ok()
-          .map(|re| re.replace(url, "").to_string())
-      })
-      .map(|next_url| json!(next_url))
+          .map(|re| re.replace(url.as_str(), "").to_string())
+          .map(Value::String)
+      } else {
+        None
+      }
+    })
   } else {
     None
   }
@@ -54,37 +46,46 @@ pub fn get_sorted_exports(rcfile: &Rcfile, package: &PackageJson) -> Option<Valu
       }
     }
   }
-  if let Some(exports) = package.get_prop("/exports") {
+  let contents = package.contents.borrow();
+  if let Some(exports) = contents.pointer("/exports") {
     let mut sorted_exports = exports.clone();
     sort_nested_objects(&rcfile.sort_exports, &mut sorted_exports);
     if !is_identical(exports, &sorted_exports) {
+      std::mem::drop(contents);
       return Some(sorted_exports);
     }
   }
+  std::mem::drop(contents);
   None
 }
 
 /// Get a sorted version of the given property from package.json
 pub fn get_sorted_az(key: &str, package: &PackageJson) -> Option<Value> {
-  if let Some(value) = package.get_prop(format!("/{}", key).as_str()) {
+  let contents = package.contents.borrow();
+  if let Some(value) = contents.pointer(format!("/{}", key).as_str()) {
     let mut sorted = value.clone();
     sort_alphabetically(&mut sorted);
     if !is_identical(value, &sorted) {
+      std::mem::drop(contents);
       return Some(sorted);
     }
   }
+  std::mem::drop(contents);
   None
 }
 
 /// Get a new package.json with its keys sorted to match the rcfile
 pub fn get_sorted_first(rcfile: &Rcfile, package: &PackageJson) -> Option<Value> {
-  if let Value::Object(value) = &package.contents {
+  let contents = package.contents.borrow();
+  if let Value::Object(value) = &*contents {
     let mut sorted = value.clone();
     sort_keys_with_priority(&rcfile.sort_first, rcfile.sort_packages, &mut sorted);
     if !has_same_key_order(value, &sorted) {
+      std::mem::drop(contents);
       return Some(serde_json::Value::Object(sorted));
     }
   }
+  std::mem::drop(contents);
   None
 }
 
