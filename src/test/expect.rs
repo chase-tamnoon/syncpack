@@ -1,10 +1,9 @@
-#[cfg(test)]
 use crate::{
-  effects::{mock::MockEffects, InstanceEvent, InstanceEventVariant},
+  effects::{InstanceEvent, InstanceEventVariant},
   instance::Instance,
+  test::mock_effects::MockEffects,
 };
 
-#[cfg(test)]
 #[derive(Debug)]
 pub struct ExpectedMatchEvent<'a> {
   pub variant: InstanceEventVariant,
@@ -13,7 +12,6 @@ pub struct ExpectedMatchEvent<'a> {
   pub actual: &'a str,
 }
 
-#[cfg(test)]
 #[derive(Debug)]
 pub struct ActualMatchEvent {
   pub dependency_name: String,
@@ -21,7 +19,6 @@ pub struct ActualMatchEvent {
   pub actual: String,
 }
 
-#[cfg(test)]
 impl ActualMatchEvent {
   pub fn new(event: &InstanceEvent, instance: &Instance) -> Self {
     Self {
@@ -32,7 +29,6 @@ impl ActualMatchEvent {
   }
 }
 
-#[cfg(test)]
 #[derive(Debug)]
 pub struct ExpectedMismatchEvent<'a> {
   pub variant: InstanceEventVariant,
@@ -42,7 +38,6 @@ pub struct ExpectedMismatchEvent<'a> {
   pub expected: &'a str,
 }
 
-#[cfg(test)]
 #[derive(Debug)]
 pub struct ActualMismatchEvent {
   pub dependency_name: String,
@@ -51,7 +46,6 @@ pub struct ActualMismatchEvent {
   pub expected: String,
 }
 
-#[cfg(test)]
 impl ActualMismatchEvent {
   pub fn new(event: &InstanceEvent, instance: &Instance) -> Self {
     Self {
@@ -63,17 +57,14 @@ impl ActualMismatchEvent {
   }
 }
 
-#[cfg(test)]
 pub fn expect<'a>(effects: &'a MockEffects) -> Expects<'a> {
   Expects::new(effects)
 }
 
-#[cfg(test)]
 pub struct Expects<'a> {
   pub effects: &'a MockEffects<'a>,
 }
 
-#[cfg(test)]
 impl<'a> Expects<'a> {
   pub fn new(effects: &'a MockEffects) -> Self {
     Self { effects }

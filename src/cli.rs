@@ -14,14 +14,6 @@ pub struct Cli {
 }
 
 impl Cli {
-  #[cfg(test)]
-  pub fn new() -> Self {
-    Cli {
-      command_name: Subcommand::Lint,
-      options: CliOptions::new(),
-    }
-  }
-
   pub fn parse() -> Cli {
     match create().get_matches().subcommand() {
       Some(("lint", matches)) => Cli {
@@ -138,16 +130,6 @@ pub struct CliOptions {
 }
 
 impl CliOptions {
-  #[cfg(test)]
-  pub fn new() -> Self {
-    Self {
-      filter: None,
-      format: false,
-      versions: true,
-      source: vec![],
-    }
-  }
-
   /// Create a new `CliOptions` from CLI arguments provided by the user
   pub fn from_arg_matches(matches: &ArgMatches) -> CliOptions {
     // 1. if no command is true, then all of them are true

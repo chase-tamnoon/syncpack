@@ -7,7 +7,6 @@ use crate::{
 
 pub mod fix;
 pub mod lint;
-pub mod mock;
 
 /// Side effects in Syncpack commands are handled by structs which implement
 /// this trait. Multiple commands such as `lint`, `fix`, and `json` all depend

@@ -15,13 +15,16 @@ use crate::{
   visit_packages::visit_packages,
 };
 
+#[cfg(test)]
+#[path = "test/test.rs"]
+mod test;
+
 mod cli;
 mod config;
 mod context;
 mod dependency;
 mod dependency_type;
 mod effects;
-mod expect;
 mod format;
 mod group_selector;
 mod instance;

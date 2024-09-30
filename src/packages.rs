@@ -25,15 +25,6 @@ impl Packages {
     }
   }
 
-  #[cfg(test)]
-  pub fn from_mocks(values: Vec<Value>) -> Self {
-    let mut packages = Self::new();
-    for value in values {
-      packages.add_package(PackageJson::from_value(value));
-    }
-    packages
-  }
-
   /// Get every package.json file matched by the user's source patterns
   pub fn from_config(config: &Config) -> Self {
     let file_paths = get_file_paths(config);

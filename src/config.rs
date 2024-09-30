@@ -110,11 +110,6 @@ impl Rcfile {
     serde_json::from_str::<Self>(&empty_json).unwrap()
   }
 
-  #[cfg(test)]
-  pub fn from_mock(value: serde_json::Value) -> Self {
-    serde_json::from_value::<Self>(value).unwrap()
-  }
-
   /// Read a rcfile from the given location
   pub fn from_file(file_path: &PathBuf) -> Option<Self> {
     fs::read_to_string(file_path)
@@ -277,26 +272,6 @@ pub struct Config {
 }
 
 impl Config {
-  /// Create an empty struct
-  #[cfg(test)]
-  pub fn new() -> Self {
-    Self {
-      cli: Cli::new(),
-      cwd: std::env::current_dir().unwrap(),
-      rcfile: Rcfile::new(),
-    }
-  }
-
-  /// Create a struct from a mocked .syncpackrc
-  #[cfg(test)]
-  pub fn from_mock(value: serde_json::Value) -> Self {
-    Self {
-      cli: Cli::new(),
-      cwd: std::env::current_dir().unwrap(),
-      rcfile: Rcfile::from_mock(value),
-    }
-  }
-
   /// Try to read the rcfile from the current working directory and fall back to
   /// defaults if one is not found
   pub fn from_cli(cwd: PathBuf, cli: Cli) -> Config {

@@ -1,17 +1,14 @@
-#[cfg(test)]
 use std::collections::HashMap;
 
-#[cfg(test)]
 use crate::{
   config::Config,
   context::InstancesById,
   effects::{Effects, Event, InstanceEvent, InstanceEventVariant},
-  expect::{ActualMatchEvent, ActualMismatchEvent},
   packages::Packages,
+  test::expect::{ActualMatchEvent, ActualMismatchEvent},
 };
 
 // We'll store data later but for now use `Vec<()>` to keep a count of events
-#[cfg(test)]
 #[derive(Debug)]
 pub struct EventsByType {
   pub enter_versions_and_ranges: Vec<()>,
@@ -27,7 +24,6 @@ pub struct EventsByType {
   pub exit_command: Vec<()>,
 }
 
-#[cfg(test)]
 impl EventsByType {
   pub fn new() -> Self {
     Self {
@@ -47,7 +43,6 @@ impl EventsByType {
 }
 
 /// A mock implementation of a command's side effects for the purpose of testing
-#[cfg(test)]
 #[derive(Debug)]
 pub struct MockEffects<'a> {
   pub config: &'a Config,
@@ -58,21 +53,6 @@ pub struct MockEffects<'a> {
   pub packages: Option<Packages>,
 }
 
-#[cfg(test)]
-impl<'a> MockEffects<'a> {
-  pub fn new(config: &'a Config) -> Self {
-    Self {
-      config,
-      events: EventsByType::new(),
-      is_valid: true,
-      matches: HashMap::new(),
-      mismatches: HashMap::new(),
-      packages: None,
-    }
-  }
-}
-
-#[cfg(test)]
 impl Effects for MockEffects<'_> {
   fn get_packages(&mut self) -> Packages {
     let packages = self.packages.take().unwrap();
