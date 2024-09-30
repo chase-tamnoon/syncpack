@@ -1,6 +1,6 @@
 use log::debug;
 use serde_json::Value;
-use std::path::PathBuf;
+use std::{cell::RefCell, path::PathBuf};
 
 use crate::{
   dependency_type::{DependencyType, Strategy},
@@ -19,7 +19,7 @@ pub struct Instance {
   /// The dependency type to use to read/write this instance
   pub dependency_type: DependencyType,
   /// The latest version specifier which is mutated by Syncpack
-  pub expected: Specifier,
+  pub expected: RefCell<Specifier>,
   /// The file path of the package.json file this instance belongs to
   pub file_path: PathBuf,
   /// A unique identifier for this instance
@@ -35,7 +35,7 @@ pub struct Instance {
   /// If this instance belongs to a `WithRange` semver group, this is the range.
   /// This is used by Version Groups while determining the preferred version,
   /// to try to also satisfy any applicable semver group ranges
-  pub prefer_range: Option<SemverRange>,
+  pub prefer_range: RefCell<Option<SemverRange>>,
 }
 
 impl Instance {
@@ -51,14 +51,14 @@ impl Instance {
     Instance {
       actual: specifier.clone(),
       dependency_type: dependency_type.clone(),
-      expected: specifier,
+      expected: RefCell::new(specifier),
       file_path: package.file_path.clone(),
       id: format!("{} in {} of {}", name, &dependency_type.path, package_name),
       is_local: dependency_type.path == "/version",
       location_hint: format!("in {} of {}", &dependency_type.path, package_name),
       name,
       package_name,
-      prefer_range: None,
+      prefer_range: RefCell::new(None),
     }
   }
 
@@ -79,13 +79,17 @@ impl Instance {
 
   /// Updated the expected version specifier for this instance to match the
   /// preferred semver range of the given semver group
-  pub fn apply_semver_group(&mut self, group: &SemverGroup) {
-    group.range.as_ref().inspect(|range| {
-      self.prefer_range = Some((*range).clone());
-      if let Some(expected) = self.expected.get_simple_semver() {
-        self.expected = Specifier::Semver(Semver::Simple(expected.with_range(range)));
+  pub fn apply_semver_group(&self, group: &SemverGroup) {
+    if let Some(range) = &group.range {
+      let mut prefer_range = self.prefer_range.borrow_mut();
+      let mut expected = self.expected.borrow_mut();
+      *prefer_range = Some(range.clone());
+      if let Some(simple_semver) = expected.get_simple_semver() {
+        *expected = Specifier::Semver(Semver::Simple(simple_semver.with_range(range)));
       }
-    });
+      std::mem::drop(prefer_range);
+      std::mem::drop(expected);
+    }
   }
 
   /// Does this instance's specifier match the expected specifier for this
@@ -97,10 +101,10 @@ impl Instance {
   /// ✘ only its own semver range is different
   pub fn has_range_mismatch(&self, preferred: &Specifier) -> bool {
     // it has a semver group
-    self.prefer_range.is_some()
+    self.prefer_range.borrow().is_some()
       && match (
         self.actual.get_simple_semver(),
-        self.expected.get_simple_semver(),
+        self.expected.borrow().get_simple_semver(),
         preferred.get_simple_semver(),
       ) {
         // all versions are simple semver
@@ -119,28 +123,38 @@ impl Instance {
   /// Does the given semver specifier have the expected range for this
   /// instance's semver group?
   pub fn matches_semver_group(&self, specifier: &Specifier) -> bool {
-    match (&self.prefer_range, specifier.get_simple_semver()) {
-      (Some(range), Some(simple_semver)) => simple_semver.get_range() == *range,
-      _ => false,
-    }
+    self
+      .prefer_range
+      .borrow()
+      .as_ref()
+      .and_then(|range| {
+        specifier
+          .get_simple_semver()
+          .map(|simple_semver| simple_semver.get_range() == *range)
+      })
+      .unwrap_or(false)
   }
 
+  /// Get the expected version specifier for this instance with the semver
+  /// group's preferred range applied
   pub fn get_fixed_range_mismatch(&self) -> Specifier {
     self
       .prefer_range
+      .borrow()
       .as_ref()
-      .and_then(|prefer_range| {
+      .and_then(|range| {
         self
           .expected
+          .borrow()
           .get_simple_semver()
-          .map(|expected| expected.with_range(prefer_range))
+          .map(|expected| expected.with_range(range))
       })
       .map(|simple_semver| Specifier::Semver(Semver::Simple(simple_semver)))
       .expect("Failed to fix semver range mismatch")
   }
 
   /// Write a version to the package.json
-  pub fn set_specifier(&mut self, package: &PackageJson, specifier: &Specifier) {
+  pub fn set_specifier(&self, package: &PackageJson, specifier: &Specifier) {
     match self.dependency_type.strategy {
       Strategy::NameAndVersionProps => {
         let path_to_prop_str = &self.dependency_type.path.as_str();
@@ -172,7 +186,7 @@ impl Instance {
       }
     };
     // update in-memory state
-    self.expected = specifier.clone();
+    *self.expected.borrow_mut() = specifier.clone();
   }
 
   /// Delete a version/dependency/instance from the package.json

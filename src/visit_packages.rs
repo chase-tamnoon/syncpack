@@ -82,7 +82,7 @@ pub fn visit_packages(config: &Config, packages: &Packages, effects: &mut impl E
                   });
                 } else {
                   mark_as(INVALID);
-                  instance.expected = Specifier::None;
+                  *instance.expected.borrow_mut() = Specifier::None;
                   queue.push(InstanceEvent {
                     dependency,
                     instance_id: instance_id.clone(),
@@ -104,7 +104,7 @@ pub fn visit_packages(config: &Config, packages: &Packages, effects: &mut impl E
                       if instance.has_range_mismatch(local_specifier) {
                         mark_as(WARNING);
                         expected = Some(local_specifier.clone());
-                        instance.expected = local_specifier.clone();
+                       *instance.expected.borrow_mut() = local_specifier.clone();
                         queue.push(InstanceEvent {
                           dependency,
                           instance_id: instance_id.clone(),
@@ -120,7 +120,7 @@ pub fn visit_packages(config: &Config, packages: &Packages, effects: &mut impl E
                       }
                     } else if matches!(local_specifier, Specifier::None) {
                       mark_as(INVALID);
-                      instance.expected = Specifier::None;
+                     *instance.expected.borrow_mut() = Specifier::None;
                       queue.push(InstanceEvent {
                         dependency,
                         instance_id: instance_id.clone(),
@@ -129,7 +129,7 @@ pub fn visit_packages(config: &Config, packages: &Packages, effects: &mut impl E
                     } else if instance.actual == *local_specifier {
                       if instance.has_range_mismatch(local_specifier) {
                         mark_as(INVALID);
-                        instance.expected = instance.get_fixed_range_mismatch();
+                       *instance.expected.borrow_mut() = instance.get_fixed_range_mismatch();
                         expected = Some(local_specifier.clone());
                         queue.push(InstanceEvent {
                           dependency,
@@ -146,7 +146,7 @@ pub fn visit_packages(config: &Config, packages: &Packages, effects: &mut impl E
                       }
                     } else {
                       mark_as(INVALID);
-                      instance.expected = local_specifier.clone();
+                     *instance.expected.borrow_mut() = local_specifier.clone();
                       expected = Some(local_specifier.clone());
                       queue.push(InstanceEvent {
                         dependency,
@@ -165,7 +165,7 @@ pub fn visit_packages(config: &Config, packages: &Packages, effects: &mut impl E
                           if instance.actual == preferred {
                             if instance.has_range_mismatch(&preferred) {
                               mark_as(INVALID);
-                              instance.expected = instance.get_fixed_range_mismatch();
+                             *instance.expected.borrow_mut() = instance.get_fixed_range_mismatch();
                               expected = Some(preferred.clone());
                               queue.push(InstanceEvent {
                                 dependency,
@@ -180,8 +180,8 @@ pub fn visit_packages(config: &Config, packages: &Packages, effects: &mut impl E
                                 variant: InstanceEventVariant::InstanceMatchesHighestOrLowestSemver,
                               });
                             }
-                          } else if instance.expected == preferred {
-                            if instance.matches_semver_group(&instance.expected) && !instance.matches_semver_group(&instance.actual) {
+                          } else if *instance.expected.borrow() == preferred {
+                            if instance.matches_semver_group(&instance.expected.borrow()) && !instance.matches_semver_group(&instance.actual) {
                               mark_as(INVALID);
                               expected = Some(preferred.clone());
                               queue.push(InstanceEvent {
@@ -193,7 +193,7 @@ pub fn visit_packages(config: &Config, packages: &Packages, effects: &mut impl E
                           } else {
                             // check this
                             mark_as(INVALID);
-                            instance.expected = preferred.clone();
+                           *instance.expected.borrow_mut() = preferred.clone();
                             expected = Some(preferred.clone());
                             queue.push(InstanceEvent {
                               dependency,
@@ -222,7 +222,7 @@ pub fn visit_packages(config: &Config, packages: &Packages, effects: &mut impl E
                     mark_as(INVALID);
                     dependency.all.iter().for_each(|instance_id| {
                       let instance = instances_by_id.get_mut(instance_id).unwrap();
-                      instance.expected = Specifier::None;
+                     *instance.expected.borrow_mut() = Specifier::None;
                       queue.push(InstanceEvent {
                         dependency,
                         instance_id: instance_id.clone(),
@@ -266,7 +266,7 @@ pub fn visit_packages(config: &Config, packages: &Packages, effects: &mut impl E
                       });
                     } else {
                       mark_as(INVALID);
-                      instance.expected = instance.get_fixed_range_mismatch();
+                     *instance.expected.borrow_mut() = instance.get_fixed_range_mismatch();
                       expected = Some(pinned.clone());
                       queue.push(InstanceEvent {
                         dependency,
@@ -284,7 +284,7 @@ pub fn visit_packages(config: &Config, packages: &Packages, effects: &mut impl E
                     });
                   } else {
                     mark_as(INVALID);
-                    instance.expected = pinned.clone();
+                   *instance.expected.borrow_mut() = pinned.clone();
                     expected = Some(pinned.clone());
                     queue.push(InstanceEvent {
                       dependency,
@@ -304,11 +304,11 @@ pub fn visit_packages(config: &Config, packages: &Packages, effects: &mut impl E
                 dependency.all.iter().for_each(|instance_id| {
                   let instance = instances_by_id.get_mut(instance_id).unwrap();
                   // CHECK THIS OVER
-                  if instance.has_range_mismatch(&instance.expected) {
+                  if instance.has_range_mismatch(&instance.expected.borrow()) {
                     if mismatches.contains_key(&instance.actual) {
-                      if mismatches.contains_key(&instance.expected) {
+                      if mismatches.contains_key(&*instance.expected.borrow()) {
                         mark_as(INVALID);
-                        instance.expected = Specifier::None;
+                       *instance.expected.borrow_mut() = Specifier::None;
                         queue.push(InstanceEvent {
                           dependency,
                           instance_id: instance_id.clone(),
@@ -316,16 +316,16 @@ pub fn visit_packages(config: &Config, packages: &Packages, effects: &mut impl E
                         });
                       } else {
                         mark_as(INVALID);
-                        instance.expected = Specifier::None;
+                       *instance.expected.borrow_mut() = Specifier::None;
                         queue.push(InstanceEvent {
                           dependency,
                           instance_id: instance_id.clone(),
                           variant: InstanceEventVariant::InstanceMismatchesBothSameRangeAndCompatibleSemverGroups,
                         });
                       }
-                    } else if mismatches.contains_key(&instance.expected) {
+                    } else if mismatches.contains_key(&*instance.expected.borrow()) {
                       mark_as(INVALID);
-                      instance.expected = Specifier::None;
+                     *instance.expected.borrow_mut() = Specifier::None;
                       queue.push(InstanceEvent {
                         dependency,
                         instance_id: instance_id.clone(),
@@ -333,7 +333,7 @@ pub fn visit_packages(config: &Config, packages: &Packages, effects: &mut impl E
                       });
                     } else {
                       mark_as(INVALID);
-                      instance.expected = Specifier::None;
+                     *instance.expected.borrow_mut() = Specifier::None;
                       queue.push(InstanceEvent {
                         dependency,
                         instance_id: instance_id.clone(),
@@ -342,7 +342,7 @@ pub fn visit_packages(config: &Config, packages: &Packages, effects: &mut impl E
                     }
                   } else if mismatches.contains_key(&instance.actual) {
                     mark_as(INVALID);
-                    instance.expected = Specifier::None;
+                   *instance.expected.borrow_mut() = Specifier::None;
                     queue.push(InstanceEvent {
                       dependency,
                       instance_id: instance_id.clone(),
@@ -371,7 +371,7 @@ pub fn visit_packages(config: &Config, packages: &Packages, effects: &mut impl E
                 mark_as(INVALID);
                 dependency.all.iter().for_each(|instance_id| {
                   let instance = instances_by_id.get_mut(instance_id).unwrap();
-                  instance.expected = Specifier::None;
+                 *instance.expected.borrow_mut() = Specifier::None;
                   queue.push(InstanceEvent {
                     dependency,
                     instance_id: instance_id.clone(),

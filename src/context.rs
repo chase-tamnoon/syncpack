@@ -23,7 +23,7 @@ impl Context {
     let mut version_groups = config.rcfile.get_version_groups(&packages.all_names);
     let mut instances_by_id: InstancesById = BTreeMap::new();
 
-    packages.get_all_instances(config, |mut instance| {
+    packages.get_all_instances(config, |instance| {
       if let Some(vgroup) = version_groups
         .iter_mut()
         .find(|vgroup| vgroup.selector.can_add(&instance))

@@ -181,7 +181,7 @@ impl Effects for LintEffects<'_> {
         let icon = icon_fixable();
         let actual = instance.actual.unwrap().red();
         let arrow = icon_arrow();
-        let expected = instance.expected.unwrap().green();
+        let expected = instance.expected.borrow().unwrap().green();
         let high_low = high_low_hint(&dependency.variant);
         let hint = format!("mismatches its semver group but will be {high_low} once fixed").dimmed();
         let location_hint = instance.location_hint.dimmed();

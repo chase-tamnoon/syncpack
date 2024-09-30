@@ -52,7 +52,7 @@ impl ActualMismatchEvent {
       dependency_name: event.dependency.name.clone(),
       instance_id: event.instance_id.clone(),
       actual: instance.actual.unwrap().clone(),
-      expected: instance.expected.unwrap().clone(),
+      expected: instance.expected.borrow().unwrap().clone(),
     }
   }
 }

@@ -87,7 +87,7 @@ impl Dependency {
     self
       .get_instances(instances_by_id)
       .iter()
-      .any(|instance| instance.prefer_range.is_some())
+      .any(|instance| instance.prefer_range.borrow().is_some())
   }
 
   pub fn get_local_specifier(&self, instances_by_id: &InstancesById) -> Option<Specifier> {
@@ -111,7 +111,7 @@ impl Dependency {
       .iter()
       .fold(HashSet::new(), |mut uniques, instance| {
         uniques.insert(instance.actual.clone());
-        uniques.insert(instance.expected.clone());
+        uniques.insert(instance.expected.borrow().clone());
         uniques
       })
   }
@@ -121,21 +121,21 @@ impl Dependency {
       .get_instances(instances_by_id)
       .iter()
       .fold(HashSet::new(), |mut uniques, instance| {
-        uniques.insert(instance.expected.clone());
+        uniques.insert(instance.expected.borrow().clone());
         uniques
       })
   }
 
   /// Is the exact same specifier used by all instances in this group?
   pub fn all_are_identical(&self, instances_by_id: &InstancesById) -> bool {
-    let mut previous: Option<&Specifier> = None;
+    let mut previous: Option<Specifier> = None;
     for instance in self.get_instances(instances_by_id) {
       if let Some(value) = previous {
         if *value.unwrap() != instance.actual.unwrap() {
           return false;
         }
       }
-      previous = Some(&instance.expected);
+      previous = Some(instance.expected.borrow().clone());
     }
     true
   }
@@ -161,18 +161,17 @@ impl Dependency {
       .get_instances(instances_by_id)
       .iter()
       .fold(None, |highest, instance| match highest {
-        None => Some(&instance.expected),
+        None => Some(instance.expected.borrow().clone()),
         Some(highest) => {
-          let a = instance.expected.get_orderable();
+          let a = instance.expected.borrow().get_orderable();
           let b = highest.get_orderable();
           if a.cmp(&b) == preferred_order {
-            Some(&instance.expected)
+            Some(instance.expected.borrow().clone())
           } else {
             Some(highest)
           }
         }
       })
-      .cloned()
   }
 
   /// Get all semver specifiers which have a range that does not match all of
@@ -230,7 +229,7 @@ impl Dependency {
         if instance.name == *self.name {
           for snapped_to_package_name in snapped_to_package_names {
             if instance.package_name == *snapped_to_package_name {
-              return Some(instance.expected.clone());
+              return Some(instance.expected.borrow().clone());
             }
           }
         }

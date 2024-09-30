@@ -131,9 +131,9 @@ impl Effects for FixEffects<'_> {
       | InstanceEventVariant::InstanceMismatchesLocal
       | InstanceEventVariant::InstanceMismatchesHighestOrLowestSemver
       | InstanceEventVariant::InstanceMismatchesPinned => {
-        let instance = instances_by_id.get_mut(instance_id).unwrap();
+        let instance = instances_by_id.get(instance_id).unwrap();
         let package = self.packages.by_name.get(&instance.package_name).unwrap();
-        instance.set_specifier(package, &instance.expected.clone());
+        instance.set_specifier(package, &instance.expected.borrow().clone());
       }
       /* Unfixable Mismatches */
       InstanceEventVariant::InstanceMismatchesLocalWithMissingVersion => {
