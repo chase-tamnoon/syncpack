@@ -11,9 +11,8 @@ use super::{
   orderable::{IsOrderable, Orderable},
   parser,
   regexes::{
-    CARET, CARET_MAJOR, CARET_MINOR, CARET_TAG, GT, GTE, GTE_MAJOR, GTE_MINOR, GTE_TAG, GT_MAJOR, GT_MINOR, GT_TAG, LT,
-    LTE, LTE_MAJOR, LTE_MINOR, LTE_TAG, LT_MAJOR, LT_MINOR, LT_TAG, RANGE_CHARS, TILDE, TILDE_MAJOR, TILDE_MINOR,
-    TILDE_TAG,
+    CARET, CARET_MAJOR, CARET_MINOR, CARET_TAG, GT, GTE, GTE_MAJOR, GTE_MINOR, GTE_TAG, GT_MAJOR, GT_MINOR, GT_TAG, LT, LTE, LTE_MAJOR,
+    LTE_MINOR, LTE_TAG, LT_MAJOR, LT_MINOR, LT_TAG, RANGE_CHARS, TILDE, TILDE_MAJOR, TILDE_MINOR, TILDE_TAG,
   },
   semver_range::SemverRange,
 };
@@ -76,10 +75,7 @@ impl SimpleSemver {
         let next_specifier = format!("{next_range}{exact}");
         SimpleSemver::new(&next_specifier).unwrap()
       }
-      SimpleSemver::Minor(string)
-      | SimpleSemver::Range(string)
-      | SimpleSemver::RangeMajor(string)
-      | SimpleSemver::RangeMinor(string) => {
+      SimpleSemver::Minor(string) | SimpleSemver::Range(string) | SimpleSemver::RangeMajor(string) | SimpleSemver::RangeMinor(string) => {
         let exact = RANGE_CHARS.replace(string, "");
         let next_range = range.unwrap();
         let next_specifier = format!("{next_range}{exact}");

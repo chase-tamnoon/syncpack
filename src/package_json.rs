@@ -123,10 +123,7 @@ impl PackageJson {
     let buffer = Vec::new();
     let mut serializer = Serializer::with_formatter(buffer, formatter);
     // Write pretty JSON to the buffer
-    self
-      .contents
-      .serialize(&mut serializer)
-      .expect("Failed to serialize package.json");
+    self.contents.serialize(&mut serializer).expect("Failed to serialize package.json");
     // Append a new line to the buffer
     let mut writer = serializer.into_inner();
     writer.extend(b"\n");

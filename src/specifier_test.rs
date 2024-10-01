@@ -131,11 +131,7 @@ fn parses_node_specifier_strings() {
   ];
   for (value, expected_id, expected_is_simple_semver) in cases {
     let spec = Specifier::new(value);
-    assert_eq!(
-      spec.get_config_identifier(),
-      expected_id,
-      "{value} should have ID of {expected_id}"
-    );
+    assert_eq!(spec.get_config_identifier(), expected_id, "{value} should have ID of {expected_id}");
     assert_eq!(spec.unwrap(), value, "{value} should unwrap to {value}");
     assert_eq!(
       spec.is_simple_semver(),
@@ -270,12 +266,8 @@ fn sorts_simple_semver_specifiers_according_to_highest_version_and_greediest_ran
   fn to_specifiers(specifiers: Vec<&str>) -> Vec<Specifier> {
     specifiers.iter().map(|r| Specifier::new(r)).collect()
   }
-  let mut specifiers = to_specifiers(vec![
-    "0.0.0", "<0.0.0", "*", ">0.0.0", ">=0.0.0", "<=0.0.0", "^0.0.0", "~0.0.0",
-  ]);
-  let expected = to_specifiers(vec![
-    "<0.0.0", "<=0.0.0", "0.0.0", "~0.0.0", "^0.0.0", ">=0.0.0", ">0.0.0", "*",
-  ]);
+  let mut specifiers = to_specifiers(vec!["0.0.0", "<0.0.0", "*", ">0.0.0", ">=0.0.0", "<=0.0.0", "^0.0.0", "~0.0.0"]);
+  let expected = to_specifiers(vec!["<0.0.0", "<=0.0.0", "0.0.0", "~0.0.0", "^0.0.0", ">=0.0.0", ">0.0.0", "*"]);
 
   specifiers.sort_by_key(|s| s.get_orderable());
   assert_eq!(specifiers, expected, "{specifiers:?}, {expected:?}");

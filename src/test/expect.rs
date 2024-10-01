@@ -1,12 +1,12 @@
 use crate::{
-  effects::{InstanceEvent, InstanceEventVariant},
+  effects::{InstanceEvent, InstanceState},
   instance::Instance,
   test::mock_effects::MockEffects,
 };
 
 #[derive(Debug)]
 pub struct ExpectedMatchEvent<'a> {
-  pub variant: InstanceEventVariant,
+  pub variant: InstanceState,
   pub dependency_name: &'a str,
   pub instance_id: &'a str,
   pub actual: &'a str,
@@ -31,7 +31,7 @@ impl ActualMatchEvent {
 
 #[derive(Debug)]
 pub struct ExpectedUnfixableMismatchEvent<'a> {
-  pub variant: InstanceEventVariant,
+  pub variant: InstanceState,
   pub dependency_name: &'a str,
   pub instance_id: &'a str,
   pub actual: &'a str,
@@ -56,7 +56,7 @@ impl ActualUnfixableMismatchEvent {
 
 #[derive(Debug)]
 pub struct ExpectedFixableMismatchEvent<'a> {
-  pub variant: InstanceEventVariant,
+  pub variant: InstanceState,
   pub dependency_name: &'a str,
   pub instance_id: &'a str,
   pub actual: &'a str,

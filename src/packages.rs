@@ -1,6 +1,7 @@
 use glob::glob;
+use itertools::Itertools;
 use serde_json::Value;
-use std::{cell::RefCell, collections::HashMap, path::PathBuf, rc::Rc};
+use std::{cell::RefCell, cmp::Ordering, collections::HashMap, path::PathBuf, rc::Rc, vec::IntoIter};
 
 use crate::{
   cli::CliOptions,
@@ -18,9 +19,7 @@ pub struct Packages {
 impl Packages {
   /// Create an empty collection of package.json files
   pub fn new() -> Self {
-    Self {
-      by_name: HashMap::new(),
-    }
+    Self { by_name: HashMap::new() }
   }
 
   /// Get every package.json file matched by the user's source patterns
@@ -40,6 +39,22 @@ impl Packages {
     let name = package_json.get_name_unsafe();
     self.by_name.insert(name, Rc::new(RefCell::new(package_json)));
     self
+  }
+
+  /// Get all packages sorted by their file path
+  pub fn sorted_by_path(&self) -> IntoIter<&Rc<RefCell<PackageJson>>> {
+    let some_root_dir = PathBuf::new();
+    self.by_name.values().sorted_by(|a, b| {
+      let a = a.borrow().get_relative_file_path(&some_root_dir);
+      let b = b.borrow().get_relative_file_path(&some_root_dir);
+      if a == "package.json" {
+        return Ordering::Less;
+      }
+      if b == "package.json" {
+        return Ordering::Greater;
+      }
+      Ord::cmp(&a, &b)
+    })
   }
 
   /// Get every instance of a dependency from every package.json file
@@ -202,8 +217,5 @@ fn get_lerna_patterns() -> Option<Vec<String>> {
 }
 
 fn get_default_patterns() -> Option<Vec<String>> {
-  Some(vec![
-    String::from("package.json"),
-    String::from("packages/*/package.json"),
-  ])
+  Some(vec![String::from("package.json"), String::from("packages/*/package.json")])
 }

@@ -1,8 +1,6 @@
 use std::{collections::HashMap, rc::Rc};
 
-use crate::{
-  config::Config, instance::Instance, packages::Packages, semver_group::SemverGroup, version_group::VersionGroup,
-};
+use crate::{config::Config, instance::Instance, packages::Packages, semver_group::SemverGroup, version_group::VersionGroup};
 
 pub struct Context {
   /// Every local instance, regardless of which version group it belongs to
@@ -24,10 +22,7 @@ impl Context {
       if instance.is_local {
         local_instances_by_name.insert(instance.name.clone(), Rc::clone(&instance));
       }
-      if let Some(semver_group) = semver_groups
-        .iter()
-        .find(|semver_group| semver_group.selector.can_add(&instance))
-      {
+      if let Some(semver_group) = semver_groups.iter().find(|semver_group| semver_group.selector.can_add(&instance)) {
         instance.apply_semver_group(semver_group);
       }
       if let Some(version_group) = version_groups

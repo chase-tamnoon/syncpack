@@ -4,13 +4,12 @@ use log::info;
 use crate::{
   config::Config,
   dependency::Dependency,
-  effects::{Effects, Event, InstanceEvent, InstanceEventVariant},
+  effects::{Effects, Event, InstanceEvent, InstanceState},
   packages::Packages,
-  specifier::Specifier,
   version_group::Variant,
 };
 
-use super::FormatEventVariant;
+use super::FormatMismatchVariant;
 
 /// The implementation of the `lint` command's side effects
 pub struct LintEffects<'a> {
@@ -50,19 +49,19 @@ impl Effects for LintEffects<'_> {
         let full_header = format!("{header}{divider}");
         info!("{}", full_header.blue());
       }
-      Event::DependencyValid(dependency, expected) => {
+      Event::DependencyValid(dependency) => {
         let count = render_count_column(dependency.all_instances.borrow().len());
         let name = &dependency.name;
-        let hint = get_expected_hint(dependency, expected);
+        let hint = get_expected_hint(dependency);
         info!("{count} {name} {hint}");
       }
-      Event::DependencyInvalid(dependency, expected) => {
+      Event::DependencyInvalid(dependency) => {
         let count = render_count_column(dependency.all_instances.borrow().len());
         let name = &dependency.name;
-        let hint = get_expected_hint(dependency, expected);
+        let hint = get_expected_hint(dependency);
         info!("{count} {name} {hint}");
       }
-      Event::DependencyWarning(dependency, expected) => {
+      Event::DependencyWarning(dependency) => {
         let count = render_count_column(dependency.all_instances.borrow().len());
         let name = &dependency.name;
         let hint = "has name or specifiers unsupported by syncpack".dimmed();
@@ -79,23 +78,23 @@ impl Effects for LintEffects<'_> {
           let property_path = &mismatch.property_path.dimmed();
           let expected = &mismatch.expected;
           match &mismatch.variant {
-            FormatEventVariant::BugsPropertyIsNotFormatted => {
+            FormatMismatchVariant::BugsPropertyIsNotFormatted => {
               let message = "is not in shorthand format".dimmed();
               info!("  {property_path} {message}");
             }
-            FormatEventVariant::RepositoryPropertyIsNotFormatted => {
+            FormatMismatchVariant::RepositoryPropertyIsNotFormatted => {
               let message = "is not in shorthand format".dimmed();
               info!("  {property_path} {message}");
             }
-            FormatEventVariant::ExportsPropertyIsNotSorted => {
+            FormatMismatchVariant::ExportsPropertyIsNotSorted => {
               let message = "is not sorted".dimmed();
               info!("  {property_path} {message}");
             }
-            FormatEventVariant::PropertyIsNotSortedAz => {
+            FormatMismatchVariant::PropertyIsNotSortedAz => {
               let message = "is not sorted alphabetically".dimmed();
               info!("  {property_path} {message}");
             }
-            FormatEventVariant::PackagePropertiesAreNotSorted => {
+            FormatMismatchVariant::PackagePropertiesAreNotSorted => {
               let message = "root properties are not sorted".dimmed();
               info!("  {message}");
             }
@@ -117,15 +116,18 @@ impl Effects for LintEffects<'_> {
     let instance = &event.instance;
     let dependency = &event.dependency;
     match &event.variant {
+      InstanceState::Unknown => {
+        info!("@TODO: InstanceState::Unknown '{}'", instance.id);
+      }
       /* Ignored */
-      InstanceEventVariant::InstanceIsIgnored => { /*NOOP*/ }
+      InstanceState::MatchesIgnored => { /*NOOP*/ }
       /* Matches */
-      InstanceEventVariant::LocalInstanceIsValid
-      | InstanceEventVariant::InstanceMatchesLocal
-      | InstanceEventVariant::InstanceMatchesHighestOrLowestSemver
-      | InstanceEventVariant::InstanceMatchesButIsUnsupported
-      | InstanceEventVariant::InstanceMatchesPinned
-      | InstanceEventVariant::InstanceMatchesSameRangeGroup => {
+      InstanceState::LocalWithValidVersion
+      | InstanceState::MatchesLocal
+      | InstanceState::MatchesPreferVersion
+      | InstanceState::MatchesButUnsupported
+      | InstanceState::MatchesPin
+      | InstanceState::MatchesSameRangeGroup => {
         // return /*SKIP*/;
         let icon = icon_valid();
         let actual = instance.actual.unwrap().green();
@@ -133,19 +135,19 @@ impl Effects for LintEffects<'_> {
         info!("      {icon} {actual} {location_hint}");
       }
       /* Warnings */
-      InstanceEventVariant::LocalInstanceMistakenlyBanned => {
+      InstanceState::RefuseToBanLocal => {
         info!("  LocalInstanceMistakenlyBanned");
       }
-      InstanceEventVariant::LocalInstanceMistakenlyMismatchesSemverGroup => {
+      InstanceState::RefuseToChangeLocalSemverRange => {
         info!("  LocalInstanceMistakenlyMismatchesSemverGroup");
       }
-      InstanceEventVariant::LocalInstanceMistakenlyMismatchesPinned => {
+      InstanceState::RefuseToPinLocal => {
         info!("  LocalInstanceMistakenlyMismatchesPinned");
       }
-      InstanceEventVariant::LocalInstanceWithMissingVersion => {
+      InstanceState::MissingLocalVersion => {
         info!("  LocalInstanceWithMissingVersion");
       }
-      InstanceEventVariant::InstanceMatchesHighestOrLowestSemverButMismatchesConflictingSemverGroup => {
+      InstanceState::PreferVersionMatchConflictsWithSemverGroup => {
         // return /*SKIP*/;
         let icon = icon_fixable();
         let actual = instance.actual.unwrap().red();
@@ -155,13 +157,15 @@ impl Effects for LintEffects<'_> {
         } else {
           "higher"
         };
-        let hint = format!("is {high_low} but mismatches its semver group, fixing its semver group would cause its version to be {opposite}").dimmed();
+        let hint =
+          format!("is {high_low} but mismatches its semver group, fixing its semver group would cause its version to be {opposite}")
+            .dimmed();
         let location_hint = instance.location_hint.dimmed();
         info!("      {icon} {actual} {hint} {location_hint}");
         self.is_valid = false;
       }
       /* Fixable Mismatches */
-      InstanceEventVariant::InstanceIsBanned => {
+      InstanceState::Banned => {
         // return /*SKIP*/;
         let icon = icon_fixable();
         let hint = "banned".red();
@@ -169,7 +173,7 @@ impl Effects for LintEffects<'_> {
         info!("      {icon} {hint} {location_hint}");
         self.is_valid = false;
       }
-      InstanceEventVariant::InstanceIsHighestOrLowestSemverOnceSemverGroupIsFixed => {
+      InstanceState::SemverRangeMismatchWillFixPreferVersion => {
         // return /*SKIP*/;
         let icon = icon_fixable();
         let actual = instance.actual.unwrap().red();
@@ -181,13 +185,13 @@ impl Effects for LintEffects<'_> {
         info!("      {icon} {actual} {arrow} {expected} {hint} {location_hint}");
         self.is_valid = false;
       }
-      InstanceEventVariant::InstanceMatchesLocalButMismatchesSemverGroup => {
+      InstanceState::LocalMatchConflictsWithSemverGroup => {
         info!("  InstanceMatchesLocalButMismatchesSemverGroup");
       }
-      InstanceEventVariant::InstanceMismatchesLocal => {
+      InstanceState::MismatchesLocal => {
         info!("  InstanceMismatchesLocal");
       }
-      InstanceEventVariant::InstanceMismatchesHighestOrLowestSemver => {
+      InstanceState::MismatchesPreferVersion => {
         // return /*SKIP*/;
         let icon = icon_fixable();
         let actual = instance.actual.unwrap().red();
@@ -195,7 +199,7 @@ impl Effects for LintEffects<'_> {
         info!("      {icon} {actual} {location_hint}");
         self.is_valid = false;
       }
-      InstanceEventVariant::InstanceMismatchesPinned => {
+      InstanceState::MismatchesPin => {
         // return /*SKIP*/;
         let icon = icon_fixable();
         let actual = instance.actual.unwrap().red();
@@ -204,10 +208,10 @@ impl Effects for LintEffects<'_> {
         self.is_valid = false;
       }
       /* Unfixable Mismatches */
-      InstanceEventVariant::InstanceMismatchesLocalWithMissingVersion => {
+      InstanceState::MismatchesMissingLocalVersion => {
         info!("  InstanceMismatchesLocalWithMissingVersion");
       }
-      InstanceEventVariant::InstanceMismatchesAndIsUnsupported => {
+      InstanceState::MismatchesUnsupported => {
         // return /*SKIP*/;
         let icon = icon_unfixable();
         let actual = instance.actual.unwrap().red();
@@ -215,22 +219,22 @@ impl Effects for LintEffects<'_> {
         info!("      {icon} {actual} {location_hint}");
         self.is_valid = false;
       }
-      InstanceEventVariant::InstanceMatchesPinnedButMismatchesSemverGroup => {
+      InstanceState::PinMatchConflictsWithSemverGroup => {
         info!("  InstanceMatchesPinnedButMismatchesSemverGroup");
       }
-      InstanceEventVariant::InstanceMismatchesBothSameRangeAndConflictingSemverGroups => {
+      InstanceState::SemverRangeMismatchWontFixSameRangeGroup => {
         info!("  InstanceMismatchesBothSameRangeAndConflictingSemverGroups");
       }
-      InstanceEventVariant::InstanceMismatchesBothSameRangeAndCompatibleSemverGroups => {
+      InstanceState::SemverRangeMismatchWillFixSameRangeGroup => {
         info!("  InstanceMismatchesBothSameRangeAndCompatibleSemverGroups");
       }
-      InstanceEventVariant::InstanceMatchesSameRangeGroupButMismatchesConflictingSemverGroup => {
+      InstanceState::SameRangeMatchConflictsWithSemverGroup => {
         info!("  InstanceMatchesSameRangeGroupButMismatchesConflictingSemverGroup");
       }
-      InstanceEventVariant::InstanceMatchesSameRangeGroupButMismatchesCompatibleSemverGroup => {
+      InstanceState::SemverRangeMismatchWillMatchSameRangeGroup => {
         info!("  InstanceMatchesSameRangeGroupButMismatchesCompatibleSemverGroup");
       }
-      InstanceEventVariant::InstanceMismatchesSameRangeGroup => {
+      InstanceState::MismatchesSameRangeGroup => {
         info!("  InstanceMismatchesSameRangeGroup");
       }
     }
@@ -269,8 +273,8 @@ fn icon_arrow() -> ColoredString {
 }
 
 // @TODO: write a .resolution enum on Dependency in visit_packages instead
-fn get_expected_hint(dependency: &Dependency, expected: &Option<Specifier>) -> ColoredString {
-  match expected {
+fn get_expected_hint(dependency: &Dependency) -> ColoredString {
+  match dependency.expected.borrow().clone() {
     Some(specifier) => match dependency.variant {
       Variant::Banned => {
         panic!("Banned should not have an expected specifier");
@@ -306,10 +310,7 @@ fn get_expected_hint(dependency: &Dependency, expected: &Option<Specifier>) -> C
       Variant::SameRange => "requires all ranges to satisfy each other".dimmed(),
       Variant::HighestSemver | Variant::LowestSemver => "has non semver mismatches syncpack cannot fix".dimmed(),
       _ => {
-        panic!(
-          "{} ({:?}) should have an expected specifier",
-          dependency.name, dependency.variant
-        );
+        panic!("{} ({:?}) should have an expected specifier", dependency.name, dependency.variant);
       }
     },
   }

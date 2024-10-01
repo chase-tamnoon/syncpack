@@ -5,12 +5,12 @@ use crate::{
   config::Config,
   effects::{
     lint::{icon_fixable, icon_valid},
-    Effects, Event, InstanceEvent, InstanceEventVariant,
+    Effects, Event, InstanceEvent, InstanceState,
   },
   packages::Packages,
 };
 
-use super::FormatEventVariant;
+use super::FormatMismatchVariant;
 
 /// The implementation of the `fix` command's side effects
 pub struct FixEffects<'a> {
@@ -50,9 +50,9 @@ impl Effects for FixEffects<'_> {
         let full_header = format!("{header}{divider}");
         info!("{}", full_header.blue());
       }
-      Event::DependencyValid(dependency, expected) => { /*NOOP*/ }
-      Event::DependencyInvalid(dependency, expected) => { /*NOOP*/ }
-      Event::DependencyWarning(dependency, expected) => { /*NOOP*/ }
+      Event::DependencyValid(_) => { /*NOOP*/ }
+      Event::DependencyInvalid(_) => { /*NOOP*/ }
+      Event::DependencyWarning(_) => { /*NOOP*/ }
       Event::PackageFormatMatch(_) => {
         // @TODO
       }
@@ -62,11 +62,11 @@ impl Effects for FixEffects<'_> {
           let property_path = &mismatch.property_path;
           let expected = &mismatch.expected;
           match &mismatch.variant {
-            FormatEventVariant::BugsPropertyIsNotFormatted
-            | FormatEventVariant::RepositoryPropertyIsNotFormatted
-            | FormatEventVariant::ExportsPropertyIsNotSorted
-            | FormatEventVariant::PropertyIsNotSortedAz
-            | FormatEventVariant::PackagePropertiesAreNotSorted => {
+            FormatMismatchVariant::BugsPropertyIsNotFormatted
+            | FormatMismatchVariant::RepositoryPropertyIsNotFormatted
+            | FormatMismatchVariant::ExportsPropertyIsNotSorted
+            | FormatMismatchVariant::PropertyIsNotSortedAz
+            | FormatMismatchVariant::PackagePropertiesAreNotSorted => {
               event
                 .package
                 .borrow_mut()
@@ -94,71 +94,74 @@ impl Effects for FixEffects<'_> {
     let instance = &event.instance;
     let dependency = &event.dependency;
     match &event.variant {
+      InstanceState::Unknown => {
+        panic!("Unknown instance state");
+      }
       /* Ignored */
-      InstanceEventVariant::InstanceIsIgnored => { /*NOOP*/ }
+      InstanceState::MatchesIgnored => { /*NOOP*/ }
       /* Matches */
-      InstanceEventVariant::LocalInstanceIsValid
-      | InstanceEventVariant::InstanceMatchesLocal
-      | InstanceEventVariant::InstanceMatchesHighestOrLowestSemver
-      | InstanceEventVariant::InstanceMatchesButIsUnsupported
-      | InstanceEventVariant::InstanceMatchesPinned
-      | InstanceEventVariant::InstanceMatchesSameRangeGroup => { /*NOOP*/ }
+      InstanceState::LocalWithValidVersion
+      | InstanceState::MatchesLocal
+      | InstanceState::MatchesPreferVersion
+      | InstanceState::MatchesButUnsupported
+      | InstanceState::MatchesPin
+      | InstanceState::MatchesSameRangeGroup => { /*NOOP*/ }
       /* Warnings */
-      InstanceEventVariant::LocalInstanceMistakenlyBanned => {
-        println!("@TODO: explain LocalInstanceMistakenlyBanned");
+      InstanceState::RefuseToBanLocal => {
+        println!("@TODO: explain RefuseToBanLocal");
       }
-      InstanceEventVariant::LocalInstanceMistakenlyMismatchesSemverGroup => {
-        println!("@TODO: explain LocalInstanceMistakenlyMismatchesSemverGroup");
+      InstanceState::RefuseToChangeLocalSemverRange => {
+        println!("@TODO: explain RefuseToChangeLocalSemverRange");
       }
-      InstanceEventVariant::LocalInstanceMistakenlyMismatchesPinned => {
-        println!("@TODO: explain LocalInstanceMistakenlyMismatchesPinned");
+      InstanceState::RefuseToPinLocal => {
+        println!("@TODO: explain RefuseToPinLocal");
       }
-      InstanceEventVariant::LocalInstanceWithMissingVersion => {
-        println!("@TODO: explain LocalInstanceWithMissingVersion");
+      InstanceState::MissingLocalVersion => {
+        println!("@TODO: explain MissingLocalVersion");
       }
-      InstanceEventVariant::InstanceMatchesHighestOrLowestSemverButMismatchesConflictingSemverGroup => {
-        println!("@TODO: explain InstanceEventVariant::InstanceMatchesHighestOrLowestSemverButMismatchesConflictingSemverGroup");
+      InstanceState::PreferVersionMatchConflictsWithSemverGroup => {
+        println!("@TODO: explain PreferVersionMatchConflictsWithSemverGroup");
       }
       /* Fixable Mismatches */
-      InstanceEventVariant::InstanceIsBanned
-      | InstanceEventVariant::InstanceIsHighestOrLowestSemverOnceSemverGroupIsFixed
-      | InstanceEventVariant::InstanceMatchesLocalButMismatchesSemverGroup
-      | InstanceEventVariant::InstanceMismatchesLocal
-      | InstanceEventVariant::InstanceMismatchesHighestOrLowestSemver
-      | InstanceEventVariant::InstanceMismatchesPinned => {
+      InstanceState::Banned
+      | InstanceState::SemverRangeMismatchWillFixPreferVersion
+      | InstanceState::LocalMatchConflictsWithSemverGroup
+      | InstanceState::MismatchesLocal
+      | InstanceState::MismatchesPreferVersion
+      | InstanceState::MismatchesPin => {
         instance.package.borrow().apply_instance_specifier(instance);
       }
       /* Unfixable Mismatches */
-      InstanceEventVariant::InstanceMismatchesLocalWithMissingVersion => {
-        println!("@TODO: explain InstanceMismatchesLocalWithMissingVersion");
+      InstanceState::MismatchesMissingLocalVersion => {
+        println!("@TODO: explain MismatchesMissingLocalVersion");
         self.is_valid = false;
       }
-      InstanceEventVariant::InstanceMismatchesAndIsUnsupported => {
-        println!("@TODO: explain InstanceMismatchesAndIsUnsupported");
+      InstanceState::MismatchesUnsupported => {
+        println!("@TODO: explain MismatchesUnsupported");
         self.is_valid = false;
       }
-      InstanceEventVariant::InstanceMatchesPinnedButMismatchesSemverGroup => {
-        println!("@TODO: explain InstanceMatchesPinnedButMismatchesSemverGroup");
+      InstanceState::PinMatchConflictsWithSemverGroup => {
+        println!("@TODO: explain PinMatchConflictsWithSemverGroup");
         self.is_valid = false;
       }
-      InstanceEventVariant::InstanceMismatchesBothSameRangeAndConflictingSemverGroups => {
-        println!("@TODO: explain InstanceMismatchesBothSameRangeAndConflictingSemverGroups");
+      InstanceState::SemverRangeMismatchWontFixSameRangeGroup => {
+        println!("@TODO: explain SemverRangeMismatchWontFixSameRangeGroup");
         self.is_valid = false;
       }
-      InstanceEventVariant::InstanceMismatchesBothSameRangeAndCompatibleSemverGroups => {
-        println!("@TODO: explain InstanceMismatchesBothSameRangeAndCompatibleSemverGroups");
+      InstanceState::SemverRangeMismatchWillFixSameRangeGroup => {
+        println!("@TODO: explain SemverRangeMismatchWillFixSameRangeGroup");
         self.is_valid = false;
       }
-      InstanceEventVariant::InstanceMatchesSameRangeGroupButMismatchesConflictingSemverGroup => {
-        println!("@TODO: explain InstanceMatchesSameRangeGroupButMismatchesConflictingSemverGroup");
+      InstanceState::SameRangeMatchConflictsWithSemverGroup => {
+        println!("@TODO: explain SameRangeMatchConflictsWithSemverGroup");
         self.is_valid = false;
       }
-      InstanceEventVariant::InstanceMatchesSameRangeGroupButMismatchesCompatibleSemverGroup => {
-        println!("@TODO: explain InstanceMatchesSameRangeGroupButMismatchesCompatibleSemverGroup");
+      InstanceState::SemverRangeMismatchWillMatchSameRangeGroup => {
+        println!("@TODO: explain SemverRangeMismatchWillMatchSameRangeGroup");
         self.is_valid = false;
       }
-      InstanceEventVariant::InstanceMismatchesSameRangeGroup => {
-        println!("@TODO: explain InstanceMismatchesSameRangeGroup");
+      InstanceState::MismatchesSameRangeGroup => {
+        println!("@TODO: explain MismatchesSameRangeGroup");
         self.is_valid = false;
       }
     }

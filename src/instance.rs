@@ -4,6 +4,7 @@ use std::{cell::RefCell, path::PathBuf, rc::Rc};
 
 use crate::{
   dependency_type::{DependencyType, Strategy},
+  effects::InstanceState,
   package_json::PackageJson,
   semver_group::SemverGroup,
   specifier::{semver::Semver, semver_range::SemverRange, Specifier},
@@ -36,6 +37,9 @@ pub struct Instance {
   /// This is used by Version Groups while determining the preferred version,
   /// to try to also satisfy any applicable semver group ranges
   pub prefer_range: RefCell<Option<SemverRange>>,
+  /// The state of whether this instance has not been processed yet
+  /// (InstanceState::Unknown) or when it has, what it was found to be
+  pub state: RefCell<InstanceState>,
 }
 
 impl Instance {
@@ -59,7 +63,12 @@ impl Instance {
       name,
       package: Rc::clone(&package),
       prefer_range: RefCell::new(None),
+      state: RefCell::new(InstanceState::Unknown),
     }
+  }
+
+  pub fn set_state(&self, state: InstanceState) {
+    *self.state.borrow_mut() = state;
   }
 
   /// Log every property of this instance
@@ -90,6 +99,11 @@ impl Instance {
       std::mem::drop(prefer_range);
       std::mem::drop(expected);
     }
+  }
+
+  /// Does this instance's actual specifier match the expected specifier?
+  pub fn already_matches(&self, expected: &Specifier) -> bool {
+    self.actual == *expected
   }
 
   /// Does this instance's specifier match the expected specifier for this
@@ -153,39 +167,7 @@ impl Instance {
       .expect("Failed to fix semver range mismatch")
   }
 
-  /// Write a version to the package.json
-  pub fn set_specifier(&self, package: &PackageJson, specifier: &Specifier) {
-    match self.dependency_type.strategy {
-      Strategy::NameAndVersionProps => {
-        let path_to_prop_str = &self.dependency_type.path.as_str();
-        let raw_specifier = specifier.unwrap();
-        package.set_prop(path_to_prop_str, Value::String(raw_specifier));
-      }
-      Strategy::NamedVersionString => {
-        let path_to_prop_str = &self.dependency_type.path.as_str();
-        let raw_specifier = specifier.unwrap();
-        let full_value = format!("{}@{}", self.name, raw_specifier);
-        package.set_prop(path_to_prop_str, Value::String(full_value));
-      }
-      Strategy::UnnamedVersionString => {
-        let path_to_prop_str = &self.dependency_type.path.as_str();
-        let raw_specifier = specifier.unwrap();
-        package.set_prop(path_to_prop_str, Value::String(raw_specifier));
-      }
-      Strategy::VersionsByName => {
-        let path_to_obj_str = &self.dependency_type.path.as_str();
-        let raw_specifier = specifier.unwrap();
-        let mut contents = package.contents.borrow_mut();
-        let versions_by_name = contents.pointer_mut(path_to_obj_str).unwrap().as_object_mut().unwrap();
-        let old_specifier = versions_by_name.get_mut(&self.name).unwrap();
-        *old_specifier = Value::String(raw_specifier);
-        std::mem::drop(contents);
-      }
-      Strategy::InvalidConfig => {
-        panic!("unrecognised strategy");
-      }
-    };
-    // update in-memory state
+  pub fn set_expected_specifier(&self, specifier: &Specifier) {
     *self.expected.borrow_mut() = specifier.clone();
   }
 

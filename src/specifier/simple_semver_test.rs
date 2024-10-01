@@ -62,10 +62,7 @@ fn returns_struct_for_comparison_and_sorting() {
     assert_eq!(orderable.version.minor, expected.version.minor, "version.minor");
     assert_eq!(orderable.version.patch, expected.version.patch, "version.patch");
     assert_eq!(orderable.version.build, expected.version.build, "version.build");
-    assert_eq!(
-      orderable.version.pre_release, expected.version.pre_release,
-      "version.pre_release"
-    );
+    assert_eq!(orderable.version.pre_release, expected.version.pre_release, "version.pre_release");
   }
 }
 

@@ -8,7 +8,8 @@ use std::{cmp::Ordering, rc::Rc};
 use crate::{
   config::Config,
   context::Context,
-  effects::{Effects, Event, FormatEvent, FormatEventVariant, InstanceEvent, InstanceEventVariant, PackageFormatEvent},
+  dependency::DependencyState,
+  effects::{Effects, Event, FormatMismatch, FormatMismatchEvent, FormatMismatchVariant, InstanceEvent, InstanceState},
   format,
   packages::Packages,
   specifier::Specifier,
@@ -16,16 +17,13 @@ use crate::{
 };
 
 pub fn visit_packages(config: &Config, packages: &Packages, effects: &mut impl Effects) {
-  const VALID: u8 = 0;
-  const WARNING: u8 = 1;
-  const INVALID: u8 = 2;
-
   let ctx = Context::create(config, packages);
 
   if config.cli.options.versions {
     effects.on(Event::EnterVersionsAndRanges);
 
-    ctx.version_groups
+    ctx
+      .version_groups
       .iter()
       // fix snapped to groups last, so that the packages they're snapped to
       // have any fixes applied to them first
@@ -42,33 +40,16 @@ pub fn visit_packages(config: &Config, packages: &Packages, effects: &mut impl E
         effects.on(Event::GroupVisited(&group.selector));
 
         group.dependencies.borrow().values().for_each(|dependency| {
-          let mut expected: Option<Specifier> = None;
-          let mut queue: Vec<InstanceEvent> = vec![];
-          let mut severity = VALID;
-          let mut mark_as = |level: u8| {
-            if severity < level {
-              severity = level;
-            }
-          };
-
           match dependency.variant {
             Variant::Banned => {
               dependency.all_instances.borrow().iter().for_each(|instance| {
                 if instance.is_local {
-                  mark_as(WARNING);
-                  queue.push(InstanceEvent {
-                    dependency,
-                    instance: Rc::clone(instance),
-                    variant: InstanceEventVariant::LocalInstanceMistakenlyBanned,
-                  });
+                  dependency.set_state(DependencyState::Warning);
+                  instance.set_state(InstanceState::RefuseToBanLocal);
                 } else {
-                  mark_as(INVALID);
-                  *instance.expected.borrow_mut() = Specifier::None;
-                  queue.push(InstanceEvent {
-                    dependency,
-                    instance: Rc::clone(instance),
-                    variant: InstanceEventVariant::InstanceIsBanned,
-                  });
+                  dependency.set_state(DependencyState::Invalid);
+                  instance.set_expected_specifier(&Specifier::None);
+                  instance.set_state(InstanceState::Banned);
                 }
               });
             }
@@ -77,203 +58,122 @@ pub fn visit_packages(config: &Config, packages: &Packages, effects: &mut impl E
               let preferred_order: Ordering = if prefer_highest { Ordering::Greater } else { Ordering::Less };
               let label: &str = if prefer_highest { "highest" } else { "lowest" };
 
-              match dependency.get_local_specifier() {
-                Some(local_specifier) => {
-                  dependency.all_instances.borrow().iter().for_each(|instance| {
-                    if instance.is_local {
-                       if matches!(local_specifier, Specifier::None) {
-                        mark_as(WARNING);
-                       *instance.expected.borrow_mut() = Specifier::None;
-                        queue.push(InstanceEvent {
-                          dependency,
-                          instance: Rc::clone(instance),
-                          variant: InstanceEventVariant::LocalInstanceWithMissingVersion,
-                        });
-                      }else if instance.has_range_mismatch(&local_specifier) {
-                        mark_as(WARNING);
-                        expected = Some(local_specifier.clone());
-                       *instance.expected.borrow_mut() = local_specifier.clone();
-                        queue.push(InstanceEvent {
-                          dependency,
-                          instance: Rc::clone(instance),
-                          variant: InstanceEventVariant::LocalInstanceMistakenlyMismatchesSemverGroup,
-                        });
-                      } else {
-                        expected = Some(local_specifier.clone());
-                        queue.push(InstanceEvent {
-                          dependency,
-                          instance: Rc::clone(instance),
-                          variant: InstanceEventVariant::LocalInstanceIsValid,
-                        });
-                      }
-                    } else if matches!(local_specifier, Specifier::None) {
-                      mark_as(INVALID);
-                     *instance.expected.borrow_mut() = Specifier::None;
-                      queue.push(InstanceEvent {
-                        dependency,
-                        instance: Rc::clone(instance),
-                        variant: InstanceEventVariant::InstanceMismatchesLocalWithMissingVersion,
-                      });
-                    } else if instance.actual == local_specifier {
-                      if instance.has_range_mismatch(&local_specifier) {
-                        mark_as(INVALID);
-                       *instance.expected.borrow_mut() = instance.get_fixed_range_mismatch();
-                        expected = Some(local_specifier.clone());
-                        queue.push(InstanceEvent {
-                          dependency,
-                          instance: Rc::clone(instance),
-                          variant: InstanceEventVariant::InstanceMatchesLocalButMismatchesSemverGroup,
-                        });
-                      } else {
-                        expected = Some(local_specifier.clone());
-                        queue.push(InstanceEvent {
-                          dependency,
-                          instance: Rc::clone(instance),
-                          variant: InstanceEventVariant::InstanceMatchesLocal,
-                        });
-                      }
+              if dependency.has_local_instance() {
+                let local_specifier = dependency.get_local_specifier().unwrap();
+                dependency.all_instances.borrow().iter().for_each(|instance| {
+                  if instance.is_local {
+                    if matches!(local_specifier, Specifier::None) {
+                      dependency.set_state(DependencyState::Warning);
+                      instance.set_state(InstanceState::MissingLocalVersion);
+                    } else if instance.has_range_mismatch(&local_specifier) {
+                      dependency.set_state(DependencyState::Warning);
+                      dependency.set_expected_specifier(&local_specifier);
+                      instance.set_expected_specifier(&local_specifier);
+                      instance.set_state(InstanceState::RefuseToChangeLocalSemverRange);
                     } else {
-                      mark_as(INVALID);
-                     *instance.expected.borrow_mut() = local_specifier.clone();
-                      expected = Some(local_specifier.clone());
-                      queue.push(InstanceEvent {
-                        dependency,
-                        instance: Rc::clone(instance),
-                        variant: InstanceEventVariant::InstanceMismatchesLocal,
-                      });
+                      dependency.set_expected_specifier(&local_specifier);
+                      instance.set_state(InstanceState::LocalWithValidVersion);
                     }
-                  });
-                }
-                None => {
-                  if dependency.all_are_semver() {
-                    match dependency.get_highest_or_lowest_semver( preferred_order) {
-                      Some(preferred) => {
-                        dependency.all_instances.borrow().iter().for_each(|instance| {
-                          if instance.actual == preferred {
-                            if instance.has_range_mismatch(&preferred) {
-                              mark_as(INVALID);
-                             *instance.expected.borrow_mut() = instance.get_fixed_range_mismatch();
-                              expected = Some(preferred.clone());
-                              queue.push(InstanceEvent {
-                                dependency,
-                                instance: Rc::clone(instance),
-                                variant: InstanceEventVariant::InstanceMatchesHighestOrLowestSemverButMismatchesConflictingSemverGroup,
-                              });
-                            } else {
-                              expected = Some(preferred.clone());
-                              queue.push(InstanceEvent {
-                                dependency,
-                                instance: Rc::clone(instance),
-                                variant: InstanceEventVariant::InstanceMatchesHighestOrLowestSemver,
-                              });
-                            }
-                          } else if *instance.expected.borrow() == preferred {
-                            if instance.matches_semver_group(&instance.expected.borrow()) && !instance.matches_semver_group(&instance.actual) {
-                              mark_as(INVALID);
-                              expected = Some(preferred.clone());
-                              queue.push(InstanceEvent {
-                                dependency,
-                                instance: Rc::clone(instance),
-                                variant: InstanceEventVariant::InstanceIsHighestOrLowestSemverOnceSemverGroupIsFixed,
-                              });
-                            }
-                          } else {
-                            // check this
-                            mark_as(INVALID);
-                           *instance.expected.borrow_mut() = preferred.clone();
-                            expected = Some(preferred.clone());
-                            queue.push(InstanceEvent {
-                              dependency,
-                              instance: Rc::clone(instance),
-                              variant: InstanceEventVariant::InstanceMismatchesHighestOrLowestSemver,
-                            });
-                          }
-                        });
-                      }
-                      None => {
-                        panic!("No {} semver found for dependency {:?}", label, dependency);
-                      }
+                  } else if matches!(local_specifier, Specifier::None) {
+                    dependency.set_state(DependencyState::Invalid);
+                    instance.set_expected_specifier(&Specifier::None);
+                    instance.set_state(InstanceState::MismatchesMissingLocalVersion);
+                  } else if instance.already_matches(&local_specifier) {
+                    if instance.has_range_mismatch(&local_specifier) {
+                      dependency.set_state(DependencyState::Invalid);
+                      instance.set_expected_specifier(&instance.get_fixed_range_mismatch());
+                      dependency.set_expected_specifier(&local_specifier);
+                      instance.set_state(InstanceState::LocalMatchConflictsWithSemverGroup);
+                    } else {
+                      dependency.set_expected_specifier(&local_specifier);
+                      instance.set_state(InstanceState::MatchesLocal);
                     }
-                  } else if dependency.all_are_identical() {
-                    mark_as(WARNING);
-                    dependency.all_instances.borrow().iter().for_each(|instance| {
-                      expected = Some(instance.actual.clone());
-                      queue.push(InstanceEvent {
-                        dependency,
-                        instance: Rc::clone(instance),
-                        variant: InstanceEventVariant::InstanceMatchesButIsUnsupported,
-                      });
-                    });
                   } else {
-                    mark_as(INVALID);
+                    dependency.set_state(DependencyState::Invalid);
+                    instance.set_expected_specifier(&local_specifier);
+                    dependency.set_expected_specifier(&local_specifier);
+                    instance.set_state(InstanceState::MismatchesLocal);
+                  }
+                });
+              } else if dependency.all_are_semver() {
+                match dependency.get_preferred_specifier(preferred_order) {
+                  Some(preferred) => {
                     dependency.all_instances.borrow().iter().for_each(|instance| {
-                     *instance.expected.borrow_mut() = Specifier::None;
-                      queue.push(InstanceEvent {
-                        dependency,
-                        instance: Rc::clone(instance),
-                        variant: InstanceEventVariant::InstanceMismatchesAndIsUnsupported,
-                      });
+                      if instance.already_matches(&preferred) {
+                        if instance.has_range_mismatch(&preferred) {
+                          dependency.set_state(DependencyState::Invalid);
+                          instance.set_expected_specifier(&instance.get_fixed_range_mismatch());
+                          dependency.set_expected_specifier(&preferred);
+                          instance.set_state(InstanceState::PreferVersionMatchConflictsWithSemverGroup);
+                        } else {
+                          dependency.set_expected_specifier(&preferred);
+                          instance.set_state(InstanceState::MatchesPreferVersion);
+                        }
+                      } else if *instance.expected.borrow() == preferred {
+                        if instance.matches_semver_group(&instance.expected.borrow()) && !instance.matches_semver_group(&instance.actual) {
+                          dependency.set_state(DependencyState::Invalid);
+                          dependency.set_expected_specifier(&preferred);
+                          instance.set_state(InstanceState::SemverRangeMismatchWillFixPreferVersion);
+                        }
+                      } else {
+                        // check this
+                        dependency.set_state(DependencyState::Invalid);
+                        instance.set_expected_specifier(&preferred);
+                        dependency.set_expected_specifier(&preferred);
+                        instance.set_state(InstanceState::MismatchesPreferVersion);
+                      }
                     });
                   }
+                  None => {
+                    panic!("No {} semver found for dependency {:?}", label, dependency);
+                  }
                 }
+              } else if dependency.all_are_identical() {
+                dependency.set_state(DependencyState::Warning);
+                dependency.all_instances.borrow().iter().for_each(|instance| {
+                  dependency.set_expected_specifier(&instance.actual);
+                  instance.set_state(InstanceState::MatchesButUnsupported);
+                });
+              } else {
+                dependency.set_state(DependencyState::Invalid);
+                dependency.all_instances.borrow().iter().for_each(|instance| {
+                  instance.set_expected_specifier(&Specifier::None);
+                  instance.set_state(InstanceState::MismatchesUnsupported);
+                });
               }
             }
             Variant::Ignored => {
               dependency.all_instances.borrow().iter().for_each(|instance| {
-                queue.push(InstanceEvent {
-                  dependency,
-                  instance: Rc::clone(instance),
-                  variant: InstanceEventVariant::InstanceIsIgnored,
-                });
+                instance.set_state(InstanceState::MatchesIgnored);
               });
             }
             Variant::Pinned => match &dependency.pinned_specifier {
               Some(pinned) => {
                 dependency.all_instances.borrow().iter().for_each(|instance| {
                   // CHECK THIS Eq WORKS
-                  if instance.actual == *pinned {
-                    expected = Some(pinned.clone());
-                    queue.push(InstanceEvent {
-                      dependency,
-                      instance: Rc::clone(instance),
-                      variant: InstanceEventVariant::InstanceMatchesPinned,
-                    });
+                  if instance.already_matches(pinned) {
+                    dependency.set_expected_specifier(pinned);
+                    instance.set_state(InstanceState::MatchesPin);
                   } else if instance.has_range_mismatch(pinned) {
                     if instance.is_local {
-                      mark_as(WARNING);
-                      expected = Some(pinned.clone());
-                      queue.push(InstanceEvent {
-                        dependency,
-                        instance: Rc::clone(instance),
-                        variant: InstanceEventVariant::LocalInstanceMistakenlyMismatchesSemverGroup,
-                      });
+                      dependency.set_state(DependencyState::Warning);
+                      dependency.set_expected_specifier(pinned);
+                      instance.set_state(InstanceState::RefuseToChangeLocalSemverRange);
                     } else {
-                      mark_as(INVALID);
-                     *instance.expected.borrow_mut() = instance.get_fixed_range_mismatch();
-                      expected = Some(pinned.clone());
-                      queue.push(InstanceEvent {
-                        dependency,
-                        instance: Rc::clone(instance),
-                        variant: InstanceEventVariant::InstanceMatchesPinnedButMismatchesSemverGroup,
-                      });
+                      dependency.set_state(DependencyState::Invalid);
+                      instance.set_expected_specifier(&instance.get_fixed_range_mismatch());
+                      dependency.set_expected_specifier(pinned);
+                      instance.set_state(InstanceState::PinMatchConflictsWithSemverGroup);
                     }
                   } else if instance.is_local {
-                    mark_as(WARNING);
-                    expected = Some(pinned.clone());
-                    queue.push(InstanceEvent {
-                      dependency,
-                      instance: Rc::clone(instance),
-                      variant: InstanceEventVariant::LocalInstanceMistakenlyMismatchesPinned,
-                    });
+                    dependency.set_state(DependencyState::Warning);
+                    dependency.set_expected_specifier(pinned);
+                    instance.set_state(InstanceState::RefuseToPinLocal);
                   } else {
-                    mark_as(INVALID);
-                   *instance.expected.borrow_mut() = pinned.clone();
-                    expected = Some(pinned.clone());
-                    queue.push(InstanceEvent {
-                      dependency,
-                      instance: Rc::clone(instance),
-                      variant: InstanceEventVariant::InstanceMismatchesPinned,
-                    });
+                    dependency.set_state(DependencyState::Invalid);
+                    instance.set_expected_specifier(pinned);
+                    dependency.set_expected_specifier(pinned);
+                    instance.set_state(InstanceState::MismatchesPin);
                   }
                 });
               }
@@ -289,117 +189,70 @@ pub fn visit_packages(config: &Config, packages: &Packages, effects: &mut impl E
                   if instance.has_range_mismatch(&instance.expected.borrow()) {
                     if mismatches.contains_key(&instance.actual) {
                       if mismatches.contains_key(&*instance.expected.borrow()) {
-                        mark_as(INVALID);
-                       *instance.expected.borrow_mut() = Specifier::None;
-                        queue.push(InstanceEvent {
-                          dependency,
-                          instance: Rc::clone(instance),
-                          variant: InstanceEventVariant::InstanceMismatchesBothSameRangeAndConflictingSemverGroups,
-                        });
+                        dependency.set_state(DependencyState::Invalid);
+                        instance.set_expected_specifier(&Specifier::None);
+                        instance.set_state(InstanceState::SemverRangeMismatchWontFixSameRangeGroup);
                       } else {
-                        mark_as(INVALID);
-                       *instance.expected.borrow_mut() = Specifier::None;
-                        queue.push(InstanceEvent {
-                          dependency,
-                          instance: Rc::clone(instance),
-                          variant: InstanceEventVariant::InstanceMismatchesBothSameRangeAndCompatibleSemverGroups,
-                        });
+                        dependency.set_state(DependencyState::Invalid);
+                        instance.set_expected_specifier(&Specifier::None);
+                        instance.set_state(InstanceState::SemverRangeMismatchWillFixSameRangeGroup);
                       }
                     } else if mismatches.contains_key(&*instance.expected.borrow()) {
-                      mark_as(INVALID);
-                     *instance.expected.borrow_mut() = Specifier::None;
-                      queue.push(InstanceEvent {
-                        dependency,
-                        instance: Rc::clone(instance),
-                        variant: InstanceEventVariant::InstanceMatchesSameRangeGroupButMismatchesConflictingSemverGroup,
-                      });
+                      dependency.set_state(DependencyState::Invalid);
+                      instance.set_expected_specifier(&Specifier::None);
+                      instance.set_state(InstanceState::SameRangeMatchConflictsWithSemverGroup);
                     } else {
-                      mark_as(INVALID);
-                     *instance.expected.borrow_mut() = Specifier::None;
-                      queue.push(InstanceEvent {
-                        dependency,
-                        instance: Rc::clone(instance),
-                        variant: InstanceEventVariant::InstanceMatchesSameRangeGroupButMismatchesCompatibleSemverGroup,
-                      });
+                      dependency.set_state(DependencyState::Invalid);
+                      instance.set_expected_specifier(&Specifier::None);
+                      instance.set_state(InstanceState::SemverRangeMismatchWillMatchSameRangeGroup);
                     }
                   } else if mismatches.contains_key(&instance.actual) {
-                    mark_as(INVALID);
-                   *instance.expected.borrow_mut() = Specifier::None;
-                    queue.push(InstanceEvent {
-                      dependency,
-                      instance: Rc::clone(instance),
-                      variant: InstanceEventVariant::InstanceMismatchesSameRangeGroup,
-                    });
+                    dependency.set_state(DependencyState::Invalid);
+                    instance.set_expected_specifier(&Specifier::None);
+                    instance.set_state(InstanceState::MismatchesSameRangeGroup);
                   } else {
-                    queue.push(InstanceEvent {
-                      dependency,
-                      instance: Rc::clone(instance),
-                      variant: InstanceEventVariant::InstanceMatchesSameRangeGroup,
-                    });
+                    instance.set_state(InstanceState::MatchesSameRangeGroup);
                   }
                   // /CHECK THIS OVER
                 });
               } else if dependency.all_are_identical() {
-                mark_as(WARNING);
+                dependency.set_state(DependencyState::Warning);
                 dependency.all_instances.borrow().iter().for_each(|instance| {
-                  queue.push(InstanceEvent {
-                    dependency,
-                    instance: Rc::clone(instance),
-                    variant: InstanceEventVariant::InstanceMatchesButIsUnsupported,
-                  });
+                  instance.set_state(InstanceState::MatchesButUnsupported);
                 });
               } else {
-                mark_as(INVALID);
+                dependency.set_state(DependencyState::Invalid);
                 dependency.all_instances.borrow().iter().for_each(|instance| {
-                 *instance.expected.borrow_mut() = Specifier::None;
-                  queue.push(InstanceEvent {
-                    dependency,
-                    instance: Rc::clone(instance),
-                    variant: InstanceEventVariant::InstanceMismatchesAndIsUnsupported,
-                  });
+                  instance.set_expected_specifier(&Specifier::None);
+                  instance.set_state(InstanceState::MismatchesUnsupported);
                 });
               }
             }
             Variant::SnappedTo => {
               let snapped_to_specifier = dependency.get_snapped_to_specifier();
               // @FIXME
-              expected = Some(Specifier::new("0.0.0"));
+              dependency.set_expected_specifier(&Specifier::new("0.0.0"));
             }
           };
 
-          if severity == VALID {
-            effects.on(Event::DependencyValid(dependency, expected));
-          } else if severity == WARNING {
-            effects.on(Event::DependencyWarning(dependency, expected));
+          // @TODO: this can be one event
+          if dependency.has_state(DependencyState::Valid) {
+            effects.on(Event::DependencyValid(dependency));
+          } else if dependency.has_state(DependencyState::Warning) {
+            effects.on(Event::DependencyWarning(dependency));
           } else {
-            effects.on(Event::DependencyInvalid(dependency, expected));
+            effects.on(Event::DependencyInvalid(dependency));
           }
 
-          // Sort instances by actual specifier and then package name
-          queue.sort_by(|a, b| {
-            let a = &a.instance;
-            let b = &b.instance;
+          dependency.sort_instances();
 
-            if matches!(&a.actual, Specifier::None) {
-              return Ordering::Greater;
-            }
-
-            if matches!(&b.actual, Specifier::None) {
-              return Ordering::Less;
-            }
-
-            let specifier_order = a.actual.unwrap().cmp(&b.actual.unwrap());
-
-            if matches!(specifier_order, Ordering::Equal) {
-              b.package.borrow().get_name_unsafe().cmp(&a.package.borrow().get_name_unsafe())
-            } else {
-              specifier_order
-            }
+          dependency.all_instances.borrow().iter().for_each(|instance| {
+            effects.on_instance(InstanceEvent {
+              dependency,
+              instance: Rc::clone(instance),
+              variant: instance.state.borrow().clone(),
+            });
           });
-
-          while let Some(event) = queue.pop() {
-            effects.on_instance(event);
-          }
         });
       });
   }
@@ -407,64 +260,64 @@ pub fn visit_packages(config: &Config, packages: &Packages, effects: &mut impl E
   if config.cli.options.format {
     effects.on(Event::EnterFormat);
 
-    packages.by_name.values().for_each(|package| {
-      let mut formatting_mismatches: Vec<FormatEvent> = Vec::new();
+    packages.sorted_by_path().for_each(|package| {
+      let mut formatting_mismatches: Vec<FormatMismatch> = Vec::new();
       if config.rcfile.format_bugs {
         if let Some(expected) = format::get_formatted_bugs(&package.borrow()) {
-          formatting_mismatches.push(FormatEvent {
+          formatting_mismatches.push(FormatMismatch {
             expected,
             package: Rc::clone(package),
             property_path: "/bugs".to_string(),
-            variant: FormatEventVariant::BugsPropertyIsNotFormatted,
+            variant: FormatMismatchVariant::BugsPropertyIsNotFormatted,
           });
         }
       }
       if config.rcfile.format_repository {
         if let Some(expected) = format::get_formatted_repository(&package.borrow()) {
-          formatting_mismatches.push(FormatEvent {
+          formatting_mismatches.push(FormatMismatch {
             expected,
             package: Rc::clone(package),
             property_path: "/repository".to_string(),
-            variant: FormatEventVariant::RepositoryPropertyIsNotFormatted,
+            variant: FormatMismatchVariant::RepositoryPropertyIsNotFormatted,
           });
         }
       }
       if !config.rcfile.sort_exports.is_empty() {
         if let Some(expected) = format::get_sorted_exports(&config.rcfile, &package.borrow()) {
-          formatting_mismatches.push(FormatEvent {
+          formatting_mismatches.push(FormatMismatch {
             expected,
             package: Rc::clone(package),
             property_path: "/exports".to_string(),
-            variant: FormatEventVariant::ExportsPropertyIsNotSorted,
+            variant: FormatMismatchVariant::ExportsPropertyIsNotSorted,
           });
         }
       }
       if !config.rcfile.sort_az.is_empty() {
         for key in config.rcfile.sort_az.iter() {
           if let Some(expected) = format::get_sorted_az(key, &package.borrow()) {
-            formatting_mismatches.push(FormatEvent {
+            formatting_mismatches.push(FormatMismatch {
               expected,
               package: Rc::clone(package),
               property_path: format!("/{}", key),
-              variant: FormatEventVariant::PropertyIsNotSortedAz,
+              variant: FormatMismatchVariant::PropertyIsNotSortedAz,
             });
           }
         }
       }
       if config.rcfile.sort_packages || !config.rcfile.sort_first.is_empty() {
         if let Some(expected) = format::get_sorted_first(&config.rcfile, &package.borrow()) {
-          formatting_mismatches.push(FormatEvent {
+          formatting_mismatches.push(FormatMismatch {
             expected,
             package: Rc::clone(package),
             property_path: "/".to_string(),
-            variant: FormatEventVariant::PackagePropertiesAreNotSorted,
+            variant: FormatMismatchVariant::PackagePropertiesAreNotSorted,
           });
         }
       }
       effects.on(if formatting_mismatches.is_empty() {
         Event::PackageFormatMatch(Rc::clone(package))
       } else {
-        Event::PackageFormatMismatch(PackageFormatEvent {
+        Event::PackageFormatMismatch(FormatMismatchEvent {
           package: Rc::clone(package),
           formatting_mismatches,
         })

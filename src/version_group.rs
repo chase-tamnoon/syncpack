@@ -3,8 +3,8 @@ use serde::Deserialize;
 use std::{cell::RefCell, collections::BTreeMap, rc::Rc, vec};
 
 use crate::{
-  dependency::Dependency, group_selector::GroupSelector, instance::Instance, package_json::PackageJson,
-  packages::Packages, specifier::Specifier,
+  dependency::Dependency, group_selector::GroupSelector, instance::Instance, package_json::PackageJson, packages::Packages,
+  specifier::Specifier,
 };
 
 /// What behaviour has this group been configured to exhibit?

@@ -30,10 +30,20 @@ pub struct InstancesBySpecifier<'a> {
   pub instances: Vec<&'a Instance>,
 }
 
+#[derive(Debug, Eq, PartialEq)]
+pub enum DependencyState {
+  Valid,
+  Warning,
+  Invalid,
+}
+
 #[derive(Debug)]
 pub struct Dependency {
   /// Every instance of this dependency in this version group.
   pub all_instances: RefCell<Vec<Rc<Instance>>>,
+  /// The expected version specifier which all instances of this dependency
+  /// should be set to, in the event that they should all use the same version.
+  pub expected: RefCell<Option<Specifier>>,
   /// If this dependency is a local package, this is the local instance.
   pub local_instance: RefCell<Option<Rc<Instance>>>,
   /// The name of the dependency
@@ -42,6 +52,8 @@ pub struct Dependency {
   pub pinned_specifier: Option<Specifier>,
   /// package.json files developed in the monorepo when variant is `SnappedTo`
   pub snapped_to_packages: Option<Vec<Rc<RefCell<PackageJson>>>>,
+  /// The state of whether this dependency is valid, warning, or invalid
+  pub state: RefCell<DependencyState>,
   /// What behaviour has this group been configured to exhibit?
   pub variant: Variant,
 }
@@ -55,12 +67,31 @@ impl Dependency {
   ) -> Dependency {
     Dependency {
       all_instances: RefCell::new(vec![]),
+      expected: RefCell::new(None),
       local_instance: RefCell::new(None),
       name,
       pinned_specifier,
       snapped_to_packages,
+      state: RefCell::new(DependencyState::Valid),
       variant,
     }
+  }
+
+  pub fn set_state(&self, state: DependencyState) {
+    fn get_severity(state: &DependencyState) -> i32 {
+      match state {
+        DependencyState::Valid => 0,
+        DependencyState::Warning => 1,
+        DependencyState::Invalid => 2,
+      }
+    }
+    if get_severity(&state) > get_severity(&self.state.borrow()) {
+      *self.state.borrow_mut() = state;
+    }
+  }
+
+  pub fn has_state(&self, state: DependencyState) -> bool {
+    *self.state.borrow() == state
   }
 
   pub fn add_instance(&self, instance: Rc<Instance>) {
@@ -74,6 +105,10 @@ impl Dependency {
     self.local_instance.borrow().is_some()
   }
 
+  pub fn set_expected_specifier(&self, specifier: &Specifier) {
+    *self.expected.borrow_mut() = Some(specifier.clone());
+  }
+
   pub fn has_preferred_ranges(&self) -> bool {
     self
       .all_instances
@@ -83,11 +118,7 @@ impl Dependency {
   }
 
   pub fn get_local_specifier(&self) -> Option<Specifier> {
-    self
-      .local_instance
-      .borrow()
-      .as_ref()
-      .map(|instance| instance.actual.clone())
+    self.local_instance.borrow().as_ref().map(|instance| instance.actual.clone())
   }
 
   pub fn all_are_semver(&self) -> bool {
@@ -99,26 +130,18 @@ impl Dependency {
   }
 
   pub fn get_unique_expected_and_actual_specifiers(&self) -> HashSet<Specifier> {
-    self
-      .all_instances
-      .borrow()
-      .iter()
-      .fold(HashSet::new(), |mut uniques, instance| {
-        uniques.insert(instance.actual.clone());
-        uniques.insert(instance.expected.borrow().clone());
-        uniques
-      })
+    self.all_instances.borrow().iter().fold(HashSet::new(), |mut uniques, instance| {
+      uniques.insert(instance.actual.clone());
+      uniques.insert(instance.expected.borrow().clone());
+      uniques
+    })
   }
 
   pub fn get_unique_expected_specifiers(&self) -> HashSet<Specifier> {
-    self
-      .all_instances
-      .borrow()
-      .iter()
-      .fold(HashSet::new(), |mut uniques, instance| {
-        uniques.insert(instance.expected.borrow().clone());
-        uniques
-      })
+    self.all_instances.borrow().iter().fold(HashSet::new(), |mut uniques, instance| {
+      uniques.insert(instance.expected.borrow().clone());
+      uniques
+    })
   }
 
   /// Is the exact same specifier used by all instances in this group?
@@ -135,27 +158,23 @@ impl Dependency {
     true
   }
 
-  /// Get the highest or lowest semver specifier in this group.
+  /// Get the highest semver specifier in this group (or lowest, depending on config).
   ///
   /// We compare the expected (not actual) specifier because we're looking for
   /// what we should suggest as the correct specifier once `fix` is applied
-  pub fn get_highest_or_lowest_semver(&self, preferred_order: Ordering) -> Option<Specifier> {
-    self
-      .all_instances
-      .borrow()
-      .iter()
-      .fold(None, |highest, instance| match highest {
-        None => Some(instance.expected.borrow().clone()),
-        Some(highest) => {
-          let a = instance.expected.borrow().get_orderable();
-          let b = highest.get_orderable();
-          if a.cmp(&b) == preferred_order {
-            Some(instance.expected.borrow().clone())
-          } else {
-            Some(highest)
-          }
+  pub fn get_preferred_specifier(&self, preferred_order: Ordering) -> Option<Specifier> {
+    self.all_instances.borrow().iter().fold(None, |highest, instance| match highest {
+      None => Some(instance.expected.borrow().clone()),
+      Some(highest) => {
+        let a = instance.expected.borrow().get_orderable();
+        let b = highest.get_orderable();
+        if a.cmp(&b) == preferred_order {
+          Some(instance.expected.borrow().clone())
+        } else {
+          Some(highest)
         }
-      })
+      }
+    })
   }
 
   /// Get all semver specifiers which have a range that does not match all of
@@ -217,5 +236,24 @@ impl Dependency {
       }
     }
     None
+  }
+
+  /// Sort instances by actual specifier in descending order, and then package
+  /// name in ascending order
+  pub fn sort_instances(&self) {
+    self.all_instances.borrow_mut().sort_by(|a, b| {
+      if matches!(&a.actual, Specifier::None) {
+        return Ordering::Greater;
+      }
+      if matches!(&b.actual, Specifier::None) {
+        return Ordering::Less;
+      }
+      let specifier_order = b.actual.unwrap().cmp(&a.actual.unwrap());
+      if matches!(specifier_order, Ordering::Equal) {
+        a.package.borrow().get_name_unsafe().cmp(&b.package.borrow().get_name_unsafe())
+      } else {
+        specifier_order
+      }
+    });
   }
 }
