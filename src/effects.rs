@@ -1,8 +1,11 @@
-use std::rc::Rc;
+use std::{cell::RefCell, rc::Rc};
 
 use serde_json::Value;
 
-use crate::{dependency::Dependency, group_selector::GroupSelector, instance::Instance, specifier::Specifier};
+use crate::{
+  dependency::Dependency, group_selector::GroupSelector, instance::Instance, package_json::PackageJson,
+  specifier::Specifier,
+};
 
 pub mod fix;
 pub mod lint;
@@ -32,7 +35,7 @@ pub enum Event<'a> {
   EnterFormat,
   /// Linting/fixing of formatting of a package.json file has completed and the
   /// package was already valid
-  PackageFormatMatch(String),
+  PackageFormatMatch(Rc<RefCell<PackageJson>>),
   /// Linting/fixing of formatting of a package.json file has completed and the
   /// package was initially invalid. In the case of fixing, they are now valid
   /// but were invalid beforehand
@@ -46,7 +49,7 @@ pub enum InstanceEventVariant {
   /* = Ignored ============================================================== */
   InstanceIsIgnored,
   /* = Matches ============================================================== */
-  LocalInstanceIsPreferred,
+  LocalInstanceIsValid,
   InstanceMatchesLocal,
   InstanceMatchesHighestOrLowestSemver,
   InstanceMatchesButIsUnsupported,
@@ -61,6 +64,8 @@ pub enum InstanceEventVariant {
   LocalInstanceMistakenlyMismatchesSemverGroup,
   /// Misconfiguration: Syncpack refuses to change local dependency specifiers
   LocalInstanceMistakenlyMismatchesPinned,
+  /// Not an error on its own unless an instance of it mismatches
+  LocalInstanceWithMissingVersion,
   /* = Fixable with config to resolve conflict ============================== */
   InstanceMatchesPinnedButMismatchesSemverGroup,
   InstanceMatchesLocalButMismatchesSemverGroup,
@@ -129,7 +134,7 @@ pub enum FormatEventVariant {
 #[derive(Debug)]
 pub struct PackageFormatEvent {
   /// The name of the package.json file with formatting issues
-  pub package_name: String,
+  pub package: Rc<RefCell<PackageJson>>,
   /// Each formatting issue in this file
   pub formatting_mismatches: Vec<FormatEvent>,
 }
@@ -139,7 +144,7 @@ pub struct FormatEvent {
   /// The formatted value
   pub expected: Value,
   /// The name of the package.json file being linted
-  pub package_name: String,
+  pub package: Rc<RefCell<PackageJson>>,
   /// The path to the property that was linted
   pub property_path: String,
   /// The broken linting rule

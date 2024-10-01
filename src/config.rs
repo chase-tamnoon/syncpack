@@ -6,6 +6,7 @@ use std::{collections::HashMap, fs, path::PathBuf};
 use crate::{
   cli::Cli,
   dependency_type,
+  packages::Packages,
   semver_group::{AnySemverGroup, SemverGroup},
   version_group::{AnyVersionGroup, VersionGroup},
 };
@@ -185,11 +186,11 @@ impl Rcfile {
   }
 
   /// Create every version group defined in the rcfile.
-  pub fn get_version_groups(&self, local_package_names: &[String]) -> Vec<VersionGroup> {
+  pub fn get_version_groups(&self, packages: &Packages) -> Vec<VersionGroup> {
     let mut user_groups: Vec<VersionGroup> = self
       .version_groups
       .iter()
-      .map(|group| VersionGroup::from_config(group, local_package_names))
+      .map(|group| VersionGroup::from_config(group, packages))
       .collect();
     user_groups.push(VersionGroup::get_catch_all());
     user_groups

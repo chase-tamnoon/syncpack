@@ -3,7 +3,7 @@
 mod visit_packages_test;
 
 use itertools::Itertools;
-use std::{cmp::Ordering, collections::HashMap, rc::Rc};
+use std::{cmp::Ordering, rc::Rc};
 
 use crate::{
   config::Config,
@@ -20,29 +20,12 @@ pub fn visit_packages(config: &Config, packages: &Packages, effects: &mut impl E
   const WARNING: u8 = 1;
   const INVALID: u8 = 2;
 
-  let Context {
-    semver_groups,
-    version_groups,
-  } = Context::create(config, packages);
-
-  let local_specifiers_by_name: HashMap<String, Specifier> = packages
-    .by_name
-    .iter()
-    .map(|(name, package_json)| {
-      (
-        name.clone(),
-        package_json
-          .get_string("/version")
-          .map(|string| Specifier::new(&string))
-          .unwrap_or(Specifier::None),
-      )
-    })
-    .collect();
+  let ctx = Context::create(config, packages);
 
   if config.cli.options.versions {
     effects.on(Event::EnterVersionsAndRanges);
 
-    version_groups
+    ctx.version_groups
       .iter()
       // fix snapped to groups last, so that the packages they're snapped to
       // have any fixes applied to them first
@@ -70,7 +53,7 @@ pub fn visit_packages(config: &Config, packages: &Packages, effects: &mut impl E
 
           match dependency.variant {
             Variant::Banned => {
-              dependency.all.borrow().iter().for_each(|instance| {
+              dependency.all_instances.borrow().iter().for_each(|instance| {
                 if instance.is_local {
                   mark_as(WARNING);
                   queue.push(InstanceEvent {
@@ -94,11 +77,19 @@ pub fn visit_packages(config: &Config, packages: &Packages, effects: &mut impl E
               let preferred_order: Ordering = if prefer_highest { Ordering::Greater } else { Ordering::Less };
               let label: &str = if prefer_highest { "highest" } else { "lowest" };
 
-              match local_specifiers_by_name.get(&dependency.name) {
+              match dependency.get_local_specifier() {
                 Some(local_specifier) => {
-                  dependency.all.borrow().iter().for_each(|instance| {
+                  dependency.all_instances.borrow().iter().for_each(|instance| {
                     if instance.is_local {
-                      if instance.has_range_mismatch(local_specifier) {
+                       if matches!(local_specifier, Specifier::None) {
+                        mark_as(WARNING);
+                       *instance.expected.borrow_mut() = Specifier::None;
+                        queue.push(InstanceEvent {
+                          dependency,
+                          instance: Rc::clone(instance),
+                          variant: InstanceEventVariant::LocalInstanceWithMissingVersion,
+                        });
+                      }else if instance.has_range_mismatch(&local_specifier) {
                         mark_as(WARNING);
                         expected = Some(local_specifier.clone());
                        *instance.expected.borrow_mut() = local_specifier.clone();
@@ -112,7 +103,7 @@ pub fn visit_packages(config: &Config, packages: &Packages, effects: &mut impl E
                         queue.push(InstanceEvent {
                           dependency,
                           instance: Rc::clone(instance),
-                          variant: InstanceEventVariant::LocalInstanceIsPreferred,
+                          variant: InstanceEventVariant::LocalInstanceIsValid,
                         });
                       }
                     } else if matches!(local_specifier, Specifier::None) {
@@ -123,8 +114,8 @@ pub fn visit_packages(config: &Config, packages: &Packages, effects: &mut impl E
                         instance: Rc::clone(instance),
                         variant: InstanceEventVariant::InstanceMismatchesLocalWithMissingVersion,
                       });
-                    } else if instance.actual == *local_specifier {
-                      if instance.has_range_mismatch(local_specifier) {
+                    } else if instance.actual == local_specifier {
+                      if instance.has_range_mismatch(&local_specifier) {
                         mark_as(INVALID);
                        *instance.expected.borrow_mut() = instance.get_fixed_range_mismatch();
                         expected = Some(local_specifier.clone());
@@ -157,7 +148,7 @@ pub fn visit_packages(config: &Config, packages: &Packages, effects: &mut impl E
                   if dependency.all_are_semver() {
                     match dependency.get_highest_or_lowest_semver( preferred_order) {
                       Some(preferred) => {
-                        dependency.all.borrow().iter().for_each(|instance| {
+                        dependency.all_instances.borrow().iter().for_each(|instance| {
                           if instance.actual == preferred {
                             if instance.has_range_mismatch(&preferred) {
                               mark_as(INVALID);
@@ -205,7 +196,7 @@ pub fn visit_packages(config: &Config, packages: &Packages, effects: &mut impl E
                     }
                   } else if dependency.all_are_identical() {
                     mark_as(WARNING);
-                    dependency.all.borrow().iter().for_each(|instance| {
+                    dependency.all_instances.borrow().iter().for_each(|instance| {
                       expected = Some(instance.actual.clone());
                       queue.push(InstanceEvent {
                         dependency,
@@ -215,7 +206,7 @@ pub fn visit_packages(config: &Config, packages: &Packages, effects: &mut impl E
                     });
                   } else {
                     mark_as(INVALID);
-                    dependency.all.borrow().iter().for_each(|instance| {
+                    dependency.all_instances.borrow().iter().for_each(|instance| {
                      *instance.expected.borrow_mut() = Specifier::None;
                       queue.push(InstanceEvent {
                         dependency,
@@ -228,7 +219,7 @@ pub fn visit_packages(config: &Config, packages: &Packages, effects: &mut impl E
               }
             }
             Variant::Ignored => {
-              dependency.all.borrow().iter().for_each(|instance| {
+              dependency.all_instances.borrow().iter().for_each(|instance| {
                 queue.push(InstanceEvent {
                   dependency,
                   instance: Rc::clone(instance),
@@ -238,7 +229,7 @@ pub fn visit_packages(config: &Config, packages: &Packages, effects: &mut impl E
             }
             Variant::Pinned => match &dependency.pinned_specifier {
               Some(pinned) => {
-                dependency.all.borrow().iter().for_each(|instance| {
+                dependency.all_instances.borrow().iter().for_each(|instance| {
                   // CHECK THIS Eq WORKS
                   if instance.actual == *pinned {
                     expected = Some(pinned.clone());
@@ -293,7 +284,7 @@ pub fn visit_packages(config: &Config, packages: &Packages, effects: &mut impl E
             Variant::SameRange => {
               if dependency.all_are_semver() {
                 let mismatches = dependency.get_same_range_mismatches();
-                dependency.all.borrow().iter().for_each(|instance| {
+                dependency.all_instances.borrow().iter().for_each(|instance| {
                   // CHECK THIS OVER
                   if instance.has_range_mismatch(&instance.expected.borrow()) {
                     if mismatches.contains_key(&instance.actual) {
@@ -350,7 +341,7 @@ pub fn visit_packages(config: &Config, packages: &Packages, effects: &mut impl E
                 });
               } else if dependency.all_are_identical() {
                 mark_as(WARNING);
-                dependency.all.borrow().iter().for_each(|instance| {
+                dependency.all_instances.borrow().iter().for_each(|instance| {
                   queue.push(InstanceEvent {
                     dependency,
                     instance: Rc::clone(instance),
@@ -359,7 +350,7 @@ pub fn visit_packages(config: &Config, packages: &Packages, effects: &mut impl E
                 });
               } else {
                 mark_as(INVALID);
-                dependency.all.borrow().iter().for_each(|instance| {
+                dependency.all_instances.borrow().iter().for_each(|instance| {
                  *instance.expected.borrow_mut() = Specifier::None;
                   queue.push(InstanceEvent {
                     dependency,
@@ -400,7 +391,7 @@ pub fn visit_packages(config: &Config, packages: &Packages, effects: &mut impl E
             let specifier_order = a.actual.unwrap().cmp(&b.actual.unwrap());
 
             if matches!(specifier_order, Ordering::Equal) {
-              b.package_name.cmp(&a.package_name)
+              b.package.borrow().get_name_unsafe().cmp(&a.package.borrow().get_name_unsafe())
             } else {
               specifier_order
             }
@@ -419,30 +410,30 @@ pub fn visit_packages(config: &Config, packages: &Packages, effects: &mut impl E
     packages.by_name.values().for_each(|package| {
       let mut formatting_mismatches: Vec<FormatEvent> = Vec::new();
       if config.rcfile.format_bugs {
-        if let Some(expected) = format::get_formatted_bugs(package) {
+        if let Some(expected) = format::get_formatted_bugs(&package.borrow()) {
           formatting_mismatches.push(FormatEvent {
             expected,
-            package_name: package.get_name_unsafe(),
+            package: Rc::clone(package),
             property_path: "/bugs".to_string(),
             variant: FormatEventVariant::BugsPropertyIsNotFormatted,
           });
         }
       }
       if config.rcfile.format_repository {
-        if let Some(expected) = format::get_formatted_repository(package) {
+        if let Some(expected) = format::get_formatted_repository(&package.borrow()) {
           formatting_mismatches.push(FormatEvent {
             expected,
-            package_name: package.get_name_unsafe(),
+            package: Rc::clone(package),
             property_path: "/repository".to_string(),
             variant: FormatEventVariant::RepositoryPropertyIsNotFormatted,
           });
         }
       }
       if !config.rcfile.sort_exports.is_empty() {
-        if let Some(expected) = format::get_sorted_exports(&config.rcfile, package) {
+        if let Some(expected) = format::get_sorted_exports(&config.rcfile, &package.borrow()) {
           formatting_mismatches.push(FormatEvent {
             expected,
-            package_name: package.get_name_unsafe(),
+            package: Rc::clone(package),
             property_path: "/exports".to_string(),
             variant: FormatEventVariant::ExportsPropertyIsNotSorted,
           });
@@ -450,10 +441,10 @@ pub fn visit_packages(config: &Config, packages: &Packages, effects: &mut impl E
       }
       if !config.rcfile.sort_az.is_empty() {
         for key in config.rcfile.sort_az.iter() {
-          if let Some(expected) = format::get_sorted_az(key, package) {
+          if let Some(expected) = format::get_sorted_az(key, &package.borrow()) {
             formatting_mismatches.push(FormatEvent {
               expected,
-              package_name: package.get_name_unsafe(),
+              package: Rc::clone(package),
               property_path: format!("/{}", key),
               variant: FormatEventVariant::PropertyIsNotSortedAz,
             });
@@ -461,20 +452,20 @@ pub fn visit_packages(config: &Config, packages: &Packages, effects: &mut impl E
         }
       }
       if config.rcfile.sort_packages || !config.rcfile.sort_first.is_empty() {
-        if let Some(expected) = format::get_sorted_first(&config.rcfile, package) {
+        if let Some(expected) = format::get_sorted_first(&config.rcfile, &package.borrow()) {
           formatting_mismatches.push(FormatEvent {
             expected,
-            package_name: package.get_name_unsafe(),
+            package: Rc::clone(package),
             property_path: "/".to_string(),
             variant: FormatEventVariant::PackagePropertiesAreNotSorted,
           });
         }
       }
       effects.on(if formatting_mismatches.is_empty() {
-        Event::PackageFormatMatch(package.get_name_unsafe())
+        Event::PackageFormatMatch(Rc::clone(package))
       } else {
         Event::PackageFormatMismatch(PackageFormatEvent {
-          package_name: package.get_name_unsafe(),
+          package: Rc::clone(package),
           formatting_mismatches,
         })
       });

@@ -1,6 +1,6 @@
 use log::debug;
 use serde_json::Value;
-use std::{cell::RefCell, path::PathBuf};
+use std::{cell::RefCell, path::PathBuf, rc::Rc};
 
 use crate::{
   dependency_type::{DependencyType, Strategy},
@@ -31,7 +31,7 @@ pub struct Instance {
   /// The dependency name eg. "react", "react-dom"
   pub name: String,
   /// The `.name` of the package.json this file is in
-  pub package_name: String,
+  pub package: Rc<RefCell<PackageJson>>,
   /// If this instance belongs to a `WithRange` semver group, this is the range.
   /// This is used by Version Groups while determining the preferred version,
   /// to try to also satisfy any applicable semver group ranges
@@ -44,20 +44,20 @@ impl Instance {
     // The initial, unwrapped specifier (eg. "1.1.0") from the package.json file
     raw_specifier: String,
     dependency_type: &DependencyType,
-    package: &PackageJson,
+    package: Rc<RefCell<PackageJson>>,
   ) -> Instance {
-    let package_name = package.get_name_unsafe();
+    let package_name = package.borrow().get_name_unsafe();
     let specifier = Specifier::new(&raw_specifier);
     Instance {
       actual: specifier.clone(),
       dependency_type: dependency_type.clone(),
       expected: RefCell::new(specifier),
-      file_path: package.file_path.clone(),
+      file_path: package.borrow().file_path.clone(),
       id: format!("{} in {} of {}", name, &dependency_type.path, package_name),
       is_local: dependency_type.path == "/version",
       location_hint: format!("in {} of {}", &dependency_type.path, package_name),
       name,
-      package_name,
+      package: Rc::clone(&package),
       prefer_range: RefCell::new(None),
     }
   }
@@ -73,7 +73,7 @@ impl Instance {
     debug!("  is_local        {:?}", self.is_local);
     debug!("  location_hint   {:?}", self.location_hint);
     debug!("  name            {:?}", self.name);
-    debug!("  package_name    {:?}", self.package_name);
+    debug!("  package         {:?}", self.package);
     debug!("  prefer_range    {:?}", self.prefer_range);
   }
 

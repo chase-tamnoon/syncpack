@@ -51,31 +51,29 @@ impl Effects for LintEffects<'_> {
         info!("{}", full_header.blue());
       }
       Event::DependencyValid(dependency, expected) => {
-        let count = render_count_column(dependency.all.borrow().len());
+        let count = render_count_column(dependency.all_instances.borrow().len());
         let name = &dependency.name;
         let hint = get_expected_hint(dependency, expected);
         info!("{count} {name} {hint}");
       }
       Event::DependencyInvalid(dependency, expected) => {
-        let count = render_count_column(dependency.all.borrow().len());
+        let count = render_count_column(dependency.all_instances.borrow().len());
         let name = &dependency.name;
         let hint = get_expected_hint(dependency, expected);
         info!("{count} {name} {hint}");
       }
       Event::DependencyWarning(dependency, expected) => {
-        let count = render_count_column(dependency.all.borrow().len());
+        let count = render_count_column(dependency.all_instances.borrow().len());
         let name = &dependency.name;
         let hint = "has name or specifiers unsupported by syncpack".dimmed();
         info!("{count} {name} {hint}");
       }
-      Event::PackageFormatMatch(package_name) => {
-        let package = self.packages.by_name.get(package_name).unwrap();
-        let file_path = package.get_relative_file_path(&self.config.cwd);
+      Event::PackageFormatMatch(package) => {
+        let file_path = package.borrow().get_relative_file_path(&self.config.cwd);
         info!("{} {file_path}", icon_valid());
       }
       Event::PackageFormatMismatch(event) => {
-        let package = self.packages.by_name.get(&event.package_name).unwrap();
-        let file_path = package.get_relative_file_path(&self.config.cwd);
+        let file_path = event.package.borrow().get_relative_file_path(&self.config.cwd);
         info!("{} {file_path}", icon_fixable());
         event.formatting_mismatches.iter().for_each(|mismatch| {
           let property_path = &mismatch.property_path.dimmed();
@@ -122,7 +120,7 @@ impl Effects for LintEffects<'_> {
       /* Ignored */
       InstanceEventVariant::InstanceIsIgnored => { /*NOOP*/ }
       /* Matches */
-      InstanceEventVariant::LocalInstanceIsPreferred
+      InstanceEventVariant::LocalInstanceIsValid
       | InstanceEventVariant::InstanceMatchesLocal
       | InstanceEventVariant::InstanceMatchesHighestOrLowestSemver
       | InstanceEventVariant::InstanceMatchesButIsUnsupported
@@ -143,6 +141,9 @@ impl Effects for LintEffects<'_> {
       }
       InstanceEventVariant::LocalInstanceMistakenlyMismatchesPinned => {
         info!("  LocalInstanceMistakenlyMismatchesPinned");
+      }
+      InstanceEventVariant::LocalInstanceWithMissingVersion => {
+        info!("  LocalInstanceWithMissingVersion");
       }
       InstanceEventVariant::InstanceMatchesHighestOrLowestSemverButMismatchesConflictingSemverGroup => {
         // return /*SKIP*/;

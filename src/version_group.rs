@@ -1,7 +1,11 @@
+use log::debug;
 use serde::Deserialize;
 use std::{cell::RefCell, collections::BTreeMap, rc::Rc, vec};
 
-use crate::{dependency::Dependency, group_selector::GroupSelector, instance::Instance, specifier::Specifier};
+use crate::{
+  dependency::Dependency, group_selector::GroupSelector, instance::Instance, package_json::PackageJson,
+  packages::Packages, specifier::Specifier,
+};
 
 /// What behaviour has this group been configured to exhibit?
 #[derive(Clone, Debug)]
@@ -26,7 +30,7 @@ pub struct VersionGroup {
   /// The version to pin all instances to when variant is `Pinned`
   pub pin_version: Option<Specifier>,
   /// `name` properties of package.json files developed in the monorepo when variant is `SnappedTo`
-  pub snap_to: Option<Vec<String>>,
+  pub snap_to: Option<Vec<Rc<RefCell<PackageJson>>>>,
 }
 
 impl VersionGroup {
@@ -62,10 +66,10 @@ impl VersionGroup {
   }
 
   /// Create a single version group from a config item from the rcfile.
-  pub fn from_config(group: &AnyVersionGroup, local_package_names: &[String]) -> VersionGroup {
+  pub fn from_config(group: &AnyVersionGroup, packages: &Packages) -> VersionGroup {
     let selector = GroupSelector::new(
       /*include_dependencies:*/
-      with_resolved_keywords(&group.dependencies, local_package_names),
+      with_resolved_keywords(&group.dependencies, packages),
       /*include_dependency_types:*/ group.dependency_types.clone(),
       /*label:*/ group.label.clone(),
       /*include_packages:*/ group.packages.clone(),
@@ -118,7 +122,18 @@ impl VersionGroup {
         selector,
         dependencies: RefCell::new(BTreeMap::new()),
         pin_version: None,
-        snap_to: Some(snap_to.clone()),
+        snap_to: Some(
+          snap_to
+            .iter()
+            .flat_map(|name| {
+              packages
+                .by_name
+                .get(name)
+                .inspect(|x| debug!("snapTo package '{name}' not found"))
+                .map(Rc::clone)
+            })
+            .collect(),
+        ),
       };
     }
     if let Some(prefer_version) = &group.prefer_version {
@@ -174,22 +189,22 @@ pub struct AnyVersionGroup {
 }
 
 /// Resolve keywords such as `$LOCAL` and `!$LOCAL` to their actual values.
-fn with_resolved_keywords(dependency_names: &[String], local_package_names: &[String]) -> Vec<String> {
+fn with_resolved_keywords(dependency_names: &[String], packages: &Packages) -> Vec<String> {
   let mut resolved_dependencies: Vec<String> = vec![];
-  for dependency in dependency_names.iter() {
-    match dependency.as_str() {
+  for dependency_name in dependency_names.iter() {
+    match dependency_name.as_str() {
       "$LOCAL" => {
-        for package_name in local_package_names.iter() {
+        for package_name in packages.by_name.keys() {
           resolved_dependencies.push(package_name.clone());
         }
       }
       "!$LOCAL" => {
-        for package_name in local_package_names.iter() {
+        for package_name in packages.by_name.keys() {
           resolved_dependencies.push(format!("!{}", package_name));
         }
       }
       _ => {
-        resolved_dependencies.push(dependency.clone());
+        resolved_dependencies.push(dependency_name.clone());
       }
     }
   }

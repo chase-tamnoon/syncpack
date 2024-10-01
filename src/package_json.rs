@@ -3,7 +3,7 @@ use serde::Serialize;
 use serde_json::{ser::PrettyFormatter, Serializer, Value};
 use std::{cell::RefCell, fs, path::PathBuf};
 
-use crate::config::Config;
+use crate::{config::Config, dependency_type::Strategy, instance::Instance};
 
 #[derive(Clone, Debug)]
 pub struct PackageJson {
@@ -85,6 +85,34 @@ impl PackageJson {
   /// Report whether the package in memory has changed from what's on disk
   pub fn has_changed(&self, indent: &str) -> bool {
     *self.json.borrow() != self.to_pretty_json(self.serialize(indent))
+  }
+
+  /// Update this package in-memory with the given instance's specifier
+  pub fn apply_instance_specifier(&self, instance: &Instance) {
+    let path_to_prop_str = &instance.dependency_type.path.as_str();
+    let raw_specifier = instance.expected.borrow().unwrap().clone();
+    match instance.dependency_type.strategy {
+      Strategy::NameAndVersionProps => {
+        self.set_prop(path_to_prop_str, Value::String(raw_specifier));
+      }
+      Strategy::NamedVersionString => {
+        let full_value = format!("{}@{}", instance.name, raw_specifier);
+        self.set_prop(path_to_prop_str, Value::String(full_value));
+      }
+      Strategy::UnnamedVersionString => {
+        self.set_prop(path_to_prop_str, Value::String(raw_specifier));
+      }
+      Strategy::VersionsByName => {
+        let mut contents = self.contents.borrow_mut();
+        let versions_by_name = contents.pointer_mut(path_to_prop_str).unwrap().as_object_mut().unwrap();
+        let old_specifier = versions_by_name.get_mut(&instance.name).unwrap();
+        *old_specifier = Value::String(raw_specifier);
+        std::mem::drop(contents);
+      }
+      Strategy::InvalidConfig => {
+        panic!("unrecognised strategy");
+      }
+    };
   }
 
   /// Serialize the parsed JSON object back into pretty JSON as bytes

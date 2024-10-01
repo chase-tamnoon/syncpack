@@ -1,6 +1,6 @@
 use glob::glob;
 use serde_json::Value;
-use std::{collections::HashMap, path::PathBuf};
+use std::{cell::RefCell, collections::HashMap, path::PathBuf, rc::Rc};
 
 use crate::{
   cli::CliOptions,
@@ -12,15 +12,13 @@ use crate::{
 
 #[derive(Debug)]
 pub struct Packages {
-  pub all_names: Vec<String>,
-  pub by_name: HashMap<String, PackageJson>,
+  pub by_name: HashMap<String, Rc<RefCell<PackageJson>>>,
 }
 
 impl Packages {
   /// Create an empty collection of package.json files
   pub fn new() -> Self {
     Self {
-      all_names: vec![],
       by_name: HashMap::new(),
     }
   }
@@ -40,8 +38,7 @@ impl Packages {
   /// Add a package.json file to this collection
   pub fn add_package(&mut self, package_json: PackageJson) -> &mut Self {
     let name = package_json.get_name_unsafe();
-    self.all_names.push(name.clone());
-    self.by_name.insert(name, package_json);
+    self.by_name.insert(name, Rc::new(RefCell::new(package_json)));
     self
   }
 
@@ -50,7 +47,7 @@ impl Packages {
   where
     F: FnMut(Instance),
   {
-    let dependency_types = &config.rcfile.get_enabled_dependency_types();
+    let enabled_dependency_types = &config.rcfile.get_enabled_dependency_types();
     let filter = &config.cli.options.filter;
     let matches_filter = |name: &str| -> bool {
       if let Some(filter) = filter {
@@ -61,51 +58,59 @@ impl Packages {
     };
 
     for package in self.by_name.values() {
-      for dependency_type in dependency_types {
+      for dependency_type in enabled_dependency_types {
         match dependency_type.strategy {
           Strategy::NameAndVersionProps => {
             if let (Some(Value::String(name)), Some(Value::String(raw_specifier))) = (
-              package.get_prop(dependency_type.name_path.as_ref().unwrap()),
-              package.get_prop(&dependency_type.path),
+              package.borrow().get_prop(dependency_type.name_path.as_ref().unwrap()),
+              package.borrow().get_prop(&dependency_type.path).or_else(|| {
+                // Ensure that instances are still created for local packages
+                // which are missing a version
+                if dependency_type.name == "local" {
+                  Some(Value::String("".to_string()))
+                } else {
+                  None
+                }
+              }),
             ) {
               if matches_filter(&name) {
                 on_instance(Instance::new(
                   name.to_string(),
                   raw_specifier.to_string(),
                   dependency_type,
-                  package,
+                  Rc::clone(package),
                 ));
               }
             }
           }
           Strategy::NamedVersionString => {
-            if let Some(Value::String(specifier)) = package.get_prop(&dependency_type.path) {
+            if let Some(Value::String(specifier)) = package.borrow().get_prop(&dependency_type.path) {
               if let Some((name, raw_specifier)) = specifier.split_once('@') {
                 if matches_filter(name) {
                   on_instance(Instance::new(
                     name.to_string(),
                     raw_specifier.to_string(),
                     dependency_type,
-                    package,
+                    Rc::clone(package),
                   ));
                 }
               }
             }
           }
           Strategy::UnnamedVersionString => {
-            if let Some(Value::String(raw_specifier)) = package.get_prop(&dependency_type.path) {
+            if let Some(Value::String(raw_specifier)) = package.borrow().get_prop(&dependency_type.path) {
               if matches_filter(&dependency_type.name) {
                 on_instance(Instance::new(
                   dependency_type.name.clone(),
                   raw_specifier.to_string(),
                   dependency_type,
-                  package,
+                  Rc::clone(package),
                 ));
               }
             }
           }
           Strategy::VersionsByName => {
-            if let Some(Value::Object(versions_by_name)) = package.get_prop(&dependency_type.path) {
+            if let Some(Value::Object(versions_by_name)) = package.borrow().get_prop(&dependency_type.path) {
               for (name, raw_specifier) in versions_by_name {
                 if matches_filter(&name) {
                   if let Value::String(version) = raw_specifier {
@@ -113,7 +118,7 @@ impl Packages {
                       name.to_string(),
                       version.to_string(),
                       dependency_type,
-                      package,
+                      Rc::clone(package),
                     ));
                   }
                 }

@@ -57,34 +57,27 @@ impl Effects for FixEffects<'_> {
         // @TODO
       }
       Event::PackageFormatMismatch(event) => {
-        let package = self.packages.by_name.get(&event.package_name).unwrap();
-        let file_path = package.get_relative_file_path(&self.config.cwd);
-
+        let file_path = event.package.borrow().get_relative_file_path(&self.config.cwd);
         event.formatting_mismatches.iter().for_each(|mismatch| {
           let property_path = &mismatch.property_path;
           let expected = &mismatch.expected;
           match &mismatch.variant {
-            FormatEventVariant::BugsPropertyIsNotFormatted => {
-              package.set_prop(mismatch.property_path.as_str(), mismatch.expected.clone());
-            }
-            FormatEventVariant::RepositoryPropertyIsNotFormatted => {
-              package.set_prop(mismatch.property_path.as_str(), mismatch.expected.clone());
-            }
-            FormatEventVariant::ExportsPropertyIsNotSorted => {
-              package.set_prop(mismatch.property_path.as_str(), mismatch.expected.clone());
-            }
-            FormatEventVariant::PropertyIsNotSortedAz => {
-              package.set_prop(mismatch.property_path.as_str(), mismatch.expected.clone());
-            }
-            FormatEventVariant::PackagePropertiesAreNotSorted => {
-              package.set_prop(mismatch.property_path.as_str(), mismatch.expected.clone());
+            FormatEventVariant::BugsPropertyIsNotFormatted
+            | FormatEventVariant::RepositoryPropertyIsNotFormatted
+            | FormatEventVariant::ExportsPropertyIsNotSorted
+            | FormatEventVariant::PropertyIsNotSortedAz
+            | FormatEventVariant::PackagePropertiesAreNotSorted => {
+              event
+                .package
+                .borrow_mut()
+                .set_prop(mismatch.property_path.as_str(), mismatch.expected.clone());
             }
           }
         });
       }
       Event::ExitCommand => {
         for package in self.packages.by_name.values() {
-          package.write_to_disk(self.config);
+          package.borrow().write_to_disk(self.config);
         }
         if self.is_valid {
           let icon = icon_valid();
@@ -104,7 +97,7 @@ impl Effects for FixEffects<'_> {
       /* Ignored */
       InstanceEventVariant::InstanceIsIgnored => { /*NOOP*/ }
       /* Matches */
-      InstanceEventVariant::LocalInstanceIsPreferred
+      InstanceEventVariant::LocalInstanceIsValid
       | InstanceEventVariant::InstanceMatchesLocal
       | InstanceEventVariant::InstanceMatchesHighestOrLowestSemver
       | InstanceEventVariant::InstanceMatchesButIsUnsupported
@@ -120,6 +113,9 @@ impl Effects for FixEffects<'_> {
       InstanceEventVariant::LocalInstanceMistakenlyMismatchesPinned => {
         println!("@TODO: explain LocalInstanceMistakenlyMismatchesPinned");
       }
+      InstanceEventVariant::LocalInstanceWithMissingVersion => {
+        println!("@TODO: explain LocalInstanceWithMissingVersion");
+      }
       InstanceEventVariant::InstanceMatchesHighestOrLowestSemverButMismatchesConflictingSemverGroup => {
         println!("@TODO: explain InstanceEventVariant::InstanceMatchesHighestOrLowestSemverButMismatchesConflictingSemverGroup");
       }
@@ -130,8 +126,7 @@ impl Effects for FixEffects<'_> {
       | InstanceEventVariant::InstanceMismatchesLocal
       | InstanceEventVariant::InstanceMismatchesHighestOrLowestSemver
       | InstanceEventVariant::InstanceMismatchesPinned => {
-        let package = self.packages.by_name.get(&instance.package_name).unwrap();
-        instance.set_specifier(package, &instance.expected.borrow().clone());
+        instance.package.borrow().apply_instance_specifier(instance);
       }
       /* Unfixable Mismatches */
       InstanceEventVariant::InstanceMismatchesLocalWithMissingVersion => {

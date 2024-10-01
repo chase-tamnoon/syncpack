@@ -9,6 +9,7 @@ use std::{
 
 use crate::{
   instance::{Instance, InstanceId},
+  package_json::PackageJson,
   specifier::{orderable::IsOrderable, Specifier},
   version_group::Variant,
 };
@@ -32,15 +33,15 @@ pub struct InstancesBySpecifier<'a> {
 #[derive(Debug)]
 pub struct Dependency {
   /// Every instance of this dependency in this version group.
-  pub all: RefCell<Vec<Rc<Instance>>>,
+  pub all_instances: RefCell<Vec<Rc<Instance>>>,
   /// If this dependency is a local package, this is the local instance.
   pub local_instance: RefCell<Option<Rc<Instance>>>,
   /// The name of the dependency
   pub name: String,
   /// The version to pin all instances to when variant is `Pinned`
   pub pinned_specifier: Option<Specifier>,
-  /// `name` properties of package.json files developed in the monorepo when variant is `SnappedTo`
-  pub snapped_to_package_names: Option<Vec<String>>,
+  /// package.json files developed in the monorepo when variant is `SnappedTo`
+  pub snapped_to_packages: Option<Vec<Rc<RefCell<PackageJson>>>>,
   /// What behaviour has this group been configured to exhibit?
   pub variant: Variant,
 }
@@ -50,20 +51,20 @@ impl Dependency {
     name: String,
     variant: Variant,
     pinned_specifier: Option<Specifier>,
-    snapped_to_package_names: Option<Vec<String>>,
+    snapped_to_packages: Option<Vec<Rc<RefCell<PackageJson>>>>,
   ) -> Dependency {
     Dependency {
-      all: RefCell::new(vec![]),
+      all_instances: RefCell::new(vec![]),
       local_instance: RefCell::new(None),
       name,
       pinned_specifier,
-      snapped_to_package_names,
+      snapped_to_packages,
       variant,
     }
   }
 
   pub fn add_instance(&self, instance: Rc<Instance>) {
-    self.all.borrow_mut().push(Rc::clone(&instance));
+    self.all_instances.borrow_mut().push(Rc::clone(&instance));
     if instance.is_local {
       *self.local_instance.borrow_mut() = Some(Rc::clone(&instance));
     }
@@ -75,7 +76,7 @@ impl Dependency {
 
   pub fn has_preferred_ranges(&self) -> bool {
     self
-      .all
+      .all_instances
       .borrow()
       .iter()
       .any(|instance| instance.prefer_range.borrow().is_some())
@@ -83,40 +84,47 @@ impl Dependency {
 
   pub fn get_local_specifier(&self) -> Option<Specifier> {
     self
-      .all
+      .local_instance
       .borrow()
-      .iter()
-      .find(|instance| instance.is_local)
+      .as_ref()
       .map(|instance| instance.actual.clone())
   }
 
   pub fn all_are_semver(&self) -> bool {
     self
-      .all
+      .all_instances
       .borrow()
       .iter()
       .all(|instance| instance.actual.is_simple_semver())
   }
 
   pub fn get_unique_expected_and_actual_specifiers(&self) -> HashSet<Specifier> {
-    self.all.borrow().iter().fold(HashSet::new(), |mut uniques, instance| {
-      uniques.insert(instance.actual.clone());
-      uniques.insert(instance.expected.borrow().clone());
-      uniques
-    })
+    self
+      .all_instances
+      .borrow()
+      .iter()
+      .fold(HashSet::new(), |mut uniques, instance| {
+        uniques.insert(instance.actual.clone());
+        uniques.insert(instance.expected.borrow().clone());
+        uniques
+      })
   }
 
   pub fn get_unique_expected_specifiers(&self) -> HashSet<Specifier> {
-    self.all.borrow().iter().fold(HashSet::new(), |mut uniques, instance| {
-      uniques.insert(instance.expected.borrow().clone());
-      uniques
-    })
+    self
+      .all_instances
+      .borrow()
+      .iter()
+      .fold(HashSet::new(), |mut uniques, instance| {
+        uniques.insert(instance.expected.borrow().clone());
+        uniques
+      })
   }
 
   /// Is the exact same specifier used by all instances in this group?
   pub fn all_are_identical(&self) -> bool {
     let mut previous: Option<Specifier> = None;
-    for instance in self.all.borrow().iter() {
+    for instance in self.all_instances.borrow().iter() {
       if let Some(value) = previous {
         if *value.unwrap() != instance.actual.unwrap() {
           return false;
@@ -127,31 +135,27 @@ impl Dependency {
     true
   }
 
-  pub fn get_highest_semver(&self) -> Option<Specifier> {
-    self.get_highest_or_lowest_semver(Ordering::Greater)
-  }
-
-  pub fn get_lowest_semver(&self) -> Option<Specifier> {
-    self.get_highest_or_lowest_semver(Ordering::Less)
-  }
-
   /// Get the highest or lowest semver specifier in this group.
   ///
   /// We compare the expected (not actual) specifier because we're looking for
   /// what we should suggest as the correct specifier once `fix` is applied
   pub fn get_highest_or_lowest_semver(&self, preferred_order: Ordering) -> Option<Specifier> {
-    self.all.borrow().iter().fold(None, |highest, instance| match highest {
-      None => Some(instance.expected.borrow().clone()),
-      Some(highest) => {
-        let a = instance.expected.borrow().get_orderable();
-        let b = highest.get_orderable();
-        if a.cmp(&b) == preferred_order {
-          Some(instance.expected.borrow().clone())
-        } else {
-          Some(highest)
+    self
+      .all_instances
+      .borrow()
+      .iter()
+      .fold(None, |highest, instance| match highest {
+        None => Some(instance.expected.borrow().clone()),
+        Some(highest) => {
+          let a = instance.expected.borrow().get_orderable();
+          let b = highest.get_orderable();
+          if a.cmp(&b) == preferred_order {
+            Some(instance.expected.borrow().clone())
+          } else {
+            Some(highest)
+          }
         }
-      }
-    })
+      })
   }
 
   /// Get all semver specifiers which have a range that does not match all of
@@ -201,11 +205,11 @@ impl Dependency {
   /// Even though the actual specifiers on disk might currently match, we should
   /// suggest it match what we the snapped to specifier should be once fixed
   pub fn get_snapped_to_specifier(&self) -> Option<Specifier> {
-    if let Some(snapped_to_package_names) = &self.snapped_to_package_names {
-      for instance in self.all.borrow().iter() {
+    if let Some(snapped_to_packages) = &self.snapped_to_packages {
+      for instance in self.all_instances.borrow().iter() {
         if instance.name == *self.name {
-          for snapped_to_package_name in snapped_to_package_names {
-            if instance.package_name == *snapped_to_package_name {
+          for snapped_to_package in snapped_to_packages {
+            if instance.package.borrow().get_name_unsafe() == snapped_to_package.borrow().get_name_unsafe() {
               return Some(instance.expected.borrow().clone());
             }
           }

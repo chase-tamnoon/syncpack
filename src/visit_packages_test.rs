@@ -1,6 +1,6 @@
 use crate::test::{
   self,
-  expect::{expect, ExpectedMatchEvent, ExpectedMismatchEvent},
+  expect::{expect, ExpectedFixableMismatchEvent, ExpectedMatchEvent, ExpectedUnfixableMismatchEvent},
 };
 use serde_json::json;
 
@@ -29,12 +29,18 @@ fn reports_one_highest_version_mismatch_in_one_file() {
       instance_id: "wat in /devDependencies of package-a",
       actual: "2.0.0",
     }])
-    .to_have_mismatches(vec![ExpectedMismatchEvent {
+    .to_have_fixable_mismatches(vec![ExpectedFixableMismatchEvent {
       variant: InstanceEventVariant::InstanceMismatchesHighestOrLowestSemver,
       dependency_name: "wat",
       instance_id: "wat in /dependencies of package-a",
       actual: "1.0.0",
       expected: "2.0.0",
+    }])
+    .to_have_unfixable_mismatches(vec![ExpectedUnfixableMismatchEvent {
+      variant: InstanceEventVariant::LocalInstanceWithMissingVersion,
+      dependency_name: "package-a",
+      instance_id: "package-a in /version of package-a",
+      actual: "VERSION_IS_MISSING",
     }]);
 }
 
@@ -64,22 +70,28 @@ fn reports_many_highest_version_mismatches_in_one_file() {
       instance_id: "wat in /devDependencies of package-a",
       actual: "0.3.0",
     }])
-    .to_have_mismatches(vec![
-      ExpectedMismatchEvent {
+    .to_have_fixable_mismatches(vec![
+      ExpectedFixableMismatchEvent {
         variant: InstanceEventVariant::InstanceMismatchesHighestOrLowestSemver,
         dependency_name: "wat",
         instance_id: "wat in /dependencies of package-a",
         actual: "0.1.0",
         expected: "0.3.0",
       },
-      ExpectedMismatchEvent {
+      ExpectedFixableMismatchEvent {
         variant: InstanceEventVariant::InstanceMismatchesHighestOrLowestSemver,
         dependency_name: "wat",
         instance_id: "wat in /peerDependencies of package-a",
         actual: "0.2.0",
         expected: "0.3.0",
       },
-    ]);
+    ])
+    .to_have_unfixable_mismatches(vec![ExpectedUnfixableMismatchEvent {
+      variant: InstanceEventVariant::LocalInstanceWithMissingVersion,
+      dependency_name: "package-a",
+      instance_id: "package-a in /version of package-a",
+      actual: "VERSION_IS_MISSING",
+    }]);
 }
 
 #[test]
@@ -110,13 +122,27 @@ fn reports_highest_version_mismatches_in_many_files() {
       instance_id: "wat in /dependencies of package-b",
       actual: "2.0.0",
     }])
-    .to_have_mismatches(vec![ExpectedMismatchEvent {
+    .to_have_fixable_mismatches(vec![ExpectedFixableMismatchEvent {
       variant: InstanceEventVariant::InstanceMismatchesHighestOrLowestSemver,
       dependency_name: "wat",
       instance_id: "wat in /dependencies of package-a",
       actual: "1.0.0",
       expected: "2.0.0",
-    }]);
+    }])
+    .to_have_unfixable_mismatches(vec![
+      ExpectedUnfixableMismatchEvent {
+        variant: InstanceEventVariant::LocalInstanceWithMissingVersion,
+        dependency_name: "package-a",
+        instance_id: "package-a in /version of package-a",
+        actual: "VERSION_IS_MISSING",
+      },
+      ExpectedUnfixableMismatchEvent {
+        variant: InstanceEventVariant::LocalInstanceWithMissingVersion,
+        dependency_name: "package-b",
+        instance_id: "package-b in /version of package-b",
+        actual: "VERSION_IS_MISSING",
+      },
+    ]);
 }
 
 #[test]
@@ -160,7 +186,21 @@ fn does_not_consider_instances_in_different_version_groups_a_highest_version_mis
         actual: "2.0.0",
       },
     ])
-    .to_have_mismatches(vec![]);
+    .to_have_fixable_mismatches(vec![])
+    .to_have_unfixable_mismatches(vec![
+      ExpectedUnfixableMismatchEvent {
+        variant: InstanceEventVariant::LocalInstanceWithMissingVersion,
+        dependency_name: "package-a",
+        instance_id: "package-a in /version of package-a",
+        actual: "VERSION_IS_MISSING",
+      },
+      ExpectedUnfixableMismatchEvent {
+        variant: InstanceEventVariant::LocalInstanceWithMissingVersion,
+        dependency_name: "package-b",
+        instance_id: "package-b in /version of package-b",
+        actual: "VERSION_IS_MISSING",
+      },
+    ]);
 }
 
 #[test]
@@ -187,22 +227,29 @@ fn rejects_pinned_version_when_it_would_replace_local_version() {
 
   visit_packages(&config, &packages, &mut effects);
 
-  expect(&effects).to_have_matches(vec![]).to_have_mismatches(vec![
-    ExpectedMismatchEvent {
-      variant: InstanceEventVariant::LocalInstanceMistakenlyMismatchesPinned,
-      dependency_name: "package-a",
-      instance_id: "package-a in /version of package-a",
-      actual: "1.0.0",
-      expected: "1.0.0",
-    },
-    ExpectedMismatchEvent {
+  expect(&effects)
+    .to_have_matches(vec![])
+    .to_have_fixable_mismatches(vec![ExpectedFixableMismatchEvent {
       variant: InstanceEventVariant::InstanceMismatchesPinned,
       dependency_name: "package-a",
       instance_id: "package-a in /dependencies of package-b",
       actual: "1.1.0",
       expected: "1.2.0",
-    },
-  ]);
+    }])
+    .to_have_unfixable_mismatches(vec![
+      ExpectedUnfixableMismatchEvent {
+        variant: InstanceEventVariant::LocalInstanceMistakenlyMismatchesPinned,
+        dependency_name: "package-a",
+        instance_id: "package-a in /version of package-a",
+        actual: "1.0.0",
+      },
+      ExpectedUnfixableMismatchEvent {
+        variant: InstanceEventVariant::LocalInstanceWithMissingVersion,
+        dependency_name: "package-b",
+        instance_id: "package-b in /version of package-b",
+        actual: "VERSION_IS_MISSING",
+      },
+    ]);
 }
 
 #[test]
@@ -212,6 +259,7 @@ fn does_not_confuse_highest_version_matches_and_mismatches() {
   let packages = test::mock::packages_from_mocks(vec![
     json!({
       "name": "package-a",
+      "version": "0.0.0",
       "dependencies": {
         "mix": "0.3.0"
       },
@@ -224,6 +272,7 @@ fn does_not_confuse_highest_version_matches_and_mismatches() {
     }),
     json!({
       "name": "package-b",
+      "version": "0.0.0",
       "devDependencies": {
         "mix": "0.3.0"
       }
@@ -246,23 +295,36 @@ fn does_not_confuse_highest_version_matches_and_mismatches() {
         instance_id: "mix in /devDependencies of package-b",
         actual: "0.3.0",
       },
+      ExpectedMatchEvent {
+        variant: InstanceEventVariant::LocalInstanceIsValid,
+        dependency_name: "package-a",
+        instance_id: "package-a in /version of package-a",
+        actual: "0.0.0",
+      },
+      ExpectedMatchEvent {
+        variant: InstanceEventVariant::LocalInstanceIsValid,
+        dependency_name: "package-b",
+        instance_id: "package-b in /version of package-b",
+        actual: "0.0.0",
+      },
     ])
-    .to_have_mismatches(vec![
-      ExpectedMismatchEvent {
+    .to_have_fixable_mismatches(vec![
+      ExpectedFixableMismatchEvent {
         variant: InstanceEventVariant::InstanceMismatchesHighestOrLowestSemver,
         dependency_name: "mix",
         instance_id: "mix in /devDependencies of package-a",
         actual: "0.1.0",
         expected: "0.3.0",
       },
-      ExpectedMismatchEvent {
+      ExpectedFixableMismatchEvent {
         variant: InstanceEventVariant::InstanceMismatchesHighestOrLowestSemver,
         dependency_name: "mix",
         instance_id: "mix in /peerDependencies of package-a",
         actual: "0.2.0",
         expected: "0.3.0",
       },
-    ]);
+    ])
+    .to_have_unfixable_mismatches(vec![]);
 }
 
 #[test]
@@ -286,17 +348,23 @@ fn reports_local_version_mismatch_when_an_instance_uses_a_higher_version() {
 
   expect(&effects)
     .to_have_matches(vec![ExpectedMatchEvent {
-      variant: InstanceEventVariant::LocalInstanceIsPreferred,
+      variant: InstanceEventVariant::LocalInstanceIsValid,
       dependency_name: "package-a",
       instance_id: "package-a in /version of package-a",
       actual: "1.0.0",
     }])
-    .to_have_mismatches(vec![ExpectedMismatchEvent {
+    .to_have_fixable_mismatches(vec![ExpectedFixableMismatchEvent {
       variant: InstanceEventVariant::InstanceMismatchesLocal,
       dependency_name: "package-a",
       instance_id: "package-a in /dependencies of package-b",
       actual: "1.1.0",
       expected: "1.0.0",
+    }])
+    .to_have_unfixable_mismatches(vec![ExpectedUnfixableMismatchEvent {
+      variant: InstanceEventVariant::LocalInstanceWithMissingVersion,
+      dependency_name: "package-b",
+      instance_id: "package-b in /version of package-b",
+      actual: "VERSION_IS_MISSING",
     }]);
 }
 
@@ -323,23 +391,31 @@ fn instance_has_same_version_as_local_package_but_does_not_match_its_semver_grou
 
   visit_packages(&config, &packages, &mut effects);
 
-  expect(&effects).to_have_matches(vec![]).to_have_mismatches(vec![
-    // refuse to break local package's version
-    ExpectedMismatchEvent {
-      variant: InstanceEventVariant::LocalInstanceMistakenlyMismatchesSemverGroup,
-      dependency_name: "package-a",
-      instance_id: "package-a in /version of package-a",
-      actual: "1.0.0",
-      expected: "1.0.0",
-    },
-    ExpectedMismatchEvent {
-      variant: InstanceEventVariant::InstanceMatchesLocalButMismatchesSemverGroup,
-      dependency_name: "package-a",
-      instance_id: "package-a in /dependencies of package-b",
-      actual: "1.0.0",
-      expected: "^1.0.0",
-    },
-  ]);
+  expect(&effects)
+    .to_have_matches(vec![])
+    .to_have_fixable_mismatches(vec![
+      // refuse to break local package's version
+      ExpectedFixableMismatchEvent {
+        variant: InstanceEventVariant::LocalInstanceMistakenlyMismatchesSemverGroup,
+        dependency_name: "package-a",
+        instance_id: "package-a in /version of package-a",
+        actual: "1.0.0",
+        expected: "1.0.0",
+      },
+      ExpectedFixableMismatchEvent {
+        variant: InstanceEventVariant::InstanceMatchesLocalButMismatchesSemverGroup,
+        dependency_name: "package-a",
+        instance_id: "package-a in /dependencies of package-b",
+        actual: "1.0.0",
+        expected: "^1.0.0",
+      },
+    ])
+    .to_have_unfixable_mismatches(vec![ExpectedUnfixableMismatchEvent {
+      variant: InstanceEventVariant::LocalInstanceWithMissingVersion,
+      dependency_name: "package-b",
+      instance_id: "package-b in /version of package-b",
+      actual: "VERSION_IS_MISSING",
+    }]);
 }
 
 #[test]
@@ -363,22 +439,30 @@ fn instance_is_highest_or_lowest_semver_once_semver_group_is_fixed() {
 
   visit_packages(&config, &packages, &mut effects);
 
-  expect(&effects).to_have_matches(vec![]).to_have_mismatches(vec![
-    ExpectedMismatchEvent {
-      variant: InstanceEventVariant::InstanceMismatchesHighestOrLowestSemver,
-      dependency_name: "foo",
-      instance_id: "foo in /dependencies of package-a",
-      actual: "1.0.0",
-      expected: ">1.0.0",
-    },
-    ExpectedMismatchEvent {
-      variant: InstanceEventVariant::InstanceIsHighestOrLowestSemverOnceSemverGroupIsFixed,
-      dependency_name: "foo",
-      instance_id: "foo in /devDependencies of package-a",
-      actual: "1.0.0",
-      expected: ">1.0.0",
-    },
-  ]);
+  expect(&effects)
+    .to_have_matches(vec![])
+    .to_have_fixable_mismatches(vec![
+      ExpectedFixableMismatchEvent {
+        variant: InstanceEventVariant::InstanceMismatchesHighestOrLowestSemver,
+        dependency_name: "foo",
+        instance_id: "foo in /dependencies of package-a",
+        actual: "1.0.0",
+        expected: ">1.0.0",
+      },
+      ExpectedFixableMismatchEvent {
+        variant: InstanceEventVariant::InstanceIsHighestOrLowestSemverOnceSemverGroupIsFixed,
+        dependency_name: "foo",
+        instance_id: "foo in /devDependencies of package-a",
+        actual: "1.0.0",
+        expected: ">1.0.0",
+      },
+    ])
+    .to_have_unfixable_mismatches(vec![ExpectedUnfixableMismatchEvent {
+      variant: InstanceEventVariant::LocalInstanceWithMissingVersion,
+      dependency_name: "package-a",
+      instance_id: "package-a in /version of package-a",
+      actual: "VERSION_IS_MISSING",
+    }]);
 }
 
 #[test]
@@ -409,12 +493,18 @@ fn instance_is_no_longer_highest_or_lowest_semver_once_semver_group_is_fixed() {
       instance_id: "foo in /dependencies of package-a",
       actual: "1.0.0",
     }])
-    .to_have_mismatches(vec![ExpectedMismatchEvent {
+    .to_have_fixable_mismatches(vec![ExpectedFixableMismatchEvent {
       variant: InstanceEventVariant::InstanceMatchesHighestOrLowestSemverButMismatchesConflictingSemverGroup,
       dependency_name: "foo",
       instance_id: "foo in /devDependencies of package-a",
       actual: "1.0.0",
       expected: "<1.0.0",
+    }])
+    .to_have_unfixable_mismatches(vec![ExpectedUnfixableMismatchEvent {
+      variant: InstanceEventVariant::LocalInstanceWithMissingVersion,
+      dependency_name: "package-a",
+      instance_id: "package-a in /version of package-a",
+      actual: "VERSION_IS_MISSING",
     }]);
 }
 
@@ -439,17 +529,23 @@ fn reports_local_version_mismatch_when_an_instance_uses_workspace_protocol() {
 
   expect(&effects)
     .to_have_matches(vec![ExpectedMatchEvent {
-      variant: InstanceEventVariant::LocalInstanceIsPreferred,
+      variant: InstanceEventVariant::LocalInstanceIsValid,
       dependency_name: "package-a",
       instance_id: "package-a in /version of package-a",
       actual: "1.0.0",
     }])
-    .to_have_mismatches(vec![ExpectedMismatchEvent {
+    .to_have_fixable_mismatches(vec![ExpectedFixableMismatchEvent {
       variant: InstanceEventVariant::InstanceMismatchesLocal,
       dependency_name: "package-a",
       instance_id: "package-a in /devDependencies of package-b",
       actual: "workspace:*",
       expected: "1.0.0",
+    }])
+    .to_have_unfixable_mismatches(vec![ExpectedUnfixableMismatchEvent {
+      variant: InstanceEventVariant::LocalInstanceWithMissingVersion,
+      dependency_name: "package-b",
+      instance_id: "package-b in /version of package-b",
+      actual: "VERSION_IS_MISSING",
     }]);
 }
 
@@ -486,13 +582,21 @@ fn protects_local_version_when_naively_pinned_to_use_workspace_protocol() {
       instance_id: "package-a in /devDependencies of package-b",
       actual: "workspace:*",
     }])
-    .to_have_mismatches(vec![ExpectedMismatchEvent {
-      variant: InstanceEventVariant::LocalInstanceMistakenlyMismatchesPinned,
-      dependency_name: "package-a",
-      instance_id: "package-a in /version of package-a",
-      actual: "1.0.0",
-      expected: "1.0.0",
-    }]);
+    .to_have_fixable_mismatches(vec![])
+    .to_have_unfixable_mismatches(vec![
+      ExpectedUnfixableMismatchEvent {
+        variant: InstanceEventVariant::LocalInstanceMistakenlyMismatchesPinned,
+        dependency_name: "package-a",
+        instance_id: "package-a in /version of package-a",
+        actual: "1.0.0",
+      },
+      ExpectedUnfixableMismatchEvent {
+        variant: InstanceEventVariant::LocalInstanceMistakenlyMismatchesPinned,
+        dependency_name: "package-b",
+        instance_id: "package-b in /version of package-b",
+        actual: "VERSION_IS_MISSING",
+      },
+    ]);
 }
 
 #[test]
@@ -515,13 +619,27 @@ fn reports_unfixable_local_version_mismatch_when_local_version_is_missing() {
 
   expect(&effects)
     .to_have_matches(vec![])
-    .to_have_mismatches(vec![ExpectedMismatchEvent {
-      variant: InstanceEventVariant::InstanceMismatchesLocalWithMissingVersion,
-      dependency_name: "package-a",
-      instance_id: "package-a in /devDependencies of package-b",
-      actual: "0.1.0",
-      expected: "VERSION_IS_MISSING",
-    }]);
+    .to_have_fixable_mismatches(vec![])
+    .to_have_unfixable_mismatches(vec![
+      ExpectedUnfixableMismatchEvent {
+        variant: InstanceEventVariant::InstanceMismatchesLocalWithMissingVersion,
+        dependency_name: "package-a",
+        instance_id: "package-a in /devDependencies of package-b",
+        actual: "0.1.0",
+      },
+      ExpectedUnfixableMismatchEvent {
+        variant: InstanceEventVariant::LocalInstanceWithMissingVersion,
+        dependency_name: "package-a",
+        instance_id: "package-a in /version of package-a",
+        actual: "VERSION_IS_MISSING",
+      },
+      ExpectedUnfixableMismatchEvent {
+        variant: InstanceEventVariant::LocalInstanceWithMissingVersion,
+        dependency_name: "package-b",
+        instance_id: "package-b in /version of package-b",
+        actual: "VERSION_IS_MISSING",
+      },
+    ]);
 }
 
 #[test]

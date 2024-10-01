@@ -30,7 +30,32 @@ impl ActualMatchEvent {
 }
 
 #[derive(Debug)]
-pub struct ExpectedMismatchEvent<'a> {
+pub struct ExpectedUnfixableMismatchEvent<'a> {
+  pub variant: InstanceEventVariant,
+  pub dependency_name: &'a str,
+  pub instance_id: &'a str,
+  pub actual: &'a str,
+}
+
+#[derive(Debug)]
+pub struct ActualUnfixableMismatchEvent {
+  pub dependency_name: String,
+  pub instance_id: String,
+  pub actual: String,
+}
+
+impl ActualUnfixableMismatchEvent {
+  pub fn new(event: &InstanceEvent, instance: &Instance) -> Self {
+    Self {
+      dependency_name: event.dependency.name.clone(),
+      instance_id: event.instance.id.clone(),
+      actual: instance.actual.unwrap().clone(),
+    }
+  }
+}
+
+#[derive(Debug)]
+pub struct ExpectedFixableMismatchEvent<'a> {
   pub variant: InstanceEventVariant,
   pub dependency_name: &'a str,
   pub instance_id: &'a str,
@@ -39,14 +64,14 @@ pub struct ExpectedMismatchEvent<'a> {
 }
 
 #[derive(Debug)]
-pub struct ActualMismatchEvent {
+pub struct ActualFixableMismatchEvent {
   pub dependency_name: String,
   pub instance_id: String,
   pub actual: String,
   pub expected: String,
 }
 
-impl ActualMismatchEvent {
+impl ActualFixableMismatchEvent {
   pub fn new(event: &InstanceEvent, instance: &Instance) -> Self {
     Self {
       dependency_name: event.dependency.name.clone(),
@@ -106,8 +131,38 @@ impl<'a> Expects<'a> {
     self
   }
 
-  pub fn to_have_mismatches(&self, expected_mismatches: Vec<ExpectedMismatchEvent>) -> &Self {
-    let actual_mismatches = &self.effects.mismatches;
+  pub fn to_have_unfixable_mismatches(&self, expected_mismatches: Vec<ExpectedUnfixableMismatchEvent>) -> &Self {
+    let actual_mismatches = &self.effects.unfixable_mismatches;
+    let expected_len = expected_mismatches.len();
+    let actual_len = actual_mismatches.values().fold(0, |acc, x| acc + x.len());
+    if actual_len != expected_len {
+      self.debug();
+      panic!("expected {expected_len} mismatches but found {actual_len}");
+    }
+    'expected: for expected in &expected_mismatches {
+      let variant = &expected.variant;
+      let dependency_name = &expected.dependency_name;
+      let instance_id = &expected.instance_id;
+      let actual = &expected.actual;
+      let mismatches_of_type = actual_mismatches.get(variant);
+      if mismatches_of_type.is_none() {
+        self.debug();
+        panic!("expected {variant:?} mismatch but found none");
+      }
+      for event in mismatches_of_type.unwrap() {
+        if event.dependency_name == *dependency_name && event.instance_id == *instance_id && event.actual == *actual {
+          continue 'expected;
+        }
+      }
+      self.debug();
+      println!("{expected:#?}");
+      panic!("expected a '{variant:?}' for '{instance_id}' with '{actual}'");
+    }
+    self
+  }
+
+  pub fn to_have_fixable_mismatches(&self, expected_mismatches: Vec<ExpectedFixableMismatchEvent>) -> &Self {
+    let actual_mismatches = &self.effects.fixable_mismatches;
     let expected_len = expected_mismatches.len();
     let actual_len = actual_mismatches.values().fold(0, |acc, x| acc + x.len());
     if actual_len != expected_len {

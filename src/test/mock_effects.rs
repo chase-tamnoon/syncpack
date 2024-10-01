@@ -4,8 +4,10 @@ use crate::{
   config::Config,
   effects::{Effects, Event, InstanceEvent, InstanceEventVariant},
   packages::Packages,
-  test::expect::{ActualMatchEvent, ActualMismatchEvent},
+  test::expect::{ActualFixableMismatchEvent, ActualMatchEvent},
 };
+
+use super::expect::ActualUnfixableMismatchEvent;
 
 // We'll store data later but for now use `Vec<()>` to keep a count of events
 #[derive(Debug)]
@@ -48,7 +50,8 @@ pub struct MockEffects<'a> {
   pub events: EventsByType,
   pub is_valid: bool,
   pub matches: HashMap<InstanceEventVariant, Vec<ActualMatchEvent>>,
-  pub mismatches: HashMap<InstanceEventVariant, Vec<ActualMismatchEvent>>,
+  pub unfixable_mismatches: HashMap<InstanceEventVariant, Vec<ActualUnfixableMismatchEvent>>,
+  pub fixable_mismatches: HashMap<InstanceEventVariant, Vec<ActualFixableMismatchEvent>>,
   pub packages: Option<Packages>,
 }
 
@@ -79,43 +82,58 @@ impl Effects for MockEffects<'_> {
         .push(ActualMatchEvent::new(&event, instance))
     };
 
-    let mut record_mismatch_event = || {
+    let mut record_fixable_mismatch_event = || {
       self
-        .mismatches
+        .fixable_mismatches
         .entry(event.variant.clone())
         .or_default()
-        .push(ActualMismatchEvent::new(&event, instance));
+        .push(ActualFixableMismatchEvent::new(&event, instance));
+    };
+
+    let mut record_unfixable_mismatch_event = || {
+      self
+        .unfixable_mismatches
+        .entry(event.variant.clone())
+        .or_default()
+        .push(ActualUnfixableMismatchEvent::new(&event, instance));
     };
 
     match &event.variant {
       InstanceEventVariant::InstanceIsIgnored => record_match_event(),
-      InstanceEventVariant::LocalInstanceIsPreferred => record_match_event(),
+      InstanceEventVariant::LocalInstanceIsValid => record_match_event(),
       InstanceEventVariant::InstanceMatchesLocal => record_match_event(),
       InstanceEventVariant::InstanceMatchesHighestOrLowestSemver => record_match_event(),
       InstanceEventVariant::InstanceMatchesButIsUnsupported => record_match_event(),
       InstanceEventVariant::InstanceMatchesPinned => record_match_event(),
       InstanceEventVariant::InstanceMatchesSameRangeGroup => record_match_event(),
       InstanceEventVariant::LocalInstanceMistakenlyBanned => record_match_event(),
+      InstanceEventVariant::LocalInstanceWithMissingVersion => record_unfixable_mismatch_event(),
 
-      InstanceEventVariant::LocalInstanceMistakenlyMismatchesSemverGroup => record_mismatch_event(),
-      InstanceEventVariant::LocalInstanceMistakenlyMismatchesPinned => record_mismatch_event(),
-      InstanceEventVariant::InstanceMismatchesAndIsUnsupported => record_mismatch_event(),
-      InstanceEventVariant::InstanceMismatchesLocalWithMissingVersion => record_mismatch_event(),
-      InstanceEventVariant::InstanceMatchesPinnedButMismatchesSemverGroup => record_mismatch_event(),
-      InstanceEventVariant::InstanceMismatchesBothSameRangeAndConflictingSemverGroups => record_mismatch_event(),
-      InstanceEventVariant::InstanceMismatchesBothSameRangeAndCompatibleSemverGroups => record_mismatch_event(),
-      InstanceEventVariant::InstanceMatchesSameRangeGroupButMismatchesConflictingSemverGroup => record_mismatch_event(),
-      InstanceEventVariant::InstanceMatchesSameRangeGroupButMismatchesCompatibleSemverGroup => record_mismatch_event(),
-      InstanceEventVariant::InstanceMismatchesSameRangeGroup => record_mismatch_event(),
-      InstanceEventVariant::InstanceIsBanned => record_mismatch_event(),
-      InstanceEventVariant::InstanceMatchesHighestOrLowestSemverButMismatchesConflictingSemverGroup => {
-        record_mismatch_event()
+      InstanceEventVariant::LocalInstanceMistakenlyMismatchesSemverGroup => record_fixable_mismatch_event(),
+      InstanceEventVariant::LocalInstanceMistakenlyMismatchesPinned => record_unfixable_mismatch_event(),
+      InstanceEventVariant::InstanceMismatchesAndIsUnsupported => record_fixable_mismatch_event(),
+      InstanceEventVariant::InstanceMismatchesLocalWithMissingVersion => record_unfixable_mismatch_event(),
+      InstanceEventVariant::InstanceMatchesPinnedButMismatchesSemverGroup => record_fixable_mismatch_event(),
+      InstanceEventVariant::InstanceMismatchesBothSameRangeAndConflictingSemverGroups => {
+        record_fixable_mismatch_event()
       }
-      InstanceEventVariant::InstanceIsHighestOrLowestSemverOnceSemverGroupIsFixed => record_mismatch_event(),
-      InstanceEventVariant::InstanceMatchesLocalButMismatchesSemverGroup => record_mismatch_event(),
-      InstanceEventVariant::InstanceMismatchesLocal => record_mismatch_event(),
-      InstanceEventVariant::InstanceMismatchesHighestOrLowestSemver => record_mismatch_event(),
-      InstanceEventVariant::InstanceMismatchesPinned => record_mismatch_event(),
+      InstanceEventVariant::InstanceMismatchesBothSameRangeAndCompatibleSemverGroups => record_fixable_mismatch_event(),
+      InstanceEventVariant::InstanceMatchesSameRangeGroupButMismatchesConflictingSemverGroup => {
+        record_fixable_mismatch_event()
+      }
+      InstanceEventVariant::InstanceMatchesSameRangeGroupButMismatchesCompatibleSemverGroup => {
+        record_fixable_mismatch_event()
+      }
+      InstanceEventVariant::InstanceMismatchesSameRangeGroup => record_fixable_mismatch_event(),
+      InstanceEventVariant::InstanceIsBanned => record_fixable_mismatch_event(),
+      InstanceEventVariant::InstanceMatchesHighestOrLowestSemverButMismatchesConflictingSemverGroup => {
+        record_fixable_mismatch_event()
+      }
+      InstanceEventVariant::InstanceIsHighestOrLowestSemverOnceSemverGroupIsFixed => record_fixable_mismatch_event(),
+      InstanceEventVariant::InstanceMatchesLocalButMismatchesSemverGroup => record_fixable_mismatch_event(),
+      InstanceEventVariant::InstanceMismatchesLocal => record_fixable_mismatch_event(),
+      InstanceEventVariant::InstanceMismatchesHighestOrLowestSemver => record_fixable_mismatch_event(),
+      InstanceEventVariant::InstanceMismatchesPinned => record_fixable_mismatch_event(),
     };
   }
 }

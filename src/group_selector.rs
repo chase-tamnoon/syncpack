@@ -82,7 +82,11 @@ impl GroupSelector {
   }
 
   pub fn matches_packages(&self, instance: &Instance) -> bool {
-    matches_globs(&instance.package_name, &self.include_packages, &self.exclude_packages)
+    matches_globs(
+      &instance.package.borrow().get_name_unsafe(),
+      &self.include_packages,
+      &self.exclude_packages,
+    )
   }
 
   pub fn matches_dependencies(&self, instance: &Instance) -> bool {
