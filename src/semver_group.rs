@@ -20,6 +20,21 @@ pub struct SemverGroup {
 }
 
 impl SemverGroup {
+  /// Create a default group which ensures local packages are an exact version
+  pub fn get_exact_local_specifiers() -> SemverGroup {
+    SemverGroup {
+      variant: SemverGroupVariant::WithRange,
+      selector: GroupSelector::new(
+        /*include_dependencies:*/ vec![],
+        /*include_dependency_types:*/ vec!["local".to_string()],
+        /*label:*/ "Local package versions must be exact".to_string(),
+        /*include_packages:*/ vec![],
+        /*include_specifier_types:*/ vec![],
+      ),
+      range: None,
+    }
+  }
+
   /// Create a default/catch-all group which would apply to any instance
   pub fn get_catch_all() -> SemverGroup {
     SemverGroup {

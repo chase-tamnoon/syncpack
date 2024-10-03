@@ -2,6 +2,8 @@
 #[path = "specifier_test.rs"]
 mod specifier_test;
 
+use semver_range::SemverRange;
+
 use crate::specifier::{
   non_semver::NonSemver,
   orderable::{IsOrderable, Orderable},
@@ -66,6 +68,11 @@ impl Specifier {
     .to_string()
   }
 
+  /// Try to parse this specifier into one from the `node_semver` crate
+  pub fn parse_with_node_semver(&self) -> Result<node_semver::Range, node_semver::SemverError> {
+    self.unwrap().parse::<node_semver::Range>()
+  }
+
   /// Get the raw string value of the specifier, eg "^1.4.1"
   pub fn unwrap(&self) -> String {
     match self {
@@ -106,6 +113,77 @@ impl Specifier {
     } else {
       None
     }
+  }
+
+  /// Get the semver range for this specifier, if it has one
+  pub fn get_semver_range(&self) -> Option<SemverRange> {
+    if let Specifier::Semver(Semver::Simple(simple_semver)) = self {
+      Some(simple_semver.get_range())
+    } else {
+      None
+    }
+  }
+
+  /// Does this specifier have the given semver range?
+  pub fn has_semver_range_of(&self, range: &SemverRange) -> bool {
+    match self {
+      Self::Semver(Semver::Simple(simple_semver)) => simple_semver.has_semver_range_of(range),
+      _ => false,
+    }
+  }
+
+  /// Does this specifier have the same range (eg. `~` as the given specifier?
+  pub fn has_same_semver_range_as(&self, other: &Self) -> bool {
+    match (self, other) {
+      (Self::Semver(Semver::Simple(simple_semver)), Self::Semver(Semver::Simple(other_simple_semver))) => {
+        simple_semver.has_same_semver_range_as(other_simple_semver)
+      }
+      _ => false,
+    }
+  }
+
+  /// Does this specifier have the same simple semver version number as the given
+  /// specifier, but a different semver range?
+  ///
+  /// For example "^1.1.0" vs "~1.1.0" is true, but "^1.1.0" vs "^1.2.0" is false
+  pub fn differs_only_by_semver_range(&self, other: &Specifier) -> bool {
+    self.has_same_version_number_as(other) && !self.has_same_semver_range_as(other)
+  }
+
+  /// Regardless of the range, does this specifier and the other both have eg.
+  /// "1.4.1" as their version?
+  pub fn has_same_version_number_as(&self, other: &Self) -> bool {
+    match (self, other) {
+      (Self::Semver(Semver::Simple(simple_semver)), Self::Semver(Semver::Simple(other_simple_semver))) => {
+        simple_semver.has_same_version_number_as(other_simple_semver)
+      }
+      _ => false,
+    }
+  }
+
+  /// Does this specifier match every one of the given specifiers?
+  pub fn satisfies_all(&self, others: Vec<&Self>) -> bool {
+    if !matches!(self, Specifier::None) {
+      if let Ok(node_range) = self.parse_with_node_semver() {
+        return others
+          .iter()
+          .flat_map(|other| other.parse_with_node_semver())
+          .all(|other_range| node_range.allows_any(&other_range));
+      }
+    }
+    false
+  }
+
+  /// Does this specifier match the given specifier?
+  pub fn satisfies(&self, other: &Self) -> bool {
+    if !matches!(self, Specifier::None) {
+      if let Ok(node_range) = self.parse_with_node_semver() {
+        if let Ok(other_node_range) = other.parse_with_node_semver() {
+          return node_range.allows_any(&other_node_range);
+        }
+      }
+    }
+    false
   }
 }
 

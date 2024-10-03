@@ -1,5 +1,5 @@
 use colored::*;
-use log::info;
+use log::{debug, info};
 
 use crate::{
   config::Config,
@@ -98,70 +98,77 @@ impl Effects for FixEffects<'_> {
         panic!("Unknown instance state");
       }
       /* Ignored */
-      InstanceState::MatchesIgnored => { /*NOOP*/ }
+      InstanceState::Ignored => { /*NOOP*/ }
       /* Matches */
-      InstanceState::LocalWithValidVersion
+      InstanceState::ValidLocal
+      | InstanceState::EqualsLocal
       | InstanceState::MatchesLocal
-      | InstanceState::MatchesPreferVersion
-      | InstanceState::MatchesButUnsupported
-      | InstanceState::MatchesPin
+      | InstanceState::EqualsPreferVersion
+      | InstanceState::EqualsNonSemverPreferVersion
+      | InstanceState::EqualsPin
       | InstanceState::MatchesSameRangeGroup => { /*NOOP*/ }
       /* Warnings */
       InstanceState::RefuseToBanLocal => {
-        println!("@TODO: explain RefuseToBanLocal");
-      }
-      InstanceState::RefuseToChangeLocalSemverRange => {
-        println!("@TODO: explain RefuseToChangeLocalSemverRange");
+        debug!("@TODO: explain RefuseToBanLocal");
       }
       InstanceState::RefuseToPinLocal => {
-        println!("@TODO: explain RefuseToPinLocal");
+        debug!("@TODO: explain RefuseToPinLocal");
       }
-      InstanceState::MissingLocalVersion => {
-        println!("@TODO: explain MissingLocalVersion");
+      InstanceState::InvalidLocalVersion => {
+        debug!("@TODO: explain InvalidLocalVersion");
       }
-      InstanceState::PreferVersionMatchConflictsWithSemverGroup => {
-        println!("@TODO: explain PreferVersionMatchConflictsWithSemverGroup");
+      InstanceState::MatchesPreferVersion => {
+        debug!("@TODO: explain MatchesPreferVersion");
+      }
+      /* Overrides */
+      InstanceState::PinMatchOverridesSemverRangeMatch => {
+        debug!("@TODO: explain PinMatchOverridesSemverRangeMatch");
+      }
+      InstanceState::PinMatchOverridesSemverRangeMismatch => {
+        debug!("@TODO: explain PinMatchOverridesSemverRangeMismatch");
       }
       /* Fixable Mismatches */
       InstanceState::Banned
-      | InstanceState::SemverRangeMismatchWillFixPreferVersion
-      | InstanceState::LocalMatchConflictsWithSemverGroup
       | InstanceState::MismatchesLocal
       | InstanceState::MismatchesPreferVersion
-      | InstanceState::MismatchesPin => {
-        instance.package.borrow().apply_instance_specifier(instance);
+      | InstanceState::SemverRangeMismatch
+      | InstanceState::MismatchesPin
+      | InstanceState::SemverRangeMismatchWillFixSameRangeGroup
+      | InstanceState::SemverRangeMismatchWillMatchSameRangeGroup => {
+        instance.package.borrow().copy_expected_specifier(instance);
       }
-      /* Unfixable Mismatches */
-      InstanceState::MismatchesMissingLocalVersion => {
-        println!("@TODO: explain MismatchesMissingLocalVersion");
-        self.is_valid = false;
-      }
-      InstanceState::MismatchesUnsupported => {
-        println!("@TODO: explain MismatchesUnsupported");
-        self.is_valid = false;
-      }
+      /* Conflicts */
       InstanceState::PinMatchConflictsWithSemverGroup => {
-        println!("@TODO: explain PinMatchConflictsWithSemverGroup");
-        self.is_valid = false;
-      }
-      InstanceState::SemverRangeMismatchWontFixSameRangeGroup => {
-        println!("@TODO: explain SemverRangeMismatchWontFixSameRangeGroup");
-        self.is_valid = false;
-      }
-      InstanceState::SemverRangeMismatchWillFixSameRangeGroup => {
-        println!("@TODO: explain SemverRangeMismatchWillFixSameRangeGroup");
+        debug!("@TODO: explain PinMatchConflictsWithSemverGroup");
         self.is_valid = false;
       }
       InstanceState::SameRangeMatchConflictsWithSemverGroup => {
-        println!("@TODO: explain SameRangeMatchConflictsWithSemverGroup");
+        debug!("@TODO: explain SameRangeMatchConflictsWithSemverGroup");
         self.is_valid = false;
       }
-      InstanceState::SemverRangeMismatchWillMatchSameRangeGroup => {
-        println!("@TODO: explain SemverRangeMismatchWillMatchSameRangeGroup");
+      InstanceState::SemverRangeMatchConflictsWithPreferVersion => {
+        debug!("@TODO: explain SemverRangeMatchConflictsWithPreferVersion");
+        self.is_valid = false;
+      }
+      /* Unfixable Mismatches */
+      InstanceState::MismatchesInvalidLocalVersion => {
+        debug!("@TODO: explain MismatchesInvalidLocalVersion");
+        self.is_valid = false;
+      }
+      InstanceState::MismatchesNonSemverPreferVersion => {
+        debug!("@TODO: explain MismatchesNonSemverPreferVersion");
+        self.is_valid = false;
+      }
+      InstanceState::SemverRangeMismatchConflictsWithPreferVersion => {
+        debug!("@TODO: explain SemverRangeMismatchConflictsWithPreferVersion");
+        self.is_valid = false;
+      }
+      InstanceState::SemverRangeMismatchWontFixSameRangeGroup => {
+        debug!("@TODO: explain SemverRangeMismatchWontFixSameRangeGroup");
         self.is_valid = false;
       }
       InstanceState::MismatchesSameRangeGroup => {
-        println!("@TODO: explain MismatchesSameRangeGroup");
+        debug!("@TODO: explain MismatchesSameRangeGroup");
         self.is_valid = false;
       }
     }

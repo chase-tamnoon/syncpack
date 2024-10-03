@@ -1,16 +1,9 @@
-use node_semver::Range;
-use std::{
-  cell::RefCell,
-  cmp::Ordering,
-  collections::{HashMap, HashSet},
-  rc::Rc,
-  vec,
-};
+use std::{cell::RefCell, cmp::Ordering, rc::Rc, vec};
 
 use crate::{
   instance::{Instance, InstanceId},
   package_json::PackageJson,
-  specifier::{orderable::IsOrderable, Specifier},
+  specifier::{orderable::IsOrderable, semver::Semver, simple_semver::SimpleSemver, Specifier},
   version_group::Variant,
 };
 
@@ -77,7 +70,11 @@ impl Dependency {
     }
   }
 
-  pub fn set_state(&self, state: DependencyState) {
+  pub fn has_state(&self, state: DependencyState) -> bool {
+    *self.state.borrow() == state
+  }
+
+  pub fn set_state(&self, state: DependencyState) -> &Self {
     fn get_severity(state: &DependencyState) -> i32 {
       match state {
         DependencyState::Valid => 0,
@@ -88,10 +85,7 @@ impl Dependency {
     if get_severity(&state) > get_severity(&self.state.borrow()) {
       *self.state.borrow_mut() = state;
     }
-  }
-
-  pub fn has_state(&self, state: DependencyState) -> bool {
-    *self.state.borrow() == state
+    self
   }
 
   pub fn add_instance(&self, instance: Rc<Instance>) {
@@ -101,12 +95,29 @@ impl Dependency {
     }
   }
 
+  pub fn set_expected_specifier(&self, specifier: &Specifier) -> &Self {
+    *self.expected.borrow_mut() = Some(specifier.clone());
+    self
+  }
+
+  pub fn get_local_specifier(&self) -> Option<Specifier> {
+    self
+      .local_instance
+      .borrow()
+      .as_ref()
+      .map(|instance| instance.actual_specifier.clone())
+  }
+
   pub fn has_local_instance(&self) -> bool {
     self.local_instance.borrow().is_some()
   }
 
-  pub fn set_expected_specifier(&self, specifier: &Specifier) {
-    *self.expected.borrow_mut() = Some(specifier.clone());
+  pub fn has_local_instance_with_invalid_specifier(&self) -> bool {
+    self.has_local_instance()
+      && !matches!(
+        self.get_local_specifier().unwrap(),
+        Specifier::Semver(Semver::Simple(SimpleSemver::Exact(_)))
+      )
   }
 
   pub fn has_preferred_ranges(&self) -> bool {
@@ -114,105 +125,52 @@ impl Dependency {
       .all_instances
       .borrow()
       .iter()
-      .any(|instance| instance.prefer_range.borrow().is_some())
+      .any(|instance| instance.preferred_semver_range.borrow().is_some())
   }
 
-  pub fn get_local_specifier(&self) -> Option<Specifier> {
-    self.local_instance.borrow().as_ref().map(|instance| instance.actual.clone())
-  }
-
-  pub fn all_are_semver(&self) -> bool {
+  pub fn all_are_simple_semver(&self) -> bool {
     self
       .all_instances
       .borrow()
       .iter()
-      .all(|instance| instance.actual.is_simple_semver())
+      .all(|instance| instance.actual_specifier.is_simple_semver())
   }
 
-  pub fn get_unique_expected_and_actual_specifiers(&self) -> HashSet<Specifier> {
-    self.all_instances.borrow().iter().fold(HashSet::new(), |mut uniques, instance| {
-      uniques.insert(instance.actual.clone());
-      uniques.insert(instance.expected.borrow().clone());
-      uniques
-    })
-  }
-
-  pub fn get_unique_expected_specifiers(&self) -> HashSet<Specifier> {
-    self.all_instances.borrow().iter().fold(HashSet::new(), |mut uniques, instance| {
-      uniques.insert(instance.expected.borrow().clone());
-      uniques
-    })
-  }
-
-  /// Is the exact same specifier used by all instances in this group?
-  pub fn all_are_identical(&self) -> bool {
-    let mut previous: Option<Specifier> = None;
-    for instance in self.all_instances.borrow().iter() {
-      if let Some(value) = previous {
-        if *value.unwrap() != instance.actual.unwrap() {
-          return false;
-        }
-      }
-      previous = Some(instance.expected.borrow().clone());
+  /// Does every instance in this group have a specifier which is exactly the same?
+  pub fn every_specifier_is_already_identical(&self) -> bool {
+    if let Some(first_actual) = self.all_instances.borrow().first().map(|instance| &instance.actual_specifier) {
+      self
+        .all_instances
+        .borrow()
+        .iter()
+        .all(|instance| instance.actual_specifier == *first_actual)
+    } else {
+      false
     }
-    true
   }
 
-  /// Get the highest semver specifier in this group (or lowest, depending on config).
-  ///
-  /// We compare the expected (not actual) specifier because we're looking for
-  /// what we should suggest as the correct specifier once `fix` is applied
-  pub fn get_preferred_specifier(&self, preferred_order: Ordering) -> Option<Specifier> {
-    self.all_instances.borrow().iter().fold(None, |highest, instance| match highest {
-      None => Some(instance.expected.borrow().clone()),
-      Some(highest) => {
-        let a = instance.expected.borrow().get_orderable();
-        let b = highest.get_orderable();
-        if a.cmp(&b) == preferred_order {
-          Some(instance.expected.borrow().clone())
-        } else {
-          Some(highest)
-        }
-      }
-    })
-  }
-
-  /// Get all semver specifiers which have a range that does not match all of
-  /// the other semver specifiers
-  ///
-  /// We compare the both expected and actual specifiers because we need to know
-  /// what is valid right now on disk, but also what would be still be valid or
-  /// become invalid once a `fix` is applied and semver group ranges have been
-  /// applied.
-  ///
-  /// We should compare the actual and expected specifier of each instance to
-  /// determine what to do
-  pub fn get_same_range_mismatches(&self) -> HashMap<Specifier, Vec<Specifier>> {
-    let get_range = |specifier: &Specifier| specifier.unwrap().parse::<Range>().unwrap();
-    let mut mismatches_by_specifier: HashMap<Specifier, Vec<Specifier>> = HashMap::new();
-    let unique_semver_specifiers: Vec<Specifier> = self
-      .get_unique_expected_and_actual_specifiers()
+  /// Get the highest (or lowest) semver specifier in this group.
+  pub fn get_highest_or_lowest_specifier(&self) -> Option<Specifier> {
+    let prefer_highest = matches!(self.variant, Variant::HighestSemver);
+    let preferred_order = if prefer_highest { Ordering::Greater } else { Ordering::Less };
+    self
+      .all_instances
+      .borrow()
       .iter()
-      .filter(|specifier| specifier.is_simple_semver())
-      .cloned()
-      .collect();
-    unique_semver_specifiers.iter().for_each(|specifier_a| {
-      let range_a = get_range(specifier_a);
-      unique_semver_specifiers.iter().for_each(|specifier_b| {
-        if specifier_a.unwrap() == specifier_b.unwrap() {
-          return;
+      .filter(|instance| instance.actual_specifier.is_simple_semver())
+      .map(|instance| instance.actual_specifier.clone())
+      .fold(None, |preferred, specifier| match preferred {
+        None => Some(specifier),
+        Some(preferred) => {
+          let a = specifier.get_orderable();
+          let b = preferred.get_orderable();
+          if a.cmp(&b) == preferred_order {
+            Some(specifier.clone())
+          } else {
+            Some(preferred)
+          }
         }
-        let range_b = get_range(specifier_b);
-        if range_a.allows_all(&range_b) {
-          return;
-        }
-        mismatches_by_specifier
-          .entry(specifier_a.clone())
-          .or_default()
-          .push(specifier_b.clone());
-      });
-    });
-    mismatches_by_specifier
+      })
   }
 
   /// Return the first instance from the packages which should be snapped to for
@@ -229,7 +187,7 @@ impl Dependency {
         if instance.name == *self.name {
           for snapped_to_package in snapped_to_packages {
             if instance.package.borrow().get_name_unsafe() == snapped_to_package.borrow().get_name_unsafe() {
-              return Some(instance.expected.borrow().clone());
+              return Some(instance.expected_specifier.borrow().as_ref().unwrap().clone());
             }
           }
         }
@@ -242,13 +200,13 @@ impl Dependency {
   /// name in ascending order
   pub fn sort_instances(&self) {
     self.all_instances.borrow_mut().sort_by(|a, b| {
-      if matches!(&a.actual, Specifier::None) {
+      if matches!(&a.actual_specifier, Specifier::None) {
         return Ordering::Greater;
       }
-      if matches!(&b.actual, Specifier::None) {
+      if matches!(&b.actual_specifier, Specifier::None) {
         return Ordering::Less;
       }
-      let specifier_order = b.actual.unwrap().cmp(&a.actual.unwrap());
+      let specifier_order = b.actual_specifier.unwrap().cmp(&a.actual_specifier.unwrap());
       if matches!(specifier_order, Ordering::Equal) {
         a.package.borrow().get_name_unsafe().cmp(&b.package.borrow().get_name_unsafe())
       } else {

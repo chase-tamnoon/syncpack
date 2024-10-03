@@ -3,16 +3,17 @@
 mod visit_packages_test;
 
 use itertools::Itertools;
+use log::debug;
 use std::{cmp::Ordering, rc::Rc};
 
 use crate::{
   config::Config,
   context::Context,
-  dependency::DependencyState,
-  effects::{Effects, Event, FormatMismatch, FormatMismatchEvent, FormatMismatchVariant, InstanceEvent, InstanceState},
+  dependency::DependencyState::*,
+  effects::{Effects, Event, FormatMismatch, FormatMismatchEvent, FormatMismatchVariant, InstanceEvent, InstanceState::*},
   format,
   packages::Packages,
-  specifier::Specifier,
+  specifier::{semver_range::SemverRange, Specifier},
   version_group::Variant,
 };
 
@@ -20,6 +21,7 @@ pub fn visit_packages(config: &Config, packages: &Packages, effects: &mut impl E
   let ctx = Context::create(config, packages);
 
   if config.cli.options.versions {
+    debug!("visit versions");
     effects.on(Event::EnterVersionsAndRanges);
 
     ctx
@@ -38,197 +40,305 @@ pub fn visit_packages(config: &Config, packages: &Packages, effects: &mut impl E
       })
       .for_each(|group| {
         effects.on(Event::GroupVisited(&group.selector));
-
         group.dependencies.borrow().values().for_each(|dependency| {
           match dependency.variant {
             Variant::Banned => {
+              debug!("visit banned version group");
+              debug!("  visit dependency '{}'", dependency.name);
               dependency.all_instances.borrow().iter().for_each(|instance| {
+                debug!("    visit instance '{}'", instance.id);
                 if instance.is_local {
-                  dependency.set_state(DependencyState::Warning);
-                  instance.set_state(InstanceState::RefuseToBanLocal);
+                  debug!("      it is the local instance of a package developed locally in this monorepo");
+                  debug!("        refuse to change it");
+                  debug!("          mark as warning, user should change their config");
+                  dependency.set_state(Warning);
+                  instance.set_state(RefuseToBanLocal, &instance.actual_specifier);
                 } else {
-                  dependency.set_state(DependencyState::Invalid);
-                  instance.set_expected_specifier(&Specifier::None);
-                  instance.set_state(InstanceState::Banned);
+                  debug!("      it should be removed");
+                  debug!("        mark as error");
+                  dependency.set_state(Invalid);
+                  instance.set_state(Banned, &Specifier::None);
                 }
               });
             }
             Variant::HighestSemver | Variant::LowestSemver => {
-              let prefer_highest = matches!(dependency.variant, Variant::HighestSemver);
-              let preferred_order: Ordering = if prefer_highest { Ordering::Greater } else { Ordering::Less };
-              let label: &str = if prefer_highest { "highest" } else { "lowest" };
-
-              if dependency.has_local_instance() {
-                let local_specifier = dependency.get_local_specifier().unwrap();
+              debug!("visit standard version group");
+              debug!("  visit dependency '{}'", dependency.name);
+              if dependency.has_local_instance_with_invalid_specifier() {
+                debug!("    it has an invalid local instance");
                 dependency.all_instances.borrow().iter().for_each(|instance| {
+                  debug!("      visit instance '{}'", instance.id);
                   if instance.is_local {
-                    if matches!(local_specifier, Specifier::None) {
-                      dependency.set_state(DependencyState::Warning);
-                      instance.set_state(InstanceState::MissingLocalVersion);
-                    } else if instance.has_range_mismatch(&local_specifier) {
-                      dependency.set_state(DependencyState::Warning);
-                      dependency.set_expected_specifier(&local_specifier);
-                      instance.set_expected_specifier(&local_specifier);
-                      instance.set_state(InstanceState::RefuseToChangeLocalSemverRange);
-                    } else {
-                      dependency.set_expected_specifier(&local_specifier);
-                      instance.set_state(InstanceState::LocalWithValidVersion);
-                    }
-                  } else if matches!(local_specifier, Specifier::None) {
-                    dependency.set_state(DependencyState::Invalid);
-                    instance.set_expected_specifier(&Specifier::None);
-                    instance.set_state(InstanceState::MismatchesMissingLocalVersion);
-                  } else if instance.already_matches(&local_specifier) {
-                    if instance.has_range_mismatch(&local_specifier) {
-                      dependency.set_state(DependencyState::Invalid);
-                      instance.set_expected_specifier(&instance.get_fixed_range_mismatch());
-                      dependency.set_expected_specifier(&local_specifier);
-                      instance.set_state(InstanceState::LocalMatchConflictsWithSemverGroup);
-                    } else {
-                      dependency.set_expected_specifier(&local_specifier);
-                      instance.set_state(InstanceState::MatchesLocal);
-                    }
+                    debug!("        it is the invalid local instance");
+                    debug!("          mark as warning");
+                    dependency.set_state(Warning);
+                    instance.set_state(InvalidLocalVersion, &instance.actual_specifier);
                   } else {
-                    dependency.set_state(DependencyState::Invalid);
-                    instance.set_expected_specifier(&local_specifier);
-                    dependency.set_expected_specifier(&local_specifier);
-                    instance.set_state(InstanceState::MismatchesLocal);
+                    debug!("        it depends on an unknowable version of an invalid local instance");
+                    debug!("          mark as error");
+                    dependency.set_state(Invalid);
+                    instance.set_state(MismatchesInvalidLocalVersion, &instance.actual_specifier);
                   }
                 });
-              } else if dependency.all_are_semver() {
-                match dependency.get_preferred_specifier(preferred_order) {
-                  Some(preferred) => {
-                    dependency.all_instances.borrow().iter().for_each(|instance| {
-                      if instance.already_matches(&preferred) {
-                        if instance.has_range_mismatch(&preferred) {
-                          dependency.set_state(DependencyState::Invalid);
-                          instance.set_expected_specifier(&instance.get_fixed_range_mismatch());
-                          dependency.set_expected_specifier(&preferred);
-                          instance.set_state(InstanceState::PreferVersionMatchConflictsWithSemverGroup);
+              } else if dependency.has_local_instance() {
+                debug!("    it is a package developed locally in this monorepo");
+                let local_specifier = dependency.get_local_specifier().unwrap();
+                dependency.set_expected_specifier(&local_specifier);
+                dependency.all_instances.borrow().iter().for_each(|instance| {
+                  debug!("      visit instance '{}'", instance.id);
+                  if instance.is_local {
+                    debug!("        it is the valid local instance");
+                    dependency.set_state(Valid);
+                    instance.set_state(ValidLocal, &local_specifier);
+                    return;
+                  }
+                  debug!("        it depends on the local instance");
+                  if instance.must_match_preferred_semver_range_which_is_not(&SemverRange::Exact) {
+                    debug!("          it is in a semver group which prefers a different semver range to the local instance");
+                    debug!("            its version number (without a range):");
+                    if instance.actual_specifier.has_same_version_number_as(&local_specifier) {
+                      debug!("              is identical to the local instance");
+                      if instance.matches_preferred_semver_range() {
+                        debug!("                its semver range matches its semver group");
+                        debug!("                  mark as valid (the config is asking for an inexact match)");
+                        dependency.set_state(Valid);
+                        instance.set_state(MatchesLocal, &instance.actual_specifier);
+                      } else {
+                        debug!("                its semver range does not match its semver group");
+                        debug!("                  mark as error, semver range mismatch");
+                        dependency.set_state(Invalid);
+                        instance.set_state(SemverRangeMismatch, &instance.get_specifier_with_preferred_semver_range().unwrap());
+                      }
+                    } else {
+                      debug!("              differs to the local instance");
+                      debug!("                mark as error");
+                      dependency.set_state(Invalid);
+                      instance.set_state(MismatchesLocal, &local_specifier);
+                    }
+                    return;
+                  }
+                  if instance.already_equals(&local_specifier) {
+                    debug!("          it is identical to the local instance");
+                    debug!("            mark as valid");
+                    dependency.set_state(Valid);
+                    instance.set_state(EqualsLocal, &local_specifier);
+                  } else {
+                    debug!("          it is different to the local instance");
+                    debug!("            mark as error");
+                    dependency.set_state(Invalid);
+                    instance.set_state(MismatchesLocal, &local_specifier);
+                  }
+                });
+              } else if let Some(highest_specifier) = dependency.get_highest_or_lowest_specifier() {
+                debug!("    a highest/lowest semver version was found");
+                dependency.set_expected_specifier(&highest_specifier);
+                dependency.all_instances.borrow().iter().for_each(|instance| {
+                  debug!("      visit instance '{}'", instance.id);
+                  let range_of_highest_specifier = highest_specifier.get_simple_semver().unwrap().get_range();
+                  if instance.must_match_preferred_semver_range_which_is_not(&range_of_highest_specifier) {
+                    debug!("        it is in a semver group which prefers a different semver range to the highest/lowest semver version");
+                    debug!("          its version number (without a range):");
+                    if instance.actual_specifier.has_same_version_number_as(&highest_specifier) {
+                      debug!("            is identical to the highest/lowest semver version");
+                      if instance.matches_preferred_semver_range() {
+                        debug!("              its semver range matches its semver group");
+                        if instance.specifier_with_preferred_semver_range_will_satisfy(&highest_specifier) {
+                          debug!("                the semver range satisfies the highest/lowest semver version");
+                          debug!("                  mark as warning (the config is asking for an inexact match)");
+                          dependency.set_state(Warning);
+                          instance.set_state(MatchesPreferVersion, &instance.get_specifier_with_preferred_semver_range().unwrap());
                         } else {
-                          dependency.set_expected_specifier(&preferred);
-                          instance.set_state(InstanceState::MatchesPreferVersion);
-                        }
-                      } else if *instance.expected.borrow() == preferred {
-                        if instance.matches_semver_group(&instance.expected.borrow()) && !instance.matches_semver_group(&instance.actual) {
-                          dependency.set_state(DependencyState::Invalid);
-                          dependency.set_expected_specifier(&preferred);
-                          instance.set_state(InstanceState::SemverRangeMismatchWillFixPreferVersion);
+                          debug!("                the preferred semver range will not satisfy the highest/lowest semver version");
+                          debug!("                  mark as unfixable error");
+                          dependency.set_state(Invalid);
+                          instance.set_state(SemverRangeMatchConflictsWithPreferVersion, &instance.actual_specifier);
                         }
                       } else {
-                        // check this
-                        dependency.set_state(DependencyState::Invalid);
-                        instance.set_expected_specifier(&preferred);
-                        dependency.set_expected_specifier(&preferred);
-                        instance.set_state(InstanceState::MismatchesPreferVersion);
+                        debug!("              its semver range does not match its semver group");
+                        if instance.specifier_with_preferred_semver_range_will_satisfy(&highest_specifier) {
+                          debug!("                the preferred semver range will satisfy the highest/lowest semver version");
+                          debug!("                  mark as fixable error");
+                          dependency.set_state(Invalid);
+                          instance.set_state(SemverRangeMismatch, &instance.get_specifier_with_preferred_semver_range().unwrap());
+                        } else {
+                          debug!("                the preferred semver range will not satisfy the highest/lowest semver version");
+                          debug!("                  mark as unfixable error");
+                          dependency.set_state(Invalid);
+                          instance.set_state(SemverRangeMismatchConflictsWithPreferVersion, &instance.actual_specifier);
+                        }
                       }
-                    });
+                    } else {
+                      debug!("            differs to the highest/lowest semver version");
+                      debug!("              mark as error");
+                      dependency.set_state(Invalid);
+                      instance.set_state(MismatchesPreferVersion, &highest_specifier);
+                    }
+                  } else {
+                    debug!(
+                      "        it is not in a semver group which prefers a different semver range to the highest/lowest semver version"
+                    );
+                    if instance.already_equals(&highest_specifier) {
+                      debug!("          it is identical to the highest/lowest semver version");
+                      debug!("            mark as valid");
+                      dependency.set_state(Valid);
+                      instance.set_state(EqualsPreferVersion, &highest_specifier);
+                    } else {
+                      debug!("          it is different to the highest/lowest semver version");
+                      debug!("            mark as error");
+                      dependency.set_state(Invalid);
+                      instance.set_state(MismatchesPreferVersion, &highest_specifier);
+                    }
                   }
-                  None => {
-                    panic!("No {} semver found for dependency {:?}", label, dependency);
-                  }
-                }
-              } else if dependency.all_are_identical() {
-                dependency.set_state(DependencyState::Warning);
-                dependency.all_instances.borrow().iter().for_each(|instance| {
-                  dependency.set_expected_specifier(&instance.actual);
-                  instance.set_state(InstanceState::MatchesButUnsupported);
                 });
               } else {
-                dependency.set_state(DependencyState::Invalid);
-                dependency.all_instances.borrow().iter().for_each(|instance| {
-                  instance.set_expected_specifier(&Specifier::None);
-                  instance.set_state(InstanceState::MismatchesUnsupported);
-                });
+                debug!("    no instances have a semver version");
+                if dependency.every_specifier_is_already_identical() {
+                  debug!("      but all are identical");
+                  dependency.set_state(Valid);
+                  dependency.all_instances.borrow().iter().for_each(|instance| {
+                    debug!("        visit instance '{}'", instance.id);
+                    debug!("          it is identical to every other instance");
+                    debug!("            mark as valid");
+                    instance.set_state(EqualsNonSemverPreferVersion, &instance.actual_specifier);
+                  });
+                } else {
+                  debug!("      and they differ");
+                  dependency.set_state(Invalid);
+                  dependency.all_instances.borrow().iter().for_each(|instance| {
+                    debug!("        visit instance '{}'", instance.id);
+                    debug!("          it depends on a currently unknowable correct version from a set of unsupported version specifiers");
+                    debug!("            mark as error");
+                    instance.set_state(MismatchesNonSemverPreferVersion, &instance.actual_specifier);
+                  });
+                }
               }
             }
             Variant::Ignored => {
+              debug!("visit ignored version group");
+              debug!("  visit dependency '{}'", dependency.name);
+              dependency.set_state(Valid);
               dependency.all_instances.borrow().iter().for_each(|instance| {
-                instance.set_state(InstanceState::MatchesIgnored);
+                debug!("    visit instance '{}'", instance.id);
+                instance.set_state(Ignored, &instance.actual_specifier);
               });
             }
-            Variant::Pinned => match &dependency.pinned_specifier {
-              Some(pinned) => {
-                dependency.all_instances.borrow().iter().for_each(|instance| {
-                  // CHECK THIS Eq WORKS
-                  if instance.already_matches(pinned) {
-                    dependency.set_expected_specifier(pinned);
-                    instance.set_state(InstanceState::MatchesPin);
-                  } else if instance.has_range_mismatch(pinned) {
-                    if instance.is_local {
-                      dependency.set_state(DependencyState::Warning);
-                      dependency.set_expected_specifier(pinned);
-                      instance.set_state(InstanceState::RefuseToChangeLocalSemverRange);
+            Variant::Pinned => {
+              debug!("visit pinned version group");
+              debug!("  visit dependency '{}'", dependency.name);
+              let pinned_specifier = dependency.pinned_specifier.clone().unwrap();
+              dependency.set_expected_specifier(&pinned_specifier);
+              dependency.all_instances.borrow().iter().for_each(|instance| {
+                debug!("    visit instance '{}'", instance.id);
+                if instance.is_local {
+                  debug!("      it is the local instance of a package developed locally in this monorepo");
+                  debug!("        refuse to change it");
+                  debug!("          mark as error, user should change their config");
+                  dependency.set_state(Warning);
+                  instance.set_state(RefuseToPinLocal, &instance.actual_specifier);
+                  return;
+                }
+                if instance.must_match_preferred_semver_range_which_differs_to(&pinned_specifier) {
+                  debug!("      it is in a semver group which prefers a different semver range to the pinned version");
+                  debug!("        its version number (without a range):");
+                  if instance.actual_specifier.has_same_version_number_as(&pinned_specifier) {
+                    debug!("          is identical to the pinned version");
+                    if instance.matches_preferred_semver_range() {
+                      debug!("            its semver range matches its semver group");
+                      debug!("              1. pin it and ignore the semver group");
+                      debug!("              2. mark as warning (the config is asking for a different range AND they want to pin it)");
+                      dependency.set_state(Warning);
+                      instance.set_state(PinMatchOverridesSemverRangeMatch, &pinned_specifier);
                     } else {
-                      dependency.set_state(DependencyState::Invalid);
-                      instance.set_expected_specifier(&instance.get_fixed_range_mismatch());
-                      dependency.set_expected_specifier(pinned);
-                      instance.set_state(InstanceState::PinMatchConflictsWithSemverGroup);
+                      debug!("            its semver range does not match its semver group or the pinned version's");
+                      debug!("              1. pin it and ignore the semver group");
+                      debug!("              2. mark as warning (the config is asking for a different range AND they want to pin it)");
+                      dependency.set_state(Warning);
+                      instance.set_state(PinMatchOverridesSemverRangeMismatch, &pinned_specifier);
                     }
-                  } else if instance.is_local {
-                    dependency.set_state(DependencyState::Warning);
-                    dependency.set_expected_specifier(pinned);
-                    instance.set_state(InstanceState::RefuseToPinLocal);
                   } else {
-                    dependency.set_state(DependencyState::Invalid);
-                    instance.set_expected_specifier(pinned);
-                    dependency.set_expected_specifier(pinned);
-                    instance.set_state(InstanceState::MismatchesPin);
+                    debug!("          differs to the pinned version");
+                    debug!("            mark as error");
+                    dependency.set_state(Invalid);
+                    instance.set_state(MismatchesPin, &pinned_specifier);
                   }
-                });
-              }
-              None => {
-                panic!("No pinned specifier found for dependency {:?}", dependency);
-              }
-            },
+                  return;
+                }
+                if instance.already_equals(&pinned_specifier) {
+                  debug!("      it is identical to the pinned version");
+                  debug!("        mark as valid");
+                  dependency.set_state(Valid);
+                  instance.set_state(EqualsPin, &pinned_specifier);
+                } else {
+                  debug!("      differs to the pinned version");
+                  debug!("        mark as error");
+                  dependency.set_state(Invalid);
+                  instance.set_state(MismatchesPin, &pinned_specifier);
+                }
+              });
+            }
             Variant::SameRange => {
-              if dependency.all_are_semver() {
-                let mismatches = dependency.get_same_range_mismatches();
-                dependency.all_instances.borrow().iter().for_each(|instance| {
-                  // CHECK THIS OVER
-                  if instance.has_range_mismatch(&instance.expected.borrow()) {
-                    if mismatches.contains_key(&instance.actual) {
-                      if mismatches.contains_key(&*instance.expected.borrow()) {
-                        dependency.set_state(DependencyState::Invalid);
-                        instance.set_expected_specifier(&Specifier::None);
-                        instance.set_state(InstanceState::SemverRangeMismatchWontFixSameRangeGroup);
-                      } else {
-                        dependency.set_state(DependencyState::Invalid);
-                        instance.set_expected_specifier(&Specifier::None);
-                        instance.set_state(InstanceState::SemverRangeMismatchWillFixSameRangeGroup);
-                      }
-                    } else if mismatches.contains_key(&*instance.expected.borrow()) {
-                      dependency.set_state(DependencyState::Invalid);
-                      instance.set_expected_specifier(&Specifier::None);
-                      instance.set_state(InstanceState::SameRangeMatchConflictsWithSemverGroup);
-                    } else {
-                      dependency.set_state(DependencyState::Invalid);
-                      instance.set_expected_specifier(&Specifier::None);
-                      instance.set_state(InstanceState::SemverRangeMismatchWillMatchSameRangeGroup);
-                    }
-                  } else if mismatches.contains_key(&instance.actual) {
-                    dependency.set_state(DependencyState::Invalid);
-                    instance.set_expected_specifier(&Specifier::None);
-                    instance.set_state(InstanceState::MismatchesSameRangeGroup);
-                  } else {
-                    instance.set_state(InstanceState::MatchesSameRangeGroup);
-                  }
-                  // /CHECK THIS OVER
-                });
-              } else if dependency.all_are_identical() {
-                dependency.set_state(DependencyState::Warning);
-                dependency.all_instances.borrow().iter().for_each(|instance| {
-                  instance.set_state(InstanceState::MatchesButUnsupported);
-                });
-              } else {
-                dependency.set_state(DependencyState::Invalid);
-                dependency.all_instances.borrow().iter().for_each(|instance| {
-                  instance.set_expected_specifier(&Specifier::None);
-                  instance.set_state(InstanceState::MismatchesUnsupported);
-                });
-              }
+              debug!("visit same range version group");
+              debug!("  visit dependency '{}'", dependency.name);
+              dependency.all_instances.borrow().iter().for_each(|instance| {
+                // @TODO: instance.
+                // gets a node_semver::Range and calls allows_all against another node_semver::Range
+              });
+
+              // if dependency.all_are_simple_semver() {
+              //   let mismatches = dependency.get_same_range_mismatches();
+              //   dependency.all_instances.borrow().iter().for_each(|instance| {
+              //     // CHECK THIS OVER
+              //     if instance.has_range_mismatch(&instance.expected_specifier.borrow()) {
+              //       if mismatches.contains_key(&instance.actual_specifier) {
+              //         if mismatches.contains_key(&*instance.expected_specifier.borrow()) {
+              //           dependency.set_state(Invalid);
+              //           instance
+              //             .set_state(SemverRangeMismatchWontFixSameRangeGroup)
+              //             .set_expected_specifier(&Specifier::None);
+              //         } else {
+              //           dependency.set_state(Invalid);
+              //           instance
+              //             .set_state(SemverRangeMismatchWillFixSameRangeGroup)
+              //             .set_expected_specifier(&Specifier::None);
+              //         }
+              //       } else if mismatches.contains_key(&*instance.expected_specifier.borrow()) {
+              //         dependency.set_state(Invalid);
+              //         instance
+              //           .set_state(SameRangeMatchConflictsWithSemverGroup)
+              //           .set_expected_specifier(&Specifier::None);
+              //       } else {
+              //         dependency.set_state(Invalid);
+              //         instance
+              //           .set_state(SemverRangeMismatchWillMatchSameRangeGroup)
+              //           .set_expected_specifier(&Specifier::None);
+              //       }
+              //     } else if mismatches.contains_key(&instance.actual_specifier) {
+              //       dependency.set_state(Invalid);
+              //       instance
+              //         .set_state(MismatchesSameRangeGroup)
+              //         .set_expected_specifier(&Specifier::None);
+              //     } else {
+              //       instance.set_state(MatchesSameRangeGroup);
+              //     }
+              //     // /CHECK THIS OVER
+              //   });
+              // } else if dependency.every_specifier_is_already_identical() {
+              //   dependency.set_state(Warning);
+              //   dependency.all_instances.borrow().iter().for_each(|instance| {
+              //     instance.set_state(EqualsNonSemverPreferVersion);
+              //   });
+              // } else {
+              //   dependency.set_state(Invalid);
+              //   dependency.all_instances.borrow().iter().for_each(|instance| {
+              //     instance
+              //       .set_state(MismatchesNonSemverPreferVersion)
+              //       .set_expected_specifier(&Specifier::None);
+              //   });
+              // }
             }
             Variant::SnappedTo => {
+              debug!("visit snapped to version group");
+              debug!("  visit dependency '{}'", dependency.name);
               let snapped_to_specifier = dependency.get_snapped_to_specifier();
               // @FIXME
               dependency.set_expected_specifier(&Specifier::new("0.0.0"));
@@ -236,9 +346,9 @@ pub fn visit_packages(config: &Config, packages: &Packages, effects: &mut impl E
           };
 
           // @TODO: this can be one event
-          if dependency.has_state(DependencyState::Valid) {
+          if dependency.has_state(Valid) {
             effects.on(Event::DependencyValid(dependency));
-          } else if dependency.has_state(DependencyState::Warning) {
+          } else if dependency.has_state(Warning) {
             effects.on(Event::DependencyWarning(dependency));
           } else {
             effects.on(Event::DependencyInvalid(dependency));
@@ -247,6 +357,7 @@ pub fn visit_packages(config: &Config, packages: &Packages, effects: &mut impl E
           dependency.sort_instances();
 
           dependency.all_instances.borrow().iter().for_each(|instance| {
+            // @TODO: remove InstanceEvent and just emit the instance
             effects.on_instance(InstanceEvent {
               dependency,
               instance: Rc::clone(instance),

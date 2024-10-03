@@ -59,7 +59,10 @@ pub fn effects(config: &Config) -> MockEffects {
     fixable_mismatches: HashMap::new(),
     is_valid: true,
     matches: HashMap::new(),
+    overrides: HashMap::new(),
     packages: None,
     unfixable_mismatches: HashMap::new(),
+    warnings: HashMap::new(),
+    warnings_of_instance_changes: HashMap::new(),
   }
 }

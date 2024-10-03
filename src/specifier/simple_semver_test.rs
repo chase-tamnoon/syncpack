@@ -157,7 +157,7 @@ fn asserts_whether_two_specifiers_have_same_range() {
     let a = SimpleSemver::new(str_a).unwrap();
     let b = SimpleSemver::new(str_b).unwrap();
     assert_eq!(
-      a.has_same_range(&b),
+      a.has_same_semver_range_as(&b),
       expected,
       "{str_a} has same range as {str_b} should be {expected}"
     );

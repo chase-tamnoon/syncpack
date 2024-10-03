@@ -47,21 +47,25 @@ pub enum InstanceState {
   Unknown,
   /* = Matches ============================================================== */
   /// ✓ Instance is configured to be ignored by Syncpack
-  MatchesIgnored,
+  Ignored,
   /// ✓ Instance is a local package and its version is valid
-  LocalWithValidVersion,
+  ValidLocal,
+  /// ✓ Instance identical to the version of its locally-developed package
+  /// ✓ Instance matches its semver group
+  EqualsLocal,
   /// ✓ Instance matches the version of its locally-developed package
   /// ✓ Instance matches its semver group
+  /// ✓ Considered a loose match we should highlight
   MatchesLocal,
-  /// ✓ Instance matches highest/lowest semver in its group
+  /// ✓ Instance identical to highest/lowest semver in its group
   /// ✓ Instance matches its semver group
-  MatchesPreferVersion,
-  /// ! Specifier is not supported by Syncpack
-  /// ✓ Instance matches every other instance in its its version group
-  MatchesButUnsupported,
-  /// ✓ Instance matches its pinned version group
+  EqualsPreferVersion,
+  /// ! No Instances are simple semver
+  /// ✓ Instance identical to every other instance in its version group
+  EqualsNonSemverPreferVersion,
+  /// ✓ Instance identical to its pinned version group
   /// ✓ Instance matches its semver group
-  MatchesPin,
+  EqualsPin,
   /// ✓ Instance matches its same range group
   /// ✓ Instance matches its semver group
   MatchesSameRangeGroup,
@@ -69,15 +73,28 @@ pub enum InstanceState {
   /// ✘ Local Instance is in a banned version group
   /// ✘ Misconfiguration: Syncpack refuses to change local dependency specifiers
   RefuseToBanLocal,
-  /// ✘ Local Instance mismatches its same range version group
-  /// ✘ Misconfiguration: Syncpack refuses to change local dependency specifiers
-  RefuseToChangeLocalSemverRange,
   /// ✘ Local Instance mismatches its pinned version group
   /// ✘ Misconfiguration: Syncpack refuses to change local dependency specifiers
   RefuseToPinLocal,
   /// ! Local Instance has no version property
   /// ! Not an error on its own unless an instance of it mismatches
-  MissingLocalVersion,
+  InvalidLocalVersion,
+  /// ✓ Instance has same semver number as highest/lowest semver in its group
+  /// ✓ Instance matches its semver group
+  /// ✓ Range preferred by semver group satisfies the highest/lowest semver
+  /// ! Considered a loose match we should highlight
+  MatchesPreferVersion,
+  /* = Overrides ============================================================ */
+  /// ✓ Instance has same semver number as its pinned version group
+  /// ✓ Instance matches its semver group
+  /// ! The semver group requires a range which is different to the pinned version
+  /// ! Pinned version wins
+  PinMatchOverridesSemverRangeMatch,
+  /// ✓ Instance has same semver number as its pinned version group
+  /// ✘ Instance mismatches its semver group
+  /// ! The semver group requires a range which is different to the pinned version
+  /// ! Pinned version wins
+  PinMatchOverridesSemverRangeMismatch,
   /* = Fixable ============================================================== */
   /// ✘ Instance is in a banned version group
   Banned,
@@ -87,11 +104,11 @@ pub enum InstanceState {
   MismatchesPreferVersion,
   /// ✘ Instance mismatches its pinned version group
   MismatchesPin,
-  /// ✘ Instance mismatches highest/lowest semver in its group
+  /// ✓ Instance has same semver number as highest/lowest semver in its group
   /// ✘ Instance mismatches its semver group
-  /// ✓ Fixing the semver range will make this instance the highest/lowest
-  ///   semver in its group
-  SemverRangeMismatchWillFixPreferVersion,
+  /// ✓ Range preferred by semver group satisfies the highest/lowest semver
+  /// ✓ Fixing the semver range satisfy both groups
+  SemverRangeMismatch,
   /// ✘ Instance mismatches its same range group
   /// ✘ Instance mismatches its semver group
   /// ✓ If semver group is fixed, instance would match its same range group
@@ -105,27 +122,28 @@ pub enum InstanceState {
   /// ✘ Instance mismatches its semver group
   /// ? If we fix the semver group it will mismatch the pinned version
   PinMatchConflictsWithSemverGroup,
-  /// ✓ Instance matches the version of its locally-developed package
-  /// ✘ Instance mismatches its semver group
-  /// ? If we fix the semver group it will mismatch the local version
-  LocalMatchConflictsWithSemverGroup,
-  /// ✓ Instance matches highest/lowest semver in its group
-  /// ✘ Instance mismatches its semver group
-  /// ? If we fix the semver group it will mismatch highest/lowest semver in
-  ///   its group
-  PreferVersionMatchConflictsWithSemverGroup,
   /// ✓ Instance matches its same range group
   /// ✘ Instance mismatches its semver group
   /// ? If semver group is fixed, instance would then mismatch its same range group
   SameRangeMatchConflictsWithSemverGroup,
+  /// ✓ Instance has same semver number as highest/lowest semver in its group
+  /// ✓ Instance matches its semver group
+  /// ✘ Range preferred by semver group will not satisfy the highest/lowest semver
+  /// ? We can't know whether the incompatible range matters or not and have to ask
+  SemverRangeMatchConflictsWithPreferVersion,
+  /// ✓ Instance has same semver number as highest/lowest semver in its group
+  /// ✘ Instance mismatches its semver group
+  /// ✘ Range preferred by semver group will not satisfy the highest/lowest semver
+  /// ? We can't know whether the incompatible range matters or not and have to ask
+  SemverRangeMismatchConflictsWithPreferVersion,
   /* = Unfixable ============================================================ */
-  /// ✘ Instance depends on a local package whose package.json is missing a version
+  /// ✘ Instance depends on a local package whose package.json version is not exact semver
   /// ? We can't know what the version should be
-  MismatchesMissingLocalVersion,
+  MismatchesInvalidLocalVersion,
   /// ✘ Instance mismatches others in its group
-  /// ✘ One or more Instances have unsupported specifiers
+  /// ✘ One or more Instances are not simple semver
   /// ? We can't know what's right or what isn't
-  MismatchesUnsupported,
+  MismatchesNonSemverPreferVersion,
   /// ✘ Instance mismatches its same range group
   /// ✘ Instance mismatches its semver group
   /// ✘ If semver group is fixed, instance would still mismatch its same range group

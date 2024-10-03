@@ -120,37 +120,35 @@ impl Effects for LintEffects<'_> {
         info!("@TODO: InstanceState::Unknown '{}'", instance.id);
       }
       /* Ignored */
-      InstanceState::MatchesIgnored => { /*NOOP*/ }
+      InstanceState::Ignored => { /*NOOP*/ }
       /* Matches */
-      InstanceState::LocalWithValidVersion
+      InstanceState::ValidLocal
+      | InstanceState::EqualsLocal
       | InstanceState::MatchesLocal
-      | InstanceState::MatchesPreferVersion
-      | InstanceState::MatchesButUnsupported
-      | InstanceState::MatchesPin
+      | InstanceState::EqualsPreferVersion
+      | InstanceState::EqualsNonSemverPreferVersion
+      | InstanceState::EqualsPin
       | InstanceState::MatchesSameRangeGroup => {
         // return /*SKIP*/;
         let icon = icon_valid();
-        let actual = instance.actual.unwrap().green();
+        let actual = instance.actual_specifier.unwrap().green();
         let location_hint = instance.location_hint.dimmed();
         info!("      {icon} {actual} {location_hint}");
       }
       /* Warnings */
       InstanceState::RefuseToBanLocal => {
-        info!("  LocalInstanceMistakenlyBanned");
-      }
-      InstanceState::RefuseToChangeLocalSemverRange => {
-        info!("  LocalInstanceMistakenlyMismatchesSemverGroup");
+        info!("@TODO: explain RefuseToBanLocal");
       }
       InstanceState::RefuseToPinLocal => {
-        info!("  LocalInstanceMistakenlyMismatchesPinned");
+        info!("@TODO: explain RefuseToPinLocal");
       }
-      InstanceState::MissingLocalVersion => {
-        info!("  LocalInstanceWithMissingVersion");
+      InstanceState::InvalidLocalVersion => {
+        info!("@TODO: explain InvalidLocalVersion");
       }
-      InstanceState::PreferVersionMatchConflictsWithSemverGroup => {
+      InstanceState::MatchesPreferVersion => {
         // return /*SKIP*/;
         let icon = icon_fixable();
-        let actual = instance.actual.unwrap().red();
+        let actual = instance.actual_specifier.unwrap().red();
         let high_low = high_low_hint(&dependency.variant);
         let opposite = if matches!(dependency.variant, Variant::HighestSemver) {
           "lower"
@@ -164,6 +162,13 @@ impl Effects for LintEffects<'_> {
         info!("      {icon} {actual} {hint} {location_hint}");
         self.is_valid = false;
       }
+      /* Overrides */
+      InstanceState::PinMatchOverridesSemverRangeMatch => {
+        info!("@TODO: explain PinMatchOverridesSemverRangeMatch");
+      }
+      InstanceState::PinMatchOverridesSemverRangeMismatch => {
+        info!("@TODO: explain PinMatchOverridesSemverRangeMismatch");
+      }
       /* Fixable Mismatches */
       InstanceState::Banned => {
         // return /*SKIP*/;
@@ -173,28 +178,13 @@ impl Effects for LintEffects<'_> {
         info!("      {icon} {hint} {location_hint}");
         self.is_valid = false;
       }
-      InstanceState::SemverRangeMismatchWillFixPreferVersion => {
-        // return /*SKIP*/;
-        let icon = icon_fixable();
-        let actual = instance.actual.unwrap().red();
-        let arrow = icon_arrow();
-        let expected = instance.expected.borrow().unwrap().green();
-        let high_low = high_low_hint(&dependency.variant);
-        let hint = format!("mismatches its semver group but will be {high_low} once fixed").dimmed();
-        let location_hint = instance.location_hint.dimmed();
-        info!("      {icon} {actual} {arrow} {expected} {hint} {location_hint}");
-        self.is_valid = false;
-      }
-      InstanceState::LocalMatchConflictsWithSemverGroup => {
-        info!("  InstanceMatchesLocalButMismatchesSemverGroup");
-      }
       InstanceState::MismatchesLocal => {
-        info!("  InstanceMismatchesLocal");
+        info!("@TODO: explain MismatchesLocal");
       }
       InstanceState::MismatchesPreferVersion => {
         // return /*SKIP*/;
         let icon = icon_fixable();
-        let actual = instance.actual.unwrap().red();
+        let actual = instance.actual_specifier.unwrap().red();
         let location_hint = instance.location_hint.dimmed();
         info!("      {icon} {actual} {location_hint}");
         self.is_valid = false;
@@ -202,40 +192,50 @@ impl Effects for LintEffects<'_> {
       InstanceState::MismatchesPin => {
         // return /*SKIP*/;
         let icon = icon_fixable();
-        let actual = instance.actual.unwrap().red();
+        let actual = instance.actual_specifier.unwrap().red();
         let location_hint = instance.location_hint.dimmed();
         info!("      {icon} {actual} {location_hint}");
         self.is_valid = false;
       }
-      /* Unfixable Mismatches */
-      InstanceState::MismatchesMissingLocalVersion => {
-        info!("  InstanceMismatchesLocalWithMissingVersion");
-      }
-      InstanceState::MismatchesUnsupported => {
-        // return /*SKIP*/;
-        let icon = icon_unfixable();
-        let actual = instance.actual.unwrap().red();
-        let location_hint = instance.location_hint.dimmed();
-        info!("      {icon} {actual} {location_hint}");
-        self.is_valid = false;
-      }
-      InstanceState::PinMatchConflictsWithSemverGroup => {
-        info!("  InstanceMatchesPinnedButMismatchesSemverGroup");
-      }
-      InstanceState::SemverRangeMismatchWontFixSameRangeGroup => {
-        info!("  InstanceMismatchesBothSameRangeAndConflictingSemverGroups");
+      InstanceState::SemverRangeMismatch => {
+        info!("@TODO: explain SemverRangeMismatch");
       }
       InstanceState::SemverRangeMismatchWillFixSameRangeGroup => {
-        info!("  InstanceMismatchesBothSameRangeAndCompatibleSemverGroups");
-      }
-      InstanceState::SameRangeMatchConflictsWithSemverGroup => {
-        info!("  InstanceMatchesSameRangeGroupButMismatchesConflictingSemverGroup");
+        info!("@TODO: explain SemverRangeMismatchWillFixSameRangeGroup");
       }
       InstanceState::SemverRangeMismatchWillMatchSameRangeGroup => {
-        info!("  InstanceMatchesSameRangeGroupButMismatchesCompatibleSemverGroup");
+        info!("@TODO: explain SemverRangeMismatchWillMatchSameRangeGroup");
+      }
+      /* Conflicts */
+      InstanceState::PinMatchConflictsWithSemverGroup => {
+        info!("@TODO: explain PinMatchConflictsWithSemverGroup");
+      }
+      InstanceState::SameRangeMatchConflictsWithSemverGroup => {
+        info!("@TODO: explain SameRangeMatchConflictsWithSemverGroup");
+      }
+      InstanceState::SemverRangeMatchConflictsWithPreferVersion => {
+        info!("@TODO: explain SemverRangeMatchConflictsWithPreferVersion");
+      }
+      InstanceState::SemverRangeMismatchConflictsWithPreferVersion => {
+        info!("@TODO: explain SemverRangeMismatchConflictsWithPreferVersion");
+      }
+      /* Unfixable Mismatches */
+      InstanceState::MismatchesInvalidLocalVersion => {
+        info!("@TODO: explain MismatchesInvalidLocalVersion");
+      }
+      InstanceState::MismatchesNonSemverPreferVersion => {
+        // return /*SKIP*/;
+        let icon = icon_unfixable();
+        let actual = instance.actual_specifier.unwrap().red();
+        let location_hint = instance.location_hint.dimmed();
+        info!("      {icon} {actual} {location_hint}");
+        self.is_valid = false;
+      }
+      InstanceState::SemverRangeMismatchWontFixSameRangeGroup => {
+        info!("@TODO: explain SemverRangeMismatchWontFixSameRangeGroup");
       }
       InstanceState::MismatchesSameRangeGroup => {
-        info!("  InstanceMismatchesSameRangeGroup");
+        info!("@TODO: explain MismatchesSameRangeGroup");
       }
     }
   }

@@ -23,7 +23,7 @@ impl Context {
         local_instances_by_name.insert(instance.name.clone(), Rc::clone(&instance));
       }
       if let Some(semver_group) = semver_groups.iter().find(|semver_group| semver_group.selector.can_add(&instance)) {
-        instance.apply_semver_group(semver_group);
+        instance.set_semver_group(semver_group);
       }
       if let Some(version_group) = version_groups
         .iter()

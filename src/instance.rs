@@ -16,11 +16,13 @@ pub type InstanceId = String;
 pub struct Instance {
   /// The original version specifier, which should never be mutated.
   /// eg. `Specifier::Exact("16.8.0")`, `Specifier::Range("^16.8.0")`
-  pub actual: Specifier,
+  pub actual_specifier: Specifier,
   /// The dependency type to use to read/write this instance
   pub dependency_type: DependencyType,
-  /// The latest version specifier which is mutated by Syncpack
-  pub expected: RefCell<Specifier>,
+  /// The version specifier which syncpack has determined this instance should
+  /// be set to, if it was not possible to determine without user intervention,
+  /// this will be a `None`.
+  pub expected_specifier: RefCell<Option<Specifier>>,
   /// The file path of the package.json file this instance belongs to
   pub file_path: PathBuf,
   /// A unique identifier for this instance
@@ -36,7 +38,7 @@ pub struct Instance {
   /// If this instance belongs to a `WithRange` semver group, this is the range.
   /// This is used by Version Groups while determining the preferred version,
   /// to try to also satisfy any applicable semver group ranges
-  pub prefer_range: RefCell<Option<SemverRange>>,
+  pub preferred_semver_range: RefCell<Option<SemverRange>>,
   /// The state of whether this instance has not been processed yet
   /// (InstanceState::Unknown) or when it has, what it was found to be
   pub state: RefCell<InstanceState>,
@@ -53,135 +55,122 @@ impl Instance {
     let package_name = package.borrow().get_name_unsafe();
     let specifier = Specifier::new(&raw_specifier);
     Instance {
-      actual: specifier.clone(),
+      actual_specifier: specifier.clone(),
       dependency_type: dependency_type.clone(),
-      expected: RefCell::new(specifier),
+      expected_specifier: RefCell::new(None),
       file_path: package.borrow().file_path.clone(),
       id: format!("{} in {} of {}", name, &dependency_type.path, package_name),
       is_local: dependency_type.path == "/version",
       location_hint: format!("in {} of {}", &dependency_type.path, package_name),
       name,
       package: Rc::clone(&package),
-      prefer_range: RefCell::new(None),
+      preferred_semver_range: RefCell::new(None),
       state: RefCell::new(InstanceState::Unknown),
     }
   }
 
-  pub fn set_state(&self, state: InstanceState) {
+  /// Record what syncpack has determined the state of this instance is and what
+  /// its expected specifier should be
+  pub fn set_state(&self, state: InstanceState, expected_specifier: &Specifier) -> &Self {
     *self.state.borrow_mut() = state;
+    *self.expected_specifier.borrow_mut() = Some(expected_specifier.clone());
+    self
   }
 
-  /// Log every property of this instance
-  pub fn log_debug(&self) {
-    debug!("Instance:");
-    debug!("  actual          {:?}", self.actual);
-    debug!("  dependency_type {:?}", self.dependency_type);
-    debug!("  expected        {:?}", self.expected);
-    debug!("  file_path       {:?}", self.file_path);
-    debug!("  id              {:?}", self.id);
-    debug!("  is_local        {:?}", self.is_local);
-    debug!("  location_hint   {:?}", self.location_hint);
-    debug!("  name            {:?}", self.name);
-    debug!("  package         {:?}", self.package);
-    debug!("  prefer_range    {:?}", self.prefer_range);
-  }
-
-  /// Updated the expected version specifier for this instance to match the
-  /// preferred semver range of the given semver group
-  pub fn apply_semver_group(&self, group: &SemverGroup) {
+  /// If this instance should use a preferred semver range, store it
+  pub fn set_semver_group(&self, group: &SemverGroup) {
     if let Some(range) = &group.range {
-      let mut prefer_range = self.prefer_range.borrow_mut();
-      let mut expected = self.expected.borrow_mut();
-      *prefer_range = Some(range.clone());
-      if let Some(simple_semver) = expected.get_simple_semver() {
-        *expected = Specifier::Semver(Semver::Simple(simple_semver.with_range(range)));
-      }
-      std::mem::drop(prefer_range);
-      std::mem::drop(expected);
+      *self.preferred_semver_range.borrow_mut() = Some(range.clone());
     }
   }
 
   /// Does this instance's actual specifier match the expected specifier?
-  pub fn already_matches(&self, expected: &Specifier) -> bool {
-    self.actual == *expected
+  pub fn already_equals(&self, expected: &Specifier) -> bool {
+    self.actual_specifier == *expected
   }
 
-  /// Does this instance's specifier match the expected specifier for this
-  /// dependency except for by its own semver group's preferred semver range?
+  pub fn will_match_with_preferred_semver_range(&self, expected: &Specifier) -> bool {
+    self.get_specifier_with_preferred_semver_range().unwrap() == *expected
+  }
+
+  /// Does this instance belong to a `WithRange` semver group?
+  pub fn must_match_preferred_semver_range(&self) -> bool {
+    self.preferred_semver_range.borrow().is_some()
+  }
+
+  /// Does this instance belong to a `WithRange` semver group and which prefers
+  /// a semver range other than the given range?
   ///
-  /// ✓ it has a semver group
-  /// ✓ its own version matches its expected version (eg. "1.1.0" == "1.1.0")
-  /// ✓ its expected version matches the expected version of the group
-  /// ✘ only its own semver range is different
-  pub fn has_range_mismatch(&self, preferred: &Specifier) -> bool {
-    // it has a semver group
-    self.prefer_range.borrow().is_some()
-      && match (
-        self.actual.get_simple_semver(),
-        self.expected.borrow().get_simple_semver(),
-        preferred.get_simple_semver(),
-      ) {
-        // all versions are simple semver
-        (Some(actual), Some(expected), Some(other)) => {
-          // its own version matches its expected version (eg. "1.1.0" == "1.1.0")
-          actual.has_same_version(&expected)
-          // its expected version matches the expected version of the group
-          && expected.has_same_version(&other)
-          // only its own semver range is different
-          && !expected.has_same_range(&actual)
-        }
-        _ => false,
-      }
+  /// This is a convenience method for the common case where a preferred semver
+  /// range only matters if what is preferred is not the same as the expected
+  /// version of a dependency which you are trying to synchronise to
+  pub fn must_match_preferred_semver_range_which_is_not(&self, needed_range: &SemverRange) -> bool {
+    self.must_match_preferred_semver_range() && !self.preferred_semver_range_is(needed_range)
   }
 
-  /// Does the given semver specifier have the expected range for this
-  /// instance's semver group?
-  pub fn matches_semver_group(&self, specifier: &Specifier) -> bool {
+  /// Does this instance belong to a `WithRange` semver group and which prefers
+  /// a semver range other than that used by the given specifier?
+  pub fn must_match_preferred_semver_range_which_differs_to(&self, other_specifier: &Specifier) -> bool {
+    other_specifier.get_semver_range().map_or(false, |range_of_other_specifier| {
+      self.must_match_preferred_semver_range_which_is_not(&range_of_other_specifier)
+    })
+  }
+
+  pub fn preferred_semver_range_is(&self, range: &SemverRange) -> bool {
+    self.preferred_semver_range.borrow().as_ref().map(|r| r == range).unwrap_or(false)
+  }
+
+  /// Does this instance belong to a `WithRange` semver group and also have a
+  /// specifier which matches its preferred semver range?
+  pub fn matches_preferred_semver_range(&self) -> bool {
     self
-      .prefer_range
+      .preferred_semver_range
       .borrow()
       .as_ref()
-      .and_then(|range| {
-        specifier
-          .get_simple_semver()
-          .map(|simple_semver| simple_semver.get_range() == *range)
-      })
+      .map(|preferred_semver_range| self.actual_specifier.has_semver_range_of(preferred_semver_range))
       .unwrap_or(false)
   }
 
   /// Get the expected version specifier for this instance with the semver
   /// group's preferred range applied
-  pub fn get_fixed_range_mismatch(&self) -> Specifier {
-    self
-      .prefer_range
-      .borrow()
-      .as_ref()
-      .and_then(|range| {
-        self
-          .expected
-          .borrow()
-          .get_simple_semver()
-          .map(|expected| expected.with_range(range))
-      })
-      .map(|simple_semver| Specifier::Semver(Semver::Simple(simple_semver)))
-      .expect("Failed to fix semver range mismatch")
+  pub fn get_specifier_with_preferred_semver_range(&self) -> Option<Specifier> {
+    self.preferred_semver_range.borrow().as_ref().and_then(|preferred_semver_range| {
+      self
+        .actual_specifier
+        .get_simple_semver()
+        .map(|actual| Specifier::Semver(Semver::Simple(actual.with_range(preferred_semver_range))))
+    })
   }
 
-  pub fn set_expected_specifier(&self, specifier: &Specifier) {
-    *self.expected.borrow_mut() = specifier.clone();
+  /// Does this instance's specifier match the specifier of every one of the
+  /// given instances?
+  pub fn already_satisfies_all(&self, instances: &[Rc<Instance>]) -> bool {
+    !matches!(self.actual_specifier, Specifier::None)
+      && self
+        .actual_specifier
+        .satisfies_all(instances.iter().map(|i| &i.actual_specifier).collect())
+  }
+
+  /// Will this instance's specifier, once fixed to match its semver group,
+  /// satisfy the given specifier?
+  pub fn specifier_with_preferred_semver_range_will_satisfy(&self, other: &Specifier) -> bool {
+    self
+      .get_specifier_with_preferred_semver_range()
+      .map(|specifier| specifier.satisfies(other))
+      .unwrap_or(false)
   }
 
   /// Delete a version/dependency/instance from the package.json
   pub fn remove_from(&self, package: &PackageJson) {
     match self.dependency_type.strategy {
       Strategy::NameAndVersionProps => {
-        println!("@TODO: remove instance for NameAndVersionProps");
+        debug!("@TODO: remove instance for NameAndVersionProps");
       }
       Strategy::NamedVersionString => {
-        println!("@TODO: remove instance for NamedVersionString");
+        debug!("@TODO: remove instance for NamedVersionString");
       }
       Strategy::UnnamedVersionString => {
-        println!("@TODO: remove instance for UnnamedVersionString");
+        debug!("@TODO: remove instance for UnnamedVersionString");
       }
       Strategy::VersionsByName => {
         let path_to_obj = &self.dependency_type.path;

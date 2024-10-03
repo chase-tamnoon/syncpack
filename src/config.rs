@@ -180,20 +180,24 @@ impl Rcfile {
 
   /// Create every semver group defined in the rcfile.
   pub fn get_semver_groups(&self) -> Vec<SemverGroup> {
-    let mut user_groups: Vec<SemverGroup> = self.semver_groups.iter().map(SemverGroup::from_config).collect();
-    user_groups.push(SemverGroup::get_catch_all());
-    user_groups
+    let mut all_groups: Vec<SemverGroup> = vec![];
+    all_groups.push(SemverGroup::get_exact_local_specifiers());
+    self.semver_groups.iter().for_each(|group_config| {
+      all_groups.push(SemverGroup::from_config(group_config));
+    });
+    all_groups.push(SemverGroup::get_catch_all());
+    all_groups
   }
 
   /// Create every version group defined in the rcfile.
   pub fn get_version_groups(&self, packages: &Packages) -> Vec<VersionGroup> {
-    let mut user_groups: Vec<VersionGroup> = self
+    let mut all_groups: Vec<VersionGroup> = self
       .version_groups
       .iter()
-      .map(|group| VersionGroup::from_config(group, packages))
+      .map(|group_config| VersionGroup::from_config(group_config, packages))
       .collect();
-    user_groups.push(VersionGroup::get_catch_all());
-    user_groups
+    all_groups.push(VersionGroup::get_catch_all());
+    all_groups
   }
 }
 

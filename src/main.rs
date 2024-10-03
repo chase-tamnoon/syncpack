@@ -2,9 +2,6 @@
 #![allow(unused_variables)]
 #![allow(unreachable_code)]
 
-use env_logger::Builder;
-use log::{Level, LevelFilter};
-use std::io::Write;
 use std::{env::current_dir, process};
 
 use crate::{
@@ -28,6 +25,7 @@ mod effects;
 mod format;
 mod group_selector;
 mod instance;
+mod logger;
 mod package_json;
 mod packages;
 mod semver_group;
@@ -36,7 +34,7 @@ mod version_group;
 mod visit_packages;
 
 fn main() {
-  init_logger();
+  logger::init();
 
   let cwd = current_dir().unwrap();
   let cli = Cli::parse();
@@ -59,20 +57,4 @@ fn main() {
       }
     }
   };
-}
-
-fn init_logger() {
-  Builder::new()
-    // @TODO expose cli and rcfile options for log level
-    .filter_level(LevelFilter::Info)
-    .format(|buf, record| {
-      let level = record.level();
-      if level == Level::Info {
-        writeln!(buf, "{}", record.args())
-      } else {
-        // @TODO apply colours to log levels
-        writeln!(buf, "[{level}] {}", record.args())
-      }
-    })
-    .init();
 }

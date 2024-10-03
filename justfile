@@ -78,7 +78,7 @@ run-ci-action:
 # Run all tests and generate a coverage report
 coverage:
     rm -rf target/llvm-cov/html
-    cargo llvm-cov test --html --ignore-filename-regex '(_test.rs|\/test\/)'
+    cargo llvm-cov test --html --ignore-run-fail --ignore-filename-regex '(_test.rs|\/test\/)'
 
 # Open coverage report (on http server to allow Dark Reader Browser Extension)
 serve-coverage:

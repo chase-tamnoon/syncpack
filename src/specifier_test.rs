@@ -272,3 +272,32 @@ fn sorts_simple_semver_specifiers_according_to_highest_version_and_greediest_ran
   specifiers.sort_by_key(|s| s.get_orderable());
   assert_eq!(specifiers, expected, "{specifiers:?}, {expected:?}");
 }
+
+#[test]
+fn states_whether_specifier_satisfies_other_specifiers() {
+  let cases: Vec<(&str, Vec<&str>, bool)> = vec![
+    ("*", vec!["1.4.2"], true),
+    ("^1.4.2", vec!["1.4.2"], true),
+    ("1.4.2", vec!["1.4.2"], true),
+    (">1.4.2", vec!["1.4.2"], false),
+    (">=1.4.2", vec!["1.4.2"], true),
+    ("<1.4.2", vec!["1.4.2"], false),
+    ("<=1.4.2", vec!["1.4.2"], true),
+    ("~1.4.2", vec!["1.4.2"], true),
+    ("^1.0.0", vec!["1.4.2"], true),
+    ("~1.0.0", vec!["1.4.2"], false),
+    ("", vec!["1.4.2"], false),
+    ("~1.4.2 || ^1.4.2", vec!["1.4.2"], true),
+    ("~1.0.0 || ^1.0.0", vec!["1.4.2"], true),
+  ];
+  for (value, others, expected) in cases {
+    let spec = Specifier::new(value);
+    let other_specs: Vec<Specifier> = others.iter().map(|r| Specifier::new(r)).collect();
+    let refs_to_other_specs: Vec<&Specifier> = other_specs.iter().collect();
+    assert_eq!(
+      spec.satisfies_all(refs_to_other_specs),
+      expected,
+      "'{value}'.satisfies_all({others:?}) should be {expected}"
+    );
+  }
+}
