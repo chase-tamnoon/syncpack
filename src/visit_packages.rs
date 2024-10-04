@@ -130,25 +130,25 @@ pub fn visit_packages(config: &Config, packages: &Packages, effects: &mut impl E
                   }
                 });
               } else if let Some(highest_specifier) = dependency.get_highest_or_lowest_specifier() {
-                debug!("    a highest/lowest semver version was found");
+                debug!("    a highest semver version was found");
                 dependency.set_expected_specifier(&highest_specifier);
                 dependency.all_instances.borrow().iter().for_each(|instance| {
                   debug!("      visit instance '{}'", instance.id);
                   let range_of_highest_specifier = highest_specifier.get_simple_semver().unwrap().get_range();
                   if instance.must_match_preferred_semver_range_which_is_not(&range_of_highest_specifier) {
-                    debug!("        it is in a semver group which prefers a different semver range to the highest/lowest semver version");
+                    debug!("        it is in a semver group which prefers a different semver range to the highest semver version");
                     debug!("          its version number (without a range):");
                     if instance.actual_specifier.has_same_version_number_as(&highest_specifier) {
-                      debug!("            is identical to the highest/lowest semver version");
+                      debug!("            is identical to the highest semver version");
                       if instance.matches_preferred_semver_range() {
                         debug!("              its semver range matches its semver group");
                         if instance.specifier_with_preferred_semver_range_will_satisfy(&highest_specifier) {
-                          debug!("                the semver range satisfies the highest/lowest semver version");
+                          debug!("                the semver range satisfies the highest semver version");
                           debug!("                  mark as warning (the config is asking for an inexact match)");
                           dependency.set_state(Warning);
                           instance.set_state(MatchesPreferVersion, &instance.get_specifier_with_preferred_semver_range().unwrap());
                         } else {
-                          debug!("                the preferred semver range will not satisfy the highest/lowest semver version");
+                          debug!("                the preferred semver range will not satisfy the highest semver version");
                           debug!("                  mark as unfixable error");
                           dependency.set_state(Invalid);
                           instance.set_state(SemverRangeMatchConflictsWithPreferVersion, &instance.actual_specifier);
@@ -156,34 +156,32 @@ pub fn visit_packages(config: &Config, packages: &Packages, effects: &mut impl E
                       } else {
                         debug!("              its semver range does not match its semver group");
                         if instance.specifier_with_preferred_semver_range_will_satisfy(&highest_specifier) {
-                          debug!("                the preferred semver range will satisfy the highest/lowest semver version");
+                          debug!("                the preferred semver range will satisfy the highest semver version");
                           debug!("                  mark as fixable error");
                           dependency.set_state(Invalid);
                           instance.set_state(SemverRangeMismatch, &instance.get_specifier_with_preferred_semver_range().unwrap());
                         } else {
-                          debug!("                the preferred semver range will not satisfy the highest/lowest semver version");
+                          debug!("                the preferred semver range will not satisfy the highest semver version");
                           debug!("                  mark as unfixable error");
                           dependency.set_state(Invalid);
                           instance.set_state(SemverRangeMismatchConflictsWithPreferVersion, &instance.actual_specifier);
                         }
                       }
                     } else {
-                      debug!("            differs to the highest/lowest semver version");
+                      debug!("            differs to the highest semver version");
                       debug!("              mark as error");
                       dependency.set_state(Invalid);
                       instance.set_state(MismatchesPreferVersion, &highest_specifier);
                     }
                   } else {
-                    debug!(
-                      "        it is not in a semver group which prefers a different semver range to the highest/lowest semver version"
-                    );
+                    debug!("        it is not in a semver group which prefers a different semver range to the highest semver version");
                     if instance.already_equals(&highest_specifier) {
-                      debug!("          it is identical to the highest/lowest semver version");
+                      debug!("          it is identical to the highest semver version");
                       debug!("            mark as valid");
                       dependency.set_state(Valid);
                       instance.set_state(EqualsPreferVersion, &highest_specifier);
                     } else {
-                      debug!("          it is different to the highest/lowest semver version");
+                      debug!("          it is different to the highest semver version");
                       debug!("            mark as error");
                       dependency.set_state(Invalid);
                       instance.set_state(MismatchesPreferVersion, &highest_specifier);
