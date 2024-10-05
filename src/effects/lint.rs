@@ -219,6 +219,12 @@ impl Effects for LintEffects<'_> {
       InstanceState::SemverRangeMismatchConflictsWithPreferVersion => {
         info!("@TODO: explain SemverRangeMismatchConflictsWithPreferVersion");
       }
+      InstanceState::SemverRangeMatchConflictsWithLocalVersion => {
+        info!("@TODO: explain SemverRangeMatchConflictsWithLocalVersion");
+      }
+      InstanceState::SemverRangeMismatchConflictsWithLocalVersion => {
+        info!("@TODO: explain SemverRangeMismatchConflictsWithLocalVersion");
+      }
       /* Unfixable Mismatches */
       InstanceState::MismatchesInvalidLocalVersion => {
         info!("@TODO: explain MismatchesInvalidLocalVersion");

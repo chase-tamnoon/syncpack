@@ -46,7 +46,8 @@ pub fn visit_packages(config: &Config, packages: &Packages, effects: &mut impl E
               debug!("visit banned version group");
               debug!("  visit dependency '{}'", dependency.name);
               dependency.all_instances.borrow().iter().for_each(|instance| {
-                debug!("    visit instance '{}'", instance.id);
+                let actual_specifier = &instance.actual_specifier;
+                debug!("    visit instance '{}' ({actual_specifier:?})", instance.id);
                 if instance.is_local {
                   debug!("      it is the local instance of a package developed locally in this monorepo");
                   debug!("        refuse to change it");
@@ -67,7 +68,8 @@ pub fn visit_packages(config: &Config, packages: &Packages, effects: &mut impl E
               if dependency.has_local_instance_with_invalid_specifier() {
                 debug!("    it has an invalid local instance");
                 dependency.all_instances.borrow().iter().for_each(|instance| {
-                  debug!("      visit instance '{}'", instance.id);
+                  let actual_specifier = &instance.actual_specifier;
+                  debug!("      visit instance '{}' ({actual_specifier:?})", instance.id);
                   if instance.is_local {
                     debug!("        it is the invalid local instance");
                     debug!("          mark as warning");
@@ -85,7 +87,8 @@ pub fn visit_packages(config: &Config, packages: &Packages, effects: &mut impl E
                 let local_specifier = dependency.get_local_specifier().unwrap();
                 dependency.set_expected_specifier(&local_specifier);
                 dependency.all_instances.borrow().iter().for_each(|instance| {
-                  debug!("      visit instance '{}'", instance.id);
+                  let actual_specifier = &instance.actual_specifier;
+                  debug!("      visit instance '{}' ({actual_specifier:?})", instance.id);
                   if instance.is_local {
                     debug!("        it is the valid local instance");
                     dependency.set_state(Valid);
@@ -93,85 +96,105 @@ pub fn visit_packages(config: &Config, packages: &Packages, effects: &mut impl E
                     return;
                   }
                   debug!("        it depends on the local instance");
+                  debug!("          its version number (without a range):");
+                  if !instance.actual_specifier.has_same_version_number_as(&local_specifier) {
+                    debug!("            differs to the local instance");
+                    debug!("              mark as error");
+                    dependency.set_state(Invalid);
+                    instance.set_state(MismatchesLocal, &local_specifier);
+                    return;
+                  }
+                  debug!("            is the same as the local instance");
                   if instance.must_match_preferred_semver_range_which_is_not(&SemverRange::Exact) {
-                    debug!("          it is in a semver group which prefers a different semver range to the local instance");
-                    debug!("            its version number (without a range):");
-                    if instance.actual_specifier.has_same_version_number_as(&local_specifier) {
-                      debug!("              is identical to the local instance");
-                      if instance.matches_preferred_semver_range() {
-                        debug!("                its semver range matches its semver group");
-                        debug!("                  mark as valid (the config is asking for an inexact match)");
-                        dependency.set_state(Valid);
-                        instance.set_state(MatchesLocal, &instance.actual_specifier);
+                    let preferred_semver_range = &instance.preferred_semver_range.borrow().clone().unwrap();
+                    debug!("              it is in a semver group which prefers a different semver range to the local instance ({preferred_semver_range:?})");
+                    if instance.matches_preferred_semver_range() {
+                      debug!("                its semver range matches its semver group");
+                      if instance.specifier_with_preferred_semver_range_will_satisfy(&local_specifier) {
+                        debug!("                  the semver range satisfies the local version");
+                        debug!("                    mark as warning (the config is asking for an inexact match)");
+                        dependency.set_state(Warning);
+                        instance.set_state(MatchesLocal, &instance.get_specifier_with_preferred_semver_range().unwrap());
                       } else {
-                        debug!("                its semver range does not match its semver group");
-                        debug!("                  mark as error, semver range mismatch");
+                        debug!("                  the preferred semver range will not satisfy the local version");
+                        debug!("                    mark as unfixable error");
                         dependency.set_state(Invalid);
-                        instance.set_state(SemverRangeMismatch, &instance.get_specifier_with_preferred_semver_range().unwrap());
+                        instance.set_state(SemverRangeMatchConflictsWithLocalVersion, &instance.actual_specifier);
                       }
                     } else {
-                      debug!("              differs to the local instance");
-                      debug!("                mark as error");
-                      dependency.set_state(Invalid);
-                      instance.set_state(MismatchesLocal, &local_specifier);
+                      debug!("                its semver range does not match its semver group");
+                      if instance.specifier_with_preferred_semver_range_will_satisfy(&local_specifier) {
+                        debug!("                  the preferred semver range will satisfy the local version");
+                        debug!("                    mark as fixable error");
+                        dependency.set_state(Invalid);
+                        instance.set_state(SemverRangeMismatch, &instance.get_specifier_with_preferred_semver_range().unwrap());
+                      } else {
+                        debug!("                  the preferred semver range will not satisfy the local version");
+                        debug!("                    mark as unfixable error");
+                        dependency.set_state(Invalid);
+                        instance.set_state(SemverRangeMismatchConflictsWithLocalVersion, &instance.actual_specifier);
+                      }
                     }
                     return;
                   }
+                  debug!("              it is not in a semver group which prefers a different semver range to the local instance");
                   if instance.already_equals(&local_specifier) {
-                    debug!("          it is identical to the local instance");
-                    debug!("            mark as valid");
+                    debug!("                its semver range matches the local instance");
+                    debug!("                  mark as valid");
                     dependency.set_state(Valid);
                     instance.set_state(EqualsLocal, &local_specifier);
                   } else {
-                    debug!("          it is different to the local instance");
-                    debug!("            mark as error");
+                    debug!("                its semver range differs to the local instance");
+                    debug!("                  mark as error");
                     dependency.set_state(Invalid);
                     instance.set_state(MismatchesLocal, &local_specifier);
                   }
                 });
               } else if let Some(highest_specifier) = dependency.get_highest_or_lowest_specifier() {
-                debug!("    a highest semver version was found");
+                debug!("    a highest semver version was found ({highest_specifier:?})");
                 dependency.set_expected_specifier(&highest_specifier);
                 dependency.all_instances.borrow().iter().for_each(|instance| {
-                  debug!("      visit instance '{}'", instance.id);
+                  let actual_specifier = &instance.actual_specifier;
+                  debug!("      visit instance '{}' ({actual_specifier:?})", instance.id);
+                  debug!("        its version number (without a range):");
+                  if !instance.actual_specifier.has_same_version_number_as(&highest_specifier) {
+                    debug!("          differs to the highest semver version");
+                    debug!("            mark as error");
+                    dependency.set_state(Invalid);
+                    instance.set_state(MismatchesPreferVersion, &highest_specifier);
+                    return;
+                  }
+                  debug!("          is the same as the highest semver version");
                   let range_of_highest_specifier = highest_specifier.get_simple_semver().unwrap().get_range();
                   if instance.must_match_preferred_semver_range_which_is_not(&range_of_highest_specifier) {
-                    debug!("        it is in a semver group which prefers a different semver range to the highest semver version");
-                    debug!("          its version number (without a range):");
-                    if instance.actual_specifier.has_same_version_number_as(&highest_specifier) {
-                      debug!("            is identical to the highest semver version");
-                      if instance.matches_preferred_semver_range() {
-                        debug!("              its semver range matches its semver group");
-                        if instance.specifier_with_preferred_semver_range_will_satisfy(&highest_specifier) {
-                          debug!("                the semver range satisfies the highest semver version");
-                          debug!("                  mark as warning (the config is asking for an inexact match)");
-                          dependency.set_state(Warning);
-                          instance.set_state(MatchesPreferVersion, &instance.get_specifier_with_preferred_semver_range().unwrap());
-                        } else {
-                          debug!("                the preferred semver range will not satisfy the highest semver version");
-                          debug!("                  mark as unfixable error");
-                          dependency.set_state(Invalid);
-                          instance.set_state(SemverRangeMatchConflictsWithPreferVersion, &instance.actual_specifier);
-                        }
+                    let preferred_semver_range = &instance.preferred_semver_range.borrow().clone().unwrap();
+                    debug!("            it is in a semver group which prefers a different semver range to the highest semver version ({preferred_semver_range:?})");
+                    if instance.matches_preferred_semver_range() {
+                      debug!("              its semver range matches its semver group");
+                      if instance.specifier_with_preferred_semver_range_will_satisfy(&highest_specifier) {
+                        debug!("                the semver range satisfies the highest semver version");
+                        debug!("                  mark as warning (the config is asking for an inexact match)");
+                        dependency.set_state(Warning);
+                        instance.set_state(MatchesPreferVersion, &instance.actual_specifier);
                       } else {
-                        debug!("              its semver range does not match its semver group");
-                        if instance.specifier_with_preferred_semver_range_will_satisfy(&highest_specifier) {
-                          debug!("                the preferred semver range will satisfy the highest semver version");
-                          debug!("                  mark as fixable error");
-                          dependency.set_state(Invalid);
-                          instance.set_state(SemverRangeMismatch, &instance.get_specifier_with_preferred_semver_range().unwrap());
-                        } else {
-                          debug!("                the preferred semver range will not satisfy the highest semver version");
-                          debug!("                  mark as unfixable error");
-                          dependency.set_state(Invalid);
-                          instance.set_state(SemverRangeMismatchConflictsWithPreferVersion, &instance.actual_specifier);
-                        }
+                        debug!("                the preferred semver range will not satisfy the highest semver version");
+                        debug!("                  mark as unfixable error");
+                        dependency.set_state(Invalid);
+                        instance.set_state(SemverRangeMatchConflictsWithPreferVersion, &instance.actual_specifier);
                       }
                     } else {
-                      debug!("            differs to the highest semver version");
-                      debug!("              mark as error");
-                      dependency.set_state(Invalid);
-                      instance.set_state(MismatchesPreferVersion, &highest_specifier);
+                      debug!("              its semver range does not match its semver group");
+                      if instance.specifier_with_preferred_semver_range_will_satisfy(&highest_specifier) {
+                        debug!("                the preferred semver range will satisfy the highest semver version");
+                        debug!("                  mark as fixable error");
+                        dependency.set_state(Invalid);
+                        instance.set_state(SemverRangeMismatch, &instance.get_specifier_with_preferred_semver_range().unwrap());
+                      } else {
+                        debug!("                the preferred semver range will not satisfy the highest semver version");
+                        debug!("                  mark as unfixable error");
+                        dependency.set_state(Invalid);
+                        instance.set_state(SemverRangeMismatchConflictsWithPreferVersion, &instance.actual_specifier);
+                      }
                     }
                   } else {
                     debug!("        it is not in a semver group which prefers a different semver range to the highest semver version");
@@ -194,7 +217,8 @@ pub fn visit_packages(config: &Config, packages: &Packages, effects: &mut impl E
                   debug!("      but all are identical");
                   dependency.set_state(Valid);
                   dependency.all_instances.borrow().iter().for_each(|instance| {
-                    debug!("        visit instance '{}'", instance.id);
+                    let actual_specifier = &instance.actual_specifier;
+                    debug!("        visit instance '{}' ({actual_specifier:?})", instance.id);
                     debug!("          it is identical to every other instance");
                     debug!("            mark as valid");
                     instance.set_state(EqualsNonSemverPreferVersion, &instance.actual_specifier);
@@ -203,7 +227,8 @@ pub fn visit_packages(config: &Config, packages: &Packages, effects: &mut impl E
                   debug!("      and they differ");
                   dependency.set_state(Invalid);
                   dependency.all_instances.borrow().iter().for_each(|instance| {
-                    debug!("        visit instance '{}'", instance.id);
+                    let actual_specifier = &instance.actual_specifier;
+                    debug!("        visit instance '{}' ({actual_specifier:?})", instance.id);
                     debug!("          it depends on a currently unknowable correct version from a set of unsupported version specifiers");
                     debug!("            mark as error");
                     instance.set_state(MismatchesNonSemverPreferVersion, &instance.actual_specifier);
@@ -216,7 +241,8 @@ pub fn visit_packages(config: &Config, packages: &Packages, effects: &mut impl E
               debug!("  visit dependency '{}'", dependency.name);
               dependency.set_state(Valid);
               dependency.all_instances.borrow().iter().for_each(|instance| {
-                debug!("    visit instance '{}'", instance.id);
+                let actual_specifier = &instance.actual_specifier;
+                debug!("    visit instance '{}' ({actual_specifier:?})", instance.id);
                 instance.set_state(Ignored, &instance.actual_specifier);
               });
             }
@@ -226,7 +252,8 @@ pub fn visit_packages(config: &Config, packages: &Packages, effects: &mut impl E
               let pinned_specifier = dependency.pinned_specifier.clone().unwrap();
               dependency.set_expected_specifier(&pinned_specifier);
               dependency.all_instances.borrow().iter().for_each(|instance| {
-                debug!("    visit instance '{}'", instance.id);
+                let actual_specifier = &instance.actual_specifier;
+                debug!("    visit instance '{}' ({actual_specifier:?})", instance.id);
                 if instance.is_local {
                   debug!("      it is the local instance of a package developed locally in this monorepo");
                   debug!("        refuse to change it");
@@ -236,7 +263,8 @@ pub fn visit_packages(config: &Config, packages: &Packages, effects: &mut impl E
                   return;
                 }
                 if instance.must_match_preferred_semver_range_which_differs_to(&pinned_specifier) {
-                  debug!("      it is in a semver group which prefers a different semver range to the pinned version");
+                  let preferred_semver_range = &instance.preferred_semver_range.borrow().clone().unwrap();
+                  debug!("      it is in a semver group which prefers a different semver range to the pinned version ({preferred_semver_range:?})");
                   debug!("        its version number (without a range):");
                   if instance.actual_specifier.has_same_version_number_as(&pinned_specifier) {
                     debug!("          is identical to the pinned version");

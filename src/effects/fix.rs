@@ -150,6 +150,14 @@ impl Effects for FixEffects<'_> {
         debug!("@TODO: explain SemverRangeMatchConflictsWithPreferVersion");
         self.is_valid = false;
       }
+      InstanceState::SemverRangeMatchConflictsWithLocalVersion => {
+        debug!("@TODO: explain SemverRangeMatchConflictsWithLocalVersion");
+        self.is_valid = false;
+      }
+      InstanceState::SemverRangeMismatchConflictsWithLocalVersion => {
+        debug!("@TODO: explain SemverRangeMismatchConflictsWithLocalVersion");
+        self.is_valid = false;
+      }
       /* Unfixable Mismatches */
       InstanceState::MismatchesInvalidLocalVersion => {
         debug!("@TODO: explain MismatchesInvalidLocalVersion");

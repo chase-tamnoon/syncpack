@@ -136,6 +136,16 @@ pub enum InstanceState {
   /// ✘ Range preferred by semver group will not satisfy the highest/lowest semver
   /// ? We can't know whether the incompatible range matters or not and have to ask
   SemverRangeMismatchConflictsWithPreferVersion,
+  /// ✓ Instance has same semver number as local instance in its group
+  /// ✓ Instance matches its semver group
+  /// ✘ Range preferred by semver group will not satisfy the local instance
+  /// ? We can't know whether the incompatible range matters or not and have to ask
+  SemverRangeMatchConflictsWithLocalVersion,
+  /// ✓ Instance has same semver number as local instance
+  /// ✘ Instance mismatches its semver group
+  /// ✘ Range preferred by semver group will not satisfy the local instance
+  /// ? We can't know whether the incompatible range matters or not and have to ask
+  SemverRangeMismatchConflictsWithLocalVersion,
   /* = Unfixable ============================================================ */
   /// ✘ Instance depends on a local package whose package.json version is not exact semver
   /// ? We can't know what the version should be
