@@ -1,3 +1,5 @@
+use log::error;
+
 use crate::{
   effects::{InstanceEvent, InstanceState},
   instance::Instance,
@@ -128,7 +130,7 @@ impl<'a> Expects<'a> {
 
   /// Print internal test state for debugging
   pub fn debug(&self) -> &Self {
-    println!("{:#?}", self.effects);
+    error!("{:#?}", self.effects);
     self
   }
 
@@ -138,7 +140,8 @@ impl<'a> Expects<'a> {
     let actual_len = actual_overrides.values().fold(0, |acc, x| acc + x.len());
     if actual_len != expected_len {
       self.debug();
-      panic!("expected {expected_len} overrides but found {actual_len}");
+      error!("expected {expected_len} overrides but found {actual_len}");
+      panic!("");
     }
     'expected: for expected in &expected_overrides {
       let variant = &expected.variant;
@@ -150,7 +153,8 @@ impl<'a> Expects<'a> {
       let overrides_of_type = actual_overrides.get(variant);
       if overrides_of_type.is_none() {
         self.debug();
-        panic!("expected {variant:?} override but found none");
+        error!("expected {variant:?} override but found none");
+        panic!("");
       }
       for event in overrides_of_type.unwrap() {
         if event.dependency_name == *dependency_name
@@ -163,7 +167,8 @@ impl<'a> Expects<'a> {
         }
       }
       self.debug();
-      panic!("expected a '{variant:?}' for '{instance_id}' with '{actual}' overridden by '{overridden}' instead of '{expected_specifier}'");
+      error!("expected a '{variant:?}' for '{instance_id}' with '{actual}' overridden by '{expected_specifier}' instead of '{overridden}'");
+      panic!("");
     }
     self
   }
@@ -174,7 +179,8 @@ impl<'a> Expects<'a> {
     let actual_len = actual_warnings.values().fold(0, |acc, x| acc + x.len());
     if actual_len != expected_len {
       self.debug();
-      panic!("expected {expected_len} warnings but found {actual_len}");
+      error!("expected {expected_len} warnings but found {actual_len}");
+      panic!("");
     }
     'expected: for expected in &expected_warnings {
       let variant = &expected.variant;
@@ -184,7 +190,8 @@ impl<'a> Expects<'a> {
       let matches_of_type = actual_warnings.get(variant);
       if matches_of_type.is_none() {
         self.debug();
-        panic!("expected {variant:?} warning but found none");
+        error!("expected {variant:?} warning but found none");
+        panic!("");
       }
       for event in matches_of_type.unwrap() {
         if event.dependency_name == *dependency_name && event.instance_id == *instance_id && event.actual == *actual {
@@ -192,7 +199,8 @@ impl<'a> Expects<'a> {
         }
       }
       self.debug();
-      panic!("expected a warning on '{variant:?}' for '{instance_id}' with '{actual}'");
+      error!("expected a warning on '{variant:?}' for '{instance_id}' with '{actual}'");
+      panic!("");
     }
     self
   }
@@ -203,7 +211,8 @@ impl<'a> Expects<'a> {
     let actual_len = actual_warnings_of_instance_changes.values().fold(0, |acc, x| acc + x.len());
     if actual_len != expected_len {
       self.debug();
-      panic!("expected {expected_len} warnings of instance changes but found {actual_len}");
+      error!("expected {expected_len} warnings of instance changes but found {actual_len}");
+      panic!("");
     }
     'expected: for expected in &expected_warnings_of_instance_changes {
       let variant = &expected.variant;
@@ -214,7 +223,8 @@ impl<'a> Expects<'a> {
       let mismatches_of_type = actual_warnings_of_instance_changes.get(variant);
       if mismatches_of_type.is_none() {
         self.debug();
-        panic!("expected {variant:?} warnings of instance change but found none");
+        error!("expected {variant:?} warnings of instance change but found none");
+        panic!("");
       }
       for event in mismatches_of_type.unwrap() {
         if event.dependency_name == *dependency_name
@@ -226,9 +236,10 @@ impl<'a> Expects<'a> {
         }
       }
       self.debug();
-      panic!(
+      error!(
         "expected a warning of instance change '{variant:?}' for '{instance_id}' with '{actual}' to be replaced by '{expected_specifier}'"
       );
+      panic!("");
     }
     self
   }
@@ -239,7 +250,8 @@ impl<'a> Expects<'a> {
     let actual_len = actual_matches.values().fold(0, |acc, x| acc + x.len());
     if actual_len != expected_len {
       self.debug();
-      panic!("expected {expected_len} matches but found {actual_len}");
+      error!("expected {expected_len} matches but found {actual_len}");
+      panic!("");
     }
     'expected: for expected in &expected_matches {
       let variant = &expected.variant;
@@ -249,7 +261,8 @@ impl<'a> Expects<'a> {
       let matches_of_type = actual_matches.get(variant);
       if matches_of_type.is_none() {
         self.debug();
-        panic!("expected {variant:?} match but found none");
+        error!("expected {variant:?} match but found none");
+        panic!("");
       }
       for event in matches_of_type.unwrap() {
         if event.dependency_name == *dependency_name && event.instance_id == *instance_id && event.actual == *actual {
@@ -257,7 +270,8 @@ impl<'a> Expects<'a> {
         }
       }
       self.debug();
-      panic!("expected a matching '{variant:?}' for '{instance_id}' with '{actual}'");
+      error!("expected a matching '{variant:?}' for '{instance_id}' with '{actual}'");
+      panic!("");
     }
     self
   }
@@ -268,7 +282,8 @@ impl<'a> Expects<'a> {
     let actual_len = actual_mismatches.values().fold(0, |acc, x| acc + x.len());
     if actual_len != expected_len {
       self.debug();
-      panic!("expected {expected_len} mismatches but found {actual_len}");
+      error!("expected {expected_len} mismatches but found {actual_len}");
+      panic!("");
     }
     'expected: for expected in &expected_mismatches {
       let variant = &expected.variant;
@@ -278,7 +293,8 @@ impl<'a> Expects<'a> {
       let mismatches_of_type = actual_mismatches.get(variant);
       if mismatches_of_type.is_none() {
         self.debug();
-        panic!("expected {variant:?} mismatch but found none");
+        error!("expected {variant:?} mismatch but found none");
+        panic!("");
       }
       for event in mismatches_of_type.unwrap() {
         if event.dependency_name == *dependency_name && event.instance_id == *instance_id && event.actual == *actual {
@@ -286,7 +302,8 @@ impl<'a> Expects<'a> {
         }
       }
       self.debug();
-      panic!("expected an unfixable '{variant:?}' for '{instance_id}' with '{actual}'");
+      error!("expected an unfixable '{variant:?}' for '{instance_id}' with '{actual}'");
+      panic!("");
     }
     self
   }
@@ -297,7 +314,8 @@ impl<'a> Expects<'a> {
     let actual_len = actual_mismatches.values().fold(0, |acc, x| acc + x.len());
     if actual_len != expected_len {
       self.debug();
-      panic!("expected {expected_len} mismatches but found {actual_len}");
+      error!("expected {expected_len} mismatches but found {actual_len}");
+      panic!("");
     }
     'expected: for expected in &expected_mismatches {
       let variant = &expected.variant;
@@ -308,7 +326,8 @@ impl<'a> Expects<'a> {
       let mismatches_of_type = actual_mismatches.get(variant);
       if mismatches_of_type.is_none() {
         self.debug();
-        panic!("expected {variant:?} mismatch but found none");
+        error!("expected {variant:?} mismatch but found none");
+        panic!("");
       }
       for event in mismatches_of_type.unwrap() {
         if event.dependency_name == *dependency_name
@@ -320,7 +339,8 @@ impl<'a> Expects<'a> {
         }
       }
       self.debug();
-      panic!("expected a fixable '{variant:?}' for '{instance_id}' with '{actual}' to be replaced by '{expected_specifier}'");
+      error!("expected a fixable '{variant:?}' for '{instance_id}' with '{actual}' to be replaced by '{expected_specifier}'");
+      panic!("");
     }
     self
   }
