@@ -2,65 +2,18 @@ use crate::{
   effects::InstanceState,
   test::{
     self,
-    expect::{expect, ExpectedFixableMismatchEvent, ExpectedMatchEvent, ExpectedUnfixableMismatchEvent},
+    expect::{expect, ExpectedFixableMismatchEvent, ExpectedMatchEvent, ExpectedOverrideEvent, ExpectedUnfixableMismatchEvent},
   },
 };
 use serde_json::json;
 
 use super::*;
 
-// = Pinned Version Group: Local ===============================================
-
-#[test]
-fn refuses_to_pin_local_version() {
-  let config = test::mock::config_from_mock(json!({
-    "versionGroups": [{
-      "dependencies": ["package-a"],
-      "pinVersion": "1.2.0"
-    }]
-  }));
-  let mut effects = test::mock::effects(&config);
-  let packages = test::mock::packages_from_mocks(vec![
-    json!({
-      "name": "package-a",
-      "version": "1.0.0"
-    }),
-    json!({
-      "name": "package-b",
-      "dependencies": {
-        "package-a": "1.1.0"
-      }
-    }),
-  ]);
-
-  visit_packages(&config, &packages, &mut effects);
-
-  expect(&effects)
-    .to_have_overrides(vec![])
-    .to_have_warnings(vec![
-      ExpectedUnfixableMismatchEvent {
-        variant: InstanceState::InvalidLocalVersion,
-        dependency_name: "package-b",
-        instance_id: "package-b in /version of package-b",
-        actual: "VERSION_IS_MISSING",
-      },
-      ExpectedUnfixableMismatchEvent {
-        variant: InstanceState::RefuseToPinLocal,
-        dependency_name: "package-a",
-        instance_id: "package-a in /version of package-a",
-        actual: "1.0.0",
-      },
-    ])
-    .to_have_warnings_of_instance_changes(vec![])
-    .to_have_matches(vec![])
-    .to_have_fixable_mismatches(vec![ExpectedFixableMismatchEvent {
-      variant: InstanceState::MismatchesPin,
-      dependency_name: "package-a",
-      instance_id: "package-a in /dependencies of package-b",
-      actual: "1.1.0",
-      expected: "1.2.0",
-    }])
-    .to_have_unfixable_mismatches(vec![]);
+#[cfg(test)]
+#[ctor::ctor]
+fn init() {
+  use crate::logger;
+  logger::init();
 }
 
 // = Standard Version Group: Local =============================================
@@ -1212,3 +1165,283 @@ fn instance_has_same_version_number_as_highest_semver_but_mismatches_an_incompat
       actual: "1.0.0",
     }]);
 }
+
+// = Standard Version Group: Non Semver ========================================
+
+#[test]
+fn no_instances_are_semver_but_all_are_identical() {}
+
+#[test]
+fn no_instances_are_semver_and_they_differ() {}
+
+// = Ignored Version Group =====================================================
+
+#[test]
+fn all_instances_are_ignored() {}
+
+// = Pinned Version Group: Local ===============================================
+
+#[test]
+fn refuses_to_pin_local_version() {
+  let config = test::mock::config_from_mock(json!({
+    "versionGroups": [{
+      "dependencies": ["package-a"],
+      "pinVersion": "1.2.0"
+    }]
+  }));
+  let mut effects = test::mock::effects(&config);
+  let packages = test::mock::packages_from_mocks(vec![
+    json!({
+      "name": "package-a",
+      "version": "1.0.0"
+    }),
+    json!({
+      "name": "package-b",
+      "dependencies": {
+        "package-a": "1.1.0"
+      }
+    }),
+  ]);
+
+  visit_packages(&config, &packages, &mut effects);
+
+  expect(&effects)
+    .to_have_overrides(vec![])
+    .to_have_warnings(vec![
+      ExpectedUnfixableMismatchEvent {
+        variant: InstanceState::InvalidLocalVersion,
+        dependency_name: "package-b",
+        instance_id: "package-b in /version of package-b",
+        actual: "VERSION_IS_MISSING",
+      },
+      ExpectedUnfixableMismatchEvent {
+        variant: InstanceState::RefuseToPinLocal,
+        dependency_name: "package-a",
+        instance_id: "package-a in /version of package-a",
+        actual: "1.0.0",
+      },
+    ])
+    .to_have_warnings_of_instance_changes(vec![])
+    .to_have_matches(vec![])
+    .to_have_fixable_mismatches(vec![ExpectedFixableMismatchEvent {
+      variant: InstanceState::MismatchesPin,
+      dependency_name: "package-a",
+      instance_id: "package-a in /dependencies of package-b",
+      actual: "1.1.0",
+      expected: "1.2.0",
+    }])
+    .to_have_unfixable_mismatches(vec![]);
+}
+
+// = Pinned Version Group: Normal ==============================================
+
+#[test]
+fn a_pinned_version_will_replace_anything_different() {
+  let config = test::mock::config_from_mock(json!({
+    "versionGroups": [{
+      "dependencies": ["foo"],
+      "pinVersion": "1.2.0"
+    }]
+  }));
+  let mut effects = test::mock::effects(&config);
+  let packages = test::mock::packages_from_mocks(vec![json!({
+    "name": "package-a",
+    "version": "1.0.0",
+    "devDependencies": {
+      "foo": "workspace:*"
+    }
+  })]);
+
+  visit_packages(&config, &packages, &mut effects);
+
+  expect(&effects)
+    .to_have_overrides(vec![])
+    .to_have_warnings(vec![])
+    .to_have_warnings_of_instance_changes(vec![])
+    .to_have_matches(vec![ExpectedMatchEvent {
+      variant: InstanceState::ValidLocal,
+      dependency_name: "package-a",
+      instance_id: "package-a in /version of package-a",
+      actual: "1.0.0",
+    }])
+    .to_have_fixable_mismatches(vec![ExpectedFixableMismatchEvent {
+      variant: InstanceState::MismatchesPin,
+      dependency_name: "foo",
+      instance_id: "foo in /devDependencies of package-a",
+      actual: "workspace:*",
+      expected: "1.2.0",
+    }])
+    .to_have_unfixable_mismatches(vec![]);
+}
+
+#[test]
+fn pin_version_will_override_instance_with_same_version_number_as_pinned_but_matching_a_semver_group() {
+  let config = test::mock::config_from_mock(json!({
+    "semverGroups": [{
+      "dependencies": ["foo"],
+      "range": "^"
+    }],
+    "versionGroups": [{
+      "dependencies": ["foo"],
+      "pinVersion": "1.0.0"
+    }]
+  }));
+  let mut effects = test::mock::effects(&config);
+  let packages = test::mock::packages_from_mocks(vec![json!({
+    "name": "package-a",
+    "version": "1.0.0",
+    "devDependencies": {
+      "foo": "^1.0.0"
+    }
+  })]);
+
+  visit_packages(&config, &packages, &mut effects);
+
+  expect(&effects)
+    .to_have_overrides(vec![ExpectedOverrideEvent {
+      variant: InstanceState::PinMatchOverridesSemverRangeMatch,
+      dependency_name: "foo",
+      instance_id: "foo in /devDependencies of package-a",
+      actual: "^1.0.0",
+      expected: "1.0.0",
+      overridden: "^1.0.0",
+    }])
+    .to_have_warnings(vec![])
+    .to_have_warnings_of_instance_changes(vec![])
+    .to_have_matches(vec![ExpectedMatchEvent {
+      variant: InstanceState::ValidLocal,
+      dependency_name: "package-a",
+      instance_id: "package-a in /version of package-a",
+      actual: "1.0.0",
+    }])
+    .to_have_fixable_mismatches(vec![])
+    .to_have_unfixable_mismatches(vec![]);
+}
+
+#[test]
+fn pin_version_will_override_instance_with_same_version_number_as_pinned_but_mismatching_a_semver_group() {
+  let config = test::mock::config_from_mock(json!({
+    "semverGroups": [{
+      "dependencies": ["foo"],
+      "range": "^"
+    }],
+    "versionGroups": [{
+      "dependencies": ["foo"],
+      "pinVersion": "1.0.0"
+    }]
+  }));
+  let mut effects = test::mock::effects(&config);
+  let packages = test::mock::packages_from_mocks(vec![json!({
+    "name": "package-a",
+    "version": "1.0.0",
+    "devDependencies": {
+      "foo": ">=1.0.0"
+    }
+  })]);
+
+  visit_packages(&config, &packages, &mut effects);
+
+  expect(&effects)
+    .to_have_overrides(vec![ExpectedOverrideEvent {
+      variant: InstanceState::PinMatchOverridesSemverRangeMismatch,
+      dependency_name: "foo",
+      instance_id: "foo in /devDependencies of package-a",
+      actual: ">=1.0.0",
+      expected: "1.0.0",
+      overridden: "^1.0.0",
+    }])
+    .to_have_warnings(vec![])
+    .to_have_warnings_of_instance_changes(vec![])
+    .to_have_matches(vec![ExpectedMatchEvent {
+      variant: InstanceState::ValidLocal,
+      dependency_name: "package-a",
+      instance_id: "package-a in /version of package-a",
+      actual: "1.0.0",
+    }])
+    .to_have_fixable_mismatches(vec![])
+    .to_have_unfixable_mismatches(vec![]);
+}
+
+#[test]
+fn pin_version_will_override_instance_with_same_version_number_as_pinned_but_a_different_range_and_no_semver_group() {
+  let config = test::mock::config_from_mock(json!({
+    "versionGroups": [{
+      "dependencies": ["foo"],
+      "pinVersion": "1.0.0"
+    }]
+  }));
+  let mut effects = test::mock::effects(&config);
+  let packages = test::mock::packages_from_mocks(vec![json!({
+    "name": "package-a",
+    "version": "1.0.0",
+    "devDependencies": {
+      "foo": "^1.0.0"
+    }
+  })]);
+
+  visit_packages(&config, &packages, &mut effects);
+
+  expect(&effects)
+    .to_have_overrides(vec![])
+    .to_have_warnings(vec![])
+    .to_have_warnings_of_instance_changes(vec![])
+    .to_have_matches(vec![ExpectedMatchEvent {
+      variant: InstanceState::ValidLocal,
+      dependency_name: "package-a",
+      instance_id: "package-a in /version of package-a",
+      actual: "1.0.0",
+    }])
+    .to_have_fixable_mismatches(vec![ExpectedFixableMismatchEvent {
+      variant: InstanceState::MismatchesPin,
+      dependency_name: "foo",
+      instance_id: "foo in /devDependencies of package-a",
+      actual: "^1.0.0",
+      expected: "1.0.0",
+    }])
+    .to_have_unfixable_mismatches(vec![]);
+}
+
+#[test]
+fn an_already_pinned_version_is_valid() {
+  let config = test::mock::config_from_mock(json!({
+    "versionGroups": [{
+      "dependencies": ["foo"],
+      "pinVersion": "1.2.0"
+    }]
+  }));
+  let mut effects = test::mock::effects(&config);
+  let packages = test::mock::packages_from_mocks(vec![json!({
+    "name": "package-a",
+    "version": "1.0.0",
+    "devDependencies": {
+      "foo": "1.2.0"
+    }
+  })]);
+
+  visit_packages(&config, &packages, &mut effects);
+
+  expect(&effects)
+    .to_have_overrides(vec![])
+    .to_have_warnings(vec![])
+    .to_have_warnings_of_instance_changes(vec![])
+    .to_have_matches(vec![
+      ExpectedMatchEvent {
+        variant: InstanceState::ValidLocal,
+        dependency_name: "package-a",
+        instance_id: "package-a in /version of package-a",
+        actual: "1.0.0",
+      },
+      ExpectedMatchEvent {
+        variant: InstanceState::EqualsPin,
+        dependency_name: "foo",
+        instance_id: "foo in /devDependencies of package-a",
+        actual: "1.2.0",
+      },
+    ])
+    .to_have_fixable_mismatches(vec![])
+    .to_have_unfixable_mismatches(vec![]);
+}
+
+// = Same Range Version Group ==================================================
+
+// = Snapped To Version Group ==================================================

@@ -262,41 +262,43 @@ pub fn visit_packages(config: &Config, packages: &Packages, effects: &mut impl E
                   instance.set_state(RefuseToPinLocal, &instance.actual_specifier);
                   return;
                 }
+                debug!("      it depends on the local instance");
+                debug!("        its version number (without a range):");
+                if !instance.actual_specifier.has_same_version_number_as(&pinned_specifier) {
+                  debug!("          differs to the pinned version");
+                  debug!("            mark as error");
+                  dependency.set_state(Invalid);
+                  instance.set_state(MismatchesPin, &pinned_specifier);
+                  return;
+                }
+                debug!("          is the same as the pinned version");
                 if instance.must_match_preferred_semver_range_which_differs_to(&pinned_specifier) {
                   let preferred_semver_range = &instance.preferred_semver_range.borrow().clone().unwrap();
-                  debug!("      it is in a semver group which prefers a different semver range to the pinned version ({preferred_semver_range:?})");
-                  debug!("        its version number (without a range):");
-                  if instance.actual_specifier.has_same_version_number_as(&pinned_specifier) {
-                    debug!("          is identical to the pinned version");
-                    if instance.matches_preferred_semver_range() {
-                      debug!("            its semver range matches its semver group");
-                      debug!("              1. pin it and ignore the semver group");
-                      debug!("              2. mark as warning (the config is asking for a different range AND they want to pin it)");
-                      dependency.set_state(Warning);
-                      instance.set_state(PinMatchOverridesSemverRangeMatch, &pinned_specifier);
-                    } else {
-                      debug!("            its semver range does not match its semver group or the pinned version's");
-                      debug!("              1. pin it and ignore the semver group");
-                      debug!("              2. mark as warning (the config is asking for a different range AND they want to pin it)");
-                      dependency.set_state(Warning);
-                      instance.set_state(PinMatchOverridesSemverRangeMismatch, &pinned_specifier);
-                    }
+                  debug!("            it is in a semver group which prefers a different semver range to the pinned version ({preferred_semver_range:?})");
+                  if instance.matches_preferred_semver_range() {
+                    debug!("              its semver range matches its semver group");
+                    debug!("                1. pin it and ignore the semver group");
+                    debug!("                2. mark as warning (the config is asking for a different range AND they want to pin it)");
+                    dependency.set_state(Warning);
+                    instance.set_state(PinMatchOverridesSemverRangeMatch, &pinned_specifier);
                   } else {
-                    debug!("          differs to the pinned version");
-                    debug!("            mark as error");
-                    dependency.set_state(Invalid);
-                    instance.set_state(MismatchesPin, &pinned_specifier);
+                    debug!("              its semver range does not match its semver group or the pinned version's");
+                    debug!("                1. pin it and ignore the semver group");
+                    debug!("                2. mark as warning (the config is asking for a different range AND they want to pin it)");
+                    dependency.set_state(Warning);
+                    instance.set_state(PinMatchOverridesSemverRangeMismatch, &pinned_specifier);
                   }
                   return;
                 }
+                debug!("            it is not in a semver group which prefers a different semver range to the pinned version");
                 if instance.already_equals(&pinned_specifier) {
-                  debug!("      it is identical to the pinned version");
-                  debug!("        mark as valid");
+                  debug!("              it is identical to the pinned version");
+                  debug!("                mark as valid");
                   dependency.set_state(Valid);
                   instance.set_state(EqualsPin, &pinned_specifier);
                 } else {
-                  debug!("      differs to the pinned version");
-                  debug!("        mark as error");
+                  debug!("              it differs to the pinned version");
+                  debug!("                mark as error");
                   dependency.set_state(Invalid);
                   instance.set_state(MismatchesPin, &pinned_specifier);
                 }
