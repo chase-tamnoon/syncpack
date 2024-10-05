@@ -94,7 +94,7 @@ watch pattern=no_pattern:
 
 # Run test in watch mode with coverage
 watch-coverage:
-    tput rmam && cargo watch --clear --exec 'llvm-cov test --html --ignore-filename-regex '(_test.rs|\/test\/)' -- --nocapture --color=always'
+    tput rmam && cargo watch --clear --exec 'llvm-cov test --html --ignore-filename-regex "(_test.rs|\/test\/)" -- --nocapture --color=always'
 
 # Run the rust binary against an unformatted test fixture
 run-misc:
