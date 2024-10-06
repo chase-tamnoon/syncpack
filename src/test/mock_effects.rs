@@ -157,19 +157,17 @@ impl Effects for MockEffects<'_> {
       InstanceState::MismatchesPreferVersion => record_fixable_mismatch_event(),
       InstanceState::MismatchesPin => record_fixable_mismatch_event(),
       InstanceState::SemverRangeMismatch => record_fixable_mismatch_event(),
-      InstanceState::SemverRangeMismatchWillFixSameRangeGroup => record_fixable_mismatch_event(),
-      InstanceState::SemverRangeMismatchWillMatchSameRangeGroup => record_fixable_mismatch_event(),
       /* = Conflict ============================================================= */
       InstanceState::PinMatchConflictsWithSemverGroup => record_unfixable_mismatch_event(),
-      InstanceState::SameRangeMatchConflictsWithSemverGroup => record_unfixable_mismatch_event(),
       InstanceState::SemverRangeMatchConflictsWithPreferVersion => record_unfixable_mismatch_event(),
       InstanceState::SemverRangeMismatchConflictsWithPreferVersion => record_unfixable_mismatch_event(),
+      InstanceState::SemverRangeMatchConflictsWithSameRangeGroup => record_unfixable_mismatch_event(),
+      InstanceState::SemverRangeMismatchConflictsWithSameRangeGroup => record_unfixable_mismatch_event(),
       InstanceState::SemverRangeMatchConflictsWithLocalVersion => record_unfixable_mismatch_event(),
       InstanceState::SemverRangeMismatchConflictsWithLocalVersion => record_unfixable_mismatch_event(),
       /* = Unfixable ============================================================ */
       InstanceState::MismatchesInvalidLocalVersion => record_unfixable_mismatch_event(),
       InstanceState::MismatchesNonSemverPreferVersion => record_unfixable_mismatch_event(),
-      InstanceState::SemverRangeMismatchWontFixSameRangeGroup => record_unfixable_mismatch_event(),
       InstanceState::MismatchesSameRangeGroup => record_unfixable_mismatch_event(),
     };
   }

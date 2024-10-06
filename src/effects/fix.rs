@@ -132,9 +132,7 @@ impl Effects for FixEffects<'_> {
       | InstanceState::MismatchesLocal
       | InstanceState::MismatchesPreferVersion
       | InstanceState::SemverRangeMismatch
-      | InstanceState::MismatchesPin
-      | InstanceState::SemverRangeMismatchWillFixSameRangeGroup
-      | InstanceState::SemverRangeMismatchWillMatchSameRangeGroup => {
+      | InstanceState::MismatchesPin => {
         instance.package.borrow().copy_expected_specifier(instance);
       }
       /* Conflicts */
@@ -142,12 +140,12 @@ impl Effects for FixEffects<'_> {
         debug!("@TODO: explain PinMatchConflictsWithSemverGroup");
         self.is_valid = false;
       }
-      InstanceState::SameRangeMatchConflictsWithSemverGroup => {
-        debug!("@TODO: explain SameRangeMatchConflictsWithSemverGroup");
-        self.is_valid = false;
-      }
       InstanceState::SemverRangeMatchConflictsWithPreferVersion => {
         debug!("@TODO: explain SemverRangeMatchConflictsWithPreferVersion");
+        self.is_valid = false;
+      }
+      InstanceState::SemverRangeMismatchConflictsWithPreferVersion => {
+        debug!("@TODO: explain SemverRangeMismatchConflictsWithPreferVersion");
         self.is_valid = false;
       }
       InstanceState::SemverRangeMatchConflictsWithLocalVersion => {
@@ -158,6 +156,14 @@ impl Effects for FixEffects<'_> {
         debug!("@TODO: explain SemverRangeMismatchConflictsWithLocalVersion");
         self.is_valid = false;
       }
+      InstanceState::SemverRangeMatchConflictsWithSameRangeGroup => {
+        debug!("@TODO: explain SemverRangeMatchConflictsWithSameRangeGroup");
+        self.is_valid = false;
+      }
+      InstanceState::SemverRangeMismatchConflictsWithSameRangeGroup => {
+        debug!("@TODO: explain SemverRangeMismatchConflictsWithSameRangeGroup");
+        self.is_valid = false;
+      }
       /* Unfixable Mismatches */
       InstanceState::MismatchesInvalidLocalVersion => {
         debug!("@TODO: explain MismatchesInvalidLocalVersion");
@@ -165,14 +171,6 @@ impl Effects for FixEffects<'_> {
       }
       InstanceState::MismatchesNonSemverPreferVersion => {
         debug!("@TODO: explain MismatchesNonSemverPreferVersion");
-        self.is_valid = false;
-      }
-      InstanceState::SemverRangeMismatchConflictsWithPreferVersion => {
-        debug!("@TODO: explain SemverRangeMismatchConflictsWithPreferVersion");
-        self.is_valid = false;
-      }
-      InstanceState::SemverRangeMismatchWontFixSameRangeGroup => {
-        debug!("@TODO: explain SemverRangeMismatchWontFixSameRangeGroup");
         self.is_valid = false;
       }
       InstanceState::MismatchesSameRangeGroup => {

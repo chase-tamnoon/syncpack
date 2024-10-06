@@ -308,61 +308,32 @@ pub fn visit_packages(config: &Config, packages: &Packages, effects: &mut impl E
               debug!("visit same range version group");
               debug!("  visit dependency '{}'", dependency.name);
               dependency.all_instances.borrow().iter().for_each(|instance| {
-                // @TODO: instance.
-                // gets a node_semver::Range and calls allows_all against another node_semver::Range
+                let actual_specifier = &instance.actual_specifier;
+                debug!("    visit instance '{}' ({actual_specifier:?})", instance.id);
+                if instance.already_satisfies_all(&dependency.all_instances.borrow()) {
+                  debug!("      its specifier satisfies all other instances in the group");
+                  if instance.must_match_preferred_semver_range() {
+                    debug!("        it belongs to a semver group");
+                    if instance.matches_preferred_semver_range() {
+                      debug!("          its specifier matches its semver group");
+                      dependency.set_state(Valid);
+                      instance.set_state(MatchesSameRangeGroup, actual_specifier);
+                    } else {
+                      debug!("          its specifier mismatches its semver group");
+                      dependency.set_state(Invalid);
+                      instance.set_state(SemverRangeMismatch, &instance.get_specifier_with_preferred_semver_range().unwrap());
+                    }
+                  } else {
+                    debug!("        it does not belong to a semver group");
+                    dependency.set_state(Valid);
+                    instance.set_state(MatchesSameRangeGroup, actual_specifier);
+                  }
+                } else {
+                  debug!("      its specifier does not satisfy all other instances in the group");
+                  dependency.set_state(Invalid);
+                  instance.set_state(MismatchesSameRangeGroup, actual_specifier);
+                }
               });
-
-              // if dependency.all_are_simple_semver() {
-              //   let mismatches = dependency.get_same_range_mismatches();
-              //   dependency.all_instances.borrow().iter().for_each(|instance| {
-              //     // CHECK THIS OVER
-              //     if instance.has_range_mismatch(&instance.expected_specifier.borrow()) {
-              //       if mismatches.contains_key(&instance.actual_specifier) {
-              //         if mismatches.contains_key(&*instance.expected_specifier.borrow()) {
-              //           dependency.set_state(Invalid);
-              //           instance
-              //             .set_state(SemverRangeMismatchWontFixSameRangeGroup)
-              //             .set_expected_specifier(&Specifier::None);
-              //         } else {
-              //           dependency.set_state(Invalid);
-              //           instance
-              //             .set_state(SemverRangeMismatchWillFixSameRangeGroup)
-              //             .set_expected_specifier(&Specifier::None);
-              //         }
-              //       } else if mismatches.contains_key(&*instance.expected_specifier.borrow()) {
-              //         dependency.set_state(Invalid);
-              //         instance
-              //           .set_state(SameRangeMatchConflictsWithSemverGroup)
-              //           .set_expected_specifier(&Specifier::None);
-              //       } else {
-              //         dependency.set_state(Invalid);
-              //         instance
-              //           .set_state(SemverRangeMismatchWillMatchSameRangeGroup)
-              //           .set_expected_specifier(&Specifier::None);
-              //       }
-              //     } else if mismatches.contains_key(&instance.actual_specifier) {
-              //       dependency.set_state(Invalid);
-              //       instance
-              //         .set_state(MismatchesSameRangeGroup)
-              //         .set_expected_specifier(&Specifier::None);
-              //     } else {
-              //       instance.set_state(MatchesSameRangeGroup);
-              //     }
-              //     // /CHECK THIS OVER
-              //   });
-              // } else if dependency.every_specifier_is_already_identical() {
-              //   dependency.set_state(Warning);
-              //   dependency.all_instances.borrow().iter().for_each(|instance| {
-              //     instance.set_state(EqualsNonSemverPreferVersion);
-              //   });
-              // } else {
-              //   dependency.set_state(Invalid);
-              //   dependency.all_instances.borrow().iter().for_each(|instance| {
-              //     instance
-              //       .set_state(MismatchesNonSemverPreferVersion)
-              //       .set_expected_specifier(&Specifier::None);
-              //   });
-              // }
             }
             Variant::SnappedTo => {
               debug!("visit snapped to version group");

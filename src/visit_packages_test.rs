@@ -1652,4 +1652,265 @@ fn refuses_to_ban_local_version() {
 
 // = Same Range Version Group ==================================================
 
+#[test]
+fn instance_in_a_same_range_group_satisfies_every_other_and_there_are_no_semver_groups() {
+  let config = test::mock::config_from_mock(json!({
+    "versionGroups": [{
+      "dependencyTypes": ["local"],
+      "isIgnored": true
+    }, {
+      "dependencies": ["foo"],
+      "policy": "sameRange"
+    }]
+  }));
+  let mut effects = test::mock::effects(&config);
+  let packages = test::mock::packages_from_mocks(vec![
+    json!({
+      "name": "package-a",
+      "dependencies": {
+        "foo": ">=1.0.0"
+      }
+    }),
+    json!({
+      "name": "package-b",
+      "dependencies": {
+        "foo": "<=2.0.0"
+      }
+    }),
+  ]);
+
+  visit_packages(&config, &packages, &mut effects);
+
+  expect(&effects)
+    .to_have_overrides(vec![])
+    .to_have_warnings(vec![])
+    .to_have_warnings_of_instance_changes(vec![])
+    .to_have_matches(vec![
+      ExpectedMatchEvent {
+        variant: InstanceState::Ignored,
+        dependency_name: "package-a",
+        instance_id: "package-a in /version of package-a",
+        actual: "VERSION_IS_MISSING",
+      },
+      ExpectedMatchEvent {
+        variant: InstanceState::Ignored,
+        dependency_name: "package-b",
+        instance_id: "package-b in /version of package-b",
+        actual: "VERSION_IS_MISSING",
+      },
+      ExpectedMatchEvent {
+        variant: InstanceState::MatchesSameRangeGroup,
+        dependency_name: "foo",
+        instance_id: "foo in /dependencies of package-a",
+        actual: ">=1.0.0",
+      },
+      ExpectedMatchEvent {
+        variant: InstanceState::MatchesSameRangeGroup,
+        dependency_name: "foo",
+        instance_id: "foo in /dependencies of package-b",
+        actual: "<=2.0.0",
+      },
+    ])
+    .to_have_fixable_mismatches(vec![])
+    .to_have_unfixable_mismatches(vec![]);
+}
+
+#[test]
+fn instance_in_a_same_range_group_satisfies_every_other_and_matches_its_semver_group() {
+  let config = test::mock::config_from_mock(json!({
+    "semverGroups": [{
+      "packages": ["package-b"],
+      "range": "^"
+    }],
+    "versionGroups": [{
+      "dependencyTypes": ["local"],
+      "isIgnored": true
+    }, {
+      "dependencies": ["foo"],
+      "policy": "sameRange"
+    }]
+  }));
+  let mut effects = test::mock::effects(&config);
+  let packages = test::mock::packages_from_mocks(vec![
+    json!({
+      "name": "package-a",
+      "dependencies": {
+        "foo": ">=1.0.0"
+      }
+    }),
+    json!({
+      "name": "package-b",
+      "dependencies": {
+        "foo": "^1.2.3"
+      }
+    }),
+  ]);
+
+  visit_packages(&config, &packages, &mut effects);
+
+  expect(&effects)
+    .to_have_overrides(vec![])
+    .to_have_warnings(vec![])
+    .to_have_warnings_of_instance_changes(vec![])
+    .to_have_matches(vec![
+      ExpectedMatchEvent {
+        variant: InstanceState::Ignored,
+        dependency_name: "package-a",
+        instance_id: "package-a in /version of package-a",
+        actual: "VERSION_IS_MISSING",
+      },
+      ExpectedMatchEvent {
+        variant: InstanceState::Ignored,
+        dependency_name: "package-b",
+        instance_id: "package-b in /version of package-b",
+        actual: "VERSION_IS_MISSING",
+      },
+      ExpectedMatchEvent {
+        variant: InstanceState::MatchesSameRangeGroup,
+        dependency_name: "foo",
+        instance_id: "foo in /dependencies of package-a",
+        actual: ">=1.0.0",
+      },
+      ExpectedMatchEvent {
+        variant: InstanceState::MatchesSameRangeGroup,
+        dependency_name: "foo",
+        instance_id: "foo in /dependencies of package-b",
+        actual: "^1.2.3",
+      },
+    ])
+    .to_have_fixable_mismatches(vec![])
+    .to_have_unfixable_mismatches(vec![]);
+}
+
+#[test]
+fn instance_in_a_same_range_group_satisfies_every_other_but_mismatches_its_semver_group() {
+  let config = test::mock::config_from_mock(json!({
+    "semverGroups": [{
+      "packages": ["package-b"],
+      "range": "~"
+    }],
+    "versionGroups": [{
+      "dependencyTypes": ["local"],
+      "isIgnored": true
+    }, {
+      "dependencies": ["foo"],
+      "policy": "sameRange"
+    }]
+  }));
+  let mut effects = test::mock::effects(&config);
+  let packages = test::mock::packages_from_mocks(vec![
+    json!({
+      "name": "package-a",
+      "dependencies": {
+        "foo": ">=1.0.0"
+      }
+    }),
+    json!({
+      "name": "package-b",
+      "dependencies": {
+        "foo": "^1.2.3"
+      }
+    }),
+  ]);
+
+  visit_packages(&config, &packages, &mut effects);
+
+  expect(&effects)
+    .to_have_overrides(vec![])
+    .to_have_warnings(vec![])
+    .to_have_warnings_of_instance_changes(vec![])
+    .to_have_matches(vec![
+      ExpectedMatchEvent {
+        variant: InstanceState::Ignored,
+        dependency_name: "package-a",
+        instance_id: "package-a in /version of package-a",
+        actual: "VERSION_IS_MISSING",
+      },
+      ExpectedMatchEvent {
+        variant: InstanceState::Ignored,
+        dependency_name: "package-b",
+        instance_id: "package-b in /version of package-b",
+        actual: "VERSION_IS_MISSING",
+      },
+      ExpectedMatchEvent {
+        variant: InstanceState::MatchesSameRangeGroup,
+        dependency_name: "foo",
+        instance_id: "foo in /dependencies of package-a",
+        actual: ">=1.0.0",
+      },
+    ])
+    .to_have_fixable_mismatches(vec![ExpectedFixableMismatchEvent {
+      variant: InstanceState::SemverRangeMismatch,
+      dependency_name: "foo",
+      instance_id: "foo in /dependencies of package-b",
+      actual: "^1.2.3",
+      expected: "~1.2.3",
+    }])
+    .to_have_unfixable_mismatches(vec![]);
+}
+
+#[test]
+fn instance_in_a_same_range_group_does_not_satisfy_another() {
+  let config = test::mock::config_from_mock(json!({
+    "versionGroups": [{
+      "dependencyTypes": ["local"],
+      "isIgnored": true
+    }, {
+      "dependencies": ["foo"],
+      "policy": "sameRange"
+    }]
+  }));
+  let mut effects = test::mock::effects(&config);
+  let packages = test::mock::packages_from_mocks(vec![
+    json!({
+      "name": "package-a",
+      "dependencies": {
+        "foo": ">=1.0.0"
+      }
+    }),
+    json!({
+      "name": "package-b",
+      "dependencies": {
+        "foo": "<1.0.0"
+      }
+    }),
+  ]);
+
+  visit_packages(&config, &packages, &mut effects);
+
+  expect(&effects)
+    .to_have_overrides(vec![])
+    .to_have_warnings(vec![])
+    .to_have_warnings_of_instance_changes(vec![])
+    .to_have_matches(vec![
+      ExpectedMatchEvent {
+        variant: InstanceState::Ignored,
+        dependency_name: "package-a",
+        instance_id: "package-a in /version of package-a",
+        actual: "VERSION_IS_MISSING",
+      },
+      ExpectedMatchEvent {
+        variant: InstanceState::Ignored,
+        dependency_name: "package-b",
+        instance_id: "package-b in /version of package-b",
+        actual: "VERSION_IS_MISSING",
+      },
+    ])
+    .to_have_fixable_mismatches(vec![])
+    .to_have_unfixable_mismatches(vec![
+      ExpectedUnfixableMismatchEvent {
+        variant: InstanceState::MismatchesSameRangeGroup,
+        dependency_name: "foo",
+        instance_id: "foo in /dependencies of package-a",
+        actual: ">=1.0.0",
+      },
+      ExpectedUnfixableMismatchEvent {
+        variant: InstanceState::MismatchesSameRangeGroup,
+        dependency_name: "foo",
+        instance_id: "foo in /dependencies of package-b",
+        actual: "<1.0.0",
+      },
+    ]);
+}
+
 // = Snapped To Version Group ==================================================

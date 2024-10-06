@@ -200,24 +200,21 @@ impl Effects for LintEffects<'_> {
       InstanceState::SemverRangeMismatch => {
         info!("@TODO: explain SemverRangeMismatch");
       }
-      InstanceState::SemverRangeMismatchWillFixSameRangeGroup => {
-        info!("@TODO: explain SemverRangeMismatchWillFixSameRangeGroup");
-      }
-      InstanceState::SemverRangeMismatchWillMatchSameRangeGroup => {
-        info!("@TODO: explain SemverRangeMismatchWillMatchSameRangeGroup");
-      }
       /* Conflicts */
       InstanceState::PinMatchConflictsWithSemverGroup => {
         info!("@TODO: explain PinMatchConflictsWithSemverGroup");
-      }
-      InstanceState::SameRangeMatchConflictsWithSemverGroup => {
-        info!("@TODO: explain SameRangeMatchConflictsWithSemverGroup");
       }
       InstanceState::SemverRangeMatchConflictsWithPreferVersion => {
         info!("@TODO: explain SemverRangeMatchConflictsWithPreferVersion");
       }
       InstanceState::SemverRangeMismatchConflictsWithPreferVersion => {
         info!("@TODO: explain SemverRangeMismatchConflictsWithPreferVersion");
+      }
+      InstanceState::SemverRangeMatchConflictsWithSameRangeGroup => {
+        info!("@TODO: explain SemverRangeMatchConflictsWithSameRangeGroup");
+      }
+      InstanceState::SemverRangeMismatchConflictsWithSameRangeGroup => {
+        info!("@TODO: explain SemverRangeMismatchConflictsWithSameRangeGroup");
       }
       InstanceState::SemverRangeMatchConflictsWithLocalVersion => {
         info!("@TODO: explain SemverRangeMatchConflictsWithLocalVersion");
@@ -236,9 +233,6 @@ impl Effects for LintEffects<'_> {
         let location_hint = instance.location_hint.dimmed();
         info!("      {icon} {actual} {location_hint}");
         self.is_valid = false;
-      }
-      InstanceState::SemverRangeMismatchWontFixSameRangeGroup => {
-        info!("@TODO: explain SemverRangeMismatchWontFixSameRangeGroup");
       }
       InstanceState::MismatchesSameRangeGroup => {
         info!("@TODO: explain MismatchesSameRangeGroup");
