@@ -1,11 +1,11 @@
 use colored::*;
-use log::{error, info, warn};
+use log::info;
 use serde::Deserialize;
 use std::{collections::HashMap, fs, path::PathBuf};
 
 use crate::{
   cli::Cli,
-  dependency_type,
+  dependency_type::DependencyType,
   packages::Packages,
   semver_group::{AnySemverGroup, SemverGroup},
   version_group::{AnyVersionGroup, VersionGroup},
@@ -78,8 +78,6 @@ pub struct CustomType {
 pub struct Rcfile {
   #[serde(default = "empty_custom_types")]
   pub custom_types: HashMap<String, CustomType>,
-  #[serde(default)]
-  pub dependency_types: Vec<String>,
   #[serde(default = "default_true")]
   pub format_bugs: bool,
   #[serde(default = "default_true")]
@@ -99,8 +97,6 @@ pub struct Rcfile {
   #[serde(default = "default_source")]
   pub source: Vec<String>,
   #[serde(default)]
-  pub specifier_types: Vec<String>,
-  #[serde(default)]
   pub version_groups: Vec<AnyVersionGroup>,
 }
 
@@ -111,70 +107,19 @@ impl Rcfile {
     serde_json::from_str::<Self>(&empty_json).unwrap()
   }
 
-  /// Read a rcfile from the given location
-  pub fn from_file(file_path: &PathBuf) -> Option<Self> {
-    fs::read_to_string(file_path)
-      .inspect_err(|_| {
-        warn!("config file not found at {}", &file_path.to_str().unwrap());
-      })
-      .ok()
-      .and_then(|json| {
-        serde_json::from_str::<Self>(&json)
-          .inspect_err(|_| {
-            error!("config file not parseable JSON at {}", &file_path.to_str().unwrap());
-          })
-          .ok()
-      })
-  }
-
-  pub fn get_enabled_dependency_types(&self) -> Vec<dependency_type::DependencyType> {
-    // Dependency type names referenced in the rcfile
-    let named_types = &self.dependency_types;
+  pub fn get_all_dependency_types(&self) -> Vec<DependencyType> {
     // Custom dependency types defined in the rcfile
     let custom_types = &self.custom_types;
     // Internal dependency types are also defined as custom types
     let default_types = get_default_dependency_types();
     // Collect which dependency types are enabled
-    let mut dependency_types: Vec<dependency_type::DependencyType> = vec![];
-    // When no dependency types are referenced in the rcfile, all are enabled
-    let len = named_types.len();
-    let include_all = len == 0 || len == 1 && named_types[0] == "**";
-    // When any dependency types are explicitly disabled, all others are enabled
-    let contains_explicitly_disabled = named_types.iter().any(|named_type| named_type.starts_with('!'));
-
-    let is_enabled = |type_name: &String| -> bool {
-      // All are enabled by default
-      if include_all {
-        return true;
-      }
-      // Is explicitly enabled
-      if named_types.contains(type_name) {
-        return true;
-      }
-      // Is explicitly disabled
-      if named_types.contains(&negate_identifier(type_name)) {
-        return false;
-      }
-      // Is implicitly enabled when another type is explicitly disabled and
-      // this one is not named
-      if contains_explicitly_disabled {
-        return true;
-      }
-      false
-    };
-
+    let mut dependency_types: Vec<DependencyType> = vec![];
     default_types.iter().for_each(|(name, custom_type)| {
-      if is_enabled(name) {
-        dependency_types.push(dependency_type::DependencyType::new(name, custom_type));
-      }
+      dependency_types.push(DependencyType::new(name, custom_type));
     });
-
     custom_types.iter().for_each(|(name, custom_type)| {
-      if is_enabled(name) {
-        dependency_types.push(dependency_type::DependencyType::new(name, custom_type));
-      }
+      dependency_types.push(DependencyType::new(name, custom_type));
     });
-
     dependency_types
   }
 
@@ -199,13 +144,6 @@ impl Rcfile {
     all_groups.push(VersionGroup::get_catch_all());
     all_groups
   }
-}
-
-/// Adds "!" to the start of the String
-fn negate_identifier(str: &str) -> String {
-  let mut negated_str = String::from("!");
-  negated_str.push_str(str);
-  negated_str
 }
 
 fn get_default_dependency_types() -> HashMap<String, CustomType> {
@@ -281,8 +219,6 @@ impl Config {
   /// defaults if one is not found
   pub fn from_cli(cwd: PathBuf, cli: Cli) -> Config {
     let file_path = cwd.join(".syncpackrc.json");
-    let maybe_rcfile = Rcfile::from_file(&file_path);
-
     let rcfile = fs::read_to_string(&file_path)
       .inspect_err(|_| {
         info!(

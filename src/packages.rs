@@ -62,7 +62,7 @@ impl Packages {
   where
     F: FnMut(Instance),
   {
-    let enabled_dependency_types = &config.rcfile.get_enabled_dependency_types();
+    let all_dependency_types = &config.rcfile.get_all_dependency_types();
     let filter = &config.cli.options.filter;
     let matches_filter = |name: &str| -> bool {
       if let Some(filter) = filter {
@@ -73,7 +73,7 @@ impl Packages {
     };
 
     for package in self.by_name.values() {
-      for dependency_type in enabled_dependency_types {
+      for dependency_type in all_dependency_types {
         match dependency_type.strategy {
           Strategy::NameAndVersionProps => {
             if let (Some(Value::String(name)), Some(Value::String(raw_specifier))) = (
