@@ -1169,15 +1169,169 @@ fn instance_has_same_version_number_as_highest_semver_but_mismatches_an_incompat
 // = Standard Version Group: Non Semver ========================================
 
 #[test]
-fn no_instances_are_semver_but_all_are_identical() {}
+fn no_instances_are_semver_but_all_are_identical() {
+  let config = test::mock::config();
+  let mut effects = test::mock::effects(&config);
+  let packages = test::mock::packages_from_mocks(vec![
+    json!({
+      "name": "package-a",
+      "dependencies": {
+        "foo": "workspace:*"
+      }
+    }),
+    json!({
+      "name": "package-b",
+      "dependencies": {
+        "foo": "workspace:*"
+      }
+    }),
+  ]);
+
+  visit_packages(&config, &packages, &mut effects);
+
+  expect(&effects)
+    .to_have_overrides(vec![])
+    .to_have_warnings(vec![
+      ExpectedUnfixableMismatchEvent {
+        variant: InstanceState::InvalidLocalVersion,
+        dependency_name: "package-a",
+        instance_id: "package-a in /version of package-a",
+        actual: "VERSION_IS_MISSING",
+      },
+      ExpectedUnfixableMismatchEvent {
+        variant: InstanceState::InvalidLocalVersion,
+        dependency_name: "package-b",
+        instance_id: "package-b in /version of package-b",
+        actual: "VERSION_IS_MISSING",
+      },
+    ])
+    .to_have_warnings_of_instance_changes(vec![])
+    .to_have_matches(vec![
+      ExpectedMatchEvent {
+        variant: InstanceState::EqualsNonSemverPreferVersion,
+        dependency_name: "foo",
+        instance_id: "foo in /dependencies of package-a",
+        actual: "workspace:*",
+      },
+      ExpectedMatchEvent {
+        variant: InstanceState::EqualsNonSemverPreferVersion,
+        dependency_name: "foo",
+        instance_id: "foo in /dependencies of package-b",
+        actual: "workspace:*",
+      },
+    ])
+    .to_have_fixable_mismatches(vec![])
+    .to_have_unfixable_mismatches(vec![]);
+}
 
 #[test]
-fn no_instances_are_semver_and_they_differ() {}
+fn no_instances_are_semver_and_they_differ() {
+  let config = test::mock::config();
+  let mut effects = test::mock::effects(&config);
+  let packages = test::mock::packages_from_mocks(vec![
+    json!({
+      "name": "package-a",
+      "dependencies": {
+        "foo": "workspace:*"
+      }
+    }),
+    json!({
+      "name": "package-b",
+      "dependencies": {
+        "foo": "workspace:^"
+      }
+    }),
+  ]);
+
+  visit_packages(&config, &packages, &mut effects);
+
+  expect(&effects)
+    .to_have_overrides(vec![])
+    .to_have_warnings(vec![
+      ExpectedUnfixableMismatchEvent {
+        variant: InstanceState::InvalidLocalVersion,
+        dependency_name: "package-a",
+        instance_id: "package-a in /version of package-a",
+        actual: "VERSION_IS_MISSING",
+      },
+      ExpectedUnfixableMismatchEvent {
+        variant: InstanceState::InvalidLocalVersion,
+        dependency_name: "package-b",
+        instance_id: "package-b in /version of package-b",
+        actual: "VERSION_IS_MISSING",
+      },
+    ])
+    .to_have_warnings_of_instance_changes(vec![])
+    .to_have_matches(vec![])
+    .to_have_fixable_mismatches(vec![])
+    .to_have_unfixable_mismatches(vec![
+      ExpectedUnfixableMismatchEvent {
+        variant: InstanceState::MismatchesNonSemverPreferVersion,
+        dependency_name: "foo",
+        instance_id: "foo in /dependencies of package-a",
+        actual: "workspace:*",
+      },
+      ExpectedUnfixableMismatchEvent {
+        variant: InstanceState::MismatchesNonSemverPreferVersion,
+        dependency_name: "foo",
+        instance_id: "foo in /dependencies of package-b",
+        actual: "workspace:^",
+      },
+    ]);
+}
 
 // = Ignored Version Group =====================================================
 
 #[test]
-fn all_instances_are_ignored() {}
+fn all_instances_are_ignored() {
+  let config = test::mock::config_from_mock(json!({
+    "versionGroups": [{
+      "isIgnored": true,
+    }]
+  }));
+  let mut effects = test::mock::effects(&config);
+  let packages = test::mock::packages_from_mocks(vec![
+    json!({
+      "name": "package-a",
+      "version": "1.0.0"
+    }),
+    json!({
+      "name": "package-b",
+      "dependencies": {
+        "package-a": "1.1.0"
+      }
+    }),
+  ]);
+
+  visit_packages(&config, &packages, &mut effects);
+
+  expect(&effects)
+    .to_have_overrides(vec![])
+    .to_have_warnings(vec![])
+    .to_have_warnings_of_instance_changes(vec![])
+    .to_have_matches(vec![
+      ExpectedMatchEvent {
+        variant: InstanceState::Ignored,
+        dependency_name: "package-b",
+        instance_id: "package-b in /version of package-b",
+        actual: "VERSION_IS_MISSING",
+      },
+      ExpectedMatchEvent {
+        variant: InstanceState::Ignored,
+        dependency_name: "package-a",
+        instance_id: "package-a in /version of package-a",
+        actual: "1.0.0",
+      },
+      ExpectedMatchEvent {
+        variant: InstanceState::Ignored,
+        dependency_name: "package-a",
+        instance_id: "package-a in /dependencies of package-b",
+        actual: "1.1.0",
+      },
+    ])
+    .to_have_fixable_mismatches(vec![])
+    .to_have_unfixable_mismatches(vec![]);
+}
 
 // = Pinned Version Group: Local ===============================================
 
@@ -1439,6 +1593,60 @@ fn an_already_pinned_version_is_valid() {
       },
     ])
     .to_have_fixable_mismatches(vec![])
+    .to_have_unfixable_mismatches(vec![]);
+}
+
+// = Banned Version Group ======================================================
+
+#[test]
+fn refuses_to_ban_local_version() {
+  let config = test::mock::config_from_mock(json!({
+    "versionGroups": [{
+      "dependencies": ["package-a"],
+      "isBanned": true
+    }]
+  }));
+  let mut effects = test::mock::effects(&config);
+  let packages = test::mock::packages_from_mocks(vec![
+    json!({
+      "name": "package-a",
+      "version": "1.0.0"
+    }),
+    json!({
+      "name": "package-b",
+      "dependencies": {
+        "package-a": "1.1.0"
+      }
+    }),
+  ]);
+
+  visit_packages(&config, &packages, &mut effects);
+
+  expect(&effects)
+    .to_have_overrides(vec![])
+    .to_have_warnings(vec![
+      ExpectedUnfixableMismatchEvent {
+        variant: InstanceState::InvalidLocalVersion,
+        dependency_name: "package-b",
+        instance_id: "package-b in /version of package-b",
+        actual: "VERSION_IS_MISSING",
+      },
+      ExpectedUnfixableMismatchEvent {
+        variant: InstanceState::RefuseToBanLocal,
+        dependency_name: "package-a",
+        instance_id: "package-a in /version of package-a",
+        actual: "1.0.0",
+      },
+    ])
+    .to_have_warnings_of_instance_changes(vec![])
+    .to_have_matches(vec![])
+    .to_have_fixable_mismatches(vec![ExpectedFixableMismatchEvent {
+      variant: InstanceState::Banned,
+      dependency_name: "package-a",
+      instance_id: "package-a in /dependencies of package-b",
+      actual: "1.1.0",
+      expected: "VERSION_IS_MISSING",
+    }])
     .to_have_unfixable_mismatches(vec![]);
 }
 
