@@ -1,12 +1,8 @@
 use std::{collections::HashMap, rc::Rc};
 
-use crate::{config::Config, instance::Instance, packages::Packages, semver_group::SemverGroup, version_group::VersionGroup};
+use crate::{config::Config, packages::Packages, version_group::VersionGroup};
 
 pub struct Context {
-  /// Every local instance, regardless of which version group it belongs to
-  pub local_instances_by_name: HashMap<String, Rc<Instance>>,
-  /// All semver groups
-  pub semver_groups: Vec<SemverGroup>,
   /// All version groups, their dependencies, and their instances
   pub version_groups: Vec<VersionGroup>,
 }
@@ -33,15 +29,6 @@ impl Context {
       }
     });
 
-    Self {
-      local_instances_by_name,
-      semver_groups,
-      version_groups,
-    }
-  }
-
-  /// Regardless of which version group it belongs to, get the local instance of a dependency
-  pub fn get_local_instance_by_name(&self, name: &str) -> Option<Rc<Instance>> {
-    self.local_instances_by_name.get(name).map(Rc::clone)
+    Self { version_groups }
   }
 }

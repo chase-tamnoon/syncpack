@@ -1,4 +1,6 @@
-use std::collections::HashMap;
+use std::{cell::RefCell, collections::HashMap, path::PathBuf};
+
+use serde_json::Value;
 
 use crate::{
   cli::{Cli, CliOptions, Subcommand},
@@ -25,7 +27,7 @@ pub fn config() -> Config {
   Config {
     cli: cli(),
     cwd: std::env::current_dir().unwrap(),
-    rcfile: Rcfile::new(),
+    rcfile: rcfile(),
   }
 }
 
@@ -38,16 +40,31 @@ pub fn config_from_mock(value: serde_json::Value) -> Config {
   }
 }
 
+/// Create an empty Rcfile struct
+pub fn rcfile() -> Rcfile {
+  let empty_json = "{}".to_string();
+  serde_json::from_str::<Rcfile>(&empty_json).unwrap()
+}
+
 /// Create an Rcfile struct from a mocked .syncpackrc
 pub fn rcfile_from_mock(value: serde_json::Value) -> Rcfile {
   serde_json::from_value::<Rcfile>(value).unwrap()
+}
+
+/// Parse a package.json string
+pub fn package_json_from_value(contents: Value) -> PackageJson {
+  PackageJson {
+    file_path: PathBuf::new(),
+    json: RefCell::new(contents.to_string()),
+    contents: RefCell::new(contents),
+  }
 }
 
 /// Create an collection of package.json files from mocked values
 pub fn packages_from_mocks(values: Vec<serde_json::Value>) -> Packages {
   let mut packages = Packages::new();
   for value in values {
-    packages.add_package(PackageJson::from_value(value));
+    packages.add_package(package_json_from_value(value));
   }
   packages
 }

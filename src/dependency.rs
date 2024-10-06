@@ -1,27 +1,11 @@
 use std::{cell::RefCell, cmp::Ordering, rc::Rc, vec};
 
 use crate::{
-  instance::{Instance, InstanceId},
+  instance::Instance,
   package_json::PackageJson,
   specifier::{orderable::IsOrderable, semver::Semver, simple_semver::SimpleSemver, Specifier},
   version_group::Variant,
 };
-
-/// A reference to a group of instances of the same dependency which all have the
-/// same version specifier.
-#[derive(Debug)]
-pub struct InstanceIdsBySpecifier {
-  pub specifier: Specifier,
-  pub instance_ids: Vec<InstanceId>,
-}
-
-/// A reference to a group of instances of the same dependency which all have the
-/// same version specifier.
-#[derive(Debug)]
-pub struct InstancesBySpecifier<'a> {
-  pub specifier: Specifier,
-  pub instances: Vec<&'a Instance>,
-}
 
 #[derive(Debug, Eq, PartialEq)]
 pub enum DependencyState {
@@ -118,22 +102,6 @@ impl Dependency {
         self.get_local_specifier().unwrap(),
         Specifier::Semver(Semver::Simple(SimpleSemver::Exact(_)))
       )
-  }
-
-  pub fn has_preferred_ranges(&self) -> bool {
-    self
-      .all_instances
-      .borrow()
-      .iter()
-      .any(|instance| instance.preferred_semver_range.borrow().is_some())
-  }
-
-  pub fn all_are_simple_semver(&self) -> bool {
-    self
-      .all_instances
-      .borrow()
-      .iter()
-      .all(|instance| instance.actual_specifier.is_simple_semver())
   }
 
   /// Does every instance in this group have a specifier which is exactly the same?

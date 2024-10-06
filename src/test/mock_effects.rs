@@ -75,7 +75,6 @@ impl Effects for MockEffects<'_> {
 
   fn on_instance(&mut self, event: InstanceEvent) {
     let instance = &event.instance;
-    let dependency = &event.dependency;
 
     let mut record_match_event = || {
       self
@@ -91,14 +90,6 @@ impl Effects for MockEffects<'_> {
         .entry(event.variant.clone())
         .or_default()
         .push(ActualUnfixableMismatchEvent::new(&event, instance))
-    };
-
-    let record_warning_of_instance_change_event = || {
-      self
-        .warnings_of_instance_changes
-        .entry(event.variant.clone())
-        .or_default()
-        .push(ActualFixableMismatchEvent::new(&event, instance));
     };
 
     let mut record_fixable_mismatch_event = || {
@@ -158,11 +149,8 @@ impl Effects for MockEffects<'_> {
       InstanceState::MismatchesPin => record_fixable_mismatch_event(),
       InstanceState::SemverRangeMismatch => record_fixable_mismatch_event(),
       /* = Conflict ============================================================= */
-      InstanceState::PinMatchConflictsWithSemverGroup => record_unfixable_mismatch_event(),
       InstanceState::SemverRangeMatchConflictsWithPreferVersion => record_unfixable_mismatch_event(),
       InstanceState::SemverRangeMismatchConflictsWithPreferVersion => record_unfixable_mismatch_event(),
-      InstanceState::SemverRangeMatchConflictsWithSameRangeGroup => record_unfixable_mismatch_event(),
-      InstanceState::SemverRangeMismatchConflictsWithSameRangeGroup => record_unfixable_mismatch_event(),
       InstanceState::SemverRangeMatchConflictsWithLocalVersion => record_unfixable_mismatch_event(),
       InstanceState::SemverRangeMismatchConflictsWithLocalVersion => record_unfixable_mismatch_event(),
       /* = Unfixable ============================================================ */

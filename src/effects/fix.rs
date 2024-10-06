@@ -136,10 +136,6 @@ impl Effects for FixEffects<'_> {
         instance.package.borrow().copy_expected_specifier(instance);
       }
       /* Conflicts */
-      InstanceState::PinMatchConflictsWithSemverGroup => {
-        debug!("@TODO: explain PinMatchConflictsWithSemverGroup");
-        self.is_valid = false;
-      }
       InstanceState::SemverRangeMatchConflictsWithPreferVersion => {
         debug!("@TODO: explain SemverRangeMatchConflictsWithPreferVersion");
         self.is_valid = false;
@@ -154,14 +150,6 @@ impl Effects for FixEffects<'_> {
       }
       InstanceState::SemverRangeMismatchConflictsWithLocalVersion => {
         debug!("@TODO: explain SemverRangeMismatchConflictsWithLocalVersion");
-        self.is_valid = false;
-      }
-      InstanceState::SemverRangeMatchConflictsWithSameRangeGroup => {
-        debug!("@TODO: explain SemverRangeMatchConflictsWithSameRangeGroup");
-        self.is_valid = false;
-      }
-      InstanceState::SemverRangeMismatchConflictsWithSameRangeGroup => {
-        debug!("@TODO: explain SemverRangeMismatchConflictsWithSameRangeGroup");
         self.is_valid = false;
       }
       /* Unfixable Mismatches */

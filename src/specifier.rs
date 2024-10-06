@@ -29,7 +29,6 @@ pub enum Specifier {
 impl Specifier {
   pub fn new(specifier: &str) -> Self {
     let str = parser::sanitise(specifier);
-    let string = str.to_string();
     if specifier.is_empty() {
       Self::None
     } else if let Ok(semver) = Semver::new(str) {
@@ -130,24 +129,6 @@ impl Specifier {
       Self::Semver(Semver::Simple(simple_semver)) => simple_semver.has_semver_range_of(range),
       _ => false,
     }
-  }
-
-  /// Does this specifier have the same range (eg. `~` as the given specifier?
-  pub fn has_same_semver_range_as(&self, other: &Self) -> bool {
-    match (self, other) {
-      (Self::Semver(Semver::Simple(simple_semver)), Self::Semver(Semver::Simple(other_simple_semver))) => {
-        simple_semver.has_same_semver_range_as(other_simple_semver)
-      }
-      _ => false,
-    }
-  }
-
-  /// Does this specifier have the same simple semver version number as the given
-  /// specifier, but a different semver range?
-  ///
-  /// For example "^1.1.0" vs "~1.1.0" is true, but "^1.1.0" vs "^1.2.0" is false
-  pub fn differs_only_by_semver_range(&self, other: &Specifier) -> bool {
-    self.has_same_version_number_as(other) && !self.has_same_semver_range_as(other)
   }
 
   /// Regardless of the range, does this specifier and the other both have eg.

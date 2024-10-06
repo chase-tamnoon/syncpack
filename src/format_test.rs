@@ -1,13 +1,13 @@
 use serde_json::json;
 
-use crate::test;
+use crate::test::{self, mock};
 
 use super::*;
 
 #[test]
 fn formats_bugs_into_github_shorthand() {
   assert_eq!(
-    get_formatted_bugs(&PackageJson::from_value(json!({
+    get_formatted_bugs(&mock::package_json_from_value(json!({
       "name": "a",
       "bugs": {
         "url": "https://github.com/User/repo/issues"
@@ -20,7 +20,7 @@ fn formats_bugs_into_github_shorthand() {
 #[test]
 fn formats_repository_into_gitlab_shorthand() {
   assert_eq!(
-    get_formatted_repository(&PackageJson::from_value(json!({
+    get_formatted_repository(&mock::package_json_from_value(json!({
       "name": "a",
       "repository": {
         "url": "git://gitlab.com/User/repo",
@@ -34,7 +34,7 @@ fn formats_repository_into_gitlab_shorthand() {
 #[test]
 fn formats_repository_into_github_shorthand() {
   assert_eq!(
-    get_formatted_repository(&PackageJson::from_value(json!({
+    get_formatted_repository(&mock::package_json_from_value(json!({
       "name": "a",
       "repository": {
         "url": "git://github.com/User/repo",
@@ -48,7 +48,7 @@ fn formats_repository_into_github_shorthand() {
 #[test]
 fn retains_long_format_when_directory_property_used() {
   assert_eq!(
-    get_formatted_repository(&PackageJson::from_value(json!({
+    get_formatted_repository(&mock::package_json_from_value(json!({
       "name": "a",
       "repository": {
         "url": "git://gitlab.com/User/repo",
@@ -64,8 +64,8 @@ fn retains_long_format_when_directory_property_used() {
 fn sorts_conditional_exports() {
   assert_eq!(
     get_sorted_exports(
-      &Rcfile::new(),
-      &PackageJson::from_value(json!({
+      &mock::rcfile(),
+      &mock::package_json_from_value(json!({
         "name": "a",
         "exports": {
             "require": "./index-require.cjs",
@@ -84,8 +84,8 @@ fn sorts_conditional_exports() {
 fn returns_none_when_conditional_exports_already_sorted() {
   assert_eq!(
     get_sorted_exports(
-      &Rcfile::new(),
-      &PackageJson::from_value(json!({
+      &mock::rcfile(),
+      &mock::package_json_from_value(json!({
         "name": "a",
         "exports": {
             "import": "./index-module.js",
@@ -101,8 +101,8 @@ fn returns_none_when_conditional_exports_already_sorted() {
 fn sorts_conditional_exports_sub_paths() {
   assert_eq!(
     get_sorted_exports(
-      &Rcfile::new(),
-      &PackageJson::from_value(json!({
+      &mock::rcfile(),
+      &mock::package_json_from_value(json!({
         "name": "a",
         "exports": {
           ".": "./index.js",
@@ -127,8 +127,8 @@ fn sorts_conditional_exports_sub_paths() {
 fn returns_none_when_conditional_exports_sub_paths_already_sorted() {
   assert_eq!(
     get_sorted_exports(
-      &Rcfile::new(),
-      &PackageJson::from_value(json!({
+      &mock::rcfile(),
+      &mock::package_json_from_value(json!({
         "name": "a",
         "exports": {
             ".": "./index.js",
@@ -148,7 +148,7 @@ fn sorts_object_properties_alphabetically_by_key() {
   assert_eq!(
     get_sorted_az(
       "dependencies",
-      &PackageJson::from_value(json!({
+      &mock::package_json_from_value(json!({
           "dependencies": {
               "B": "",
               "@B": "",
@@ -174,7 +174,7 @@ fn sorts_array_members_alphabetically_by_value() {
   assert_eq!(
     get_sorted_az(
       "keywords",
-      &PackageJson::from_value(json!({
+      &mock::package_json_from_value(json!({
           "keywords": ["B", "@B", "1B", "A", "@A", "1A"],
       }))
     ),
@@ -190,7 +190,7 @@ fn sorts_named_root_properties_first_leaving_the_rest_alone() {
           "sortFirst": ["name", "F", "E", "D"],
           "sortPackages": false,
       })),
-      &PackageJson::from_value(json!({
+      &mock::package_json_from_value(json!({
           "D": "",
           "B": "",
           "name": "a",
@@ -218,7 +218,7 @@ fn sorts_all_root_properties_alphabetically() {
           "sortFirst": [],
           "sortPackages": true,
       })),
-      &PackageJson::from_value(json!({
+      &mock::package_json_from_value(json!({
           "D": "",
           "B": "",
           "name": "a",
@@ -246,7 +246,7 @@ fn sorts_named_properties_first_then_the_rest_alphabetically() {
           "sortFirst": ["name", "F", "E", "D"],
           "sortPackages": true,
       })),
-      &PackageJson::from_value(json!({
+      &mock::package_json_from_value(json!({
           "name": "a",
           "A": "",
           "F": "",

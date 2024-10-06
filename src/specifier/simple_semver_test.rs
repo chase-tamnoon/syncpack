@@ -128,38 +128,3 @@ fn cannot_replace_the_semver_range_of_latest_since_the_version_is_not_known() {
   let after = before.with_range(&SemverRange::Exact);
   assert_eq!(after, SimpleSemver::Latest("*".to_string()));
 }
-
-#[test]
-fn asserts_whether_two_specifiers_have_same_range() {
-  let cases: Vec<(&str, &str, bool)> = vec![
-    ("0.0.0", "0.0.1", true),
-    ("0.0.0", "^0.0.0", false),
-    ("^0.0.0", "^0.0.0", true),
-    ("^0.0.0", "~0.0.0", false),
-    ("0", "0", true),
-    ("0.0", "0.0", true),
-    ("0.0", "^0.0", false),
-    ("^0.0", "^0.0", true),
-    ("^0.0", "~0.0", false),
-    ("*", "*", true),
-    ("*", "latest", true),
-    ("^0.0.0", "^0.0", true),
-    ("0.0.0", "^0.0", false),
-    ("~0.0.0", "^0.0", false),
-    (">=0.0.0", ">=0.0.0", true),
-    (">=0.0.0", ">0.0.0", false),
-    (">0.0.0", ">=0.0.0", false),
-    ("<=0.0.0", "<=0.0.0", true),
-    ("<=0.0.0", "<0.0.0", false),
-    ("<0.0.0", "<=0.0.0", false),
-  ];
-  for (str_a, str_b, expected) in cases {
-    let a = SimpleSemver::new(str_a).unwrap();
-    let b = SimpleSemver::new(str_b).unwrap();
-    assert_eq!(
-      a.has_same_semver_range_as(&b),
-      expected,
-      "{str_a} has same range as {str_b} should be {expected}"
-    );
-  }
-}

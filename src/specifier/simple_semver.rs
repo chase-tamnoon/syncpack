@@ -89,11 +89,6 @@ impl SimpleSemver {
     self.get_range() == *range
   }
 
-  /// Does this specifier have the same range (eg. `~` as the given specifier?
-  pub fn has_same_semver_range_as(&self, other: &SimpleSemver) -> bool {
-    self.get_range() == other.get_range()
-  }
-
   /// Regardless of the range, does this specifier and the other both have eg.
   /// "1.4.1" as their version?
   pub fn has_same_version_number_as(&self, other: &SimpleSemver) -> bool {

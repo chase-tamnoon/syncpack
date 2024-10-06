@@ -101,12 +101,6 @@ pub struct Rcfile {
 }
 
 impl Rcfile {
-  /// Create a new Rcfile with default values
-  pub fn new() -> Self {
-    let empty_json = "{}".to_string();
-    serde_json::from_str::<Self>(&empty_json).unwrap()
-  }
-
   pub fn get_all_dependency_types(&self) -> Vec<DependencyType> {
     // Custom dependency types defined in the rcfile
     let custom_types = &self.custom_types;

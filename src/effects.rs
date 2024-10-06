@@ -110,10 +110,6 @@ pub enum InstanceState {
   /// - ✓ Fixing the semver range satisfy both groups
   SemverRangeMismatch,
   /* = Conflict ============================================================= */
-  /// - ✓ Instance matches its pinned version group
-  /// - ✘ Instance mismatches its semver group
-  /// - ? If we fix the semver group it will mismatch the pinned version
-  PinMatchConflictsWithSemverGroup,
   /// - ✓ Instance has same semver number as highest/lowest semver in its group
   /// - ✓ Instance matches its semver group
   /// - ✘ Range preferred by semver group will not satisfy the highest/lowest semver
@@ -134,16 +130,6 @@ pub enum InstanceState {
   /// - ✘ Range preferred by semver group will not satisfy the local instance
   /// - ? We can't know whether the incompatible range matters or not and have to ask
   SemverRangeMismatchConflictsWithLocalVersion,
-  /// - ✓ Instance matches its same range group
-  /// - ✓ Instance matches its semver group
-  /// - ✘ Range preferred by semver group will fall out of range of the same range group
-  /// - ? We can't know whether the incompatible range matters or not and have to ask
-  SemverRangeMatchConflictsWithSameRangeGroup,
-  /// - ✓ Instance matches its same range group
-  /// - ✘ Instance mismatches its semver group
-  /// - ✘ Range preferred by semver group will fall out of range of the same range group
-  /// - ? We can't know whether the incompatible range matters or not and have to ask
-  SemverRangeMismatchConflictsWithSameRangeGroup,
   /* = Unfixable ============================================================ */
   /// - ✘ Instance depends on a local package whose package.json version is not exact semver
   /// - ? We can't know what the version should be

@@ -120,7 +120,7 @@ fn sort_keys_with_priority(order: &[String], sort_remaining_keys: bool, obj: &mu
     remaining_keys.sort_by(|a, b| collator.compare(a, b));
   }
 
-  for (i, key) in order.iter().enumerate() {
+  for key in order {
     if let Some(val) = obj.remove(key) {
       sorted_obj.insert(key.clone(), val);
     }

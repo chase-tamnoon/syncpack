@@ -1,4 +1,4 @@
-use log::debug;
+use log::warn;
 use serde::Deserialize;
 use std::{cell::RefCell, collections::BTreeMap, rc::Rc, vec};
 
@@ -29,7 +29,7 @@ pub struct VersionGroup {
   pub dependencies: RefCell<BTreeMap<String, Dependency>>,
   /// The version to pin all instances to when variant is `Pinned`
   pub pin_version: Option<Specifier>,
-  /// `name` properties of package.json files developed in the monorepo when variant is `SnappedTo`
+  /// package.json files whose names match the `snapTo` config when variant is `SnappedTo`
   pub snap_to: Option<Vec<Rc<RefCell<PackageJson>>>>,
 }
 
@@ -113,6 +113,7 @@ impl VersionGroup {
           snap_to: None,
         };
       } else {
+        // @FIXME: show user friendly error message and exit with error code
         panic!("Unrecognised version group policy: {}", policy);
       }
     }
@@ -129,7 +130,11 @@ impl VersionGroup {
               packages
                 .by_name
                 .get(name)
-                .inspect(|x| debug!("snapTo package '{name}' not found"))
+                .or_else(|| {
+                  // @FIXME: show user friendly error message and exit with error code
+                  warn!("Invalid Snapped To Version Group: No package.json file found with a name property of '{name}'");
+                  None
+                })
                 .map(Rc::clone)
             })
             .collect(),

@@ -201,20 +201,11 @@ impl Effects for LintEffects<'_> {
         info!("@TODO: explain SemverRangeMismatch");
       }
       /* Conflicts */
-      InstanceState::PinMatchConflictsWithSemverGroup => {
-        info!("@TODO: explain PinMatchConflictsWithSemverGroup");
-      }
       InstanceState::SemverRangeMatchConflictsWithPreferVersion => {
         info!("@TODO: explain SemverRangeMatchConflictsWithPreferVersion");
       }
       InstanceState::SemverRangeMismatchConflictsWithPreferVersion => {
         info!("@TODO: explain SemverRangeMismatchConflictsWithPreferVersion");
-      }
-      InstanceState::SemverRangeMatchConflictsWithSameRangeGroup => {
-        info!("@TODO: explain SemverRangeMatchConflictsWithSameRangeGroup");
-      }
-      InstanceState::SemverRangeMismatchConflictsWithSameRangeGroup => {
-        info!("@TODO: explain SemverRangeMismatchConflictsWithSameRangeGroup");
       }
       InstanceState::SemverRangeMatchConflictsWithLocalVersion => {
         info!("@TODO: explain SemverRangeMatchConflictsWithLocalVersion");

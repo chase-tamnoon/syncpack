@@ -16,15 +16,6 @@ pub struct PackageJson {
 }
 
 impl PackageJson {
-  /// Parse a package.json string
-  pub fn from_value(contents: Value) -> Self {
-    Self {
-      file_path: PathBuf::new(),
-      json: RefCell::new(contents.to_string()),
-      contents: RefCell::new(contents),
-    }
-  }
-
   /// Read a package.json file from the given location
   pub fn from_file(file_path: &PathBuf) -> Option<Self> {
     fs::read_to_string(file_path)
@@ -62,10 +53,7 @@ impl PackageJson {
 
   /// Convenience method to get the name of the package
   pub fn get_name_unsafe(&self) -> String {
-    let file_path = &self.file_path;
-    self
-      .get_string("/name")
-      .expect("package.json file at {file_path} has no name property")
+    self.get_string("/name").expect("package.json file has no name property")
   }
 
   /// Deeply get a property in the parsed package.json
@@ -84,6 +72,7 @@ impl PackageJson {
 
   /// Report whether the package in memory has changed from what's on disk
   pub fn has_changed(&self, indent: &str) -> bool {
+    // @FIXME: this is not being used
     *self.json.borrow() != self.to_pretty_json(self.serialize(indent))
   }
 
