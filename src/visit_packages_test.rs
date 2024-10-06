@@ -288,7 +288,7 @@ fn instance_has_same_version_number_as_local_package_but_a_different_range_and_h
 }
 
 #[test]
-fn instance_has_same_version_number_as_local_package_but_matches_a_compatible_semver_group() {
+fn instance_has_same_version_number_as_local_package_but_matches_a_different_but_compatible_semver_group() {
   let config = test::mock::config_from_mock(json!({
     "semverGroups": [{
       "range": "^"
@@ -338,7 +338,7 @@ fn instance_has_same_version_number_as_local_package_but_matches_a_compatible_se
 }
 
 #[test]
-fn instance_has_same_version_number_as_local_package_but_mismatches_a_compatible_semver_group() {
+fn instance_has_same_version_number_as_local_package_but_mismatches_a_different_but_compatible_semver_group() {
   let config = test::mock::config_from_mock(json!({
     "semverGroups": [{
       "range": "^"
@@ -386,7 +386,7 @@ fn instance_has_same_version_number_as_local_package_but_mismatches_a_compatible
 }
 
 #[test]
-fn instance_has_same_version_number_as_local_package_but_matches_an_incompatible_semver_group() {
+fn instance_has_same_version_number_as_local_package_but_matches_a_different_but_incompatible_semver_group() {
   let config = test::mock::config_from_mock(json!({
     "semverGroups": [{
       "range": "<"
@@ -433,7 +433,7 @@ fn instance_has_same_version_number_as_local_package_but_matches_an_incompatible
 }
 
 #[test]
-fn instance_has_same_version_number_as_local_package_but_mismatches_an_incompatible_semver_group() {
+fn instance_has_same_version_number_as_local_package_but_mismatches_a_different_but_incompatible_semver_group() {
   let config = test::mock::config_from_mock(json!({
     "semverGroups": [{
       "range": ">"
@@ -933,7 +933,7 @@ fn instance_has_same_version_number_as_highest_semver_but_a_different_range_and_
 }
 
 #[test]
-fn instance_has_same_version_number_as_highest_semver_but_matches_a_compatible_semver_group() {
+fn instance_has_same_version_number_as_highest_semver_but_matches_a_different_but_compatible_semver_group() {
   let config = test::mock::config_from_mock(json!({
     "semverGroups": [{
       "packages": ["package-b"],
@@ -992,7 +992,7 @@ fn instance_has_same_version_number_as_highest_semver_but_matches_a_compatible_s
 }
 
 #[test]
-fn instance_has_same_version_number_as_highest_semver_but_mismatches_a_compatible_semver_group() {
+fn instance_has_same_version_number_as_highest_semver_but_mismatches_a_different_but_compatible_semver_group() {
   let config = test::mock::config_from_mock(json!({
     "semverGroups": [{
       "packages": ["package-b"],
@@ -1051,7 +1051,7 @@ fn instance_has_same_version_number_as_highest_semver_but_mismatches_a_compatibl
 }
 
 #[test]
-fn instance_has_same_version_number_as_highest_semver_but_matches_an_incompatible_semver_group() {
+fn instance_has_same_version_number_as_highest_semver_but_matches_a_different_but_incompatible_semver_group() {
   let config = test::mock::config_from_mock(json!({
     "semverGroups": [{
       "packages": ["package-b"],
@@ -1109,7 +1109,7 @@ fn instance_has_same_version_number_as_highest_semver_but_matches_an_incompatibl
 }
 
 #[test]
-fn instance_has_same_version_number_as_highest_semver_but_mismatches_an_incompatible_semver_group() {
+fn instance_has_same_version_number_as_highest_semver_but_mismatches_a_different_but_incompatible_semver_group() {
   let config = test::mock::config_from_mock(json!({
     "semverGroups": [{
       "packages": ["package-b"],
@@ -1914,3 +1914,604 @@ fn instance_in_a_same_range_group_does_not_satisfy_another() {
 }
 
 // = Snapped To Version Group ==================================================
+
+#[test]
+fn instance_identical_to_snapped_to_and_has_no_semver_group() {
+  let config = test::mock::config_from_mock(json!({
+    "versionGroups": [{
+      "dependencies": ["foo"],
+      "packages": ["follower"],
+      "snapTo": ["leader"]
+    }]
+  }));
+  let mut effects = test::mock::effects(&config);
+  let packages = test::mock::packages_from_mocks(vec![
+    json!({
+      "name": "leader",
+      "dependencies": {
+        "foo": "1.0.0"
+      }
+    }),
+    json!({
+      "name": "follower",
+      "dependencies": {
+        "foo": "1.0.0"
+      }
+    }),
+  ]);
+
+  visit_packages(&config, &packages, &mut effects);
+
+  expect(&effects)
+    .to_have_overrides(vec![])
+    .to_have_warnings(vec![
+      ExpectedUnfixableMismatchEvent {
+        variant: InstanceState::InvalidLocalVersion,
+        dependency_name: "leader",
+        instance_id: "leader in /version of leader",
+        actual: "VERSION_IS_MISSING",
+      },
+      ExpectedUnfixableMismatchEvent {
+        variant: InstanceState::InvalidLocalVersion,
+        dependency_name: "follower",
+        instance_id: "follower in /version of follower",
+        actual: "VERSION_IS_MISSING",
+      },
+    ])
+    .to_have_warnings_of_instance_changes(vec![])
+    .to_have_matches(vec![
+      ExpectedMatchEvent {
+        variant: InstanceState::EqualsPreferVersion,
+        dependency_name: "foo",
+        instance_id: "foo in /dependencies of leader",
+        actual: "1.0.0",
+      },
+      ExpectedMatchEvent {
+        variant: InstanceState::EqualsSnapToVersion,
+        dependency_name: "foo",
+        instance_id: "foo in /dependencies of follower",
+        actual: "1.0.0",
+      },
+    ])
+    .to_have_fixable_mismatches(vec![])
+    .to_have_unfixable_mismatches(vec![]);
+}
+
+#[test]
+fn instance_has_different_version_to_snapped_to_and_has_no_semver_group() {
+  let config = test::mock::config_from_mock(json!({
+    "versionGroups": [{
+      "dependencies": ["foo"],
+      "packages": ["follower"],
+      "snapTo": ["leader"]
+    }]
+  }));
+  let mut effects = test::mock::effects(&config);
+  let packages = test::mock::packages_from_mocks(vec![
+    json!({
+      "name": "leader",
+      "dependencies": {
+        "foo": "1.0.0"
+      }
+    }),
+    json!({
+      "name": "follower",
+      "dependencies": {
+        "foo": "1.1.0"
+      }
+    }),
+  ]);
+
+  visit_packages(&config, &packages, &mut effects);
+
+  expect(&effects)
+    .to_have_overrides(vec![])
+    .to_have_warnings(vec![
+      ExpectedUnfixableMismatchEvent {
+        variant: InstanceState::InvalidLocalVersion,
+        dependency_name: "leader",
+        instance_id: "leader in /version of leader",
+        actual: "VERSION_IS_MISSING",
+      },
+      ExpectedUnfixableMismatchEvent {
+        variant: InstanceState::InvalidLocalVersion,
+        dependency_name: "follower",
+        instance_id: "follower in /version of follower",
+        actual: "VERSION_IS_MISSING",
+      },
+    ])
+    .to_have_warnings_of_instance_changes(vec![])
+    .to_have_matches(vec![ExpectedMatchEvent {
+      variant: InstanceState::EqualsPreferVersion,
+      dependency_name: "foo",
+      instance_id: "foo in /dependencies of leader",
+      actual: "1.0.0",
+    }])
+    .to_have_fixable_mismatches(vec![ExpectedFixableMismatchEvent {
+      variant: InstanceState::MismatchesSnapToVersion,
+      dependency_name: "foo",
+      instance_id: "foo in /dependencies of follower",
+      actual: "1.1.0",
+      expected: "1.0.0",
+    }])
+    .to_have_unfixable_mismatches(vec![]);
+}
+
+#[test]
+fn instance_has_same_version_number_as_snapped_to_but_a_different_range_and_has_no_semver_group() {
+  let config = test::mock::config_from_mock(json!({
+    "versionGroups": [{
+      "dependencies": ["foo"],
+      "packages": ["follower"],
+      "snapTo": ["leader"]
+    }]
+  }));
+  let mut effects = test::mock::effects(&config);
+  let packages = test::mock::packages_from_mocks(vec![
+    json!({
+      "name": "leader",
+      "dependencies": {
+        "foo": "^1.0.0"
+      }
+    }),
+    json!({
+      "name": "follower",
+      "devDependencies": {
+        "foo": "~1.0.0"
+      }
+    }),
+  ]);
+
+  visit_packages(&config, &packages, &mut effects);
+
+  expect(&effects)
+    .to_have_overrides(vec![])
+    .to_have_warnings(vec![
+      ExpectedUnfixableMismatchEvent {
+        variant: InstanceState::InvalidLocalVersion,
+        dependency_name: "leader",
+        instance_id: "leader in /version of leader",
+        actual: "VERSION_IS_MISSING",
+      },
+      ExpectedUnfixableMismatchEvent {
+        variant: InstanceState::InvalidLocalVersion,
+        dependency_name: "follower",
+        instance_id: "follower in /version of follower",
+        actual: "VERSION_IS_MISSING",
+      },
+    ])
+    .to_have_warnings_of_instance_changes(vec![])
+    .to_have_matches(vec![ExpectedMatchEvent {
+      variant: InstanceState::EqualsPreferVersion,
+      dependency_name: "foo",
+      instance_id: "foo in /dependencies of leader",
+      actual: "^1.0.0",
+    }])
+    .to_have_fixable_mismatches(vec![ExpectedFixableMismatchEvent {
+      variant: InstanceState::MismatchesSnapToVersion,
+      dependency_name: "foo",
+      instance_id: "foo in /devDependencies of follower",
+      actual: "~1.0.0",
+      expected: "^1.0.0",
+    }])
+    .to_have_unfixable_mismatches(vec![]);
+}
+
+#[test]
+fn instance_has_same_version_number_as_snapped_to_but_matches_a_different_but_compatible_semver_group() {
+  let config = test::mock::config_from_mock(json!({
+    "semverGroups": [{
+      "packages": ["follower"],
+      "range": "~"
+    }],
+    "versionGroups": [{
+      "dependencies": ["foo"],
+      "packages": ["follower"],
+      "snapTo": ["leader"]
+    }]
+  }));
+  let mut effects = test::mock::effects(&config);
+  let packages = test::mock::packages_from_mocks(vec![
+    json!({
+      "name": "leader",
+      "dependencies": {
+        "foo": "^1.0.0"
+      }
+    }),
+    json!({
+      "name": "follower",
+      "dependencies": {
+        "foo": "~1.0.0"
+      }
+    }),
+  ]);
+
+  visit_packages(&config, &packages, &mut effects);
+
+  expect(&effects)
+    .to_have_overrides(vec![])
+    .to_have_warnings(vec![
+      ExpectedUnfixableMismatchEvent {
+        variant: InstanceState::InvalidLocalVersion,
+        dependency_name: "leader",
+        instance_id: "leader in /version of leader",
+        actual: "VERSION_IS_MISSING",
+      },
+      ExpectedUnfixableMismatchEvent {
+        variant: InstanceState::InvalidLocalVersion,
+        dependency_name: "follower",
+        instance_id: "follower in /version of follower",
+        actual: "VERSION_IS_MISSING",
+      },
+      ExpectedUnfixableMismatchEvent {
+        variant: InstanceState::MatchesSnapToVersion,
+        dependency_name: "foo",
+        instance_id: "foo in /dependencies of follower",
+        actual: "~1.0.0",
+      },
+    ])
+    .to_have_warnings_of_instance_changes(vec![])
+    .to_have_matches(vec![ExpectedMatchEvent {
+      variant: InstanceState::EqualsPreferVersion,
+      dependency_name: "foo",
+      instance_id: "foo in /dependencies of leader",
+      actual: "^1.0.0",
+    }])
+    .to_have_fixable_mismatches(vec![])
+    .to_have_unfixable_mismatches(vec![]);
+}
+
+#[test]
+fn instance_has_same_version_number_as_snapped_to_but_mismatches_a_different_but_compatible_semver_group() {
+  let config = test::mock::config_from_mock(json!({
+    "semverGroups": [{
+      "packages": ["follower"],
+      "range": "^"
+    }],
+    "versionGroups": [{
+      "dependencies": ["foo"],
+      "packages": ["follower"],
+      "snapTo": ["leader"]
+    }]
+  }));
+  let mut effects = test::mock::effects(&config);
+  let packages = test::mock::packages_from_mocks(vec![
+    json!({
+      "name": "leader",
+      "dependencies": {
+        "foo": ">=1.0.0"
+      }
+    }),
+    json!({
+      "name": "follower",
+      "dependencies": {
+        "foo": "~1.0.0"
+      }
+    }),
+  ]);
+
+  visit_packages(&config, &packages, &mut effects);
+
+  expect(&effects)
+    .to_have_overrides(vec![])
+    .to_have_warnings(vec![
+      ExpectedUnfixableMismatchEvent {
+        variant: InstanceState::InvalidLocalVersion,
+        dependency_name: "leader",
+        instance_id: "leader in /version of leader",
+        actual: "VERSION_IS_MISSING",
+      },
+      ExpectedUnfixableMismatchEvent {
+        variant: InstanceState::InvalidLocalVersion,
+        dependency_name: "follower",
+        instance_id: "follower in /version of follower",
+        actual: "VERSION_IS_MISSING",
+      },
+    ])
+    .to_have_warnings_of_instance_changes(vec![])
+    .to_have_matches(vec![ExpectedMatchEvent {
+      variant: InstanceState::EqualsPreferVersion,
+      dependency_name: "foo",
+      instance_id: "foo in /dependencies of leader",
+      actual: ">=1.0.0",
+    }])
+    .to_have_fixable_mismatches(vec![ExpectedFixableMismatchEvent {
+      variant: InstanceState::SemverRangeMismatch,
+      dependency_name: "foo",
+      instance_id: "foo in /dependencies of follower",
+      actual: "~1.0.0",
+      expected: "^1.0.0",
+    }])
+    .to_have_unfixable_mismatches(vec![]);
+}
+
+#[test]
+fn instance_has_same_version_number_as_snapped_to_but_matches_a_different_but_incompatible_semver_group() {
+  let config = test::mock::config_from_mock(json!({
+    "semverGroups": [{
+      "packages": ["follower"],
+      "range": "<"
+    }],
+    "versionGroups": [{
+      "dependencies": ["foo"],
+      "packages": ["follower"],
+      "snapTo": ["leader"]
+    }]
+  }));
+  let mut effects = test::mock::effects(&config);
+  let packages = test::mock::packages_from_mocks(vec![
+    json!({
+      "name": "leader",
+      "dependencies": {
+        "foo": "1.0.0"
+      }
+    }),
+    json!({
+      "name": "follower",
+      "dependencies": {
+        "foo": "<1.0.0"
+      }
+    }),
+  ]);
+
+  visit_packages(&config, &packages, &mut effects);
+
+  expect(&effects)
+    .to_have_overrides(vec![])
+    .to_have_warnings(vec![
+      ExpectedUnfixableMismatchEvent {
+        variant: InstanceState::InvalidLocalVersion,
+        dependency_name: "leader",
+        instance_id: "leader in /version of leader",
+        actual: "VERSION_IS_MISSING",
+      },
+      ExpectedUnfixableMismatchEvent {
+        variant: InstanceState::InvalidLocalVersion,
+        dependency_name: "follower",
+        instance_id: "follower in /version of follower",
+        actual: "VERSION_IS_MISSING",
+      },
+    ])
+    .to_have_warnings_of_instance_changes(vec![])
+    .to_have_matches(vec![ExpectedMatchEvent {
+      variant: InstanceState::EqualsPreferVersion,
+      dependency_name: "foo",
+      instance_id: "foo in /dependencies of leader",
+      actual: "1.0.0",
+    }])
+    .to_have_fixable_mismatches(vec![])
+    .to_have_unfixable_mismatches(vec![ExpectedUnfixableMismatchEvent {
+      variant: InstanceState::SemverRangeMatchConflictsWithSnapToVersion,
+      dependency_name: "foo",
+      instance_id: "foo in /dependencies of follower",
+      actual: "<1.0.0",
+    }]);
+}
+
+#[test]
+fn instance_has_same_version_number_as_snapped_to_but_mismatches_a_different_but_incompatible_semver_group() {
+  let config = test::mock::config_from_mock(json!({
+    "semverGroups": [{
+      "packages": ["follower"],
+      "range": "<"
+    }],
+    "versionGroups": [{
+      "dependencies": ["foo"],
+      "packages": ["follower"],
+      "snapTo": ["leader"]
+    }]
+  }));
+  let mut effects = test::mock::effects(&config);
+  let packages = test::mock::packages_from_mocks(vec![
+    json!({
+      "name": "leader",
+      "dependencies": {
+        "foo": "~1.0.0"
+      }
+    }),
+    json!({
+      "name": "follower",
+      "dependencies": {
+        "foo": "1.0.0"
+      }
+    }),
+  ]);
+
+  visit_packages(&config, &packages, &mut effects);
+
+  expect(&effects)
+    .to_have_overrides(vec![])
+    .to_have_warnings(vec![
+      ExpectedUnfixableMismatchEvent {
+        variant: InstanceState::InvalidLocalVersion,
+        dependency_name: "leader",
+        instance_id: "leader in /version of leader",
+        actual: "VERSION_IS_MISSING",
+      },
+      ExpectedUnfixableMismatchEvent {
+        variant: InstanceState::InvalidLocalVersion,
+        dependency_name: "follower",
+        instance_id: "follower in /version of follower",
+        actual: "VERSION_IS_MISSING",
+      },
+    ])
+    .to_have_warnings_of_instance_changes(vec![])
+    .to_have_matches(vec![ExpectedMatchEvent {
+      variant: InstanceState::EqualsPreferVersion,
+      dependency_name: "foo",
+      instance_id: "foo in /dependencies of leader",
+      actual: "~1.0.0",
+    }])
+    .to_have_fixable_mismatches(vec![])
+    .to_have_unfixable_mismatches(vec![ExpectedUnfixableMismatchEvent {
+      variant: InstanceState::SemverRangeMismatchConflictsWithSnapToVersion,
+      dependency_name: "foo",
+      instance_id: "foo in /dependencies of follower",
+      actual: "1.0.0",
+    }]);
+}
+
+#[test]
+fn instance_cannot_find_a_snapped_to_version() {
+  let config = test::mock::config_from_mock(json!({
+    "versionGroups": [{
+      "dependencies": ["foo"],
+      "packages": ["follower"],
+      "snapTo": ["leader"]
+    }]
+  }));
+  let mut effects = test::mock::effects(&config);
+  let packages = test::mock::packages_from_mocks(vec![
+    json!({
+      "name": "leader",
+      "version": "1.0.0"
+    }),
+    json!({
+      "name": "follower",
+      "version": "0.1.0",
+      "dependencies": {
+        "foo": "1.0.0"
+      }
+    }),
+  ]);
+
+  visit_packages(&config, &packages, &mut effects);
+
+  expect(&effects)
+    .to_have_overrides(vec![])
+    .to_have_warnings(vec![])
+    .to_have_warnings_of_instance_changes(vec![])
+    .to_have_matches(vec![
+      ExpectedMatchEvent {
+        variant: InstanceState::ValidLocal,
+        dependency_name: "leader",
+        instance_id: "leader in /version of leader",
+        actual: "1.0.0",
+      },
+      ExpectedMatchEvent {
+        variant: InstanceState::ValidLocal,
+        dependency_name: "follower",
+        instance_id: "follower in /version of follower",
+        actual: "0.1.0",
+      },
+    ])
+    .to_have_fixable_mismatches(vec![])
+    .to_have_unfixable_mismatches(vec![ExpectedUnfixableMismatchEvent {
+      variant: InstanceState::SnapToVersionNotFound,
+      dependency_name: "foo",
+      instance_id: "foo in /dependencies of follower",
+      actual: "1.0.0",
+    }]);
+}
+
+#[test]
+fn instance_is_in_a_snapped_to_group_and_is_itself_a_snapped_to_target() {
+  let config = test::mock::config_from_mock(json!({
+    "versionGroups": [{
+      "dependencies": ["foo"],
+      "snapTo": ["leader"]
+    }]
+  }));
+  let mut effects = test::mock::effects(&config);
+  let packages = test::mock::packages_from_mocks(vec![
+    json!({
+      "name": "leader",
+      "dependencies": {
+        "foo": "1.0.0"
+      }
+    }),
+    json!({
+      "name": "follower",
+      "dependencies": {
+        "foo": "1.0.0"
+      }
+    }),
+  ]);
+
+  visit_packages(&config, &packages, &mut effects);
+
+  expect(&effects)
+    .to_have_overrides(vec![])
+    .to_have_warnings(vec![
+      ExpectedUnfixableMismatchEvent {
+        variant: InstanceState::InvalidLocalVersion,
+        dependency_name: "leader",
+        instance_id: "leader in /version of leader",
+        actual: "VERSION_IS_MISSING",
+      },
+      ExpectedUnfixableMismatchEvent {
+        variant: InstanceState::InvalidLocalVersion,
+        dependency_name: "follower",
+        instance_id: "follower in /version of follower",
+        actual: "VERSION_IS_MISSING",
+      },
+    ])
+    .to_have_warnings_of_instance_changes(vec![])
+    .to_have_matches(vec![
+      ExpectedMatchEvent {
+        variant: InstanceState::EqualsSnapToVersion,
+        dependency_name: "foo",
+        instance_id: "foo in /dependencies of leader",
+        actual: "1.0.0",
+      },
+      ExpectedMatchEvent {
+        variant: InstanceState::EqualsSnapToVersion,
+        dependency_name: "foo",
+        instance_id: "foo in /dependencies of follower",
+        actual: "1.0.0",
+      },
+    ])
+    .to_have_fixable_mismatches(vec![])
+    .to_have_unfixable_mismatches(vec![]);
+}
+
+#[test]
+fn refuses_to_snap_local_version_to_another_target() {
+  let config = test::mock::config_from_mock(json!({
+    "versionGroups": [{
+      "snapTo": ["package-b"]
+    }]
+  }));
+  let mut effects = test::mock::effects(&config);
+  let packages = test::mock::packages_from_mocks(vec![
+    json!({
+      "name": "package-a",
+      "version": "1.1.0"
+    }),
+    json!({
+      "name": "package-b",
+      "version": "0.1.0",
+      "dependencies": {
+        "package-a": "0.0.1"
+      }
+    }),
+  ]);
+
+  visit_packages(&config, &packages, &mut effects);
+
+  expect(&effects)
+    .to_have_overrides(vec![])
+    .to_have_warnings(vec![ExpectedUnfixableMismatchEvent {
+      variant: InstanceState::RefuseToSnapLocal,
+      dependency_name: "package-a",
+      instance_id: "package-a in /version of package-a",
+      actual: "1.1.0",
+    }])
+    .to_have_warnings_of_instance_changes(vec![])
+    .to_have_matches(vec![
+      ExpectedMatchEvent {
+        variant: InstanceState::EqualsSnapToVersion,
+        dependency_name: "package-b",
+        instance_id: "package-b in /version of package-b",
+        actual: "0.1.0",
+      },
+      ExpectedMatchEvent {
+        variant: InstanceState::EqualsSnapToVersion,
+        dependency_name: "package-a",
+        instance_id: "package-a in /dependencies of package-b",
+        actual: "0.0.1",
+      },
+    ])
+    .to_have_fixable_mismatches(vec![])
+    .to_have_unfixable_mismatches(vec![]);
+}

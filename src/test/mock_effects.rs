@@ -126,6 +126,7 @@ impl Effects for MockEffects<'_> {
       InstanceState::EqualsLocal => record_match_event(),
       InstanceState::MatchesLocal => record_match_event(),
       InstanceState::EqualsPreferVersion => record_match_event(),
+      InstanceState::EqualsSnapToVersion => record_match_event(),
       InstanceState::EqualsNonSemverPreferVersion => record_match_event(),
       InstanceState::EqualsPin => record_match_event(),
       InstanceState::MatchesSameRangeGroup => record_match_event(),
@@ -133,8 +134,10 @@ impl Effects for MockEffects<'_> {
       // @FIXME: record these accurately
       InstanceState::RefuseToBanLocal => record_warning_event(),
       InstanceState::RefuseToPinLocal => record_warning_event(),
+      InstanceState::RefuseToSnapLocal => record_warning_event(),
       InstanceState::InvalidLocalVersion => record_warning_event(),
       InstanceState::MatchesPreferVersion => record_warning_event(),
+      InstanceState::MatchesSnapToVersion => record_warning_event(),
       /* = Overrides ============================================================ */
       InstanceState::PinMatchOverridesSemverRangeMatch => {
         record_override_event(instance.actual_specifier.unwrap().clone());
@@ -146,17 +149,21 @@ impl Effects for MockEffects<'_> {
       InstanceState::Banned => record_fixable_mismatch_event(),
       InstanceState::MismatchesLocal => record_fixable_mismatch_event(),
       InstanceState::MismatchesPreferVersion => record_fixable_mismatch_event(),
+      InstanceState::MismatchesSnapToVersion => record_fixable_mismatch_event(),
       InstanceState::MismatchesPin => record_fixable_mismatch_event(),
       InstanceState::SemverRangeMismatch => record_fixable_mismatch_event(),
       /* = Conflict ============================================================= */
       InstanceState::SemverRangeMatchConflictsWithPreferVersion => record_unfixable_mismatch_event(),
       InstanceState::SemverRangeMismatchConflictsWithPreferVersion => record_unfixable_mismatch_event(),
+      InstanceState::SemverRangeMatchConflictsWithSnapToVersion => record_unfixable_mismatch_event(),
+      InstanceState::SemverRangeMismatchConflictsWithSnapToVersion => record_unfixable_mismatch_event(),
       InstanceState::SemverRangeMatchConflictsWithLocalVersion => record_unfixable_mismatch_event(),
       InstanceState::SemverRangeMismatchConflictsWithLocalVersion => record_unfixable_mismatch_event(),
       /* = Unfixable ============================================================ */
       InstanceState::MismatchesInvalidLocalVersion => record_unfixable_mismatch_event(),
       InstanceState::MismatchesNonSemverPreferVersion => record_unfixable_mismatch_event(),
       InstanceState::MismatchesSameRangeGroup => record_unfixable_mismatch_event(),
+      InstanceState::SnapToVersionNotFound => record_unfixable_mismatch_event(),
     };
   }
 }

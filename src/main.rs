@@ -1,6 +1,6 @@
-// #![allow(dead_code)]
-// #![allow(unused_variables)]
-// #![allow(unreachable_code)]
+#![allow(dead_code)]
+#![allow(unused_variables)]
+#![allow(unreachable_code)]
 
 use std::{env::current_dir, process};
 

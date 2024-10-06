@@ -16,11 +16,11 @@ pub enum DependencyState {
 
 #[derive(Debug)]
 pub struct Dependency {
-  /// Every instance of this dependency in this version group.
-  pub all_instances: RefCell<Vec<Rc<Instance>>>,
   /// The expected version specifier which all instances of this dependency
   /// should be set to, in the event that they should all use the same version.
   pub expected: RefCell<Option<Specifier>>,
+  /// Every instance of this dependency in this version group.
+  pub instances: RefCell<Vec<Rc<Instance>>>,
   /// If this dependency is a local package, this is the local instance.
   pub local_instance: RefCell<Option<Rc<Instance>>>,
   /// The name of the dependency
@@ -43,8 +43,8 @@ impl Dependency {
     snapped_to_packages: Option<Vec<Rc<RefCell<PackageJson>>>>,
   ) -> Dependency {
     Dependency {
-      all_instances: RefCell::new(vec![]),
       expected: RefCell::new(None),
+      instances: RefCell::new(vec![]),
       local_instance: RefCell::new(None),
       name,
       pinned_specifier,
@@ -73,7 +73,7 @@ impl Dependency {
   }
 
   pub fn add_instance(&self, instance: Rc<Instance>) {
-    self.all_instances.borrow_mut().push(Rc::clone(&instance));
+    self.instances.borrow_mut().push(Rc::clone(&instance));
     if instance.is_local {
       *self.local_instance.borrow_mut() = Some(Rc::clone(&instance));
     }
@@ -106,9 +106,9 @@ impl Dependency {
 
   /// Does every instance in this group have a specifier which is exactly the same?
   pub fn every_specifier_is_already_identical(&self) -> bool {
-    if let Some(first_actual) = self.all_instances.borrow().first().map(|instance| &instance.actual_specifier) {
+    if let Some(first_actual) = self.instances.borrow().first().map(|instance| &instance.actual_specifier) {
       self
-        .all_instances
+        .instances
         .borrow()
         .iter()
         .all(|instance| instance.actual_specifier == *first_actual)
@@ -122,7 +122,7 @@ impl Dependency {
     let prefer_highest = matches!(self.variant, Variant::HighestSemver);
     let preferred_order = if prefer_highest { Ordering::Greater } else { Ordering::Less };
     self
-      .all_instances
+      .instances
       .borrow()
       .iter()
       .filter(|instance| instance.actual_specifier.is_simple_semver())
@@ -149,13 +149,13 @@ impl Dependency {
   ///
   /// Even though the actual specifiers on disk might currently match, we should
   /// suggest it match what we the snapped to specifier should be once fixed
-  pub fn get_snapped_to_specifier(&self) -> Option<Specifier> {
+  pub fn get_snapped_to_specifier(&self, every_instance_in_the_project: &[Rc<Instance>]) -> Option<Specifier> {
     if let Some(snapped_to_packages) = &self.snapped_to_packages {
-      for instance in self.all_instances.borrow().iter() {
+      for instance in every_instance_in_the_project {
         if instance.name == *self.name {
           for snapped_to_package in snapped_to_packages {
             if instance.package.borrow().get_name_unsafe() == snapped_to_package.borrow().get_name_unsafe() {
-              return Some(instance.expected_specifier.borrow().as_ref().unwrap().clone());
+              return Some(instance.actual_specifier.clone());
             }
           }
         }
@@ -167,7 +167,7 @@ impl Dependency {
   /// Sort instances by actual specifier in descending order, and then package
   /// name in ascending order
   pub fn sort_instances(&self) {
-    self.all_instances.borrow_mut().sort_by(|a, b| {
+    self.instances.borrow_mut().sort_by(|a, b| {
       if matches!(&a.actual_specifier, Specifier::None) {
         return Ordering::Greater;
       }

@@ -55,7 +55,7 @@ pub enum InstanceState {
   EqualsLocal,
   /// - ✓ Instance matches the version of its locally-developed package
   /// - ✓ Instance matches its semver group
-  /// - ✓ Considered a loose match we should highlight
+  /// - ! Considered a loose match we should highlight
   MatchesLocal,
   /// - ✓ Instance identical to highest/lowest semver in its group
   /// - ✓ Instance matches its semver group
@@ -69,6 +69,9 @@ pub enum InstanceState {
   /// - ✓ Instance matches its same range group
   /// - ✓ Instance matches its semver group
   MatchesSameRangeGroup,
+  /// - ✓ Instance identical to a matching snapTo instance
+  /// - ✓ Instance matches its semver group
+  EqualsSnapToVersion,
   /* = Warnings ============================================================= */
   /// - ✘ Local Instance is in a banned version group
   /// - ✘ Misconfiguration: Syncpack refuses to change local dependency specifiers
@@ -76,6 +79,10 @@ pub enum InstanceState {
   /// - ✘ Local Instance mismatches its pinned version group
   /// - ✘ Misconfiguration: Syncpack refuses to change local dependency specifiers
   RefuseToPinLocal,
+  /// - ✘ Local Instance is in a snapped to version group
+  /// - ✘ An Instance of this dependency was found in the snapped to package
+  /// - ✘ Misconfiguration: Syncpack refuses to change local dependency specifiers
+  RefuseToSnapLocal,
   /// - ! Local Instance has no version property
   /// - ! Not an error on its own unless an instance of it mismatches
   InvalidLocalVersion,
@@ -84,6 +91,11 @@ pub enum InstanceState {
   /// - ✓ Range preferred by semver group satisfies the highest/lowest semver
   /// - ! Considered a loose match we should highlight
   MatchesPreferVersion,
+  /// - ✓ Instance has same semver number as matching snapTo instance
+  /// - ✓ Instance matches its semver group
+  /// - ✓ Range preferred by semver group satisfies the matching snapTo instance
+  /// - ! Considered a loose match we should highlight
+  MatchesSnapToVersion,
   /* = Overrides ============================================================ */
   /// - ✓ Instance has same semver number as its pinned version group
   /// - ✓ Instance matches its semver group
@@ -98,10 +110,12 @@ pub enum InstanceState {
   /* = Fixable ============================================================== */
   /// - ✘ Instance is in a banned version group
   Banned,
-  /// - ✘ Instance matches the version of its locally-developed package
+  /// - ✘ Instance mismatches the version of its locally-developed package
   MismatchesLocal,
   /// - ✘ Instance mismatches highest/lowest semver in its group
   MismatchesPreferVersion,
+  /// - ✘ Instance mismatches the matching snapTo instance
+  MismatchesSnapToVersion,
   /// - ✘ Instance mismatches its pinned version group
   MismatchesPin,
   /// - ✓ Instance has same semver number as highest/lowest semver in its group
@@ -120,6 +134,16 @@ pub enum InstanceState {
   /// - ✘ Range preferred by semver group will not satisfy the highest/lowest semver
   /// - ? We can't know whether the incompatible range matters or not and have to ask
   SemverRangeMismatchConflictsWithPreferVersion,
+  /// - ✓ Instance has same semver number as the matching snapTo instance
+  /// - ✓ Instance matches its semver group
+  /// - ✘ Range preferred by semver group will not satisfy the matching snapTo instance
+  /// - ? We can't know whether the incompatible range matters or not and have to ask
+  SemverRangeMatchConflictsWithSnapToVersion,
+  /// - ✓ Instance has same semver number as the matching snapTo instance
+  /// - ✘ Instance mismatches its semver group
+  /// - ✘ Range preferred by semver group will not satisfy the matching snapTo instance
+  /// - ? We can't know whether the incompatible range matters or not and have to ask
+  SemverRangeMismatchConflictsWithSnapToVersion,
   /// - ✓ Instance has same semver number as local instance in its group
   /// - ✓ Instance matches its semver group
   /// - ✘ Range preferred by semver group will not satisfy the local instance
@@ -142,6 +166,11 @@ pub enum InstanceState {
   /// - ? Instance has no semver group
   /// - ? We can't know what range the user wants and have to ask them
   MismatchesSameRangeGroup,
+  /// - ✓ Instance is in a snapped to version group
+  /// - ✘ An instance of the same dependency was not found in any of the snapped
+  ///     to packages
+  /// - ✘ This is a misconfiguration resulting in this instance being orphaned
+  SnapToVersionNotFound,
 }
 
 #[derive(Debug)]

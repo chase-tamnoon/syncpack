@@ -104,6 +104,7 @@ impl Effects for FixEffects<'_> {
       | InstanceState::EqualsLocal
       | InstanceState::MatchesLocal
       | InstanceState::EqualsPreferVersion
+      | InstanceState::EqualsSnapToVersion
       | InstanceState::EqualsNonSemverPreferVersion
       | InstanceState::EqualsPin
       | InstanceState::MatchesSameRangeGroup => { /*NOOP*/ }
@@ -120,6 +121,12 @@ impl Effects for FixEffects<'_> {
       InstanceState::MatchesPreferVersion => {
         debug!("@TODO: explain MatchesPreferVersion");
       }
+      InstanceState::MatchesSnapToVersion => {
+        debug!("@TODO: explain MatchesSnapToVersion");
+      }
+      InstanceState::RefuseToSnapLocal => {
+        debug!("@TODO: explain RefuseToSnapLocal");
+      }
       /* Overrides */
       InstanceState::PinMatchOverridesSemverRangeMatch => {
         debug!("@TODO: explain PinMatchOverridesSemverRangeMatch");
@@ -131,6 +138,7 @@ impl Effects for FixEffects<'_> {
       InstanceState::Banned
       | InstanceState::MismatchesLocal
       | InstanceState::MismatchesPreferVersion
+      | InstanceState::MismatchesSnapToVersion
       | InstanceState::SemverRangeMismatch
       | InstanceState::MismatchesPin => {
         instance.package.borrow().copy_expected_specifier(instance);
@@ -142,6 +150,14 @@ impl Effects for FixEffects<'_> {
       }
       InstanceState::SemverRangeMismatchConflictsWithPreferVersion => {
         debug!("@TODO: explain SemverRangeMismatchConflictsWithPreferVersion");
+        self.is_valid = false;
+      }
+      InstanceState::SemverRangeMatchConflictsWithSnapToVersion => {
+        debug!("@TODO: explain SemverRangeMatchConflictsWithSnapToVersion");
+        self.is_valid = false;
+      }
+      InstanceState::SemverRangeMismatchConflictsWithSnapToVersion => {
+        debug!("@TODO: explain SemverRangeMismatchConflictsWithSnapToVersion");
         self.is_valid = false;
       }
       InstanceState::SemverRangeMatchConflictsWithLocalVersion => {
@@ -163,6 +179,10 @@ impl Effects for FixEffects<'_> {
       }
       InstanceState::MismatchesSameRangeGroup => {
         debug!("@TODO: explain MismatchesSameRangeGroup");
+        self.is_valid = false;
+      }
+      InstanceState::SnapToVersionNotFound => {
+        debug!("@TODO: explain SnapToVersionNotFound");
         self.is_valid = false;
       }
     }

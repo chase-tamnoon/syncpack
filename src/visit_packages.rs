@@ -45,7 +45,7 @@ pub fn visit_packages(config: &Config, packages: &Packages, effects: &mut impl E
             Variant::Banned => {
               debug!("visit banned version group");
               debug!("  visit dependency '{}'", dependency.name);
-              dependency.all_instances.borrow().iter().for_each(|instance| {
+              dependency.instances.borrow().iter().for_each(|instance| {
                 let actual_specifier = &instance.actual_specifier;
                 debug!("    visit instance '{}' ({actual_specifier:?})", instance.id);
                 if instance.is_local {
@@ -67,7 +67,7 @@ pub fn visit_packages(config: &Config, packages: &Packages, effects: &mut impl E
               debug!("  visit dependency '{}'", dependency.name);
               if dependency.has_local_instance_with_invalid_specifier() {
                 debug!("    it has an invalid local instance");
-                dependency.all_instances.borrow().iter().for_each(|instance| {
+                dependency.instances.borrow().iter().for_each(|instance| {
                   let actual_specifier = &instance.actual_specifier;
                   debug!("      visit instance '{}' ({actual_specifier:?})", instance.id);
                   if instance.is_local {
@@ -86,7 +86,7 @@ pub fn visit_packages(config: &Config, packages: &Packages, effects: &mut impl E
                 debug!("    it is a package developed locally in this monorepo");
                 let local_specifier = dependency.get_local_specifier().unwrap();
                 dependency.set_expected_specifier(&local_specifier);
-                dependency.all_instances.borrow().iter().for_each(|instance| {
+                dependency.instances.borrow().iter().for_each(|instance| {
                   let actual_specifier = &instance.actual_specifier;
                   debug!("      visit instance '{}' ({actual_specifier:?})", instance.id);
                   if instance.is_local {
@@ -153,7 +153,7 @@ pub fn visit_packages(config: &Config, packages: &Packages, effects: &mut impl E
               } else if let Some(highest_specifier) = dependency.get_highest_or_lowest_specifier() {
                 debug!("    a highest semver version was found ({highest_specifier:?})");
                 dependency.set_expected_specifier(&highest_specifier);
-                dependency.all_instances.borrow().iter().for_each(|instance| {
+                dependency.instances.borrow().iter().for_each(|instance| {
                   let actual_specifier = &instance.actual_specifier;
                   debug!("      visit instance '{}' ({actual_specifier:?})", instance.id);
                   debug!("        its version number (without a range):");
@@ -216,7 +216,7 @@ pub fn visit_packages(config: &Config, packages: &Packages, effects: &mut impl E
                 if dependency.every_specifier_is_already_identical() {
                   debug!("      but all are identical");
                   dependency.set_state(Valid);
-                  dependency.all_instances.borrow().iter().for_each(|instance| {
+                  dependency.instances.borrow().iter().for_each(|instance| {
                     let actual_specifier = &instance.actual_specifier;
                     debug!("        visit instance '{}' ({actual_specifier:?})", instance.id);
                     debug!("          it is identical to every other instance");
@@ -226,7 +226,7 @@ pub fn visit_packages(config: &Config, packages: &Packages, effects: &mut impl E
                 } else {
                   debug!("      and they differ");
                   dependency.set_state(Invalid);
-                  dependency.all_instances.borrow().iter().for_each(|instance| {
+                  dependency.instances.borrow().iter().for_each(|instance| {
                     let actual_specifier = &instance.actual_specifier;
                     debug!("        visit instance '{}' ({actual_specifier:?})", instance.id);
                     debug!("          it depends on a currently unknowable correct version from a set of unsupported version specifiers");
@@ -240,7 +240,7 @@ pub fn visit_packages(config: &Config, packages: &Packages, effects: &mut impl E
               debug!("visit ignored version group");
               debug!("  visit dependency '{}'", dependency.name);
               dependency.set_state(Valid);
-              dependency.all_instances.borrow().iter().for_each(|instance| {
+              dependency.instances.borrow().iter().for_each(|instance| {
                 let actual_specifier = &instance.actual_specifier;
                 debug!("    visit instance '{}' ({actual_specifier:?})", instance.id);
                 instance.set_state(Ignored, &instance.actual_specifier);
@@ -251,7 +251,7 @@ pub fn visit_packages(config: &Config, packages: &Packages, effects: &mut impl E
               debug!("  visit dependency '{}'", dependency.name);
               let pinned_specifier = dependency.pinned_specifier.clone().unwrap();
               dependency.set_expected_specifier(&pinned_specifier);
-              dependency.all_instances.borrow().iter().for_each(|instance| {
+              dependency.instances.borrow().iter().for_each(|instance| {
                 let actual_specifier = &instance.actual_specifier;
                 debug!("    visit instance '{}' ({actual_specifier:?})", instance.id);
                 if instance.is_local {
@@ -307,10 +307,10 @@ pub fn visit_packages(config: &Config, packages: &Packages, effects: &mut impl E
             Variant::SameRange => {
               debug!("visit same range version group");
               debug!("  visit dependency '{}'", dependency.name);
-              dependency.all_instances.borrow().iter().for_each(|instance| {
+              dependency.instances.borrow().iter().for_each(|instance| {
                 let actual_specifier = &instance.actual_specifier;
                 debug!("    visit instance '{}' ({actual_specifier:?})", instance.id);
-                if instance.already_satisfies_all(&dependency.all_instances.borrow()) {
+                if instance.already_satisfies_all(&dependency.instances.borrow()) {
                   debug!("      its specifier satisfies all other instances in the group");
                   if instance.must_match_preferred_semver_range() {
                     debug!("        it belongs to a semver group");
@@ -338,9 +338,83 @@ pub fn visit_packages(config: &Config, packages: &Packages, effects: &mut impl E
             Variant::SnappedTo => {
               debug!("visit snapped to version group");
               debug!("  visit dependency '{}'", dependency.name);
-              let snapped_to_specifier = dependency.get_snapped_to_specifier();
-              // @FIXME
-              dependency.set_expected_specifier(&Specifier::new("0.0.0"));
+              if let Some(snapped_to_specifier) = dependency.get_snapped_to_specifier(&ctx.instances) {
+                debug!("    a target version was found ({snapped_to_specifier:?})");
+                dependency.set_expected_specifier(&snapped_to_specifier);
+                dependency.instances.borrow().iter().for_each(|instance| {
+                  let actual_specifier = &instance.actual_specifier;
+                  debug!("      visit instance '{}' ({actual_specifier:?})", instance.id);
+                  if instance.is_local && !instance.already_equals(&snapped_to_specifier) {
+                    debug!("        it is the local instance of a package developed locally in this monorepo");
+                    debug!("          refuse to change it");
+                    debug!("            mark as error, user should change their config");
+                    dependency.set_state(Warning);
+                    instance.set_state(RefuseToSnapLocal, &instance.actual_specifier);
+                    return;
+                  }
+                  debug!("        it is not a local instance of a package developed locally in this monorepo");
+                  debug!("          its version number (without a range):");
+                  if !instance.actual_specifier.has_same_version_number_as(&snapped_to_specifier) {
+                    debug!("          differs to the target version");
+                    debug!("            mark as error");
+                    dependency.set_state(Invalid);
+                    instance.set_state(MismatchesSnapToVersion, &snapped_to_specifier);
+                    return;
+                  }
+                  debug!("          is the same as the target version");
+                  let range_of_snapped_to_specifier = snapped_to_specifier.get_simple_semver().unwrap().get_range();
+                  if instance.must_match_preferred_semver_range_which_is_not(&range_of_snapped_to_specifier) {
+                    let preferred_semver_range = &instance.preferred_semver_range.borrow().clone().unwrap();
+                    debug!("            it is in a semver group which prefers a different semver range to the target version ({preferred_semver_range:?})");
+                    if instance.matches_preferred_semver_range() {
+                      debug!("              its semver range matches its semver group");
+                      if instance.specifier_with_preferred_semver_range_will_satisfy(&snapped_to_specifier) {
+                        debug!("                the semver range satisfies the target version");
+                        debug!("                  mark as warning (the config is asking for an inexact match)");
+                        dependency.set_state(Warning);
+                        instance.set_state(MatchesSnapToVersion, &instance.actual_specifier);
+                      } else {
+                        debug!("                the preferred semver range will not satisfy the target version");
+                        debug!("                  mark as unfixable error");
+                        dependency.set_state(Invalid);
+                        instance.set_state(SemverRangeMatchConflictsWithSnapToVersion, &instance.actual_specifier);
+                      }
+                    } else {
+                      debug!("              its semver range does not match its semver group");
+                      if instance.specifier_with_preferred_semver_range_will_satisfy(&snapped_to_specifier) {
+                        debug!("                the preferred semver range will satisfy the target version");
+                        debug!("                  mark as fixable error");
+                        dependency.set_state(Invalid);
+                        instance.set_state(SemverRangeMismatch, &instance.get_specifier_with_preferred_semver_range().unwrap());
+                      } else {
+                        debug!("                the preferred semver range will not satisfy the target version");
+                        debug!("                  mark as unfixable error");
+                        dependency.set_state(Invalid);
+                        instance.set_state(SemverRangeMismatchConflictsWithSnapToVersion, &instance.actual_specifier);
+                      }
+                    }
+                  } else {
+                    debug!("        it is not in a semver group which prefers a different semver range to the target version");
+                    if instance.already_equals(&snapped_to_specifier) {
+                      debug!("          it is identical to the target version");
+                      debug!("            mark as valid");
+                      dependency.set_state(Valid);
+                      instance.set_state(EqualsSnapToVersion, &snapped_to_specifier);
+                    } else {
+                      debug!("          it is different to the target version");
+                      debug!("            mark as error");
+                      dependency.set_state(Invalid);
+                      instance.set_state(MismatchesSnapToVersion, &snapped_to_specifier);
+                    }
+                  }
+                });
+              } else {
+                debug!("    no target version was found");
+                dependency.set_state(Warning);
+                dependency.instances.borrow().iter().for_each(|instance| {
+                  instance.set_state(SnapToVersionNotFound, &instance.actual_specifier);
+                });
+              }
             }
           };
 
@@ -355,7 +429,7 @@ pub fn visit_packages(config: &Config, packages: &Packages, effects: &mut impl E
 
           dependency.sort_instances();
 
-          dependency.all_instances.borrow().iter().for_each(|instance| {
+          dependency.instances.borrow().iter().for_each(|instance| {
             // @TODO: remove InstanceEvent and just emit the instance
             effects.on_instance(InstanceEvent {
               dependency,

@@ -50,19 +50,19 @@ impl Effects for LintEffects<'_> {
         info!("{}", full_header.blue());
       }
       Event::DependencyValid(dependency) => {
-        let count = render_count_column(dependency.all_instances.borrow().len());
+        let count = render_count_column(dependency.instances.borrow().len());
         let name = &dependency.name;
         let hint = get_expected_hint(dependency);
         info!("{count} {name} {hint}");
       }
       Event::DependencyInvalid(dependency) => {
-        let count = render_count_column(dependency.all_instances.borrow().len());
+        let count = render_count_column(dependency.instances.borrow().len());
         let name = &dependency.name;
         let hint = get_expected_hint(dependency);
         info!("{count} {name} {hint}");
       }
       Event::DependencyWarning(dependency) => {
-        let count = render_count_column(dependency.all_instances.borrow().len());
+        let count = render_count_column(dependency.instances.borrow().len());
         let name = &dependency.name;
         let hint = "has name or specifiers unsupported by syncpack".dimmed();
         info!("{count} {name} {hint}");
@@ -126,6 +126,7 @@ impl Effects for LintEffects<'_> {
       | InstanceState::EqualsLocal
       | InstanceState::MatchesLocal
       | InstanceState::EqualsPreferVersion
+      | InstanceState::EqualsSnapToVersion
       | InstanceState::EqualsNonSemverPreferVersion
       | InstanceState::EqualsPin
       | InstanceState::MatchesSameRangeGroup => {
@@ -141,6 +142,9 @@ impl Effects for LintEffects<'_> {
       }
       InstanceState::RefuseToPinLocal => {
         info!("@TODO: explain RefuseToPinLocal");
+      }
+      InstanceState::RefuseToSnapLocal => {
+        info!("@TODO: explain RefuseToSnapLocal");
       }
       InstanceState::InvalidLocalVersion => {
         info!("@TODO: explain InvalidLocalVersion");
@@ -161,6 +165,9 @@ impl Effects for LintEffects<'_> {
         let location_hint = instance.location_hint.dimmed();
         info!("      {icon} {actual} {hint} {location_hint}");
         self.is_valid = false;
+      }
+      InstanceState::MatchesSnapToVersion => {
+        info!("@TODO: explain MatchesSnapToVersion");
       }
       /* Overrides */
       InstanceState::PinMatchOverridesSemverRangeMatch => {
@@ -189,6 +196,9 @@ impl Effects for LintEffects<'_> {
         info!("      {icon} {actual} {location_hint}");
         self.is_valid = false;
       }
+      InstanceState::MismatchesSnapToVersion => {
+        info!("@TODO: explain MismatchesSnapToVersion");
+      }
       InstanceState::MismatchesPin => {
         // return /*SKIP*/;
         let icon = icon_fixable();
@@ -206,6 +216,12 @@ impl Effects for LintEffects<'_> {
       }
       InstanceState::SemverRangeMismatchConflictsWithPreferVersion => {
         info!("@TODO: explain SemverRangeMismatchConflictsWithPreferVersion");
+      }
+      InstanceState::SemverRangeMatchConflictsWithSnapToVersion => {
+        info!("@TODO: explain SemverRangeMatchConflictsWithSnapToVersion");
+      }
+      InstanceState::SemverRangeMismatchConflictsWithSnapToVersion => {
+        info!("@TODO: explain SemverRangeMismatchConflictsWithSnapToVersion");
       }
       InstanceState::SemverRangeMatchConflictsWithLocalVersion => {
         info!("@TODO: explain SemverRangeMatchConflictsWithLocalVersion");
@@ -227,6 +243,9 @@ impl Effects for LintEffects<'_> {
       }
       InstanceState::MismatchesSameRangeGroup => {
         info!("@TODO: explain MismatchesSameRangeGroup");
+      }
+      InstanceState::SnapToVersionNotFound => {
+        info!("@TODO: explain SnapToVersionNotFound");
       }
     }
   }
