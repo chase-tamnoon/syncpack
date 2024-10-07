@@ -10,23 +10,26 @@ use crate::{
   config::Config,
   context::Context,
   dependency::DependencyState::*,
-  effects::{Effects, Event, FormatMismatch, FormatMismatchEvent, FormatMismatchVariant, InstanceEvent, InstanceState::*},
   format,
+  instance::InstanceState::*,
+  package_json::{FormatMismatch, FormatMismatchVariant::*},
   packages::Packages,
   specifier::{semver_range::SemverRange, Specifier},
   version_group::Variant,
 };
 
-pub fn visit_packages(config: &Config, packages: &Packages, effects: &mut impl Effects) {
+pub fn visit_packages(config: Config, packages: Packages) -> Context {
   let ctx = Context::create(config, packages);
 
-  if config.cli.options.versions {
+  if ctx.config.cli.options.versions {
     debug!("visit versions");
-    effects.on(Event::EnterVersionsAndRanges);
 
     ctx
       .version_groups
       .iter()
+      // @TODO: can moving snapped to groups last be done when reading config at
+      // the start?
+      //
       // fix snapped to groups last, so that the packages they're snapped to
       // have any fixes applied to them first
       .sorted_by(|a, b| {
@@ -39,7 +42,6 @@ pub fn visit_packages(config: &Config, packages: &Packages, effects: &mut impl E
         }
       })
       .for_each(|group| {
-        effects.on(Event::GroupVisited(&group.selector));
         group.dependencies.borrow().values().for_each(|dependency| {
           match dependency.variant {
             Variant::Banned => {
@@ -416,98 +418,68 @@ pub fn visit_packages(config: &Config, packages: &Packages, effects: &mut impl E
                 });
               }
             }
-          };
-
-          // @TODO: this can be one event
-          if dependency.has_state(Valid) {
-            effects.on(Event::DependencyValid(dependency));
-          } else if dependency.has_state(Warning) {
-            effects.on(Event::DependencyWarning(dependency));
-          } else {
-            effects.on(Event::DependencyInvalid(dependency));
           }
-
-          dependency.sort_instances();
-
-          dependency.instances.borrow().iter().for_each(|instance| {
-            // @TODO: remove InstanceEvent and just emit the instance
-            effects.on_instance(InstanceEvent {
-              dependency,
-              instance: Rc::clone(instance),
-              variant: instance.state.borrow().clone(),
-            });
-          });
         });
       });
   }
 
-  if config.cli.options.format {
-    effects.on(Event::EnterFormat);
-
-    packages.sorted_by_path().for_each(|package| {
+  if ctx.config.cli.options.format {
+    ctx.packages.by_name.values().for_each(|package| {
       let mut formatting_mismatches: Vec<FormatMismatch> = Vec::new();
-      if config.rcfile.format_bugs {
+      if ctx.config.rcfile.format_bugs {
         if let Some(expected) = format::get_formatted_bugs(&package.borrow()) {
           formatting_mismatches.push(FormatMismatch {
             expected,
             package: Rc::clone(package),
             property_path: "/bugs".to_string(),
-            variant: FormatMismatchVariant::BugsPropertyIsNotFormatted,
+            variant: BugsPropertyIsNotFormatted,
           });
         }
       }
-      if config.rcfile.format_repository {
+      if ctx.config.rcfile.format_repository {
         if let Some(expected) = format::get_formatted_repository(&package.borrow()) {
           formatting_mismatches.push(FormatMismatch {
             expected,
             package: Rc::clone(package),
             property_path: "/repository".to_string(),
-            variant: FormatMismatchVariant::RepositoryPropertyIsNotFormatted,
+            variant: RepositoryPropertyIsNotFormatted,
           });
         }
       }
-      if !config.rcfile.sort_exports.is_empty() {
-        if let Some(expected) = format::get_sorted_exports(&config.rcfile, &package.borrow()) {
+      if !ctx.config.rcfile.sort_exports.is_empty() {
+        if let Some(expected) = format::get_sorted_exports(&ctx.config.rcfile, &package.borrow()) {
           formatting_mismatches.push(FormatMismatch {
             expected,
             package: Rc::clone(package),
             property_path: "/exports".to_string(),
-            variant: FormatMismatchVariant::ExportsPropertyIsNotSorted,
+            variant: ExportsPropertyIsNotSorted,
           });
         }
       }
-      if !config.rcfile.sort_az.is_empty() {
-        for key in config.rcfile.sort_az.iter() {
+      if !ctx.config.rcfile.sort_az.is_empty() {
+        for key in ctx.config.rcfile.sort_az.iter() {
           if let Some(expected) = format::get_sorted_az(key, &package.borrow()) {
             formatting_mismatches.push(FormatMismatch {
               expected,
               package: Rc::clone(package),
               property_path: format!("/{}", key),
-              variant: FormatMismatchVariant::PropertyIsNotSortedAz,
+              variant: PropertyIsNotSortedAz,
             });
           }
         }
       }
-      if config.rcfile.sort_packages || !config.rcfile.sort_first.is_empty() {
-        if let Some(expected) = format::get_sorted_first(&config.rcfile, &package.borrow()) {
+      if ctx.config.rcfile.sort_packages || !ctx.config.rcfile.sort_first.is_empty() {
+        if let Some(expected) = format::get_sorted_first(&ctx.config.rcfile, &package.borrow()) {
           formatting_mismatches.push(FormatMismatch {
             expected,
             package: Rc::clone(package),
             property_path: "/".to_string(),
-            variant: FormatMismatchVariant::PackagePropertiesAreNotSorted,
+            variant: PackagePropertiesAreNotSorted,
           });
         }
       }
-      effects.on(if formatting_mismatches.is_empty() {
-        Event::PackageFormatMatch(Rc::clone(package))
-      } else {
-        Event::PackageFormatMismatch(FormatMismatchEvent {
-          package: Rc::clone(package),
-          formatting_mismatches,
-        })
-      });
     });
   }
 
-  effects.on(Event::ExitCommand);
+  ctx
 }

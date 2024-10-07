@@ -7,7 +7,7 @@ use std::{env::current_dir, process};
 use crate::{
   cli::{Cli, Subcommand},
   config::Config,
-  effects::{fix::FixEffects, lint::LintEffects},
+  effects::{fix, lint},
   packages::Packages,
   visit_packages::visit_packages,
 };
@@ -43,18 +43,14 @@ fn main() {
 
   match config.cli.command_name {
     Subcommand::Fix => {
-      let mut effects = FixEffects::new(&config, &packages);
-      visit_packages(&config, &packages, &mut effects);
-      if !effects.is_valid {
-        process::exit(1);
-      }
+      let ctx = visit_packages(config, packages);
+      let ctx = fix::run(ctx);
+      process::exit(ctx.exit_code);
     }
     Subcommand::Lint => {
-      let mut effects = LintEffects::new(&config, &packages);
-      visit_packages(&config, &packages, &mut effects);
-      if !effects.is_valid {
-        process::exit(1);
-      }
+      let ctx = visit_packages(config, packages);
+      let ctx = lint::run(ctx);
+      process::exit(ctx.exit_code);
     }
   };
 }

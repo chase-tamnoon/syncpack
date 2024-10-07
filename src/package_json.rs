@@ -1,18 +1,51 @@
 use log::error;
 use serde::Serialize;
 use serde_json::{ser::PrettyFormatter, Serializer, Value};
-use std::{cell::RefCell, fs, path::PathBuf};
+use std::{cell::RefCell, fs, path::PathBuf, rc::Rc};
 
 use crate::{config::Config, dependency_type::Strategy, instance::Instance};
 
-#[derive(Clone, Debug)]
+#[derive(Debug)]
 pub struct PackageJson {
   /// The path to the package.json file
   pub file_path: PathBuf,
+  /// Syncpack formatting mismatches found in the file
+  pub formatting_mismatches: RefCell<Vec<FormatMismatch>>,
   /// The original, unedited raw JSON string
   pub json: RefCell<String>,
   /// The parsed JSON object
   pub contents: RefCell<Value>,
+}
+
+#[derive(Debug)]
+pub struct FormatMismatch {
+  /// The formatted value
+  pub expected: Value,
+  /// The name of the package.json file being linted
+  pub package: Rc<RefCell<PackageJson>>,
+  /// The path to the property that was linted
+  pub property_path: String,
+  /// The broken linting rule
+  pub variant: FormatMismatchVariant,
+}
+
+#[derive(Debug)]
+pub enum FormatMismatchVariant {
+  /// - ✓ `rcFile.formatBugs` is enabled
+  /// - ✘ The `bugs` property is not formatted
+  BugsPropertyIsNotFormatted,
+  /// - ✓ `rcFile.formatRepository` is enabled
+  /// - ✘ The `repository` property is not formatted
+  RepositoryPropertyIsNotFormatted,
+  /// - ✓ `rcFile.sortAz` is enabled
+  /// - ✘ This property is not sorted alphabetically
+  PropertyIsNotSortedAz,
+  /// - ✓ `rcFile.sortPackages` is enabled
+  /// - ✘ This package.json's properties are not sorted
+  PackagePropertiesAreNotSorted,
+  /// - ✓ `rcFile.sortExports` is enabled
+  /// - ✘ The `exports` property is not sorted
+  ExportsPropertyIsNotSorted,
 }
 
 impl PackageJson {
@@ -30,6 +63,7 @@ impl PackageJson {
           })
           .map(|contents: Value| Self {
             file_path: file_path.clone(),
+            formatting_mismatches: RefCell::new(vec![]),
             json: RefCell::new(contents.to_string()),
             contents: RefCell::new(contents),
           })

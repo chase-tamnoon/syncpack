@@ -1,345 +1,107 @@
 use log::error;
 
 use crate::{
-  effects::{InstanceEvent, InstanceState},
-  instance::Instance,
-  test::mock_effects::MockEffects,
+  context::Context,
+  instance::{Instance, InstanceState},
 };
 
 #[derive(Debug)]
-pub struct ExpectedMatchEvent<'a> {
-  pub variant: InstanceState,
-  pub dependency_name: &'a str,
-  pub instance_id: &'a str,
-  pub actual: &'a str,
+pub struct ExpectedInstance {
+  /// The original version on disk
+  pub actual: &'static str,
+  /// eg "react-dom"
+  pub dependency_name: &'static str,
+  /// The specifier syncpack determined the instance should have
+  pub expected: Option<&'static str>,
+  /// The instance id
+  pub id: &'static str,
+  /// In the case of a semver group being overridden
+  pub overridden: Option<&'static str>,
+  /// The error or valid state syncpack determined the instance is in
+  pub state: InstanceState,
 }
 
 #[derive(Debug)]
-pub struct ActualMatchEvent {
-  pub dependency_name: String,
-  pub instance_id: String,
+pub struct ActualInstance {
+  /// The original version on disk
   pub actual: String,
+  /// eg "react-dom"
+  pub dependency_name: String,
+  /// The specifier syncpack determined the instance should have
+  pub expected: Option<String>,
+  /// The instance id
+  pub id: String,
+  /// In the case of a semver group being overridden
+  pub overridden: Option<String>,
+  /// The error or valid state syncpack determined the instance is in
+  pub state: InstanceState,
 }
 
-impl ActualMatchEvent {
-  pub fn new(event: &InstanceEvent, instance: &Instance) -> Self {
+impl ActualInstance {
+  pub fn new(instance: &Instance) -> Self {
     Self {
-      dependency_name: event.dependency.name.clone(),
-      instance_id: event.instance.id.clone(),
-      actual: instance.actual_specifier.unwrap().clone(),
+      actual: instance.actual_specifier.unwrap(),
+      dependency_name: instance.name.clone(),
+      expected: instance.expected_specifier.borrow().clone().map(|expected| expected.unwrap()),
+      id: instance.id.clone(),
+      overridden: instance
+        .get_specifier_with_preferred_semver_range()
+        .clone()
+        .map(|expected| expected.unwrap()),
+      state: instance.state.borrow().clone(),
     }
   }
 }
 
-#[derive(Debug)]
-pub struct ExpectedUnfixableMismatchEvent<'a> {
-  pub variant: InstanceState,
-  pub dependency_name: &'a str,
-  pub instance_id: &'a str,
-  pub actual: &'a str,
-}
-
-#[derive(Debug)]
-pub struct ActualUnfixableMismatchEvent {
-  pub dependency_name: String,
-  pub instance_id: String,
-  pub actual: String,
-}
-
-impl ActualUnfixableMismatchEvent {
-  pub fn new(event: &InstanceEvent, instance: &Instance) -> Self {
-    Self {
-      dependency_name: event.dependency.name.clone(),
-      instance_id: event.instance.id.clone(),
-      actual: instance.actual_specifier.unwrap().clone(),
-    }
-  }
-}
-
-#[derive(Debug)]
-pub struct ExpectedFixableMismatchEvent<'a> {
-  pub variant: InstanceState,
-  pub dependency_name: &'a str,
-  pub instance_id: &'a str,
-  pub actual: &'a str,
-  pub expected: &'a str,
-}
-
-#[derive(Debug)]
-pub struct ActualFixableMismatchEvent {
-  pub dependency_name: String,
-  pub instance_id: String,
-  pub actual: String,
-  pub expected: String,
-}
-
-impl ActualFixableMismatchEvent {
-  pub fn new(event: &InstanceEvent, instance: &Instance) -> Self {
-    Self {
-      dependency_name: event.dependency.name.clone(),
-      instance_id: event.instance.id.clone(),
-      actual: instance.actual_specifier.unwrap().clone(),
-      expected: instance.expected_specifier.borrow().as_ref().unwrap().unwrap().clone(),
-    }
-  }
-}
-
-#[derive(Debug)]
-pub struct ExpectedOverrideEvent<'a> {
-  pub variant: InstanceState,
-  pub dependency_name: &'a str,
-  pub instance_id: &'a str,
-  pub actual: &'a str,
-  pub expected: &'a str,
-  pub overridden: &'a str,
-}
-
-#[derive(Debug)]
-pub struct ActualOverrideEvent {
-  pub dependency_name: String,
-  pub instance_id: String,
-  pub actual: String,
-  pub expected: String,
-  pub overridden: String,
-}
-
-impl ActualOverrideEvent {
-  pub fn new(event: &InstanceEvent, instance: &Instance, overridden: String) -> Self {
-    Self {
-      dependency_name: event.dependency.name.clone(),
-      instance_id: event.instance.id.clone(),
-      actual: instance.actual_specifier.unwrap().clone(),
-      expected: instance.expected_specifier.borrow().as_ref().unwrap().unwrap().clone(),
-      overridden,
-    }
-  }
-}
-
-pub fn expect<'a>(effects: &'a MockEffects) -> Expects<'a> {
-  Expects::new(effects)
+pub fn expect(ctx: &Context) -> Expects {
+  Expects::new(ctx)
 }
 
 pub struct Expects<'a> {
-  pub effects: &'a MockEffects<'a>,
+  pub ctx: &'a Context,
 }
 
 impl<'a> Expects<'a> {
-  pub fn new(effects: &'a MockEffects) -> Self {
-    Self { effects }
+  pub fn new(ctx: &'a Context) -> Self {
+    Self { ctx }
   }
 
-  /// Print internal test state for debugging
-  pub fn debug(&self) -> &Self {
-    error!("{:#?}", self.effects);
-    self
-  }
-
-  pub fn to_have_overrides(&self, expected_overrides: Vec<ExpectedOverrideEvent>) -> &Self {
-    let actual_overrides = &self.effects.overrides;
-    let expected_len = expected_overrides.len();
-    let actual_len = actual_overrides.values().fold(0, |acc, x| acc + x.len());
+  pub fn to_have_instances(&self, expected_instances: Vec<ExpectedInstance>) -> &Self {
+    let actual_instances = &self
+      .ctx
+      .instances
+      .iter()
+      .map(|instance| ActualInstance::new(instance))
+      .collect::<Vec<ActualInstance>>();
+    let actual_len = actual_instances.len();
+    let expected_len = expected_instances.len();
     if actual_len != expected_len {
-      self.debug();
-      error!("expected {expected_len} overrides but found {actual_len}");
+      error!("expected {expected_len} instances but found {actual_len}");
+      error!("expected instances: {expected_instances:#?}");
+      error!("actual instances: {actual_instances:#?}");
       panic!("");
     }
-    'expected: for expected in &expected_overrides {
-      let variant = &expected.variant;
-      let dependency_name = &expected.dependency_name;
-      let instance_id = &expected.instance_id;
-      let actual = &expected.actual;
-      let overridden = &expected.overridden;
-      let expected_specifier = &expected.expected;
-      let overrides_of_type = actual_overrides.get(variant);
-      if overrides_of_type.is_none() {
-        self.debug();
-        error!("expected {variant:?} override but found none");
-        panic!("");
-      }
-      for event in overrides_of_type.unwrap() {
-        if event.dependency_name == *dependency_name
-          && event.instance_id == *instance_id
-          && event.actual == *actual
-          && event.overridden == *overridden
-          && event.expected == *expected_specifier
+
+    'expected: for expected in &expected_instances {
+      let actual_specifier = expected.actual.to_string();
+      let dependency_name = expected.dependency_name.to_string();
+      let expected_specifier = expected.expected.map(|expected| expected.to_string());
+      let overridden_specifier = expected.overridden.map(|overridden| overridden.to_string());
+      let id = expected.id.to_string();
+      let state = expected.state.clone();
+      for actual in actual_instances.iter() {
+        if actual.actual == actual_specifier
+          && actual.dependency_name == dependency_name
+          && actual.expected == expected_specifier
+          && actual.id == id
+          && actual.state == state
+          && (expected.overridden.is_none() || actual.overridden == overridden_specifier)
         {
           continue 'expected;
         }
       }
-      self.debug();
-      error!("expected a '{variant:?}' for '{instance_id}' with '{actual}' overridden by '{expected_specifier}' instead of '{overridden}'");
-      panic!("");
-    }
-    self
-  }
-
-  pub fn to_have_warnings(&self, expected_warnings: Vec<ExpectedUnfixableMismatchEvent>) -> &Self {
-    let actual_warnings = &self.effects.warnings;
-    let expected_len = expected_warnings.len();
-    let actual_len = actual_warnings.values().fold(0, |acc, x| acc + x.len());
-    if actual_len != expected_len {
-      self.debug();
-      error!("expected {expected_len} warnings but found {actual_len}");
-      panic!("");
-    }
-    'expected: for expected in &expected_warnings {
-      let variant = &expected.variant;
-      let dependency_name = &expected.dependency_name;
-      let instance_id = &expected.instance_id;
-      let actual = &expected.actual;
-      let matches_of_type = actual_warnings.get(variant);
-      if matches_of_type.is_none() {
-        self.debug();
-        error!("expected {variant:?} warning but found none");
-        panic!("");
-      }
-      for event in matches_of_type.unwrap() {
-        if event.dependency_name == *dependency_name && event.instance_id == *instance_id && event.actual == *actual {
-          continue 'expected;
-        }
-      }
-      self.debug();
-      error!("expected a warning on '{variant:?}' for '{instance_id}' with '{actual}'");
-      panic!("");
-    }
-    self
-  }
-
-  pub fn to_have_warnings_of_instance_changes(&self, expected_warnings_of_instance_changes: Vec<ExpectedFixableMismatchEvent>) -> &Self {
-    let actual_warnings_of_instance_changes = &self.effects.warnings_of_instance_changes;
-    let expected_len = expected_warnings_of_instance_changes.len();
-    let actual_len = actual_warnings_of_instance_changes.values().fold(0, |acc, x| acc + x.len());
-    if actual_len != expected_len {
-      self.debug();
-      error!("expected {expected_len} warnings of instance changes but found {actual_len}");
-      panic!("");
-    }
-    'expected: for expected in &expected_warnings_of_instance_changes {
-      let variant = &expected.variant;
-      let dependency_name = &expected.dependency_name;
-      let instance_id = &expected.instance_id;
-      let actual = &expected.actual;
-      let expected_specifier = &expected.expected;
-      let mismatches_of_type = actual_warnings_of_instance_changes.get(variant);
-      if mismatches_of_type.is_none() {
-        self.debug();
-        error!("expected {variant:?} warnings of instance change but found none");
-        panic!("");
-      }
-      for event in mismatches_of_type.unwrap() {
-        if event.dependency_name == *dependency_name
-          && event.instance_id == *instance_id
-          && event.actual == *actual
-          && event.expected == *expected.expected
-        {
-          continue 'expected;
-        }
-      }
-      self.debug();
-      error!(
-        "expected a warning of instance change '{variant:?}' for '{instance_id}' with '{actual}' to be replaced by '{expected_specifier}'"
-      );
-      panic!("");
-    }
-    self
-  }
-
-  pub fn to_have_matches(&self, expected_matches: Vec<ExpectedMatchEvent>) -> &Self {
-    let actual_matches = &self.effects.matches;
-    let expected_len = expected_matches.len();
-    let actual_len = actual_matches.values().fold(0, |acc, x| acc + x.len());
-    if actual_len != expected_len {
-      self.debug();
-      error!("expected {expected_len} matches but found {actual_len}");
-      panic!("");
-    }
-    'expected: for expected in &expected_matches {
-      let variant = &expected.variant;
-      let dependency_name = &expected.dependency_name;
-      let instance_id = &expected.instance_id;
-      let actual = &expected.actual;
-      let matches_of_type = actual_matches.get(variant);
-      if matches_of_type.is_none() {
-        self.debug();
-        error!("expected {variant:?} match but found none");
-        panic!("");
-      }
-      for event in matches_of_type.unwrap() {
-        if event.dependency_name == *dependency_name && event.instance_id == *instance_id && event.actual == *actual {
-          continue 'expected;
-        }
-      }
-      self.debug();
-      error!("expected a matching '{variant:?}' for '{instance_id}' with '{actual}'");
-      panic!("");
-    }
-    self
-  }
-
-  pub fn to_have_unfixable_mismatches(&self, expected_mismatches: Vec<ExpectedUnfixableMismatchEvent>) -> &Self {
-    let actual_mismatches = &self.effects.unfixable_mismatches;
-    let expected_len = expected_mismatches.len();
-    let actual_len = actual_mismatches.values().fold(0, |acc, x| acc + x.len());
-    if actual_len != expected_len {
-      self.debug();
-      error!("expected {expected_len} mismatches but found {actual_len}");
-      panic!("");
-    }
-    'expected: for expected in &expected_mismatches {
-      let variant = &expected.variant;
-      let dependency_name = &expected.dependency_name;
-      let instance_id = &expected.instance_id;
-      let actual = &expected.actual;
-      let mismatches_of_type = actual_mismatches.get(variant);
-      if mismatches_of_type.is_none() {
-        self.debug();
-        error!("expected {variant:?} mismatch but found none");
-        panic!("");
-      }
-      for event in mismatches_of_type.unwrap() {
-        if event.dependency_name == *dependency_name && event.instance_id == *instance_id && event.actual == *actual {
-          continue 'expected;
-        }
-      }
-      self.debug();
-      error!("expected an unfixable '{variant:?}' for '{instance_id}' with '{actual}'");
-      panic!("");
-    }
-    self
-  }
-
-  pub fn to_have_fixable_mismatches(&self, expected_mismatches: Vec<ExpectedFixableMismatchEvent>) -> &Self {
-    let actual_mismatches = &self.effects.fixable_mismatches;
-    let expected_len = expected_mismatches.len();
-    let actual_len = actual_mismatches.values().fold(0, |acc, x| acc + x.len());
-    if actual_len != expected_len {
-      self.debug();
-      error!("expected {expected_len} mismatches but found {actual_len}");
-      panic!("");
-    }
-    'expected: for expected in &expected_mismatches {
-      let variant = &expected.variant;
-      let dependency_name = &expected.dependency_name;
-      let instance_id = &expected.instance_id;
-      let actual = &expected.actual;
-      let expected_specifier = &expected.expected;
-      let mismatches_of_type = actual_mismatches.get(variant);
-      if mismatches_of_type.is_none() {
-        self.debug();
-        error!("expected {variant:?} mismatch but found none");
-        panic!("");
-      }
-      for event in mismatches_of_type.unwrap() {
-        if event.dependency_name == *dependency_name
-          && event.instance_id == *instance_id
-          && event.actual == *actual
-          && event.expected == *expected.expected
-        {
-          continue 'expected;
-        }
-      }
-      self.debug();
-      error!("expected a fixable '{variant:?}' for '{instance_id}' with '{actual}' to be replaced by '{expected_specifier}'");
+      error!("expected an instance {expected:#?} but it was not found");
+      error!("actual instances: {actual_instances:#?}");
       panic!("");
     }
     self

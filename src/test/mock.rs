@@ -1,4 +1,4 @@
-use std::{cell::RefCell, collections::HashMap, path::PathBuf};
+use std::{cell::RefCell, path::PathBuf};
 
 use serde_json::Value;
 
@@ -7,7 +7,6 @@ use crate::{
   config::{Config, Rcfile},
   package_json::PackageJson,
   packages::Packages,
-  test::mock_effects::{EventsByType, MockEffects},
 };
 
 pub fn cli() -> Cli {
@@ -55,6 +54,7 @@ pub fn rcfile_from_mock(value: serde_json::Value) -> Rcfile {
 pub fn package_json_from_value(contents: Value) -> PackageJson {
   PackageJson {
     file_path: PathBuf::new(),
+    formatting_mismatches: RefCell::new(vec![]),
     json: RefCell::new(contents.to_string()),
     contents: RefCell::new(contents),
   }
@@ -67,19 +67,4 @@ pub fn packages_from_mocks(values: Vec<serde_json::Value>) -> Packages {
     packages.add_package(package_json_from_value(value));
   }
   packages
-}
-
-pub fn effects(config: &Config) -> MockEffects {
-  MockEffects {
-    config,
-    events: EventsByType::new(),
-    fixable_mismatches: HashMap::new(),
-    is_valid: true,
-    matches: HashMap::new(),
-    overrides: HashMap::new(),
-    packages: None,
-    unfixable_mismatches: HashMap::new(),
-    warnings: HashMap::new(),
-    warnings_of_instance_changes: HashMap::new(),
-  }
 }

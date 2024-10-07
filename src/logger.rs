@@ -6,7 +6,7 @@ use std::io::Write;
 pub fn init() {
   Builder::new()
     // @TODO expose cli and rcfile options for log level
-    .filter_level(LevelFilter::Debug)
+    .filter_level(LevelFilter::Info)
     .format(|buf, record| {
       match record.level() {
         // Normal output shown to users
