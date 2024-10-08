@@ -120,6 +120,11 @@ run-fluid-prod:
     cd fixtures/fluid-framework
     ../../target/release/syncpack lint --versions --source 'package.json' --source 'packages/**/package.json'
 
+# Watch lint output during dev
+watch-fluid:
+    #!/usr/bin/env bash
+    cargo watch --clear --shell 'cd fixtures/fluid-framework && RUST_BACKTRACE=1 cargo run -- lint --versions'
+
 # ==============================================================================
 # Build
 # ==============================================================================

@@ -44,10 +44,7 @@ pub struct Instance {
 }
 
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]
-pub enum InstanceState {
-  /// Instance has not yet
-  Unknown,
-  /* = Matches ============================================================== */
+pub enum ValidInstance {
   /// - ✓ Instance is configured to be ignored by Syncpack
   Ignored,
   /// - ✓ Instance is a local package and its version is valid
@@ -62,6 +59,11 @@ pub enum InstanceState {
   /// - ✓ Instance identical to highest/lowest semver in its group
   /// - ✓ Instance matches its semver group
   EqualsPreferVersion,
+  /// - ✓ Instance has same semver number as highest/lowest semver in its group
+  /// - ✓ Instance matches its semver group
+  /// - ✓ Range preferred by semver group satisfies the highest/lowest semver
+  /// - ! Considered a loose match we should highlight
+  MatchesPreferVersion,
   /// - ! No Instances are simple semver
   /// - ✓ Instance identical to every other instance in its version group
   EqualsNonSemverPreferVersion,
@@ -74,7 +76,15 @@ pub enum InstanceState {
   /// - ✓ Instance identical to a matching snapTo instance
   /// - ✓ Instance matches its semver group
   EqualsSnapToVersion,
-  /* = Warnings ============================================================= */
+  /// - ✓ Instance has same semver number as matching snapTo instance
+  /// - ✓ Instance matches its semver group
+  /// - ✓ Range preferred by semver group satisfies the matching snapTo instance
+  /// - ! Considered a loose match we should highlight
+  MatchesSnapToVersion,
+}
+
+#[derive(Clone, Debug, Eq, Hash, PartialEq)]
+pub enum SuspectInstance {
   /// - ✘ Local Instance is in a banned version group
   /// - ✘ Misconfiguration: Syncpack refuses to change local dependency specifiers
   RefuseToBanLocal,
@@ -88,28 +98,10 @@ pub enum InstanceState {
   /// - ! Local Instance has no version property
   /// - ! Not an error on its own unless an instance of it mismatches
   InvalidLocalVersion,
-  /// - ✓ Instance has same semver number as highest/lowest semver in its group
-  /// - ✓ Instance matches its semver group
-  /// - ✓ Range preferred by semver group satisfies the highest/lowest semver
-  /// - ! Considered a loose match we should highlight
-  MatchesPreferVersion,
-  /// - ✓ Instance has same semver number as matching snapTo instance
-  /// - ✓ Instance matches its semver group
-  /// - ✓ Range preferred by semver group satisfies the matching snapTo instance
-  /// - ! Considered a loose match we should highlight
-  MatchesSnapToVersion,
-  /* = Overrides ============================================================ */
-  /// - ✓ Instance has same semver number as its pinned version group
-  /// - ✓ Instance matches its semver group
-  /// - ! The semver group requires a range which is different to the pinned version
-  /// - ! Pinned version wins
-  PinMatchOverridesSemverRangeMatch,
-  /// - ✓ Instance has same semver number as its pinned version group
-  /// - ✘ Instance mismatches its semver group
-  /// - ! The semver group requires a range which is different to the pinned version
-  /// - ! Pinned version wins
-  PinMatchOverridesSemverRangeMismatch,
-  /* = Fixable ============================================================== */
+}
+
+#[derive(Clone, Debug, Eq, Hash, PartialEq)]
+pub enum FixableInstance {
   /// - ✘ Instance is in a banned version group
   Banned,
   /// - ✘ Instance mismatches the version of its locally-developed package
@@ -125,38 +117,54 @@ pub enum InstanceState {
   /// - ✓ Range preferred by semver group satisfies the highest/lowest semver
   /// - ✓ Fixing the semver range satisfy both groups
   SemverRangeMismatch,
-  /* = Conflict ============================================================= */
+  /// - ✓ Instance has same semver number as its pinned version group
+  /// - ✓ Instance matches its semver group
+  /// - ! The semver group requires a range which is different to the pinned version
+  /// - ! Pinned version wins
+  PinMatchOverridesSemverRangeMatch,
+  /// - ✓ Instance has same semver number as its pinned version group
+  /// - ✘ Instance mismatches its semver group
+  /// - ! The semver group requires a range which is different to the pinned version
+  /// - ! Pinned version wins
+  PinMatchOverridesSemverRangeMismatch,
+}
+
+#[derive(Clone, Debug, Eq, Hash, PartialEq)]
+pub enum SemverGroupAndVersionConflict {
   /// - ✓ Instance has same semver number as highest/lowest semver in its group
   /// - ✓ Instance matches its semver group
   /// - ✘ Range preferred by semver group will not satisfy the highest/lowest semver
   /// - ? We can't know whether the incompatible range matters or not and have to ask
-  SemverRangeMatchConflictsWithPreferVersion,
+  MatchConflictsWithPrefer,
   /// - ✓ Instance has same semver number as highest/lowest semver in its group
   /// - ✘ Instance mismatches its semver group
   /// - ✘ Range preferred by semver group will not satisfy the highest/lowest semver
   /// - ? We can't know whether the incompatible range matters or not and have to ask
-  SemverRangeMismatchConflictsWithPreferVersion,
+  MismatchConflictsWithPrefer,
   /// - ✓ Instance has same semver number as the matching snapTo instance
   /// - ✓ Instance matches its semver group
   /// - ✘ Range preferred by semver group will not satisfy the matching snapTo instance
   /// - ? We can't know whether the incompatible range matters or not and have to ask
-  SemverRangeMatchConflictsWithSnapToVersion,
+  MatchConflictsWithSnapTo,
   /// - ✓ Instance has same semver number as the matching snapTo instance
   /// - ✘ Instance mismatches its semver group
   /// - ✘ Range preferred by semver group will not satisfy the matching snapTo instance
   /// - ? We can't know whether the incompatible range matters or not and have to ask
-  SemverRangeMismatchConflictsWithSnapToVersion,
+  MismatchConflictsWithSnapTo,
   /// - ✓ Instance has same semver number as local instance in its group
   /// - ✓ Instance matches its semver group
   /// - ✘ Range preferred by semver group will not satisfy the local instance
   /// - ? We can't know whether the incompatible range matters or not and have to ask
-  SemverRangeMatchConflictsWithLocalVersion,
+  MatchConflictsWithLocal,
   /// - ✓ Instance has same semver number as local instance
   /// - ✘ Instance mismatches its semver group
   /// - ✘ Range preferred by semver group will not satisfy the local instance
   /// - ? We can't know whether the incompatible range matters or not and have to ask
-  SemverRangeMismatchConflictsWithLocalVersion,
-  /* = Unfixable ============================================================ */
+  MismatchConflictsWithLocal,
+}
+
+#[derive(Clone, Debug, Eq, Hash, PartialEq)]
+pub enum UnfixableInstance {
   /// - ✘ Instance depends on a local package whose package.json version is not exact semver
   /// - ? We can't know what the version should be
   MismatchesInvalidLocalVersion,
@@ -173,6 +181,39 @@ pub enum InstanceState {
   ///     to packages
   /// - ✘ This is a misconfiguration resulting in this instance being orphaned
   SnapToVersionNotFound,
+}
+
+#[derive(Clone, Debug, Eq, Hash, PartialEq)]
+pub enum InvalidInstance {
+  Fixable(FixableInstance),
+  Conflict(SemverGroupAndVersionConflict),
+  Unfixable(UnfixableInstance),
+}
+
+#[derive(Clone, Debug, Eq, Hash, PartialEq)]
+pub enum InstanceState {
+  Unknown,
+  Valid(ValidInstance),
+  Suspect(SuspectInstance),
+  Invalid(InvalidInstance),
+}
+
+impl InstanceState {
+  pub fn valid(state: ValidInstance) -> Self {
+    InstanceState::Valid(state)
+  }
+  pub fn suspect(state: SuspectInstance) -> Self {
+    InstanceState::Suspect(state)
+  }
+  pub fn fixable(state: FixableInstance) -> Self {
+    InstanceState::Invalid(InvalidInstance::Fixable(state))
+  }
+  pub fn conflict(state: SemverGroupAndVersionConflict) -> Self {
+    InstanceState::Invalid(InvalidInstance::Conflict(state))
+  }
+  pub fn unfixable(state: UnfixableInstance) -> Self {
+    InstanceState::Invalid(InvalidInstance::Unfixable(state))
+  }
 }
 
 impl Instance {
@@ -206,6 +247,30 @@ impl Instance {
     *self.state.borrow_mut() = state;
     *self.expected_specifier.borrow_mut() = Some(expected_specifier.clone());
     self
+  }
+
+  pub fn mark_valid(&self, state: ValidInstance, expected_specifier: &Specifier) -> &Self {
+    self.set_state(InstanceState::Valid(state), expected_specifier)
+  }
+
+  pub fn mark_suspect(&self, state: SuspectInstance, expected_specifier: &Specifier) -> &Self {
+    self.set_state(InstanceState::Suspect(state), expected_specifier)
+  }
+
+  pub fn mark_invalid(&self, state: InvalidInstance, expected_specifier: &Specifier) -> &Self {
+    self.set_state(InstanceState::Invalid(state), expected_specifier)
+  }
+
+  pub fn mark_fixable(&self, state: FixableInstance, expected_specifier: &Specifier) -> &Self {
+    self.mark_invalid(InvalidInstance::Fixable(state), expected_specifier)
+  }
+
+  pub fn mark_conflict(&self, state: SemverGroupAndVersionConflict, expected_specifier: &Specifier) -> &Self {
+    self.mark_invalid(InvalidInstance::Conflict(state), expected_specifier)
+  }
+
+  pub fn mark_unfixable(&self, state: UnfixableInstance, expected_specifier: &Specifier) -> &Self {
+    self.mark_invalid(InvalidInstance::Unfixable(state), expected_specifier)
   }
 
   /// If this instance should use a preferred semver range, store it

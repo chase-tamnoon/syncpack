@@ -4,13 +4,13 @@ use crate::{
   instance::Instance,
   package_json::PackageJson,
   specifier::{orderable::IsOrderable, semver::Semver, simple_semver::SimpleSemver, Specifier},
-  version_group::Variant,
+  version_group::VersionGroupVariant,
 };
 
 #[derive(Debug, Eq, PartialEq)]
 pub enum DependencyState {
   Valid,
-  Warning,
+  Suspect,
   Invalid,
 }
 
@@ -29,16 +29,16 @@ pub struct Dependency {
   pub pinned_specifier: Option<Specifier>,
   /// package.json files developed in the monorepo when variant is `SnappedTo`
   pub snapped_to_packages: Option<Vec<Rc<RefCell<PackageJson>>>>,
-  /// The state of whether this dependency is valid, warning, or invalid
+  /// The state of whether this dependency is valid, suspect, or invalid
   pub state: RefCell<DependencyState>,
   /// What behaviour has this group been configured to exhibit?
-  pub variant: Variant,
+  pub variant: VersionGroupVariant,
 }
 
 impl Dependency {
   pub fn new(
     name: String,
-    variant: Variant,
+    variant: VersionGroupVariant,
     pinned_specifier: Option<Specifier>,
     snapped_to_packages: Option<Vec<Rc<RefCell<PackageJson>>>>,
   ) -> Dependency {
@@ -62,7 +62,7 @@ impl Dependency {
     fn get_severity(state: &DependencyState) -> i32 {
       match state {
         DependencyState::Valid => 0,
-        DependencyState::Warning => 1,
+        DependencyState::Suspect => 1,
         DependencyState::Invalid => 2,
       }
     }
@@ -119,7 +119,7 @@ impl Dependency {
 
   /// Get the highest (or lowest) semver specifier in this group.
   pub fn get_highest_or_lowest_specifier(&self) -> Option<Specifier> {
-    let prefer_highest = matches!(self.variant, Variant::HighestSemver);
+    let prefer_highest = matches!(self.variant, VersionGroupVariant::HighestSemver);
     let preferred_order = if prefer_highest { Ordering::Greater } else { Ordering::Less };
     self
       .instances

@@ -1,7 +1,7 @@
 use colored::*;
 use log::info;
 
-use crate::{context::Context, version_group::Variant};
+use crate::{context::Context, version_group::VersionGroupVariant};
 
 /// Run the fix command side effects
 pub fn run(ctx: Context) -> Context {
@@ -10,32 +10,32 @@ pub fn run(ctx: Context) -> Context {
     ctx.version_groups.iter().for_each(|group| {
       group.dependencies.borrow().values().for_each(|dependency| {
         match dependency.variant {
-          Variant::Banned => {
+          VersionGroupVariant::Banned => {
             dependency.instances.borrow().iter().for_each(|instance| {
               //
             });
           }
-          Variant::HighestSemver | Variant::LowestSemver => {
+          VersionGroupVariant::HighestSemver | VersionGroupVariant::LowestSemver => {
             dependency.instances.borrow().iter().for_each(|instance| {
               //
             });
           }
-          Variant::Ignored => {
+          VersionGroupVariant::Ignored => {
             dependency.instances.borrow().iter().for_each(|instance| {
               //
             });
           }
-          Variant::Pinned => {
+          VersionGroupVariant::Pinned => {
             dependency.instances.borrow().iter().for_each(|instance| {
               //
             });
           }
-          Variant::SameRange => {
+          VersionGroupVariant::SameRange => {
             dependency.instances.borrow().iter().for_each(|instance| {
               //
             });
           }
-          Variant::SnappedTo => {
+          VersionGroupVariant::SnappedTo => {
             dependency.instances.borrow().iter().for_each(|instance| {
               //
             });

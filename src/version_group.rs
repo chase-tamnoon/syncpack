@@ -9,7 +9,7 @@ use crate::{
 
 /// What behaviour has this group been configured to exhibit?
 #[derive(Clone, Debug)]
-pub enum Variant {
+pub enum VersionGroupVariant {
   Banned,
   HighestSemver,
   Ignored,
@@ -21,23 +21,24 @@ pub enum Variant {
 
 #[derive(Debug)]
 pub struct VersionGroup {
-  /// What behaviour has this group been configured to exhibit?
-  pub variant: Variant,
-  /// Data to determine which instances should be added to this group
-  pub selector: GroupSelector,
   /// Group instances of each dependency together for comparison.
   pub dependencies: RefCell<BTreeMap<String, Dependency>>,
   /// The version to pin all instances to when variant is `Pinned`
   pub pin_version: Option<Specifier>,
+  /// Data to determine which instances should be added to this group
+  pub selector: GroupSelector,
   /// package.json files whose names match the `snapTo` config when variant is `SnappedTo`
   pub snap_to: Option<Vec<Rc<RefCell<PackageJson>>>>,
+  /// What behaviour has this group been configured to exhibit?
+  pub variant: VersionGroupVariant,
 }
 
 impl VersionGroup {
   /// Create a default/catch-all group which would apply to any instance
   pub fn get_catch_all() -> VersionGroup {
     VersionGroup {
-      variant: Variant::HighestSemver,
+      dependencies: RefCell::new(BTreeMap::new()),
+      pin_version: None,
       selector: GroupSelector::new(
         /*include_dependencies:*/ vec![],
         /*include_dependency_types:*/ vec![],
@@ -45,9 +46,8 @@ impl VersionGroup {
         /*include_packages:*/ vec![],
         /*include_specifier_types:*/ vec![],
       ),
-      dependencies: RefCell::new(BTreeMap::new()),
-      pin_version: None,
       snap_to: None,
+      variant: VersionGroupVariant::HighestSemver,
     }
   }
 
@@ -78,39 +78,39 @@ impl VersionGroup {
 
     if let Some(true) = group.is_banned {
       return VersionGroup {
-        variant: Variant::Banned,
-        selector,
         dependencies: RefCell::new(BTreeMap::new()),
         pin_version: None,
+        selector,
         snap_to: None,
+        variant: VersionGroupVariant::Banned,
       };
     }
     if let Some(true) = group.is_ignored {
       return VersionGroup {
-        variant: Variant::Ignored,
-        selector,
         dependencies: RefCell::new(BTreeMap::new()),
         pin_version: None,
+        selector,
         snap_to: None,
+        variant: VersionGroupVariant::Ignored,
       };
     }
     if let Some(pin_version) = &group.pin_version {
       return VersionGroup {
-        variant: Variant::Pinned,
-        selector,
         dependencies: RefCell::new(BTreeMap::new()),
         pin_version: Some(Specifier::new(pin_version)),
+        selector,
         snap_to: None,
+        variant: VersionGroupVariant::Pinned,
       };
     }
     if let Some(policy) = &group.policy {
       if policy == "sameRange" {
         return VersionGroup {
-          variant: Variant::SameRange,
-          selector,
           dependencies: RefCell::new(BTreeMap::new()),
           pin_version: None,
+          selector,
           snap_to: None,
+          variant: VersionGroupVariant::SameRange,
         };
       } else {
         // @FIXME: show user friendly error message and exit with error code
@@ -119,10 +119,9 @@ impl VersionGroup {
     }
     if let Some(snap_to) = &group.snap_to {
       return VersionGroup {
-        variant: Variant::SnappedTo,
-        selector,
         dependencies: RefCell::new(BTreeMap::new()),
         pin_version: None,
+        selector,
         snap_to: Some(
           snap_to
             .iter()
@@ -139,27 +138,28 @@ impl VersionGroup {
             })
             .collect(),
         ),
+        variant: VersionGroupVariant::SnappedTo,
       };
     }
     if let Some(prefer_version) = &group.prefer_version {
       return VersionGroup {
-        variant: if prefer_version == "lowestSemver" {
-          Variant::LowestSemver
-        } else {
-          Variant::HighestSemver
-        },
-        selector,
         dependencies: RefCell::new(BTreeMap::new()),
         pin_version: None,
+        selector,
         snap_to: None,
+        variant: if prefer_version == "lowestSemver" {
+          VersionGroupVariant::LowestSemver
+        } else {
+          VersionGroupVariant::HighestSemver
+        },
       };
     }
     VersionGroup {
-      variant: Variant::HighestSemver,
-      selector,
       dependencies: RefCell::new(BTreeMap::new()),
       pin_version: None,
+      selector,
       snap_to: None,
+      variant: VersionGroupVariant::HighestSemver,
     }
   }
 }
