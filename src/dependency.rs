@@ -1,18 +1,17 @@
-use std::{cell::RefCell, cmp::Ordering, rc::Rc, vec};
+use std::{
+  cell::RefCell,
+  cmp::Ordering,
+  collections::{BTreeMap, HashSet},
+  rc::Rc,
+  vec,
+};
 
 use crate::{
-  instance::Instance,
+  instance::{Instance, InstanceState},
   package_json::PackageJson,
   specifier::{orderable::IsOrderable, semver::Semver, simple_semver::SimpleSemver, Specifier},
   version_group::VersionGroupVariant,
 };
-
-#[derive(Debug, Eq, PartialEq)]
-pub enum DependencyState {
-  Valid,
-  Suspect,
-  Invalid,
-}
 
 #[derive(Debug)]
 pub struct Dependency {
@@ -29,8 +28,6 @@ pub struct Dependency {
   pub pinned_specifier: Option<Specifier>,
   /// package.json files developed in the monorepo when variant is `SnappedTo`
   pub snapped_to_packages: Option<Vec<Rc<RefCell<PackageJson>>>>,
-  /// The state of whether this dependency is valid, suspect, or invalid
-  pub state: RefCell<DependencyState>,
   /// What behaviour has this group been configured to exhibit?
   pub variant: VersionGroupVariant,
 }
@@ -49,27 +46,8 @@ impl Dependency {
       name,
       pinned_specifier,
       snapped_to_packages,
-      state: RefCell::new(DependencyState::Valid),
       variant,
     }
-  }
-
-  pub fn has_state(&self, state: DependencyState) -> bool {
-    *self.state.borrow() == state
-  }
-
-  pub fn set_state(&self, state: DependencyState) -> &Self {
-    fn get_severity(state: &DependencyState) -> i32 {
-      match state {
-        DependencyState::Valid => 0,
-        DependencyState::Suspect => 1,
-        DependencyState::Invalid => 2,
-      }
-    }
-    if get_severity(&state) > get_severity(&self.state.borrow()) {
-      *self.state.borrow_mut() = state;
-    }
-    self
   }
 
   pub fn add_instance(&self, instance: Rc<Instance>) {
@@ -77,6 +55,34 @@ impl Dependency {
     if instance.is_local {
       *self.local_instance.borrow_mut() = Some(Rc::clone(&instance));
     }
+  }
+
+  pub fn get_unique_specifiers(&self) -> Vec<Specifier> {
+    let set: HashSet<Specifier> = self
+      .instances
+      .borrow()
+      .iter()
+      .map(|instance| instance.actual_specifier.clone())
+      .collect();
+    set.into_iter().collect()
+  }
+
+  /// Return the most severe state of all instances in this group
+  pub fn get_state(&self) -> InstanceState {
+    self
+      .instances
+      .borrow()
+      .iter()
+      .fold(InstanceState::Unknown, |acc, instance| acc.max(instance.state.borrow().clone()))
+  }
+
+  pub fn get_instances_by_specifier(&self) -> BTreeMap<String, Vec<Rc<Instance>>> {
+    let mut map = BTreeMap::new();
+    for instance in self.instances.borrow().iter() {
+      let specifier = instance.actual_specifier.unwrap();
+      map.entry(specifier).or_insert_with(Vec::new).push(Rc::clone(instance));
+    }
+    map
   }
 
   pub fn set_expected_specifier(&self, specifier: &Specifier) -> &Self {

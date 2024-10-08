@@ -1,6 +1,6 @@
 use log::debug;
 use serde_json::Value;
-use std::{cell::RefCell, path::PathBuf, rc::Rc};
+use std::{cell::RefCell, cmp::Ordering, path::PathBuf, rc::Rc};
 
 use crate::{
   dependency_type::{DependencyType, Strategy},
@@ -209,7 +209,7 @@ impl Instance {
   }
 }
 
-#[derive(Clone, Debug, Eq, Hash, PartialEq)]
+#[derive(Clone, Debug)]
 pub enum InstanceState {
   Unknown,
   Valid(ValidInstance),
@@ -232,6 +232,52 @@ impl InstanceState {
   }
   pub fn unfixable(state: UnfixableInstance) -> Self {
     InstanceState::Invalid(InvalidInstance::Unfixable(state))
+  }
+  pub fn get_name(&self) -> String {
+    match self {
+      InstanceState::Unknown => "Unknown".to_string(),
+      InstanceState::Valid(variant) => format!("{:?}", variant),
+      InstanceState::Invalid(variant) => match variant {
+        InvalidInstance::Fixable(variant) => format!("{:?}", variant),
+        InvalidInstance::Conflict(variant) => format!("{:?}", variant),
+        InvalidInstance::Unfixable(variant) => format!("{:?}", variant),
+      },
+      InstanceState::Suspect(variant) => format!("{:?}", variant),
+    }
+  }
+}
+
+impl PartialEq for InstanceState {
+  fn eq(&self, other: &Self) -> bool {
+    self.cmp(other) == Ordering::Equal
+  }
+}
+
+impl Eq for InstanceState {}
+
+impl PartialOrd for InstanceState {
+  fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+    Some(self.cmp(other))
+  }
+}
+
+impl Ord for InstanceState {
+  /// The order of severity is:
+  /// 1. Unknown
+  /// 2. Valid
+  /// 3. Suspect
+  /// 4. Invalid
+  fn cmp(&self, other: &Self) -> Ordering {
+    use InstanceState::*;
+    match (self, other) {
+      (Unknown, Unknown) | (Valid(_), Valid(_)) | (Suspect(_), Suspect(_)) | (Invalid(_), Invalid(_)) => Ordering::Equal,
+      (Unknown, _) => Ordering::Less,
+      (Valid(_), _) => Ordering::Less,
+      (_, Valid(_)) => Ordering::Greater,
+      (_, Unknown) => Ordering::Greater,
+      (Suspect(_), _) => Ordering::Less,
+      (_, Suspect(_)) => Ordering::Greater,
+    }
   }
 }
 
