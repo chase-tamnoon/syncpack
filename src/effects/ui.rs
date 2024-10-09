@@ -7,10 +7,10 @@ use log::info;
 use crate::{
   context::Context,
   dependency::Dependency,
-  instance::{Instance, InstanceState},
+  instance::{Instance, InstanceState, ValidInstance},
   package_json::{FormatMismatch, FormatMismatchVariant, PackageJson},
   specifier::Specifier,
-  version_group::{VersionGroup, VersionGroupVariant},
+  version_group::VersionGroup,
 };
 
 #[derive(Debug)]
@@ -59,6 +59,10 @@ impl<'a> Ui<'a> {
     format!("\x1b]8;;{}\x1b\\{}\x1b]8;;\x1b\\", url.into(), text.into()).normal()
   }
 
+  pub fn print_command_header(&self, msg: &str) {
+    info!("{}", format!(" {msg} ").on_blue().black());
+  }
+
   pub fn print_group_header(&self, group: &VersionGroup) {
     let print_width = 80;
     let label = &group.selector.label;
@@ -73,17 +77,19 @@ impl<'a> Ui<'a> {
   }
 
   pub fn print_dependency_header(&self, dependency: &Dependency) {
-    if !self.show_ignored && matches!(dependency.variant, VersionGroupVariant::Ignored) {
-      return;
-    }
     let state = dependency.get_state();
+    let count = self.count_column(dependency.instances.borrow().len());
+    let status_code = self.get_dependency_status_code(dependency);
+    if matches!(state, InstanceState::Valid(ValidInstance::Ignored)) {
+      let icon = "?".dimmed();
+      let name = &dependency.name;
+      return info!("{count} {icon} {name} {status_code}");
+    }
     let name = if matches!(state, InstanceState::Invalid(_)) {
       dependency.name.red()
     } else {
       dependency.name.normal()
     };
-    let count = self.count_column(dependency.instances.borrow().len());
-    let status_code = self.get_dependency_status_code(dependency);
     let unique_specifiers = dependency.get_unique_specifiers();
     let icon_will_be_shown_by_every_instance = self.show_instances;
     let icon = if icon_will_be_shown_by_every_instance {
@@ -119,7 +125,10 @@ impl<'a> Ui<'a> {
 
   fn get_dependency_status_code(&self, dependency: &Dependency) -> ColoredString {
     let state = dependency.get_state();
-    let has_issue = matches!(state, InstanceState::Invalid(_) | InstanceState::Suspect(_));
+    let has_issue = matches!(
+      state,
+      InstanceState::Invalid(_) | InstanceState::Suspect(_) | InstanceState::Valid(ValidInstance::Ignored)
+    );
     let will_be_shown_by_every_instance = self.show_instances;
     if has_issue && !will_be_shown_by_every_instance {
       self.instance_state_link(&state)
@@ -162,7 +171,7 @@ impl<'a> Ui<'a> {
 
   pub fn state_icon(&self, state: &InstanceState) -> ColoredString {
     match state {
-      InstanceState::Valid(_) => self.green_tick(),
+      InstanceState::Valid(variant) => self.green_tick(),
       InstanceState::Invalid(_) => self.red_cross(),
       InstanceState::Suspect(_) => self.yellow_warning(),
       InstanceState::Unknown => panic!("Unknown state"),
@@ -187,7 +196,7 @@ impl<'a> Ui<'a> {
   pub fn print_formatted_package(&self, package: &PackageJson) {
     if package.formatting_mismatches.borrow().is_empty() {
       let icon = "-".dimmed();
-      let file_link = self.package_json_link(package).blue();
+      let file_link = self.package_json_link(package);
       info!("      {icon} {file_link}");
     }
   }
@@ -206,7 +215,7 @@ impl<'a> Ui<'a> {
           let icon = "-".dimmed();
           let package = mismatch.package.borrow();
           let property_path = self.format_path(&mismatch.property_path).dimmed();
-          let file_link = self.package_json_link(&package).blue();
+          let file_link = self.package_json_link(&package);
           let in_ = "in".dimmed();
           let at = "at".dimmed();
           let msg = format!("      {icon} {in_} {file_link} {at} {property_path}");
@@ -233,22 +242,35 @@ impl<'a> Ui<'a> {
   }
 
   fn print_instance(&self, instance: &Instance) {
-    let state = instance.state.borrow();
-    let state_icon = self.state_icon(&state);
+    let state = instance.state.borrow().clone();
     let specifier = instance.actual_specifier.unwrap();
-    let specifier = match *state {
-      InstanceState::Valid(_) => specifier.green(),
-      InstanceState::Invalid(_) => specifier.red(),
-      InstanceState::Suspect(_) => specifier.yellow(),
+    let specifier = match &state {
+      InstanceState::Valid(variant) => {
+        if matches!(variant, ValidInstance::Ignored) {
+          let icon = "-";
+          format!("{icon} {specifier}").dimmed()
+        } else {
+          let icon = self.green_tick();
+          format!("{icon} {specifier}").green()
+        }
+      }
+      InstanceState::Invalid(_) => {
+        let icon = self.red_cross();
+        format!("{icon} {specifier}").red()
+      }
+      InstanceState::Suspect(_) => {
+        let icon = self.yellow_warning();
+        format!("{icon} {specifier}").yellow()
+      }
       InstanceState::Unknown => "".normal(),
     };
     let package = instance.package.borrow();
     let property_path = instance.dependency_type.path.replace("/", ".").dimmed();
-    let file_link = self.package_json_link(&package).blue();
+    let file_link = self.package_json_link(&package);
     let in_ = "in".dimmed();
     let state_link = self.instance_state_link(&state);
     let tail = format!("at {property_path} {state_link}").dimmed();
-    info!("      {state_icon} {specifier} {in_} {file_link} {tail}");
+    info!("      {specifier} {in_} {file_link} {tail}");
   }
 
   /*

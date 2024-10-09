@@ -1,6 +1,4 @@
-use colored::*;
 use itertools::Itertools;
-use log::info;
 
 use crate::{context::Context, effects::ui::Ui, version_group::VersionGroupVariant};
 
@@ -10,13 +8,13 @@ pub fn run(ctx: Context) -> Context {
   let ui = Ui {
     ctx: &ctx,
     show_ignored: true,
-    show_instances: true,
+    show_instances: false,
     show_status_codes: true,
-    show_packages: true,
+    show_packages: false,
   };
 
   if ctx.config.cli.options.versions {
-    info!("{}", "= SEMVER RANGES AND VERSION MISMATCHES".dimmed());
+    ui.print_command_header("SEMVER RANGES AND VERSION MISMATCHES");
     ctx.version_groups.iter().for_each(|group| {
       ui.print_group_header(group);
       group.dependencies.borrow().values().for_each(|dependency| {
@@ -31,8 +29,10 @@ pub fn run(ctx: Context) -> Context {
             ui.print_instances(&dependency.instances.borrow());
           }
           VersionGroupVariant::Ignored => {
-            ui.print_dependency_header(dependency);
-            ui.print_instances(&dependency.instances.borrow());
+            if ui.show_ignored {
+              ui.print_dependency_header(dependency);
+              ui.print_instances(&dependency.instances.borrow());
+            }
           }
           VersionGroupVariant::Pinned => {
             ui.print_dependency_header(dependency);
@@ -51,7 +51,7 @@ pub fn run(ctx: Context) -> Context {
     });
   }
   if ctx.config.cli.options.format {
-    info!("{}", "= FORMATTING".dimmed());
+    ui.print_command_header("FORMATTING");
     let formatted_packages = ctx
       .packages
       .by_name
