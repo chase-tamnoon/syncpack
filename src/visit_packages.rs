@@ -4,14 +4,14 @@ mod visit_packages_test;
 
 use itertools::Itertools;
 use log::debug;
-use std::{cmp::Ordering, rc::Rc};
+use std::{cell::RefCell, cmp::Ordering, rc::Rc};
 
 use crate::{
   config::Config,
   context::Context,
   format,
   instance::{FixableInstance::*, SemverGroupAndVersionConflict::*, SuspectInstance::*, UnfixableInstance::*, ValidInstance::*},
-  package_json::{FormatMismatch, FormatMismatchVariant::*},
+  package_json::{FormatMismatch, FormatMismatchVariant::*, PackageJson},
   packages::Packages,
   specifier::{semver_range::SemverRange, Specifier},
   version_group::VersionGroupVariant,
@@ -382,58 +382,80 @@ pub fn visit_packages(config: Config, packages: Packages) -> Context {
   }
 
   if ctx.config.cli.options.format {
+    let add_mismatch = |package: &Rc<RefCell<PackageJson>>, mismatch: FormatMismatch| {
+      let mismatch = Rc::new(mismatch);
+      let mut mismatches_by_variant = ctx.formatting_mismatches_by_variant.borrow_mut();
+      let mismatches = mismatches_by_variant.entry(mismatch.variant.clone()).or_default();
+      mismatches.push(Rc::clone(&mismatch));
+      package.borrow().formatting_mismatches.borrow_mut().push(Rc::clone(&mismatch));
+    };
+
     ctx.packages.by_name.values().for_each(|package| {
-      let mut formatting_mismatches: Vec<FormatMismatch> = Vec::new();
       if ctx.config.rcfile.format_bugs {
         if let Some(expected) = format::get_formatted_bugs(&package.borrow()) {
-          formatting_mismatches.push(FormatMismatch {
-            expected,
-            package: Rc::clone(package),
-            property_path: "/bugs".to_string(),
-            variant: BugsPropertyIsNotFormatted,
-          });
+          add_mismatch(
+            package,
+            FormatMismatch {
+              expected,
+              package: Rc::clone(package),
+              property_path: "/bugs".to_string(),
+              variant: BugsPropertyIsNotFormatted,
+            },
+          );
         }
       }
       if ctx.config.rcfile.format_repository {
         if let Some(expected) = format::get_formatted_repository(&package.borrow()) {
-          formatting_mismatches.push(FormatMismatch {
-            expected,
-            package: Rc::clone(package),
-            property_path: "/repository".to_string(),
-            variant: RepositoryPropertyIsNotFormatted,
-          });
+          add_mismatch(
+            package,
+            FormatMismatch {
+              expected,
+              package: Rc::clone(package),
+              property_path: "/repository".to_string(),
+              variant: RepositoryPropertyIsNotFormatted,
+            },
+          );
         }
       }
       if !ctx.config.rcfile.sort_exports.is_empty() {
         if let Some(expected) = format::get_sorted_exports(&ctx.config.rcfile, &package.borrow()) {
-          formatting_mismatches.push(FormatMismatch {
-            expected,
-            package: Rc::clone(package),
-            property_path: "/exports".to_string(),
-            variant: ExportsPropertyIsNotSorted,
-          });
+          add_mismatch(
+            package,
+            FormatMismatch {
+              expected,
+              package: Rc::clone(package),
+              property_path: "/exports".to_string(),
+              variant: ExportsPropertyIsNotSorted,
+            },
+          );
         }
       }
       if !ctx.config.rcfile.sort_az.is_empty() {
         for key in ctx.config.rcfile.sort_az.iter() {
           if let Some(expected) = format::get_sorted_az(key, &package.borrow()) {
-            formatting_mismatches.push(FormatMismatch {
-              expected,
-              package: Rc::clone(package),
-              property_path: format!("/{}", key),
-              variant: PropertyIsNotSortedAz,
-            });
+            add_mismatch(
+              package,
+              FormatMismatch {
+                expected,
+                package: Rc::clone(package),
+                property_path: format!("/{}", key),
+                variant: PropertyIsNotSortedAz,
+              },
+            );
           }
         }
       }
       if ctx.config.rcfile.sort_packages || !ctx.config.rcfile.sort_first.is_empty() {
         if let Some(expected) = format::get_sorted_first(&ctx.config.rcfile, &package.borrow()) {
-          formatting_mismatches.push(FormatMismatch {
-            expected,
-            package: Rc::clone(package),
-            property_path: "/".to_string(),
-            variant: PackagePropertiesAreNotSorted,
-          });
+          add_mismatch(
+            package,
+            FormatMismatch {
+              expected,
+              package: Rc::clone(package),
+              property_path: "/".to_string(),
+              variant: PackagePropertiesAreNotSorted,
+            },
+          );
         }
       }
     });

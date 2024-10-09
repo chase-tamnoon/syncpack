@@ -1,6 +1,13 @@
-use std::rc::Rc;
+use std::{cell::RefCell, collections::HashMap, rc::Rc};
 
-use crate::{config::Config, instance::Instance, packages::Packages, semver_group::SemverGroup, version_group::VersionGroup};
+use crate::{
+  config::Config,
+  instance::Instance,
+  package_json::{FormatMismatch, FormatMismatchVariant},
+  packages::Packages,
+  semver_group::SemverGroup,
+  version_group::VersionGroup,
+};
 
 #[derive(Debug)]
 pub struct Context {
@@ -8,6 +15,8 @@ pub struct Context {
   pub config: Config,
   /// The exit code of the program
   pub exit_code: i32,
+  /// All formatting issues in package.json files
+  pub formatting_mismatches_by_variant: RefCell<HashMap<FormatMismatchVariant, Vec<Rc<FormatMismatch>>>>,
   /// Every instance in the project
   pub instances: Vec<Rc<Instance>>,
   /// Every package.json in the project
@@ -41,6 +50,7 @@ impl Context {
     Self {
       config,
       exit_code: 0,
+      formatting_mismatches_by_variant: RefCell::new(HashMap::new()),
       instances,
       packages,
       semver_groups,

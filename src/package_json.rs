@@ -10,7 +10,7 @@ pub struct PackageJson {
   /// The path to the package.json file
   pub file_path: PathBuf,
   /// Syncpack formatting mismatches found in the file
-  pub formatting_mismatches: RefCell<Vec<FormatMismatch>>,
+  pub formatting_mismatches: RefCell<Vec<Rc<FormatMismatch>>>,
   /// The original, unedited raw JSON string
   pub json: RefCell<String>,
   /// The parsed JSON object
@@ -29,7 +29,7 @@ pub struct FormatMismatch {
   pub variant: FormatMismatchVariant,
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug, Eq, PartialEq, Hash)]
 pub enum FormatMismatchVariant {
   /// - ✓ `rcFile.formatBugs` is enabled
   /// - ✘ The `bugs` property is not formatted

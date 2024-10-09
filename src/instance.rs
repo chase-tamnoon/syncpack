@@ -28,8 +28,6 @@ pub struct Instance {
   pub id: InstanceId,
   /// Whether this is a package developed in this repo
   pub is_local: bool,
-  /// eg. "in /devDependencies of @foo/numberwang"
-  pub location_hint: String,
   /// The dependency name eg. "react", "react-dom"
   pub name: String,
   /// The `.name` of the package.json this file is in
@@ -60,7 +58,6 @@ impl Instance {
       file_path: package.borrow().file_path.clone(),
       id: format!("{} in {} of {}", name, &dependency_type.path, package_name),
       is_local: dependency_type.path == "/version",
-      location_hint: format!("in {} of {}", &dependency_type.path, package_name),
       name,
       package: Rc::clone(&package),
       preferred_semver_range: RefCell::new(None),

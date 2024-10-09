@@ -42,11 +42,10 @@ impl Packages {
   }
 
   /// Get all packages sorted by their file path
-  pub fn sorted_by_path(&self) -> IntoIter<&Rc<RefCell<PackageJson>>> {
-    let some_root_dir = PathBuf::new();
+  pub fn sorted_by_path(&self, cwd: &PathBuf) -> IntoIter<&Rc<RefCell<PackageJson>>> {
     self.by_name.values().sorted_by(|a, b| {
-      let a = a.borrow().get_relative_file_path(&some_root_dir);
-      let b = b.borrow().get_relative_file_path(&some_root_dir);
+      let a = a.borrow().get_relative_file_path(cwd);
+      let b = b.borrow().get_relative_file_path(cwd);
       if a == "package.json" {
         return Ordering::Less;
       }

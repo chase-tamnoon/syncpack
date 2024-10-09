@@ -123,7 +123,7 @@ run-fluid-prod:
 # Watch lint output during dev
 watch-fluid:
     #!/usr/bin/env bash
-    cargo watch --clear --shell 'cd fixtures/fluid-framework && RUST_BACKTRACE=1 cargo run -- lint --versions'
+    cargo watch --clear --shell 'cd fixtures/fluid-framework && RUST_BACKTRACE=1 cargo run -- lint --versions --format'
 
 # ==============================================================================
 # Build

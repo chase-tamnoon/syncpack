@@ -1,21 +1,36 @@
+use std::{cell::RefCell, rc::Rc};
+
 use colored::*;
+use itertools::Itertools;
 use log::info;
 
 use crate::{
+  context::Context,
   dependency::Dependency,
   instance::{Instance, InstanceState},
+  package_json::{FormatMismatch, FormatMismatchVariant, PackageJson},
   specifier::Specifier,
   version_group::{VersionGroup, VersionGroupVariant},
 };
 
 #[derive(Debug)]
-pub struct Ui {
+pub struct Ui<'a> {
+  pub ctx: &'a Context,
+  /// Whether to output ignored dependencies regardless
   pub show_ignored: bool,
+  /// Whether to list every affected instance of a dependency when listing
+  /// version or semver range
+  /// mismatches
   pub show_instances: bool,
+  /// Whether to show the name of the status code for each dependency and
+  /// instance, such as `HighestSemverMismatch`
   pub show_status_codes: bool,
+  /// Whether to list every affected package.json file when listing formatting
+  /// mismatches
+  pub show_packages: bool,
 }
 
-impl Ui {
+impl<'a> Ui<'a> {
   pub fn green_tick(&self) -> ColoredString {
     "✓".green()
   }
@@ -107,7 +122,7 @@ impl Ui {
     let has_issue = matches!(state, InstanceState::Invalid(_) | InstanceState::Suspect(_));
     let will_be_shown_by_every_instance = self.show_instances;
     if has_issue && !will_be_shown_by_every_instance {
-      self.state_link(&state)
+      self.instance_state_link(&state)
     } else {
       "".normal()
     }
@@ -119,7 +134,7 @@ impl Ui {
     format!("{: >4}x", count).dimmed()
   }
 
-  pub fn state_link(&self, instance_state: &InstanceState) -> ColoredString {
+  pub fn instance_state_link(&self, instance_state: &InstanceState) -> ColoredString {
     if !self.show_status_codes {
       return "".normal();
     }
@@ -128,6 +143,21 @@ impl Ui {
     let branch_name_lower_case = branch_name.to_lowercase();
     let plain_link = self.link(format!("{base_url}#{branch_name_lower_case}"), branch_name);
     format!("({plain_link})").dimmed()
+  }
+
+  pub fn format_mismatch_variant_link(&self, state: &FormatMismatchVariant) -> ColoredString {
+    let base_url = "https://jamiemason.github.io/syncpack/guide/status-codes/";
+    let branch_name = format!("{:?}", state);
+    let branch_name_lower_case = branch_name.to_lowercase();
+    let plain_link = self.link(format!("{base_url}#{branch_name_lower_case}"), branch_name);
+    format!("{plain_link}").normal()
+  }
+
+  pub fn package_json_link(&self, package: &PackageJson) -> ColoredString {
+    let name = package.get_name_unsafe();
+    let file_path = package.file_path.to_str().unwrap();
+    let plain_link = self.link(format!("file:{file_path}"), name);
+    format!("{plain_link}").normal()
   }
 
   pub fn state_icon(&self, state: &InstanceState) -> ColoredString {
@@ -139,62 +169,89 @@ impl Ui {
     }
   }
 
-  pub fn print_instance_link(&self, instance: &Instance) {
-    if !self.show_instances {
-      return;
+  pub fn print_formatted_packages(&self, packages: Vec<&Rc<RefCell<PackageJson>>>) {
+    if !packages.is_empty() {
+      let icon = self.green_tick();
+      let count = self.count_column(packages.len());
+      let status = "Valid".green();
+      info!("{count} {icon} {status}");
+      if self.show_packages {
+        packages.iter().for_each(|package| {
+          self.print_formatted_package(&package.borrow());
+        });
+      }
     }
+  }
+
+  /// Print a package.json which is correctly formatted
+  pub fn print_formatted_package(&self, package: &PackageJson) {
+    if package.formatting_mismatches.borrow().is_empty() {
+      let icon = "-".dimmed();
+      let file_link = self.package_json_link(package).blue();
+      info!("      {icon} {file_link}");
+    }
+  }
+
+  /// Print every package.json which has the given formatting mismatch
+  pub fn print_formatting_mismatches(&self, variant: &FormatMismatchVariant, mismatches: &[Rc<FormatMismatch>]) {
+    let count = self.count_column(mismatches.len());
+    let icon = self.red_cross();
+    let link = self.format_mismatch_variant_link(variant).red();
+    info!("{count} {icon} {link}");
+    if self.show_packages {
+      mismatches
+        .iter()
+        .sorted_by(|a, b| b.package.borrow().get_name_unsafe().cmp(&a.package.borrow().get_name_unsafe()))
+        .for_each(|mismatch| {
+          let icon = "-".dimmed();
+          let package = mismatch.package.borrow();
+          let property_path = self.format_path(&mismatch.property_path).dimmed();
+          let file_link = self.package_json_link(&package).blue();
+          let in_ = "in".dimmed();
+          let at = "at".dimmed();
+          let msg = format!("      {icon} {in_} {file_link} {at} {property_path}");
+          info!("{msg}");
+        });
+    }
+  }
+
+  /// Convert a Rust property path to a JS one
+  /// eg. "/dependencies/react" -> "dependencies.react"
+  fn format_path(&self, path: &str) -> ColoredString {
+    let path = path.replace("/", ".");
+    path.normal()
+  }
+
+  pub fn print_instances(&self, instances: &[Rc<Instance>]) {
+    if self.show_instances {
+      instances
+        .iter()
+        .sorted_unstable_by_key(|instance| (instance.actual_specifier.unwrap(), &instance.name, &instance.dependency_type.path))
+        .rev()
+        .for_each(|instance| self.print_instance(instance))
+    }
+  }
+
+  fn print_instance(&self, instance: &Instance) {
     let state = instance.state.borrow();
     let state_icon = self.state_icon(&state);
-    let specifier = &instance.actual_specifier.unwrap();
+    let specifier = instance.actual_specifier.unwrap();
     let specifier = match *state {
       InstanceState::Valid(_) => specifier.green(),
       InstanceState::Invalid(_) => specifier.red(),
       InstanceState::Suspect(_) => specifier.yellow(),
       InstanceState::Unknown => "".normal(),
     };
-    let location_hint = &instance.location_hint.as_str().dimmed();
-    let state_link = self.state_link(&state);
-    info!("      {state_icon} {specifier} {location_hint} {state_link}");
+    let package = instance.package.borrow();
+    let property_path = instance.dependency_type.path.replace("/", ".").dimmed();
+    let file_link = self.package_json_link(&package).blue();
+    let in_ = "in".dimmed();
+    let state_link = self.instance_state_link(&state);
+    let tail = format!("at {property_path} {state_link}").dimmed();
+    info!("      {state_icon} {specifier} {in_} {file_link} {tail}");
   }
 
   /*
-  fn on_package_format_match(package: &PackageJson) {
-    let file_path = package.borrow().get_relative_file_path(&self.config.cwd);
-    info!("{} {file_path}", green_tick());
-  }
-
-  fn on_package_format_mismatch(package: &PackageJson) {
-    let file_path = package.borrow().get_relative_file_path(&self.config.cwd);
-    info!("{} {file_path}", red_cross());
-    event.formatting_mismatches.iter().for_each(|mismatch| {
-      let property_path = &mismatch.property_path.dimmed();
-      let expected = &mismatch.expected;
-      match &mismatch.variant {
-        FormatMismatchVariant::BugsPropertyIsNotFormatted => {
-          let message = "is not in shorthand format".dimmed();
-          info!("  {property_path} {message}");
-        }
-        FormatMismatchVariant::RepositoryPropertyIsNotFormatted => {
-          let message = "is not in shorthand format".dimmed();
-          info!("  {property_path} {message}");
-        }
-        FormatMismatchVariant::ExportsPropertyIsNotSorted => {
-          let message = "is not sorted".dimmed();
-          info!("  {property_path} {message}");
-        }
-        FormatMismatchVariant::PropertyIsNotSortedAz => {
-          let message = "is not sorted alphabetically".dimmed();
-          info!("  {property_path} {message}");
-        }
-        FormatMismatchVariant::PackagePropertiesAreNotSorted => {
-          let message = "root properties are not sorted".dimmed();
-          info!("  {message}");
-        }
-      }
-    });
-    self.is_valid = false;
-  }
-
   fn on_exit_command() {
     if self.is_valid {
       info!("\n{} {}", green_tick(), "valid");
