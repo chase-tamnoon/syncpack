@@ -8,7 +8,7 @@ pub fn run(ctx: Context) -> Context {
   let ui = Ui {
     ctx: &ctx,
     show_ignored: true,
-    show_instances: false,
+    show_instances: true,
     show_status_codes: true,
     show_packages: false,
   };

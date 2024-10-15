@@ -53,7 +53,7 @@ pub fn visit_packages(config: Config, packages: Packages) -> Context {
                   debug!("      it is the local instance of a package developed locally in this monorepo");
                   debug!("        refuse to change it");
                   debug!("          mark as suspect, user should change their config");
-                  instance.mark_suspect(RefuseToBanLocal, &instance.actual_specifier);
+                  instance.mark_suspect(RefuseToBanLocal);
                 } else {
                   debug!("      it should be removed");
                   debug!("        mark as error");
@@ -72,11 +72,11 @@ pub fn visit_packages(config: Config, packages: Packages) -> Context {
                   if instance.is_local {
                     debug!("        it is the invalid local instance");
                     debug!("          mark as suspect");
-                    instance.mark_suspect(InvalidLocalVersion, &instance.actual_specifier);
+                    instance.mark_suspect(InvalidLocalVersion);
                   } else {
                     debug!("        it depends on an unknowable version of an invalid local instance");
                     debug!("          mark as error");
-                    instance.mark_unfixable(MismatchesInvalidLocalVersion, &instance.actual_specifier);
+                    instance.mark_unfixable(MismatchesInvalidLocalVersion);
                   }
                 });
               } else if dependency.has_local_instance() {
@@ -112,7 +112,7 @@ pub fn visit_packages(config: Config, packages: Packages) -> Context {
                       } else {
                         debug!("                  the preferred semver range will not satisfy the local version");
                         debug!("                    mark as unfixable error");
-                        instance.mark_conflict(MatchConflictsWithLocal, &instance.actual_specifier);
+                        instance.mark_conflict(MatchConflictsWithLocal);
                       }
                     } else {
                       debug!("                its semver range does not match its semver group");
@@ -123,7 +123,7 @@ pub fn visit_packages(config: Config, packages: Packages) -> Context {
                       } else {
                         debug!("                  the preferred semver range will not satisfy the local version");
                         debug!("                    mark as unfixable error");
-                        instance.mark_conflict(MismatchConflictsWithLocal, &instance.actual_specifier);
+                        instance.mark_conflict(MismatchConflictsWithLocal);
                       }
                     }
                     return;
@@ -166,7 +166,7 @@ pub fn visit_packages(config: Config, packages: Packages) -> Context {
                       } else {
                         debug!("                the preferred semver range will not satisfy the highest semver version");
                         debug!("                  mark as unfixable error");
-                        instance.mark_conflict(MatchConflictsWithPrefer, &instance.actual_specifier);
+                        instance.mark_conflict(MatchConflictsWithPrefer);
                       }
                     } else {
                       debug!("              its semver range does not match its semver group");
@@ -177,7 +177,7 @@ pub fn visit_packages(config: Config, packages: Packages) -> Context {
                       } else {
                         debug!("                the preferred semver range will not satisfy the highest semver version");
                         debug!("                  mark as unfixable error");
-                        instance.mark_conflict(MismatchConflictsWithPrefer, &instance.actual_specifier);
+                        instance.mark_conflict(MismatchConflictsWithPrefer);
                       }
                     }
                   } else {
@@ -211,7 +211,7 @@ pub fn visit_packages(config: Config, packages: Packages) -> Context {
                     debug!("        visit instance '{}' ({actual_specifier:?})", instance.id);
                     debug!("          it depends on a currently unknowable correct version from a set of unsupported version specifiers");
                     debug!("            mark as error");
-                    instance.mark_unfixable(MismatchesNonSemverPreferVersion, &instance.actual_specifier);
+                    instance.mark_unfixable(MismatchesNonSemverPreferVersion);
                   });
                 }
               }
@@ -237,7 +237,7 @@ pub fn visit_packages(config: Config, packages: Packages) -> Context {
                   debug!("      it is the local instance of a package developed locally in this monorepo");
                   debug!("        refuse to change it");
                   debug!("          mark as error, user should change their config");
-                  instance.mark_suspect(RefuseToPinLocal, &instance.actual_specifier);
+                  instance.mark_suspect(RefuseToPinLocal);
                   return;
                 }
                 debug!("      it depends on the local instance");
@@ -300,7 +300,7 @@ pub fn visit_packages(config: Config, packages: Packages) -> Context {
                   }
                 } else {
                   debug!("      its specifier does not satisfy all other instances in the group");
-                  instance.mark_unfixable(MismatchesSameRangeGroup, actual_specifier);
+                  instance.mark_unfixable(MismatchesSameRangeGroup);
                 }
               });
             }
@@ -317,7 +317,7 @@ pub fn visit_packages(config: Config, packages: Packages) -> Context {
                     debug!("        it is the local instance of a package developed locally in this monorepo");
                     debug!("          refuse to change it");
                     debug!("            mark as error, user should change their config");
-                    instance.mark_suspect(RefuseToSnapLocal, &instance.actual_specifier);
+                    instance.mark_suspect(RefuseToSnapLocal);
                     return;
                   }
                   debug!("        it is not a local instance of a package developed locally in this monorepo");
@@ -342,7 +342,7 @@ pub fn visit_packages(config: Config, packages: Packages) -> Context {
                       } else {
                         debug!("                the preferred semver range will not satisfy the target version");
                         debug!("                  mark as unfixable error");
-                        instance.mark_conflict(MatchConflictsWithSnapTo, &instance.actual_specifier);
+                        instance.mark_conflict(MatchConflictsWithSnapTo);
                       }
                     } else {
                       debug!("              its semver range does not match its semver group");
@@ -353,7 +353,7 @@ pub fn visit_packages(config: Config, packages: Packages) -> Context {
                       } else {
                         debug!("                the preferred semver range will not satisfy the target version");
                         debug!("                  mark as unfixable error");
-                        instance.mark_conflict(MismatchConflictsWithSnapTo, &instance.actual_specifier);
+                        instance.mark_conflict(MismatchConflictsWithSnapTo);
                       }
                     }
                   } else {
@@ -372,7 +372,7 @@ pub fn visit_packages(config: Config, packages: Packages) -> Context {
               } else {
                 debug!("    no target version was found");
                 dependency.instances.borrow().iter().for_each(|instance| {
-                  instance.mark_unfixable(SnapToVersionNotFound, &instance.actual_specifier);
+                  instance.mark_unfixable(SnapToVersionNotFound);
                 });
               }
             }

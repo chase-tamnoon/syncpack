@@ -67,34 +67,39 @@ impl Instance {
 
   /// Record what syncpack has determined the state of this instance is and what
   /// its expected specifier should be
-  pub fn set_state(&self, state: InstanceState, expected_specifier: &Specifier) -> &Self {
+  fn set_state(&self, state: InstanceState, expected_specifier: &Specifier) -> &Self {
     *self.state.borrow_mut() = state;
     *self.expected_specifier.borrow_mut() = Some(expected_specifier.clone());
     self
   }
 
+  /// Mark this instance as already having a valid specifier
   pub fn mark_valid(&self, state: ValidInstance, expected_specifier: &Specifier) -> &Self {
     self.set_state(InstanceState::Valid(state), expected_specifier)
   }
 
-  pub fn mark_suspect(&self, state: SuspectInstance, expected_specifier: &Specifier) -> &Self {
-    self.set_state(InstanceState::Suspect(state), expected_specifier)
+  /// Mark this instance as having something which doesn't look quite right, but
+  /// for the moment is not yet resulting in an issue
+  pub fn mark_suspect(&self, state: SuspectInstance) -> &Self {
+    self.set_state(InstanceState::Suspect(state), &self.actual_specifier)
   }
 
-  pub fn mark_invalid(&self, state: InvalidInstance, expected_specifier: &Specifier) -> &Self {
-    self.set_state(InstanceState::Invalid(state), expected_specifier)
-  }
-
+  /// Mark this instance as having a mismatch which can be auto-fixed
   pub fn mark_fixable(&self, state: FixableInstance, expected_specifier: &Specifier) -> &Self {
-    self.mark_invalid(InvalidInstance::Fixable(state), expected_specifier)
+    self.set_state(InstanceState::Invalid(InvalidInstance::Fixable(state)), expected_specifier)
   }
 
-  pub fn mark_conflict(&self, state: SemverGroupAndVersionConflict, expected_specifier: &Specifier) -> &Self {
-    self.mark_invalid(InvalidInstance::Conflict(state), expected_specifier)
+  /// Mark this instance as a mismatch which can't be auto-fixed, its semver
+  /// group and version group config are in conflict with one another, asking
+  /// for mutually exclusive versions
+  pub fn mark_conflict(&self, state: SemverGroupAndVersionConflict) -> &Self {
+    self.set_state(InstanceState::Invalid(InvalidInstance::Conflict(state)), &self.actual_specifier)
   }
 
-  pub fn mark_unfixable(&self, state: UnfixableInstance, expected_specifier: &Specifier) -> &Self {
-    self.mark_invalid(InvalidInstance::Unfixable(state), expected_specifier)
+  /// Mark this instance as a mismatch which can't be auto-fixed without user
+  /// input
+  pub fn mark_unfixable(&self, state: UnfixableInstance) -> &Self {
+    self.set_state(InstanceState::Invalid(InvalidInstance::Unfixable(state)), &self.actual_specifier)
   }
 
   /// If this instance should use a preferred semver range, store it
@@ -107,10 +112,6 @@ impl Instance {
   /// Does this instance's actual specifier match the expected specifier?
   pub fn already_equals(&self, expected: &Specifier) -> bool {
     self.actual_specifier == *expected
-  }
-
-  pub fn will_match_with_preferred_semver_range(&self, expected: &Specifier) -> bool {
-    self.get_specifier_with_preferred_semver_range().unwrap() == *expected
   }
 
   /// Does this instance belong to a `WithRange` semver group?
@@ -136,6 +137,7 @@ impl Instance {
     })
   }
 
+  /// Is the given semver range the preferred semver range for this instance?
   pub fn preferred_semver_range_is(&self, range: &SemverRange) -> bool {
     self.preferred_semver_range.borrow().as_ref().map(|r| r == range).unwrap_or(false)
   }
