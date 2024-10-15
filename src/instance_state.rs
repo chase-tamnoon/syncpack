@@ -75,41 +75,41 @@ impl Ord for InstanceState {
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]
 pub enum ValidInstance {
   /// - ✓ Instance is configured to be ignored by Syncpack
-  Ignored,
+  IsIgnored,
   /// - ✓ Instance is a local package and its version is valid
-  ValidLocal,
+  IsLocalAndValid,
   /// - ✓ Instance identical to the version of its locally-developed package
   /// - ✓ Instance matches its semver group
-  EqualsLocal,
+  IsIdenticalToLocal,
   /// - ✓ Instance matches the version of its locally-developed package
   /// - ✓ Instance matches its semver group
   /// - ! Considered a loose match we should highlight
-  MatchesLocal,
+  SatisfiesLocal,
   /// - ✓ Instance identical to highest/lowest semver in its group
   /// - ✓ Instance matches its semver group
-  EqualsPreferVersion,
+  IsHighestOrLowestSemver,
   /// - ✓ Instance has same semver number as highest/lowest semver in its group
   /// - ✓ Instance matches its semver group
   /// - ✓ Range preferred by semver group satisfies the highest/lowest semver
   /// - ! Considered a loose match we should highlight
-  MatchesPreferVersion,
+  SatisfiesHighestOrLowestSemver,
   /// - ! No Instances are simple semver
   /// - ✓ Instance identical to every other instance in its version group
-  EqualsNonSemverPreferVersion,
+  IsNonSemverButIdentical,
   /// - ✓ Instance identical to its pinned version group
   /// - ✓ Instance matches its semver group
-  EqualsPin,
+  IsIdenticalToPin,
   /// - ✓ Instance matches its same range group
   /// - ✓ Instance matches its semver group
-  MatchesSameRangeGroup,
+  SatisfiesSameRangeGroup,
   /// - ✓ Instance identical to a matching snapTo instance
   /// - ✓ Instance matches its semver group
-  EqualsSnapToVersion,
+  IsIdenticalToSnapTarget,
   /// - ✓ Instance has same semver number as matching snapTo instance
   /// - ✓ Instance matches its semver group
   /// - ✓ Range preferred by semver group satisfies the matching snapTo instance
   /// - ! Considered a loose match we should highlight
-  MatchesSnapToVersion,
+  SatisfiesSnapTarget,
 }
 
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]
@@ -122,15 +122,15 @@ pub enum InvalidInstance {
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]
 pub enum FixableInstance {
   /// - ✘ Instance is in a banned version group
-  Banned,
+  IsBanned,
   /// - ✘ Instance mismatches the version of its locally-developed package
-  MismatchesLocal,
+  DiffersToLocal,
   /// - ✘ Instance mismatches highest/lowest semver in its group
-  MismatchesPreferVersion,
+  DiffersToHighestOrLowestSemver,
   /// - ✘ Instance mismatches the matching snapTo instance
-  MismatchesSnapToVersion,
+  DiffersToSnapTarget,
   /// - ✘ Instance mismatches its pinned version group
-  MismatchesPin,
+  DiffersToPin,
   /// - ✓ Instance has same semver number as highest/lowest semver in its group
   /// - ✘ Instance mismatches its semver group
   /// - ✓ Range preferred by semver group satisfies the highest/lowest semver
@@ -140,32 +140,32 @@ pub enum FixableInstance {
   /// - ✓ Instance matches its semver group
   /// - ! The semver group requires a range which is different to the pinned version
   /// - ! Pinned version wins
-  PinMatchOverridesSemverRangeMatch,
+  PinOverridesSemverRange,
   /// - ✓ Instance has same semver number as its pinned version group
   /// - ✘ Instance mismatches its semver group
   /// - ! The semver group requires a range which is different to the pinned version
   /// - ! Pinned version wins
-  PinMatchOverridesSemverRangeMismatch,
+  PinOverridesSemverRangeMismatch,
 }
 
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]
 pub enum UnfixableInstance {
   /// - ✘ Instance depends on a local package whose package.json version is not exact semver
   /// - ? We can't know what the version should be
-  MismatchesInvalidLocalVersion,
+  DependsOnInvalidLocalPackage,
   /// - ✘ Instance mismatches others in its group
   /// - ✘ One or more Instances are not simple semver
   /// - ? We can't know what's right or what isn't
-  MismatchesNonSemverPreferVersion,
+  NonSemverMismatch,
   /// - ✘ Instance mismatches its same range group
   /// - ? Instance has no semver group
   /// - ? We can't know what range the user wants and have to ask them
-  MismatchesSameRangeGroup,
+  SameRangeMismatch,
   /// - ✓ Instance is in a snapped to version group
   /// - ✘ An instance of the same dependency was not found in any of the snapped
   ///     to packages
   /// - ✘ This is a misconfiguration resulting in this instance being orphaned
-  SnapToVersionNotFound,
+  DependsOnMissingSnapTarget,
 }
 
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]
@@ -174,22 +174,22 @@ pub enum SemverGroupAndVersionConflict {
   /// - ✓ Instance matches its semver group
   /// - ✘ Range preferred by semver group will not satisfy the highest/lowest semver
   /// - ? We can't know whether the incompatible range matters or not and have to ask
-  MatchConflictsWithPrefer,
+  MatchConflictsWithHighestOrLowestSemver,
   /// - ✓ Instance has same semver number as highest/lowest semver in its group
   /// - ✘ Instance mismatches its semver group
   /// - ✘ Range preferred by semver group will not satisfy the highest/lowest semver
   /// - ? We can't know whether the incompatible range matters or not and have to ask
-  MismatchConflictsWithPrefer,
+  MismatchConflictsWithHighestOrLowestSemver,
   /// - ✓ Instance has same semver number as the matching snapTo instance
   /// - ✓ Instance matches its semver group
   /// - ✘ Range preferred by semver group will not satisfy the matching snapTo instance
   /// - ? We can't know whether the incompatible range matters or not and have to ask
-  MatchConflictsWithSnapTo,
+  MatchConflictsWithSnapTarget,
   /// - ✓ Instance has same semver number as the matching snapTo instance
   /// - ✘ Instance mismatches its semver group
   /// - ✘ Range preferred by semver group will not satisfy the matching snapTo instance
   /// - ? We can't know whether the incompatible range matters or not and have to ask
-  MismatchConflictsWithSnapTo,
+  MismatchConflictsWithSnapTarget,
   /// - ✓ Instance has same semver number as local instance in its group
   /// - ✓ Instance matches its semver group
   /// - ✘ Range preferred by semver group will not satisfy the local instance

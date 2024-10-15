@@ -10,153 +10,46 @@
       "strategy": "name@version"
     }
   },
-  "source": ["**/package.json"],
+  "source": [
+    "**/package.json"
+  ],
   "semverGroups": [
     {
-      "label": "Version compatibility workarounds should be used, or removed from syncpack.config.cjs if no longer needed.",
-      "dependencies": ["@oclif/core"],
-      "dependencyTypes": ["pnpmOverrides"],
-      "packages": ["**"],
-      "range": "~"
-    },
-    {
-      "label": "engines.node should always use >= ranges",
-      "dependencyTypes": ["engines"],
-      "dependencies": ["node"],
-      "packages": ["**"],
-      "range": ">="
-    },
-    {
-      "label": "engines.npm should always use caret ranges",
-      "dependencyTypes": ["engines"],
-      "dependencies": ["npm"],
-      "packages": ["**"],
+      "dependencyTypes": [
+        "dev"
+      ],
       "range": "^"
     },
     {
-      "label": "packageManager should always use exact dependency ranges",
-      "dependencyTypes": ["packageManager"],
-      "dependencies": ["**"],
-      "packages": ["**"],
-      "range": ""
-    },
-    {
-      "dependencies": ["**"],
-      "packages": ["@fluid-experimental/property-*"],
-      "isIgnored": true
-    },
-    {
-      "label": "Overridden server dependencies should always be exact versions",
-      "dependencyTypes": ["pnpmOverrides"],
-      "dependencies": [
-        "@fluidframework/gitresources",
-        "@fluidframework/protocol-base",
-        "@fluidframework/server-*"
+      "dependencyTypes": [
+        "prod"
       ],
-      "packages": ["**"],
       "range": ""
-    },
-    {
-      "label": "Deps in pnpm overrides can use whatever dependency ranges they need",
-      "dependencyTypes": ["pnpmOverrides"],
-      "dependencies": ["**"],
-      "packages": ["**"],
-      "isIgnored": true
-    },
-    {
-      "label": "Must use exact dependency ranges",
-      "dependencies": [
-        "@tiny-calc/*",
-        "@graphql-codegen/cli",
-        "@graphql-codegen/typescript",
-        "@material-ui/*",
-        "@types/chrome",
-        "@types/codemirror",
-        "@types/expect-puppeteer",
-        "@types/jest-environment-puppeteer",
-        "@types/jest",
-        "@types/puppeteer",
-        "@types/url-parse",
-        "fake-indexeddb",
-        "json-stringify-safe",
-        "yargs"
-      ],
-      "packages": ["**"],
-      "range": ""
-    },
-    {
-      "label": "Must use caret dependency ranges",
-      "dependencies": [
-        "eslint-plugin-*",
-        "eslint-config-prettier",
-        "eslint",
-        "less",
-        "prettier",
-        "typescript",
-        "vue",
-        "webpack-dev-server",
-        "@cerner/duplicate-package-checker-webpack-plugin"
-      ],
-      "packages": ["**"],
-      "range": "^"
-    },
-    {
-      "label": "Dependencies should use caret dependency ranges",
-      "dependencies": ["**"],
-      "dependencyTypes": ["dev", "peer", "prod"],
-      "packages": ["**"],
-      "range": "^"
     }
   ],
   "versionGroups": [
     {
-      "label": "Example of banned dependency",
-      "dependencies": ["lodash"],
-      "isBanned": true
-    },
-    {
-      "label": "Example of pinned dependency",
-      "dependencies": ["@types/chai"],
-      "pinVersion": "4.0.0"
-    },
-    {
-      "label": "Example of same range dependency",
-      "dependencies": ["@fluidframework/build-common"],
-      "policy": "sameRange"
-    },
-    {
-      "label": "Example of lowest version group",
-      "dependencies": ["@types/mocha"],
-      "preferVersion": "lowestSemver"
-    },
-    {
-      "label": "Example of snapped to version group",
-      "dependencies": ["**"],
-      "packages": ["fluid-framework", "@fluidframework/undo-redo"],
-      "snapTo": ["@fluidframework/core-utils"]
-    },
-    {
-      "label": "Versions of common Fluid packages should all match",
+      "label": "Ignore TypeScript",
       "dependencies": [
-        "@fluidframework/build-common",
-        "@fluidframework/common-utils",
-        "@fluidframework/eslint-config-fluid",
-        "@fluidframework/build-tools",
-        "@fluid-tools/build-cli"
+        "*typescript*"
       ],
-      "packages": ["**"]
+      "isIgnored": true
     },
     {
-      "label": "Versions in engines field should all match",
-      "dependencyTypes": ["engines"],
-      "dependencies": ["**"],
-      "packages": ["**"]
+      "label": "Snap Biome",
+      "dependencies": [
+        "@biomejs/biome"
+      ],
+      "snapTo": [
+        "@fluidframework/azure-local-service"
+      ]
     },
     {
-      "label": "Versions in packageManager field should all match",
-      "dependencyTypes": ["packageManager"],
-      "dependencies": ["**"],
-      "packages": ["**"]
+      "label": "Pin arethetypeswrong",
+      "dependencies": [
+        "@arethetypeswrong/cli"
+      ],
+      "pinVersion": "~0.2.2"
     }
   ]
 }

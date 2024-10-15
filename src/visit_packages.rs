@@ -57,7 +57,7 @@ pub fn visit_packages(config: Config, packages: Packages) -> Context {
                 } else {
                   debug!("      it should be removed");
                   debug!("        mark as error");
-                  instance.mark_fixable(Banned, &Specifier::None);
+                  instance.mark_fixable(IsBanned, &Specifier::None);
                 }
               });
             }
@@ -76,7 +76,7 @@ pub fn visit_packages(config: Config, packages: Packages) -> Context {
                   } else {
                     debug!("        it depends on an unknowable version of an invalid local instance");
                     debug!("          mark as error");
-                    instance.mark_unfixable(MismatchesInvalidLocalVersion);
+                    instance.mark_unfixable(DependsOnInvalidLocalPackage);
                   }
                 });
               } else if dependency.has_local_instance() {
@@ -88,7 +88,7 @@ pub fn visit_packages(config: Config, packages: Packages) -> Context {
                   debug!("      visit instance '{}' ({actual_specifier:?})", instance.id);
                   if instance.is_local {
                     debug!("        it is the valid local instance");
-                    instance.mark_valid(ValidLocal, &local_specifier);
+                    instance.mark_valid(IsLocalAndValid, &local_specifier);
                     return;
                   }
                   debug!("        it depends on the local instance");
@@ -96,7 +96,7 @@ pub fn visit_packages(config: Config, packages: Packages) -> Context {
                   if !instance.actual_specifier.has_same_version_number_as(&local_specifier) {
                     debug!("            differs to the local instance");
                     debug!("              mark as error");
-                    instance.mark_fixable(MismatchesLocal, &local_specifier);
+                    instance.mark_fixable(DiffersToLocal, &local_specifier);
                     return;
                   }
                   debug!("            is the same as the local instance");
@@ -108,7 +108,7 @@ pub fn visit_packages(config: Config, packages: Packages) -> Context {
                       if instance.specifier_with_preferred_semver_range_will_satisfy(&local_specifier) {
                         debug!("                  the semver range satisfies the local version");
                         debug!("                    mark as suspect (the config is asking for an inexact match)");
-                        instance.mark_valid(MatchesLocal, &instance.get_specifier_with_preferred_semver_range().unwrap());
+                        instance.mark_valid(SatisfiesLocal, &instance.get_specifier_with_preferred_semver_range().unwrap());
                       } else {
                         debug!("                  the preferred semver range will not satisfy the local version");
                         debug!("                    mark as unfixable error");
@@ -132,11 +132,11 @@ pub fn visit_packages(config: Config, packages: Packages) -> Context {
                   if instance.already_equals(&local_specifier) {
                     debug!("                its semver range matches the local instance");
                     debug!("                  mark as valid");
-                    instance.mark_valid(EqualsLocal, &local_specifier);
+                    instance.mark_valid(IsIdenticalToLocal, &local_specifier);
                   } else {
                     debug!("                its semver range differs to the local instance");
                     debug!("                  mark as error");
-                    instance.mark_fixable(MismatchesLocal, &local_specifier);
+                    instance.mark_fixable(DiffersToLocal, &local_specifier);
                   }
                 });
               } else if let Some(highest_specifier) = dependency.get_highest_or_lowest_specifier() {
@@ -149,7 +149,7 @@ pub fn visit_packages(config: Config, packages: Packages) -> Context {
                   if !instance.actual_specifier.has_same_version_number_as(&highest_specifier) {
                     debug!("          differs to the highest semver version");
                     debug!("            mark as error");
-                    instance.mark_fixable(MismatchesPreferVersion, &highest_specifier);
+                    instance.mark_fixable(DiffersToHighestOrLowestSemver, &highest_specifier);
                     return;
                   }
                   debug!("          is the same as the highest semver version");
@@ -162,11 +162,11 @@ pub fn visit_packages(config: Config, packages: Packages) -> Context {
                       if instance.specifier_with_preferred_semver_range_will_satisfy(&highest_specifier) {
                         debug!("                the semver range satisfies the highest semver version");
                         debug!("                  mark as suspect (the config is asking for an inexact match)");
-                        instance.mark_valid(MatchesPreferVersion, &instance.actual_specifier);
+                        instance.mark_valid(SatisfiesHighestOrLowestSemver, &instance.actual_specifier);
                       } else {
                         debug!("                the preferred semver range will not satisfy the highest semver version");
                         debug!("                  mark as unfixable error");
-                        instance.mark_conflict(MatchConflictsWithPrefer);
+                        instance.mark_conflict(MatchConflictsWithHighestOrLowestSemver);
                       }
                     } else {
                       debug!("              its semver range does not match its semver group");
@@ -177,7 +177,7 @@ pub fn visit_packages(config: Config, packages: Packages) -> Context {
                       } else {
                         debug!("                the preferred semver range will not satisfy the highest semver version");
                         debug!("                  mark as unfixable error");
-                        instance.mark_conflict(MismatchConflictsWithPrefer);
+                        instance.mark_conflict(MismatchConflictsWithHighestOrLowestSemver);
                       }
                     }
                   } else {
@@ -185,11 +185,11 @@ pub fn visit_packages(config: Config, packages: Packages) -> Context {
                     if instance.already_equals(&highest_specifier) {
                       debug!("          it is identical to the highest semver version");
                       debug!("            mark as valid");
-                      instance.mark_valid(EqualsPreferVersion, &highest_specifier);
+                      instance.mark_valid(IsHighestOrLowestSemver, &highest_specifier);
                     } else {
                       debug!("          it is different to the highest semver version");
                       debug!("            mark as error");
-                      instance.mark_fixable(MismatchesPreferVersion, &highest_specifier);
+                      instance.mark_fixable(DiffersToHighestOrLowestSemver, &highest_specifier);
                     }
                   }
                 });
@@ -202,7 +202,7 @@ pub fn visit_packages(config: Config, packages: Packages) -> Context {
                     debug!("        visit instance '{}' ({actual_specifier:?})", instance.id);
                     debug!("          it is identical to every other instance");
                     debug!("            mark as valid");
-                    instance.mark_valid(EqualsNonSemverPreferVersion, &instance.actual_specifier);
+                    instance.mark_valid(IsNonSemverButIdentical, &instance.actual_specifier);
                   });
                 } else {
                   debug!("      and they differ");
@@ -211,7 +211,7 @@ pub fn visit_packages(config: Config, packages: Packages) -> Context {
                     debug!("        visit instance '{}' ({actual_specifier:?})", instance.id);
                     debug!("          it depends on a currently unknowable correct version from a set of unsupported version specifiers");
                     debug!("            mark as error");
-                    instance.mark_unfixable(MismatchesNonSemverPreferVersion);
+                    instance.mark_unfixable(NonSemverMismatch);
                   });
                 }
               }
@@ -222,7 +222,7 @@ pub fn visit_packages(config: Config, packages: Packages) -> Context {
               dependency.instances.borrow().iter().for_each(|instance| {
                 let actual_specifier = &instance.actual_specifier;
                 debug!("    visit instance '{}' ({actual_specifier:?})", instance.id);
-                instance.mark_valid(Ignored, &instance.actual_specifier);
+                instance.mark_valid(IsIgnored, &instance.actual_specifier);
               });
             }
             VersionGroupVariant::Pinned => {
@@ -245,7 +245,7 @@ pub fn visit_packages(config: Config, packages: Packages) -> Context {
                 if !instance.actual_specifier.has_same_version_number_as(&pinned_specifier) {
                   debug!("          differs to the pinned version");
                   debug!("            mark as error");
-                  instance.mark_fixable(MismatchesPin, &pinned_specifier);
+                  instance.mark_fixable(DiffersToPin, &pinned_specifier);
                   return;
                 }
                 debug!("          is the same as the pinned version");
@@ -256,12 +256,12 @@ pub fn visit_packages(config: Config, packages: Packages) -> Context {
                     debug!("              its semver range matches its semver group");
                     debug!("                1. pin it and ignore the semver group");
                     debug!("                2. mark as suspect (the config is asking for a different range AND they want to pin it)");
-                    instance.mark_fixable(PinMatchOverridesSemverRangeMatch, &pinned_specifier);
+                    instance.mark_fixable(PinOverridesSemverRange, &pinned_specifier);
                   } else {
                     debug!("              its semver range does not match its semver group or the pinned version's");
                     debug!("                1. pin it and ignore the semver group");
                     debug!("                2. mark as suspect (the config is asking for a different range AND they want to pin it)");
-                    instance.mark_fixable(PinMatchOverridesSemverRangeMismatch, &pinned_specifier);
+                    instance.mark_fixable(PinOverridesSemverRangeMismatch, &pinned_specifier);
                   }
                   return;
                 }
@@ -269,11 +269,11 @@ pub fn visit_packages(config: Config, packages: Packages) -> Context {
                 if instance.already_equals(&pinned_specifier) {
                   debug!("              it is identical to the pinned version");
                   debug!("                mark as valid");
-                  instance.mark_valid(EqualsPin, &pinned_specifier);
+                  instance.mark_valid(IsIdenticalToPin, &pinned_specifier);
                 } else {
                   debug!("              it differs to the pinned version");
                   debug!("                mark as error");
-                  instance.mark_fixable(MismatchesPin, &pinned_specifier);
+                  instance.mark_fixable(DiffersToPin, &pinned_specifier);
                 }
               });
             }
@@ -289,18 +289,18 @@ pub fn visit_packages(config: Config, packages: Packages) -> Context {
                     debug!("        it belongs to a semver group");
                     if instance.matches_preferred_semver_range() {
                       debug!("          its specifier matches its semver group");
-                      instance.mark_valid(MatchesSameRangeGroup, actual_specifier);
+                      instance.mark_valid(SatisfiesSameRangeGroup, actual_specifier);
                     } else {
                       debug!("          its specifier mismatches its semver group");
                       instance.mark_fixable(SemverRangeMismatch, &instance.get_specifier_with_preferred_semver_range().unwrap());
                     }
                   } else {
                     debug!("        it does not belong to a semver group");
-                    instance.mark_valid(MatchesSameRangeGroup, actual_specifier);
+                    instance.mark_valid(SatisfiesSameRangeGroup, actual_specifier);
                   }
                 } else {
                   debug!("      its specifier does not satisfy all other instances in the group");
-                  instance.mark_unfixable(MismatchesSameRangeGroup);
+                  instance.mark_unfixable(SameRangeMismatch);
                 }
               });
             }
@@ -325,7 +325,7 @@ pub fn visit_packages(config: Config, packages: Packages) -> Context {
                   if !instance.actual_specifier.has_same_version_number_as(&snapped_to_specifier) {
                     debug!("          differs to the target version");
                     debug!("            mark as error");
-                    instance.mark_fixable(MismatchesSnapToVersion, &snapped_to_specifier);
+                    instance.mark_fixable(DiffersToSnapTarget, &snapped_to_specifier);
                     return;
                   }
                   debug!("          is the same as the target version");
@@ -338,11 +338,11 @@ pub fn visit_packages(config: Config, packages: Packages) -> Context {
                       if instance.specifier_with_preferred_semver_range_will_satisfy(&snapped_to_specifier) {
                         debug!("                the semver range satisfies the target version");
                         debug!("                  mark as suspect (the config is asking for an inexact match)");
-                        instance.mark_valid(MatchesSnapToVersion, &instance.actual_specifier);
+                        instance.mark_valid(SatisfiesSnapTarget, &instance.actual_specifier);
                       } else {
                         debug!("                the preferred semver range will not satisfy the target version");
                         debug!("                  mark as unfixable error");
-                        instance.mark_conflict(MatchConflictsWithSnapTo);
+                        instance.mark_conflict(MatchConflictsWithSnapTarget);
                       }
                     } else {
                       debug!("              its semver range does not match its semver group");
@@ -353,7 +353,7 @@ pub fn visit_packages(config: Config, packages: Packages) -> Context {
                       } else {
                         debug!("                the preferred semver range will not satisfy the target version");
                         debug!("                  mark as unfixable error");
-                        instance.mark_conflict(MismatchConflictsWithSnapTo);
+                        instance.mark_conflict(MismatchConflictsWithSnapTarget);
                       }
                     }
                   } else {
@@ -361,18 +361,18 @@ pub fn visit_packages(config: Config, packages: Packages) -> Context {
                     if instance.already_equals(&snapped_to_specifier) {
                       debug!("          it is identical to the target version");
                       debug!("            mark as valid");
-                      instance.mark_valid(EqualsSnapToVersion, &snapped_to_specifier);
+                      instance.mark_valid(IsIdenticalToSnapTarget, &snapped_to_specifier);
                     } else {
                       debug!("          it is different to the target version");
                       debug!("            mark as error");
-                      instance.mark_fixable(MismatchesSnapToVersion, &snapped_to_specifier);
+                      instance.mark_fixable(DiffersToSnapTarget, &snapped_to_specifier);
                     }
                   }
                 });
               } else {
                 debug!("    no target version was found");
                 dependency.instances.borrow().iter().for_each(|instance| {
-                  instance.mark_unfixable(SnapToVersionNotFound);
+                  instance.mark_unfixable(DependsOnMissingSnapTarget);
                 });
               }
             }

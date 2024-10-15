@@ -77,6 +77,16 @@ impl Dependency {
       .fold(InstanceState::Unknown, |acc, instance| acc.max(instance.state.borrow().clone()))
   }
 
+  /// Return every unique instance state which applies to this group
+  pub fn get_states(&self) -> Vec<InstanceState> {
+    self
+      .instances
+      .borrow()
+      .iter()
+      .map(|instance| instance.state.borrow().clone())
+      .collect::<Vec<_>>()
+  }
+
   pub fn get_instances_by_specifier(&self) -> BTreeMap<String, Vec<Rc<Instance>>> {
     let mut map = BTreeMap::new();
     for instance in self.instances.borrow().iter() {

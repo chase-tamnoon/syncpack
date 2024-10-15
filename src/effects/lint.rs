@@ -1,6 +1,6 @@
 use itertools::Itertools;
 
-use crate::{context::Context, effects::ui::Ui, version_group::VersionGroupVariant};
+use crate::{context::Context, effects::ui::Ui};
 
 /// Run the lint command side effects
 pub fn run(ctx: Context) -> Context {
@@ -8,9 +8,11 @@ pub fn run(ctx: Context) -> Context {
   let ui = Ui {
     ctx: &ctx,
     show_ignored: true,
-    show_instances: true,
+    show_instances: false,
     show_status_codes: true,
     show_packages: false,
+    // @TODO: show_valid: false,
+    // @TODO: sort_by: "name" | "state" | "count",
   };
 
   if ctx.config.cli.options.versions {
@@ -19,34 +21,12 @@ pub fn run(ctx: Context) -> Context {
       ui.print_group_header(group);
       group.dependencies.borrow().values().for_each(|dependency| {
         dependency.sort_instances();
-        match dependency.variant {
-          VersionGroupVariant::Banned => {
-            ui.print_dependency_header(dependency);
-            ui.print_instances(&dependency.instances.borrow());
+        ui.print_dependency(dependency, &group.variant);
+        ui.for_each_instance(dependency, |instance| {
+          if ui.show_instances {
+            ui.print_instance(instance, &group.variant);
           }
-          VersionGroupVariant::HighestSemver | VersionGroupVariant::LowestSemver => {
-            ui.print_dependency_header(dependency);
-            ui.print_instances(&dependency.instances.borrow());
-          }
-          VersionGroupVariant::Ignored => {
-            if ui.show_ignored {
-              ui.print_dependency_header(dependency);
-              ui.print_instances(&dependency.instances.borrow());
-            }
-          }
-          VersionGroupVariant::Pinned => {
-            ui.print_dependency_header(dependency);
-            ui.print_instances(&dependency.instances.borrow());
-          }
-          VersionGroupVariant::SameRange => {
-            ui.print_dependency_header(dependency);
-            ui.print_instances(&dependency.instances.borrow());
-          }
-          VersionGroupVariant::SnappedTo => {
-            ui.print_dependency_header(dependency);
-            ui.print_instances(&dependency.instances.borrow());
-          }
-        }
+        });
       });
     });
   }

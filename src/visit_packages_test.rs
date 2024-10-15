@@ -51,7 +51,7 @@ fn instance_depends_on_local_version_which_is_missing() {
       overridden: None,
     },
     ExpectedInstance {
-      state: InstanceState::unfixable(MismatchesInvalidLocalVersion),
+      state: InstanceState::unfixable(DependsOnInvalidLocalPackage),
       dependency_name: "package-a",
       id: "package-a in /devDependencies of package-b",
       actual: "0.1.0",
@@ -95,7 +95,7 @@ fn instance_depends_on_local_version_which_is_not_exact_semver() {
       overridden: None,
     },
     ExpectedInstance {
-      state: InstanceState::unfixable(MismatchesInvalidLocalVersion),
+      state: InstanceState::unfixable(DependsOnInvalidLocalPackage),
       dependency_name: "package-a",
       id: "package-a in /devDependencies of package-b",
       actual: "0.1.0",
@@ -131,7 +131,7 @@ fn instance_has_higher_version_than_local_package_and_has_no_semver_group() {
       overridden: None,
     },
     ExpectedInstance {
-      state: InstanceState::valid(ValidLocal),
+      state: InstanceState::valid(IsLocalAndValid),
       dependency_name: "package-a",
       id: "package-a in /version of package-a",
       actual: "1.0.0",
@@ -139,7 +139,7 @@ fn instance_has_higher_version_than_local_package_and_has_no_semver_group() {
       overridden: None,
     },
     ExpectedInstance {
-      state: InstanceState::fixable(MismatchesLocal),
+      state: InstanceState::fixable(DiffersToLocal),
       dependency_name: "package-a",
       id: "package-a in /dependencies of package-b",
       actual: "1.1.0",
@@ -175,7 +175,7 @@ fn instance_identical_to_local_package_and_has_no_semver_group() {
       overridden: None,
     },
     ExpectedInstance {
-      state: InstanceState::valid(ValidLocal),
+      state: InstanceState::valid(IsLocalAndValid),
       dependency_name: "package-a",
       id: "package-a in /version of package-a",
       actual: "1.0.0",
@@ -183,7 +183,7 @@ fn instance_identical_to_local_package_and_has_no_semver_group() {
       overridden: None,
     },
     ExpectedInstance {
-      state: InstanceState::valid(EqualsLocal),
+      state: InstanceState::valid(IsIdenticalToLocal),
       dependency_name: "package-a",
       id: "package-a in /dependencies of package-b",
       actual: "1.0.0",
@@ -219,7 +219,7 @@ fn instance_has_different_version_to_local_package_and_has_no_semver_group() {
       overridden: None,
     },
     ExpectedInstance {
-      state: InstanceState::valid(ValidLocal),
+      state: InstanceState::valid(IsLocalAndValid),
       dependency_name: "package-a",
       id: "package-a in /version of package-a",
       actual: "1.0.0",
@@ -227,7 +227,7 @@ fn instance_has_different_version_to_local_package_and_has_no_semver_group() {
       overridden: None,
     },
     ExpectedInstance {
-      state: InstanceState::fixable(MismatchesLocal),
+      state: InstanceState::fixable(DiffersToLocal),
       dependency_name: "package-a",
       id: "package-a in /dependencies of package-b",
       actual: "1.1.0",
@@ -263,7 +263,7 @@ fn instance_has_same_version_number_as_local_package_but_a_different_range_and_h
       overridden: None,
     },
     ExpectedInstance {
-      state: InstanceState::valid(ValidLocal),
+      state: InstanceState::valid(IsLocalAndValid),
       dependency_name: "package-a",
       id: "package-a in /version of package-a",
       actual: "1.0.0",
@@ -271,7 +271,7 @@ fn instance_has_same_version_number_as_local_package_but_a_different_range_and_h
       overridden: None,
     },
     ExpectedInstance {
-      state: InstanceState::fixable(MismatchesLocal),
+      state: InstanceState::fixable(DiffersToLocal),
       dependency_name: "package-a",
       id: "package-a in /devDependencies of package-b",
       actual: "~1.0.0",
@@ -311,7 +311,7 @@ fn instance_has_same_version_number_as_local_package_but_matches_a_different_but
       overridden: None,
     },
     ExpectedInstance {
-      state: InstanceState::valid(ValidLocal),
+      state: InstanceState::valid(IsLocalAndValid),
       dependency_name: "package-a",
       id: "package-a in /version of package-a",
       actual: "1.0.0",
@@ -319,7 +319,7 @@ fn instance_has_same_version_number_as_local_package_but_matches_a_different_but
       overridden: None,
     },
     ExpectedInstance {
-      state: InstanceState::valid(MatchesLocal),
+      state: InstanceState::valid(SatisfiesLocal),
       dependency_name: "package-a",
       id: "package-a in /dependencies of package-b",
       actual: "^1.0.0",
@@ -359,7 +359,7 @@ fn instance_has_same_version_number_as_local_package_but_mismatches_a_different_
       overridden: None,
     },
     ExpectedInstance {
-      state: InstanceState::valid(ValidLocal),
+      state: InstanceState::valid(IsLocalAndValid),
       dependency_name: "package-a",
       id: "package-a in /version of package-a",
       actual: "1.0.0",
@@ -407,7 +407,7 @@ fn instance_has_same_version_number_as_local_package_but_matches_a_different_but
       overridden: None,
     },
     ExpectedInstance {
-      state: InstanceState::valid(ValidLocal),
+      state: InstanceState::valid(IsLocalAndValid),
       dependency_name: "package-a",
       id: "package-a in /version of package-a",
       actual: "1.0.0",
@@ -455,7 +455,7 @@ fn instance_has_same_version_number_as_local_package_but_mismatches_a_different_
       overridden: None,
     },
     ExpectedInstance {
-      state: InstanceState::valid(ValidLocal),
+      state: InstanceState::valid(IsLocalAndValid),
       dependency_name: "package-a",
       id: "package-a in /version of package-a",
       actual: "1.0.0",
@@ -498,7 +498,7 @@ fn reports_one_highest_version_mismatch_in_one_file() {
       overridden: None,
     },
     ExpectedInstance {
-      state: InstanceState::valid(EqualsPreferVersion),
+      state: InstanceState::valid(IsHighestOrLowestSemver),
       dependency_name: "wat",
       id: "wat in /devDependencies of package-a",
       actual: "2.0.0",
@@ -506,7 +506,7 @@ fn reports_one_highest_version_mismatch_in_one_file() {
       overridden: None,
     },
     ExpectedInstance {
-      state: InstanceState::fixable(MismatchesPreferVersion),
+      state: InstanceState::fixable(DiffersToHighestOrLowestSemver),
       dependency_name: "wat",
       id: "wat in /dependencies of package-a",
       actual: "1.0.0",
@@ -542,7 +542,7 @@ fn reports_many_highest_version_mismatches_in_one_file() {
       overridden: None,
     },
     ExpectedInstance {
-      state: InstanceState::valid(EqualsPreferVersion),
+      state: InstanceState::valid(IsHighestOrLowestSemver),
       dependency_name: "wat",
       id: "wat in /devDependencies of package-a",
       actual: "0.3.0",
@@ -550,7 +550,7 @@ fn reports_many_highest_version_mismatches_in_one_file() {
       overridden: None,
     },
     ExpectedInstance {
-      state: InstanceState::fixable(MismatchesPreferVersion),
+      state: InstanceState::fixable(DiffersToHighestOrLowestSemver),
       dependency_name: "wat",
       id: "wat in /dependencies of package-a",
       actual: "0.1.0",
@@ -558,7 +558,7 @@ fn reports_many_highest_version_mismatches_in_one_file() {
       overridden: None,
     },
     ExpectedInstance {
-      state: InstanceState::fixable(MismatchesPreferVersion),
+      state: InstanceState::fixable(DiffersToHighestOrLowestSemver),
       dependency_name: "wat",
       id: "wat in /peerDependencies of package-a",
       actual: "0.2.0",
@@ -604,7 +604,7 @@ fn reports_highest_version_mismatches_in_many_files() {
       overridden: None,
     },
     ExpectedInstance {
-      state: InstanceState::valid(EqualsPreferVersion),
+      state: InstanceState::valid(IsHighestOrLowestSemver),
       dependency_name: "wat",
       id: "wat in /dependencies of package-b",
       actual: "2.0.0",
@@ -612,7 +612,7 @@ fn reports_highest_version_mismatches_in_many_files() {
       overridden: None,
     },
     ExpectedInstance {
-      state: InstanceState::fixable(MismatchesPreferVersion),
+      state: InstanceState::fixable(DiffersToHighestOrLowestSemver),
       dependency_name: "wat",
       id: "wat in /dependencies of package-a",
       actual: "1.0.0",
@@ -663,7 +663,7 @@ fn does_not_report_highest_version_mismatches_when_in_different_version_groups()
       overridden: None,
     },
     ExpectedInstance {
-      state: InstanceState::valid(EqualsPreferVersion),
+      state: InstanceState::valid(IsHighestOrLowestSemver),
       dependency_name: "good",
       id: "good in /dependencies of package-a",
       actual: "1.0.0",
@@ -671,7 +671,7 @@ fn does_not_report_highest_version_mismatches_when_in_different_version_groups()
       overridden: None,
     },
     ExpectedInstance {
-      state: InstanceState::valid(EqualsPreferVersion),
+      state: InstanceState::valid(IsHighestOrLowestSemver),
       dependency_name: "good",
       id: "good in /dependencies of package-b",
       actual: "2.0.0",
@@ -709,7 +709,7 @@ fn does_not_confuse_highest_version_matches_and_mismatches_of_the_same_dependenc
   let ctx = visit_packages(config, packages);
   expect(&ctx).to_have_instances(vec![
     ExpectedInstance {
-      state: InstanceState::valid(ValidLocal),
+      state: InstanceState::valid(IsLocalAndValid),
       dependency_name: "package-a",
       id: "package-a in /version of package-a",
       actual: "0.0.0",
@@ -717,7 +717,7 @@ fn does_not_confuse_highest_version_matches_and_mismatches_of_the_same_dependenc
       overridden: None,
     },
     ExpectedInstance {
-      state: InstanceState::valid(ValidLocal),
+      state: InstanceState::valid(IsLocalAndValid),
       dependency_name: "package-b",
       id: "package-b in /version of package-b",
       actual: "0.0.0",
@@ -725,7 +725,7 @@ fn does_not_confuse_highest_version_matches_and_mismatches_of_the_same_dependenc
       overridden: None,
     },
     ExpectedInstance {
-      state: InstanceState::valid(EqualsPreferVersion),
+      state: InstanceState::valid(IsHighestOrLowestSemver),
       dependency_name: "mix",
       id: "mix in /dependencies of package-a",
       actual: "0.3.0",
@@ -733,7 +733,7 @@ fn does_not_confuse_highest_version_matches_and_mismatches_of_the_same_dependenc
       overridden: None,
     },
     ExpectedInstance {
-      state: InstanceState::valid(EqualsPreferVersion),
+      state: InstanceState::valid(IsHighestOrLowestSemver),
       dependency_name: "mix",
       id: "mix in /devDependencies of package-b",
       actual: "0.3.0",
@@ -741,7 +741,7 @@ fn does_not_confuse_highest_version_matches_and_mismatches_of_the_same_dependenc
       overridden: None,
     },
     ExpectedInstance {
-      state: InstanceState::fixable(MismatchesPreferVersion),
+      state: InstanceState::fixable(DiffersToHighestOrLowestSemver),
       dependency_name: "mix",
       id: "mix in /devDependencies of package-a",
       actual: "0.1.0",
@@ -749,7 +749,7 @@ fn does_not_confuse_highest_version_matches_and_mismatches_of_the_same_dependenc
       overridden: None,
     },
     ExpectedInstance {
-      state: InstanceState::fixable(MismatchesPreferVersion),
+      state: InstanceState::fixable(DiffersToHighestOrLowestSemver),
       dependency_name: "mix",
       id: "mix in /peerDependencies of package-a",
       actual: "0.2.0",
@@ -795,7 +795,7 @@ fn instance_identical_to_highest_semver_and_has_no_semver_group() {
       overridden: None,
     },
     ExpectedInstance {
-      state: InstanceState::valid(EqualsPreferVersion),
+      state: InstanceState::valid(IsHighestOrLowestSemver),
       dependency_name: "foo",
       id: "foo in /dependencies of package-a",
       actual: "1.0.0",
@@ -803,7 +803,7 @@ fn instance_identical_to_highest_semver_and_has_no_semver_group() {
       overridden: None,
     },
     ExpectedInstance {
-      state: InstanceState::valid(EqualsPreferVersion),
+      state: InstanceState::valid(IsHighestOrLowestSemver),
       dependency_name: "foo",
       id: "foo in /dependencies of package-b",
       actual: "1.0.0",
@@ -849,7 +849,7 @@ fn instance_has_different_version_to_highest_semver_and_has_no_semver_group() {
       overridden: None,
     },
     ExpectedInstance {
-      state: InstanceState::valid(EqualsPreferVersion),
+      state: InstanceState::valid(IsHighestOrLowestSemver),
       dependency_name: "foo",
       id: "foo in /dependencies of package-b",
       actual: "1.1.0",
@@ -857,7 +857,7 @@ fn instance_has_different_version_to_highest_semver_and_has_no_semver_group() {
       overridden: None,
     },
     ExpectedInstance {
-      state: InstanceState::fixable(MismatchesPreferVersion),
+      state: InstanceState::fixable(DiffersToHighestOrLowestSemver),
       dependency_name: "foo",
       id: "foo in /dependencies of package-a",
       actual: "1.0.0",
@@ -903,7 +903,7 @@ fn instance_has_same_version_number_as_highest_semver_but_a_different_range_and_
       overridden: None,
     },
     ExpectedInstance {
-      state: InstanceState::valid(EqualsPreferVersion),
+      state: InstanceState::valid(IsHighestOrLowestSemver),
       dependency_name: "foo",
       id: "foo in /dependencies of package-a",
       actual: "^1.0.0",
@@ -911,7 +911,7 @@ fn instance_has_same_version_number_as_highest_semver_but_a_different_range_and_
       overridden: None,
     },
     ExpectedInstance {
-      state: InstanceState::fixable(MismatchesPreferVersion),
+      state: InstanceState::fixable(DiffersToHighestOrLowestSemver),
       dependency_name: "foo",
       id: "foo in /devDependencies of package-b",
       actual: "~1.0.0",
@@ -962,7 +962,7 @@ fn instance_has_same_version_number_as_highest_semver_but_matches_a_different_bu
       overridden: None,
     },
     ExpectedInstance {
-      state: InstanceState::valid(MatchesPreferVersion),
+      state: InstanceState::valid(SatisfiesHighestOrLowestSemver),
       dependency_name: "foo",
       id: "foo in /dependencies of package-b",
       actual: "~1.0.0",
@@ -970,7 +970,7 @@ fn instance_has_same_version_number_as_highest_semver_but_matches_a_different_bu
       overridden: None,
     },
     ExpectedInstance {
-      state: InstanceState::valid(EqualsPreferVersion),
+      state: InstanceState::valid(IsHighestOrLowestSemver),
       dependency_name: "foo",
       id: "foo in /dependencies of package-a",
       actual: "^1.0.0",
@@ -1021,7 +1021,7 @@ fn instance_has_same_version_number_as_highest_semver_but_mismatches_a_different
       overridden: None,
     },
     ExpectedInstance {
-      state: InstanceState::valid(EqualsPreferVersion),
+      state: InstanceState::valid(IsHighestOrLowestSemver),
       dependency_name: "foo",
       id: "foo in /dependencies of package-a",
       actual: ">=1.0.0",
@@ -1080,7 +1080,7 @@ fn instance_has_same_version_number_as_highest_semver_but_matches_a_different_bu
       overridden: None,
     },
     ExpectedInstance {
-      state: InstanceState::valid(EqualsPreferVersion),
+      state: InstanceState::valid(IsHighestOrLowestSemver),
       dependency_name: "foo",
       id: "foo in /dependencies of package-a",
       actual: "1.0.0",
@@ -1088,7 +1088,7 @@ fn instance_has_same_version_number_as_highest_semver_but_matches_a_different_bu
       overridden: None,
     },
     ExpectedInstance {
-      state: InstanceState::conflict(MatchConflictsWithPrefer),
+      state: InstanceState::conflict(MatchConflictsWithHighestOrLowestSemver),
       dependency_name: "foo",
       id: "foo in /dependencies of package-b",
       actual: "<1.0.0",
@@ -1139,7 +1139,7 @@ fn instance_has_same_version_number_as_highest_semver_but_mismatches_a_different
       overridden: None,
     },
     ExpectedInstance {
-      state: InstanceState::valid(EqualsPreferVersion),
+      state: InstanceState::valid(IsHighestOrLowestSemver),
       dependency_name: "foo",
       id: "foo in /dependencies of package-a",
       actual: "~1.0.0",
@@ -1147,7 +1147,7 @@ fn instance_has_same_version_number_as_highest_semver_but_mismatches_a_different
       overridden: None,
     },
     ExpectedInstance {
-      state: InstanceState::conflict(MismatchConflictsWithPrefer),
+      state: InstanceState::conflict(MismatchConflictsWithHighestOrLowestSemver),
       dependency_name: "foo",
       id: "foo in /dependencies of package-b",
       actual: "1.0.0",
@@ -1195,7 +1195,7 @@ fn no_instances_are_semver_but_all_are_identical() {
       overridden: None,
     },
     ExpectedInstance {
-      state: InstanceState::valid(EqualsNonSemverPreferVersion),
+      state: InstanceState::valid(IsNonSemverButIdentical),
       dependency_name: "foo",
       id: "foo in /dependencies of package-a",
       actual: "workspace:*",
@@ -1203,7 +1203,7 @@ fn no_instances_are_semver_but_all_are_identical() {
       overridden: None,
     },
     ExpectedInstance {
-      state: InstanceState::valid(EqualsNonSemverPreferVersion),
+      state: InstanceState::valid(IsNonSemverButIdentical),
       dependency_name: "foo",
       id: "foo in /dependencies of package-b",
       actual: "workspace:*",
@@ -1249,7 +1249,7 @@ fn no_instances_are_semver_and_they_differ() {
       overridden: None,
     },
     ExpectedInstance {
-      state: InstanceState::unfixable(MismatchesNonSemverPreferVersion),
+      state: InstanceState::unfixable(NonSemverMismatch),
       dependency_name: "foo",
       id: "foo in /dependencies of package-a",
       actual: "workspace:*",
@@ -1257,7 +1257,7 @@ fn no_instances_are_semver_and_they_differ() {
       overridden: None,
     },
     ExpectedInstance {
-      state: InstanceState::unfixable(MismatchesNonSemverPreferVersion),
+      state: InstanceState::unfixable(NonSemverMismatch),
       dependency_name: "foo",
       id: "foo in /dependencies of package-b",
       actual: "workspace:^",
@@ -1291,7 +1291,7 @@ fn all_instances_are_ignored() {
   let ctx = visit_packages(config, packages);
   expect(&ctx).to_have_instances(vec![
     ExpectedInstance {
-      state: InstanceState::valid(Ignored),
+      state: InstanceState::valid(IsIgnored),
       dependency_name: "package-b",
       id: "package-b in /version of package-b",
       actual: "VERSION_IS_MISSING",
@@ -1299,7 +1299,7 @@ fn all_instances_are_ignored() {
       overridden: None,
     },
     ExpectedInstance {
-      state: InstanceState::valid(Ignored),
+      state: InstanceState::valid(IsIgnored),
       dependency_name: "package-a",
       id: "package-a in /version of package-a",
       actual: "1.0.0",
@@ -1307,7 +1307,7 @@ fn all_instances_are_ignored() {
       overridden: None,
     },
     ExpectedInstance {
-      state: InstanceState::valid(Ignored),
+      state: InstanceState::valid(IsIgnored),
       dependency_name: "package-a",
       id: "package-a in /dependencies of package-b",
       actual: "1.1.0",
@@ -1358,7 +1358,7 @@ fn refuses_to_pin_local_version() {
       overridden: None,
     },
     ExpectedInstance {
-      state: InstanceState::fixable(MismatchesPin),
+      state: InstanceState::fixable(DiffersToPin),
       dependency_name: "package-a",
       id: "package-a in /dependencies of package-b",
       actual: "1.1.0",
@@ -1388,7 +1388,7 @@ fn a_pinned_version_will_replace_anything_different() {
   let ctx = visit_packages(config, packages);
   expect(&ctx).to_have_instances(vec![
     ExpectedInstance {
-      state: InstanceState::valid(ValidLocal),
+      state: InstanceState::valid(IsLocalAndValid),
       dependency_name: "package-a",
       id: "package-a in /version of package-a",
       actual: "1.0.0",
@@ -1396,7 +1396,7 @@ fn a_pinned_version_will_replace_anything_different() {
       overridden: None,
     },
     ExpectedInstance {
-      state: InstanceState::fixable(MismatchesPin),
+      state: InstanceState::fixable(DiffersToPin),
       dependency_name: "foo",
       id: "foo in /devDependencies of package-a",
       actual: "workspace:*",
@@ -1428,7 +1428,7 @@ fn pin_version_will_override_instance_with_same_version_number_as_pinned_but_mat
   let ctx = visit_packages(config, packages);
   expect(&ctx).to_have_instances(vec![
     ExpectedInstance {
-      state: InstanceState::fixable(PinMatchOverridesSemverRangeMatch),
+      state: InstanceState::fixable(PinOverridesSemverRange),
       dependency_name: "foo",
       id: "foo in /devDependencies of package-a",
       actual: "^1.0.0",
@@ -1436,7 +1436,7 @@ fn pin_version_will_override_instance_with_same_version_number_as_pinned_but_mat
       overridden: Some("^1.0.0"),
     },
     ExpectedInstance {
-      state: InstanceState::valid(ValidLocal),
+      state: InstanceState::valid(IsLocalAndValid),
       dependency_name: "package-a",
       id: "package-a in /version of package-a",
       actual: "1.0.0",
@@ -1468,7 +1468,7 @@ fn pin_version_will_override_instance_with_same_version_number_as_pinned_but_mis
   let ctx = visit_packages(config, packages);
   expect(&ctx).to_have_instances(vec![
     ExpectedInstance {
-      state: InstanceState::fixable(PinMatchOverridesSemverRangeMismatch),
+      state: InstanceState::fixable(PinOverridesSemverRangeMismatch),
       dependency_name: "foo",
       id: "foo in /devDependencies of package-a",
       actual: ">=1.0.0",
@@ -1476,7 +1476,7 @@ fn pin_version_will_override_instance_with_same_version_number_as_pinned_but_mis
       overridden: Some("^1.0.0"),
     },
     ExpectedInstance {
-      state: InstanceState::valid(ValidLocal),
+      state: InstanceState::valid(IsLocalAndValid),
       dependency_name: "package-a",
       id: "package-a in /version of package-a",
       actual: "1.0.0",
@@ -1504,7 +1504,7 @@ fn pin_version_will_override_instance_with_same_version_number_as_pinned_but_a_d
   let ctx = visit_packages(config, packages);
   expect(&ctx).to_have_instances(vec![
     ExpectedInstance {
-      state: InstanceState::valid(ValidLocal),
+      state: InstanceState::valid(IsLocalAndValid),
       dependency_name: "package-a",
       id: "package-a in /version of package-a",
       actual: "1.0.0",
@@ -1512,7 +1512,7 @@ fn pin_version_will_override_instance_with_same_version_number_as_pinned_but_a_d
       overridden: None,
     },
     ExpectedInstance {
-      state: InstanceState::fixable(MismatchesPin),
+      state: InstanceState::fixable(DiffersToPin),
       dependency_name: "foo",
       id: "foo in /devDependencies of package-a",
       actual: "^1.0.0",
@@ -1540,7 +1540,7 @@ fn an_already_pinned_version_is_valid() {
   let ctx = visit_packages(config, packages);
   expect(&ctx).to_have_instances(vec![
     ExpectedInstance {
-      state: InstanceState::valid(ValidLocal),
+      state: InstanceState::valid(IsLocalAndValid),
       dependency_name: "package-a",
       id: "package-a in /version of package-a",
       actual: "1.0.0",
@@ -1548,7 +1548,7 @@ fn an_already_pinned_version_is_valid() {
       overridden: None,
     },
     ExpectedInstance {
-      state: InstanceState::valid(EqualsPin),
+      state: InstanceState::valid(IsIdenticalToPin),
       dependency_name: "foo",
       id: "foo in /devDependencies of package-a",
       actual: "1.2.0",
@@ -1599,7 +1599,7 @@ fn refuses_to_ban_local_version() {
       overridden: None,
     },
     ExpectedInstance {
-      state: InstanceState::fixable(Banned),
+      state: InstanceState::fixable(IsBanned),
       dependency_name: "package-a",
       id: "package-a in /dependencies of package-b",
       actual: "1.1.0",
@@ -1639,7 +1639,7 @@ fn instance_in_a_same_range_group_satisfies_every_other_and_there_are_no_semver_
   let ctx = visit_packages(config, packages);
   expect(&ctx).to_have_instances(vec![
     ExpectedInstance {
-      state: InstanceState::valid(Ignored),
+      state: InstanceState::valid(IsIgnored),
       dependency_name: "package-a",
       id: "package-a in /version of package-a",
       actual: "VERSION_IS_MISSING",
@@ -1647,7 +1647,7 @@ fn instance_in_a_same_range_group_satisfies_every_other_and_there_are_no_semver_
       overridden: None,
     },
     ExpectedInstance {
-      state: InstanceState::valid(Ignored),
+      state: InstanceState::valid(IsIgnored),
       dependency_name: "package-b",
       id: "package-b in /version of package-b",
       actual: "VERSION_IS_MISSING",
@@ -1655,7 +1655,7 @@ fn instance_in_a_same_range_group_satisfies_every_other_and_there_are_no_semver_
       overridden: None,
     },
     ExpectedInstance {
-      state: InstanceState::valid(MatchesSameRangeGroup),
+      state: InstanceState::valid(SatisfiesSameRangeGroup),
       dependency_name: "foo",
       id: "foo in /dependencies of package-a",
       actual: ">=1.0.0",
@@ -1663,7 +1663,7 @@ fn instance_in_a_same_range_group_satisfies_every_other_and_there_are_no_semver_
       overridden: None,
     },
     ExpectedInstance {
-      state: InstanceState::valid(MatchesSameRangeGroup),
+      state: InstanceState::valid(SatisfiesSameRangeGroup),
       dependency_name: "foo",
       id: "foo in /dependencies of package-b",
       actual: "<=2.0.0",
@@ -1705,7 +1705,7 @@ fn instance_in_a_same_range_group_satisfies_every_other_and_matches_its_semver_g
   let ctx = visit_packages(config, packages);
   expect(&ctx).to_have_instances(vec![
     ExpectedInstance {
-      state: InstanceState::valid(Ignored),
+      state: InstanceState::valid(IsIgnored),
       dependency_name: "package-a",
       id: "package-a in /version of package-a",
       actual: "VERSION_IS_MISSING",
@@ -1713,7 +1713,7 @@ fn instance_in_a_same_range_group_satisfies_every_other_and_matches_its_semver_g
       overridden: None,
     },
     ExpectedInstance {
-      state: InstanceState::valid(Ignored),
+      state: InstanceState::valid(IsIgnored),
       dependency_name: "package-b",
       id: "package-b in /version of package-b",
       actual: "VERSION_IS_MISSING",
@@ -1721,7 +1721,7 @@ fn instance_in_a_same_range_group_satisfies_every_other_and_matches_its_semver_g
       overridden: None,
     },
     ExpectedInstance {
-      state: InstanceState::valid(MatchesSameRangeGroup),
+      state: InstanceState::valid(SatisfiesSameRangeGroup),
       dependency_name: "foo",
       id: "foo in /dependencies of package-a",
       actual: ">=1.0.0",
@@ -1729,7 +1729,7 @@ fn instance_in_a_same_range_group_satisfies_every_other_and_matches_its_semver_g
       overridden: None,
     },
     ExpectedInstance {
-      state: InstanceState::valid(MatchesSameRangeGroup),
+      state: InstanceState::valid(SatisfiesSameRangeGroup),
       dependency_name: "foo",
       id: "foo in /dependencies of package-b",
       actual: "^1.2.3",
@@ -1771,7 +1771,7 @@ fn instance_in_a_same_range_group_satisfies_every_other_but_mismatches_its_semve
   let ctx = visit_packages(config, packages);
   expect(&ctx).to_have_instances(vec![
     ExpectedInstance {
-      state: InstanceState::valid(Ignored),
+      state: InstanceState::valid(IsIgnored),
       dependency_name: "package-a",
       id: "package-a in /version of package-a",
       actual: "VERSION_IS_MISSING",
@@ -1779,7 +1779,7 @@ fn instance_in_a_same_range_group_satisfies_every_other_but_mismatches_its_semve
       overridden: None,
     },
     ExpectedInstance {
-      state: InstanceState::valid(Ignored),
+      state: InstanceState::valid(IsIgnored),
       dependency_name: "package-b",
       id: "package-b in /version of package-b",
       actual: "VERSION_IS_MISSING",
@@ -1787,7 +1787,7 @@ fn instance_in_a_same_range_group_satisfies_every_other_but_mismatches_its_semve
       overridden: None,
     },
     ExpectedInstance {
-      state: InstanceState::valid(MatchesSameRangeGroup),
+      state: InstanceState::valid(SatisfiesSameRangeGroup),
       dependency_name: "foo",
       id: "foo in /dependencies of package-a",
       actual: ">=1.0.0",
@@ -1833,7 +1833,7 @@ fn instance_in_a_same_range_group_does_not_satisfy_another() {
   let ctx = visit_packages(config, packages);
   expect(&ctx).to_have_instances(vec![
     ExpectedInstance {
-      state: InstanceState::valid(Ignored),
+      state: InstanceState::valid(IsIgnored),
       dependency_name: "package-a",
       id: "package-a in /version of package-a",
       actual: "VERSION_IS_MISSING",
@@ -1841,7 +1841,7 @@ fn instance_in_a_same_range_group_does_not_satisfy_another() {
       overridden: None,
     },
     ExpectedInstance {
-      state: InstanceState::valid(Ignored),
+      state: InstanceState::valid(IsIgnored),
       dependency_name: "package-b",
       id: "package-b in /version of package-b",
       actual: "VERSION_IS_MISSING",
@@ -1849,7 +1849,7 @@ fn instance_in_a_same_range_group_does_not_satisfy_another() {
       overridden: None,
     },
     ExpectedInstance {
-      state: InstanceState::unfixable(MismatchesSameRangeGroup),
+      state: InstanceState::unfixable(SameRangeMismatch),
       dependency_name: "foo",
       id: "foo in /dependencies of package-a",
       actual: ">=1.0.0",
@@ -1857,7 +1857,7 @@ fn instance_in_a_same_range_group_does_not_satisfy_another() {
       overridden: None,
     },
     ExpectedInstance {
-      state: InstanceState::unfixable(MismatchesSameRangeGroup),
+      state: InstanceState::unfixable(SameRangeMismatch),
       dependency_name: "foo",
       id: "foo in /dependencies of package-b",
       actual: "<1.0.0",
@@ -1911,7 +1911,7 @@ fn instance_identical_to_snapped_to_and_has_no_semver_group() {
       overridden: None,
     },
     ExpectedInstance {
-      state: InstanceState::valid(EqualsPreferVersion),
+      state: InstanceState::valid(IsHighestOrLowestSemver),
       dependency_name: "foo",
       id: "foo in /dependencies of leader",
       actual: "1.0.0",
@@ -1919,7 +1919,7 @@ fn instance_identical_to_snapped_to_and_has_no_semver_group() {
       overridden: None,
     },
     ExpectedInstance {
-      state: InstanceState::valid(EqualsSnapToVersion),
+      state: InstanceState::valid(IsIdenticalToSnapTarget),
       dependency_name: "foo",
       id: "foo in /dependencies of follower",
       actual: "1.0.0",
@@ -1971,7 +1971,7 @@ fn instance_has_different_version_to_snapped_to_and_has_no_semver_group() {
       overridden: None,
     },
     ExpectedInstance {
-      state: InstanceState::valid(EqualsPreferVersion),
+      state: InstanceState::valid(IsHighestOrLowestSemver),
       dependency_name: "foo",
       id: "foo in /dependencies of leader",
       actual: "1.0.0",
@@ -1979,7 +1979,7 @@ fn instance_has_different_version_to_snapped_to_and_has_no_semver_group() {
       overridden: None,
     },
     ExpectedInstance {
-      state: InstanceState::fixable(MismatchesSnapToVersion),
+      state: InstanceState::fixable(DiffersToSnapTarget),
       dependency_name: "foo",
       id: "foo in /dependencies of follower",
       actual: "1.1.0",
@@ -2031,7 +2031,7 @@ fn instance_has_same_version_number_as_snapped_to_but_a_different_range_and_has_
       overridden: None,
     },
     ExpectedInstance {
-      state: InstanceState::valid(EqualsPreferVersion),
+      state: InstanceState::valid(IsHighestOrLowestSemver),
       dependency_name: "foo",
       id: "foo in /dependencies of leader",
       actual: "^1.0.0",
@@ -2039,7 +2039,7 @@ fn instance_has_same_version_number_as_snapped_to_but_a_different_range_and_has_
       overridden: None,
     },
     ExpectedInstance {
-      state: InstanceState::fixable(MismatchesSnapToVersion),
+      state: InstanceState::fixable(DiffersToSnapTarget),
       dependency_name: "foo",
       id: "foo in /devDependencies of follower",
       actual: "~1.0.0",
@@ -2095,7 +2095,7 @@ fn instance_has_same_version_number_as_snapped_to_but_matches_a_different_but_co
       overridden: None,
     },
     ExpectedInstance {
-      state: InstanceState::valid(MatchesSnapToVersion),
+      state: InstanceState::valid(SatisfiesSnapTarget),
       dependency_name: "foo",
       id: "foo in /dependencies of follower",
       actual: "~1.0.0",
@@ -2103,7 +2103,7 @@ fn instance_has_same_version_number_as_snapped_to_but_matches_a_different_but_co
       overridden: None,
     },
     ExpectedInstance {
-      state: InstanceState::valid(EqualsPreferVersion),
+      state: InstanceState::valid(IsHighestOrLowestSemver),
       dependency_name: "foo",
       id: "foo in /dependencies of leader",
       actual: "^1.0.0",
@@ -2159,7 +2159,7 @@ fn instance_has_same_version_number_as_snapped_to_but_mismatches_a_different_but
       overridden: None,
     },
     ExpectedInstance {
-      state: InstanceState::valid(EqualsPreferVersion),
+      state: InstanceState::valid(IsHighestOrLowestSemver),
       dependency_name: "foo",
       id: "foo in /dependencies of leader",
       actual: ">=1.0.0",
@@ -2223,7 +2223,7 @@ fn instance_has_same_version_number_as_snapped_to_but_matches_a_different_but_in
       overridden: None,
     },
     ExpectedInstance {
-      state: InstanceState::valid(EqualsPreferVersion),
+      state: InstanceState::valid(IsHighestOrLowestSemver),
       dependency_name: "foo",
       id: "foo in /dependencies of leader",
       actual: "1.0.0",
@@ -2231,7 +2231,7 @@ fn instance_has_same_version_number_as_snapped_to_but_matches_a_different_but_in
       overridden: None,
     },
     ExpectedInstance {
-      state: InstanceState::conflict(MatchConflictsWithSnapTo),
+      state: InstanceState::conflict(MatchConflictsWithSnapTarget),
       dependency_name: "foo",
       id: "foo in /dependencies of follower",
       actual: "<1.0.0",
@@ -2287,7 +2287,7 @@ fn instance_has_same_version_number_as_snapped_to_but_mismatches_a_different_but
       overridden: None,
     },
     ExpectedInstance {
-      state: InstanceState::valid(EqualsPreferVersion),
+      state: InstanceState::valid(IsHighestOrLowestSemver),
       dependency_name: "foo",
       id: "foo in /dependencies of leader",
       actual: "~1.0.0",
@@ -2295,7 +2295,7 @@ fn instance_has_same_version_number_as_snapped_to_but_mismatches_a_different_but
       overridden: None,
     },
     ExpectedInstance {
-      state: InstanceState::conflict(MismatchConflictsWithSnapTo),
+      state: InstanceState::conflict(MismatchConflictsWithSnapTarget),
       dependency_name: "foo",
       id: "foo in /dependencies of follower",
       actual: "1.0.0",
@@ -2330,7 +2330,7 @@ fn instance_cannot_find_a_snapped_to_version() {
   let ctx = visit_packages(config, packages);
   expect(&ctx).to_have_instances(vec![
     ExpectedInstance {
-      state: InstanceState::valid(ValidLocal),
+      state: InstanceState::valid(IsLocalAndValid),
       dependency_name: "leader",
       id: "leader in /version of leader",
       actual: "1.0.0",
@@ -2338,7 +2338,7 @@ fn instance_cannot_find_a_snapped_to_version() {
       overridden: None,
     },
     ExpectedInstance {
-      state: InstanceState::valid(ValidLocal),
+      state: InstanceState::valid(IsLocalAndValid),
       dependency_name: "follower",
       id: "follower in /version of follower",
       actual: "0.1.0",
@@ -2346,7 +2346,7 @@ fn instance_cannot_find_a_snapped_to_version() {
       overridden: None,
     },
     ExpectedInstance {
-      state: InstanceState::unfixable(SnapToVersionNotFound),
+      state: InstanceState::unfixable(DependsOnMissingSnapTarget),
       dependency_name: "foo",
       id: "foo in /dependencies of follower",
       actual: "1.0.0",
@@ -2397,7 +2397,7 @@ fn instance_is_in_a_snapped_to_group_and_is_itself_a_snapped_to_target() {
       overridden: None,
     },
     ExpectedInstance {
-      state: InstanceState::valid(EqualsSnapToVersion),
+      state: InstanceState::valid(IsIdenticalToSnapTarget),
       dependency_name: "foo",
       id: "foo in /dependencies of leader",
       actual: "1.0.0",
@@ -2405,7 +2405,7 @@ fn instance_is_in_a_snapped_to_group_and_is_itself_a_snapped_to_target() {
       overridden: None,
     },
     ExpectedInstance {
-      state: InstanceState::valid(EqualsSnapToVersion),
+      state: InstanceState::valid(IsIdenticalToSnapTarget),
       dependency_name: "foo",
       id: "foo in /dependencies of follower",
       actual: "1.0.0",
@@ -2446,7 +2446,7 @@ fn refuses_to_snap_local_version_to_another_target() {
       overridden: None,
     },
     ExpectedInstance {
-      state: InstanceState::valid(EqualsSnapToVersion),
+      state: InstanceState::valid(IsIdenticalToSnapTarget),
       dependency_name: "package-b",
       id: "package-b in /version of package-b",
       actual: "0.1.0",
@@ -2454,7 +2454,7 @@ fn refuses_to_snap_local_version_to_another_target() {
       overridden: None,
     },
     ExpectedInstance {
-      state: InstanceState::valid(EqualsSnapToVersion),
+      state: InstanceState::valid(IsIdenticalToSnapTarget),
       dependency_name: "package-a",
       id: "package-a in /dependencies of package-b",
       actual: "0.0.1",
