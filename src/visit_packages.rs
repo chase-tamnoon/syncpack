@@ -10,7 +10,7 @@ use crate::{
   config::Config,
   context::Context,
   format,
-  instance::{FixableInstance::*, SemverGroupAndVersionConflict::*, SuspectInstance::*, UnfixableInstance::*, ValidInstance::*},
+  instance_state::{FixableInstance::*, SemverGroupAndVersionConflict::*, SuspectInstance::*, UnfixableInstance::*, ValidInstance::*},
   package_json::{FormatMismatch, FormatMismatchVariant::*, PackageJson},
   packages::Packages,
   specifier::{semver_range::SemverRange, Specifier},

@@ -1,5 +1,5 @@
 use crate::{
-  instance::InstanceState,
+  instance_state::InstanceState,
   test::{
     self,
     expect::{expect, ExpectedInstance},

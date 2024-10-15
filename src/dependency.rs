@@ -7,7 +7,8 @@ use std::{
 };
 
 use crate::{
-  instance::{Instance, InstanceState},
+  instance::Instance,
+  instance_state::InstanceState,
   package_json::PackageJson,
   specifier::{orderable::IsOrderable, semver::Semver, simple_semver::SimpleSemver, Specifier},
   version_group::VersionGroupVariant,

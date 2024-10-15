@@ -7,7 +7,8 @@ use log::info;
 use crate::{
   context::Context,
   dependency::Dependency,
-  instance::{Instance, InstanceState, ValidInstance},
+  instance::Instance,
+  instance_state::{InstanceState, ValidInstance},
   package_json::{FormatMismatch, FormatMismatchVariant, PackageJson},
   specifier::Specifier,
   version_group::VersionGroup,

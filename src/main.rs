@@ -25,6 +25,7 @@ mod effects;
 mod format;
 mod group_selector;
 mod instance;
+mod instance_state;
 mod logger;
 mod package_json;
 mod packages;
