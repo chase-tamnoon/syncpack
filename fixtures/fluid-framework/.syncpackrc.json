@@ -31,7 +31,7 @@
     {
       "label": "Ignore TypeScript",
       "dependencies": [
-        "*typescript*"
+        "!fluid-framework"
       ],
       "isIgnored": true
     },

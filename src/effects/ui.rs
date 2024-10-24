@@ -469,7 +469,7 @@ impl<'a> Ui<'a> {
     if self.show_packages {
       mismatches
         .iter()
-        .sorted_by(|a, b| b.package.borrow().get_name_unsafe().cmp(&a.package.borrow().get_name_unsafe()))
+        .sorted_by(|a, b| a.package.borrow().get_name_unsafe().cmp(&b.package.borrow().get_name_unsafe()))
         .for_each(|mismatch| {
           let icon = "-".dimmed();
           let package = mismatch.package.borrow();
