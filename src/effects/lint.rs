@@ -23,7 +23,6 @@ pub fn run(ctx: Context) -> Context {
       }
       ui.print_group_header(group);
       group.dependencies.borrow().values().for_each(|dependency| {
-        dependency.sort_instances();
         ui.print_dependency(dependency, &group.variant);
         ui.for_each_instance(dependency, |instance| {
           if ui.show_instances {

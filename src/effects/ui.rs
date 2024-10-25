@@ -1,4 +1,4 @@
-use std::{cell::RefCell, rc::Rc};
+use std::{cell::RefCell, cmp::Ordering, rc::Rc};
 
 use colored::*;
 use itertools::Itertools;
@@ -12,6 +12,7 @@ use crate::{
     FixableInstance, InstanceState, InvalidInstance, SemverGroupAndVersionConflict, SuspectInstance, UnfixableInstance, ValidInstance,
   },
   package_json::{FormatMismatch, FormatMismatchVariant, PackageJson},
+  specifier::Specifier,
   version_group::{VersionGroup, VersionGroupVariant},
 };
 
@@ -227,8 +228,26 @@ impl<'a> Ui<'a> {
       .instances
       .borrow()
       .iter()
-      // .sorted_unstable_by_key(|instance| (instance.actual_specifier.unwrap(), &instance.name, &instance.dependency_type.path))
-      // .rev()
+      .sorted_by(|a, b| {
+        if matches!(*a.state.borrow(), InstanceState::Valid(_)) && !matches!(*b.state.borrow(), InstanceState::Valid(_)) {
+          return Ordering::Less;
+        }
+        if matches!(*b.state.borrow(), InstanceState::Valid(_)) && !matches!(*a.state.borrow(), InstanceState::Valid(_)) {
+          return Ordering::Greater;
+        }
+        if matches!(&a.actual_specifier, Specifier::None) {
+          return Ordering::Greater;
+        }
+        if matches!(&b.actual_specifier, Specifier::None) {
+          return Ordering::Less;
+        }
+        let specifier_order = b.actual_specifier.unwrap().cmp(&a.actual_specifier.unwrap());
+        if matches!(specifier_order, Ordering::Equal) {
+          a.package.borrow().get_name_unsafe().cmp(&b.package.borrow().get_name_unsafe())
+        } else {
+          specifier_order
+        }
+      })
       .for_each(f);
   }
 

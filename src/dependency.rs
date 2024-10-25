@@ -180,23 +180,4 @@ impl Dependency {
     }
     None
   }
-
-  /// Sort instances by actual specifier in descending order, and then package
-  /// name in ascending order
-  pub fn sort_instances(&self) {
-    self.instances.borrow_mut().sort_by(|a, b| {
-      if matches!(&a.actual_specifier, Specifier::None) {
-        return Ordering::Greater;
-      }
-      if matches!(&b.actual_specifier, Specifier::None) {
-        return Ordering::Less;
-      }
-      let specifier_order = b.actual_specifier.unwrap().cmp(&a.actual_specifier.unwrap());
-      if matches!(specifier_order, Ordering::Equal) {
-        a.package.borrow().get_name_unsafe().cmp(&b.package.borrow().get_name_unsafe())
-      } else {
-        specifier_order
-      }
-    });
-  }
 }
