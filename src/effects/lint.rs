@@ -1,4 +1,5 @@
 use itertools::Itertools;
+use log::warn;
 
 use crate::{context::Context, effects::ui::Ui, version_group::VersionGroupVariant};
 
@@ -18,6 +19,11 @@ pub fn run(ctx: Context) -> Context {
   if ctx.config.cli.options.versions {
     ui.print_command_header("SEMVER RANGES AND VERSION MISMATCHES");
     ctx.version_groups.iter().for_each(|group| {
+      if group.dependencies.borrow().len() == 0 {
+        let label = &group.selector.label;
+        warn!("Version Group with label '{label}' did not match anything");
+        return;
+      }
       if !ui.show_ignored && matches!(group.variant, VersionGroupVariant::Ignored) {
         return;
       }
