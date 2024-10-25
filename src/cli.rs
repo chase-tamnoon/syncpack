@@ -1,4 +1,5 @@
 use clap::{builder::ValueParser, crate_description, crate_name, crate_version, Arg, ArgMatches, Command};
+use log::LevelFilter;
 use regex::Regex;
 
 #[derive(Debug)]
@@ -66,6 +67,14 @@ fn create() -> Command {
             .action(clap::ArgAction::Set)
             .value_parser(ValueParser::new(validate_filter))
             .help("only include dependencies whose name matches this regex"),
+        )
+        .arg(
+          Arg::new("logLevels")
+            .long("logLevels")
+            .value_delimiter(',')
+            .value_parser(["off", "error", "warn", "info", "debug"])
+            .default_values(["error", "warn", "info"])
+            .help("control how detailed log output should be"),
         ),
     )
     .subcommand(
@@ -99,6 +108,14 @@ fn create() -> Command {
             .action(clap::ArgAction::Set)
             .value_parser(ValueParser::new(validate_filter))
             .help("only include dependencies whose name matches this regex"),
+        )
+        .arg(
+          Arg::new("logLevels")
+            .long("logLevels")
+            .value_delimiter(',')
+            .value_parser(["off", "error", "warn", "info", "debug"])
+            .default_values(["error", "warn", "info"])
+            .help("control how detailed log output should be"),
         ),
     )
 }
@@ -122,11 +139,13 @@ pub struct CliOptions {
   /// `true` when `--format` is passed or if none of `--format`, `--ranges`
   /// or `--versions` are passed
   pub format: bool,
+  /// How detailed the terminal output should be
+  pub log_levels: Vec<LevelFilter>,
+  /// Optional glob patterns to package.json files
+  pub source: Vec<String>,
   /// `true` when `--versions` is passed or if none of `--format`, `--ranges`
   /// or `--versions` are passed
   pub versions: bool,
-  /// Optional glob patterns to package.json files
-  pub source: Vec<String>,
 }
 
 impl CliOptions {
@@ -137,18 +156,28 @@ impl CliOptions {
     let use_format = matches.get_flag("format");
     let use_versions = matches.get_flag("versions");
     let use_all = !use_format && !use_versions;
-    let source = matches
-      .get_many::<String>("source")
-      .unwrap_or_default()
-      .map(|source| source.to_owned())
-      .collect::<Vec<_>>();
-    let filter = matches.get_one::<Regex>("filter").map(|filter| filter.to_owned());
 
     CliOptions {
-      filter,
+      filter: matches.get_one::<String>("filter").map(|filter| Regex::new(filter).unwrap()),
       format: use_all || use_format,
+      log_levels: matches
+        .get_many::<String>("logLevels")
+        .unwrap()
+        .map(|level| match level.as_str() {
+          "off" => LevelFilter::Off,
+          "error" => LevelFilter::Error,
+          "warn" => LevelFilter::Warn,
+          "info" => LevelFilter::Info,
+          "debug" => LevelFilter::Debug,
+          _ => unreachable!(),
+        })
+        .collect(),
+      source: matches
+        .get_many::<String>("source")
+        .unwrap_or_default()
+        .map(|source| source.to_owned())
+        .collect::<Vec<_>>(),
       versions: use_all || use_versions,
-      source,
     }
   }
 }

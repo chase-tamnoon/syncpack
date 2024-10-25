@@ -13,7 +13,7 @@ use super::*;
 #[ctor::ctor]
 fn init() {
   use crate::logger;
-  logger::init();
+  logger::init(&[]);
 }
 
 // = Standard Version Group: Local =============================================

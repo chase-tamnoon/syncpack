@@ -35,10 +35,11 @@ mod version_group;
 mod visit_packages;
 
 fn main() {
-  logger::init();
+  let cli = Cli::parse();
+
+  logger::init(&cli.options.log_levels);
 
   let cwd = current_dir().unwrap();
-  let cli = Cli::parse();
   let config = Config::from_cli(cwd, cli);
   let packages = Packages::from_config(&config);
 

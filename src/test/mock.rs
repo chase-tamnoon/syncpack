@@ -15,8 +15,9 @@ pub fn cli() -> Cli {
     options: CliOptions {
       filter: None,
       format: false,
-      versions: true,
+      log_levels: vec![],
       source: vec![],
+      versions: true,
     },
   }
 }
