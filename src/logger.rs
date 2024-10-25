@@ -3,14 +3,19 @@ use env_logger::Builder;
 use log::{Level, LevelFilter};
 use std::io::Write;
 
+use crate::cli::CliOptions;
+
 /// Initialize the logger with the given log level
-pub fn init(log_levels: &[LevelFilter]) {
-  if !log_levels.contains(&LevelFilter::Off) {
-    let error_enabled = log_levels.contains(&LevelFilter::Error);
-    let warn_enabled = log_levels.contains(&LevelFilter::Warn);
-    let info_enabled = log_levels.contains(&LevelFilter::Info);
-    let debug_enabled = log_levels.contains(&LevelFilter::Debug);
-    let trace_enabled = log_levels.contains(&LevelFilter::Trace);
+pub fn init(cli_options: &CliOptions) {
+  if cli_options.disable_color {
+    colored::control::set_override(false);
+  }
+  if !cli_options.log_levels.contains(&LevelFilter::Off) {
+    let error_enabled = cli_options.log_levels.contains(&LevelFilter::Error);
+    let warn_enabled = cli_options.log_levels.contains(&LevelFilter::Warn);
+    let info_enabled = cli_options.log_levels.contains(&LevelFilter::Info);
+    let debug_enabled = cli_options.log_levels.contains(&LevelFilter::Debug);
+    let trace_enabled = cli_options.log_levels.contains(&LevelFilter::Trace);
     Builder::new()
       .filter_level(LevelFilter::Debug)
       .format(move |buf, record| {

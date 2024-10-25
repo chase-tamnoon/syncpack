@@ -13,6 +13,7 @@ pub fn cli() -> Cli {
   Cli {
     command_name: Subcommand::Lint,
     options: CliOptions {
+      disable_color: true,
       filter: None,
       format: false,
       log_levels: vec![],

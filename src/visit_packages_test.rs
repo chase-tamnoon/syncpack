@@ -12,8 +12,8 @@ use super::*;
 #[cfg(test)]
 #[ctor::ctor]
 fn init() {
-  use crate::logger;
-  logger::init(&[]);
+  use crate::{logger, test::mock};
+  logger::init(&mock::cli().options);
 }
 
 // = Standard Version Group: Local =============================================

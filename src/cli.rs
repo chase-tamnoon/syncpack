@@ -69,12 +69,18 @@ fn create() -> Command {
             .help("only include dependencies whose name matches this regex"),
         )
         .arg(
-          Arg::new("logLevels")
-            .long("logLevels")
+          Arg::new("log-levels")
+            .long("log-levels")
             .value_delimiter(',')
             .value_parser(["off", "error", "warn", "info", "debug"])
             .default_values(["error", "warn", "info"])
             .help("control how detailed log output should be"),
+        )
+        .arg(
+          Arg::new("no-color")
+            .long("no-color")
+            .action(clap::ArgAction::SetTrue)
+            .help("disable colored output"),
         ),
     )
     .subcommand(
@@ -110,12 +116,18 @@ fn create() -> Command {
             .help("only include dependencies whose name matches this regex"),
         )
         .arg(
-          Arg::new("logLevels")
-            .long("logLevels")
+          Arg::new("log-levels")
+            .long("log-levels")
             .value_delimiter(',')
             .value_parser(["off", "error", "warn", "info", "debug"])
             .default_values(["error", "warn", "info"])
             .help("control how detailed log output should be"),
+        )
+        .arg(
+          Arg::new("no-color")
+            .long("no-color")
+            .action(clap::ArgAction::SetTrue)
+            .help("disable colored output"),
         ),
     )
 }
@@ -134,6 +146,8 @@ fn validate_source(value: &str) -> Result<String, String> {
 
 #[derive(Debug)]
 pub struct CliOptions {
+  /// Disable colored output
+  pub disable_color: bool,
   /// Optional regex to filter dependencies by name
   pub filter: Option<Regex>,
   /// `true` when `--format` is passed or if none of `--format`, `--ranges`
@@ -158,10 +172,11 @@ impl CliOptions {
     let use_all = !use_format && !use_versions;
 
     CliOptions {
+      disable_color: matches.get_flag("no-color"),
       filter: matches.get_one::<String>("filter").map(|filter| Regex::new(filter).unwrap()),
       format: use_all || use_format,
       log_levels: matches
-        .get_many::<String>("logLevels")
+        .get_many::<String>("log-levels")
         .unwrap()
         .map(|level| match level.as_str() {
           "off" => LevelFilter::Off,

@@ -37,7 +37,7 @@ mod visit_packages;
 fn main() {
   let cli = Cli::parse();
 
-  logger::init(&cli.options.log_levels);
+  logger::init(&cli.options);
 
   let cwd = current_dir().unwrap();
   let config = Config::from_cli(cwd, cli);

@@ -110,7 +110,7 @@ run-fluid:
     set -euxo pipefail
 
     cd fixtures/fluid-framework
-    RUST_BACKTRACE=1 cargo run -- lint --format --versions
+    RUST_BACKTRACE=1 cargo run -- lint --format --versions --no-color
 
 # Run the release rust binary against a clone of microsoft/FluidFramework
 run-fluid-prod:
