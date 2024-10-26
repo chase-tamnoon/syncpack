@@ -522,7 +522,11 @@ impl<'a> Ui<'a> {
 
   /// Render a clickable link
   fn link(&self, url: impl Into<String>, text: impl Into<ColoredString>) -> ColoredString {
-    format!("\x1b]8;;{}\x1b\\{}\x1b]8;;\x1b\\", url.into(), text.into()).normal()
+    if self.ctx.config.cli.options.disable_color {
+      text.into().normal()
+    } else {
+      format!("\x1b]8;;{}\x1b\\{}\x1b]8;;\x1b\\", url.into(), text.into()).normal()
+    }
   }
 
   /// Convert eg. "/dependencies/react" to ".dependencies.react"
