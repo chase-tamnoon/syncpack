@@ -390,7 +390,7 @@ pub fn visit_packages(config: Config, packages: Packages) -> Context {
       package.borrow().formatting_mismatches.borrow_mut().push(Rc::clone(&mismatch));
     };
 
-    ctx.packages.by_name.values().for_each(|package| {
+    ctx.packages.all.iter().for_each(|package| {
       if ctx.config.rcfile.format_bugs {
         if let Some(expected) = format::get_formatted_bugs(&package.borrow()) {
           add_mismatch(

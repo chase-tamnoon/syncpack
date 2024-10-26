@@ -46,7 +46,7 @@ pub fn run(ctx: Context) -> Context {
   }
   if ctx.config.cli.options.format {
     info!("{}", "= FORMATTING".dimmed());
-    ctx.packages.by_name.values().for_each(|package| {
+    ctx.packages.all.iter().for_each(|package| {
       //
     });
   }

@@ -1,7 +1,7 @@
 use glob::glob;
 use itertools::Itertools;
 use serde_json::Value;
-use std::{cell::RefCell, cmp::Ordering, collections::HashMap, path::PathBuf, rc::Rc, vec::IntoIter};
+use std::{cell::RefCell, cmp::Ordering, path::PathBuf, rc::Rc, vec::IntoIter};
 
 use crate::{
   cli::CliOptions,
@@ -13,13 +13,13 @@ use crate::{
 
 #[derive(Debug)]
 pub struct Packages {
-  pub by_name: HashMap<String, Rc<RefCell<PackageJson>>>,
+  pub all: Vec<Rc<RefCell<PackageJson>>>,
 }
 
 impl Packages {
   /// Create an empty collection of package.json files
   pub fn new() -> Self {
-    Self { by_name: HashMap::new() }
+    Self { all: vec![] }
   }
 
   /// Get every package.json file matched by the user's source patterns
@@ -36,14 +36,13 @@ impl Packages {
 
   /// Add a package.json file to this collection
   pub fn add_package(&mut self, package_json: PackageJson) -> &mut Self {
-    let name = package_json.get_name_unsafe();
-    self.by_name.insert(name, Rc::new(RefCell::new(package_json)));
+    self.all.push(Rc::new(RefCell::new(package_json)));
     self
   }
 
   /// Get all packages sorted by their file path
   pub fn sorted_by_path(&self, cwd: &PathBuf) -> IntoIter<&Rc<RefCell<PackageJson>>> {
-    self.by_name.values().sorted_by(|a, b| {
+    self.all.iter().sorted_by(|a, b| {
       let a = a.borrow().get_relative_file_path(cwd);
       let b = b.borrow().get_relative_file_path(cwd);
       if a == "package.json" {
@@ -54,6 +53,15 @@ impl Packages {
       }
       Ord::cmp(&a, &b)
     })
+  }
+
+  /// Get a package.json file by its name
+  pub fn get_by_name(&self, name: &str) -> Option<Rc<RefCell<PackageJson>>> {
+    self
+      .all
+      .iter()
+      .find(|package| package.borrow().get_name_unsafe() == name)
+      .map(Rc::clone)
   }
 
   /// Get every instance of a dependency from every package.json file
@@ -71,7 +79,7 @@ impl Packages {
       }
     };
 
-    for package in self.by_name.values() {
+    for package in self.all.iter() {
       for dependency_type in all_dependency_types {
         match dependency_type.strategy {
           Strategy::NameAndVersionProps => {

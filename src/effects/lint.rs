@@ -42,8 +42,8 @@ pub fn run(ctx: Context) -> Context {
     ui.print_command_header("FORMATTING");
     let formatted_packages = ctx
       .packages
-      .by_name
-      .values()
+      .all
+      .iter()
       .filter(|package| package.borrow().formatting_mismatches.borrow().is_empty())
       .collect_vec();
     ui.print_formatted_packages(formatted_packages);

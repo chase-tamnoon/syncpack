@@ -67,7 +67,7 @@ impl Context {
       }
     }
     if self.config.cli.options.format {
-      for package in self.packages.by_name.values() {
+      for package in self.packages.all.iter() {
         if !package.borrow().formatting_mismatches.borrow().is_empty() {
           std::process::exit(1);
         }

@@ -126,15 +126,11 @@ impl VersionGroup {
           snap_to
             .iter()
             .flat_map(|name| {
-              packages
-                .by_name
-                .get(name)
-                .or_else(|| {
-                  // @FIXME: show user friendly error message and exit with error code
-                  warn!("Invalid Snapped To Version Group: No package.json file found with a name property of '{name}'");
-                  None
-                })
-                .map(Rc::clone)
+              packages.get_by_name(name).or_else(|| {
+                // @FIXME: show user friendly error message and exit with error code
+                warn!("Invalid Snapped To Version Group: No package.json file found with a name property of '{name}'");
+                None
+              })
             })
             .collect(),
         ),
@@ -199,12 +195,14 @@ fn with_resolved_keywords(dependency_names: &[String], packages: &Packages) -> V
   for dependency_name in dependency_names.iter() {
     match dependency_name.as_str() {
       "$LOCAL" => {
-        for package_name in packages.by_name.keys() {
-          resolved_dependencies.push(package_name.clone());
+        for package in packages.all.iter() {
+          let package_name = package.borrow().get_name_unsafe();
+          resolved_dependencies.push(package_name);
         }
       }
       "!$LOCAL" => {
-        for package_name in packages.by_name.keys() {
+        for package in packages.all.iter() {
+          let package_name = package.borrow().get_name_unsafe();
           resolved_dependencies.push(format!("!{}", package_name));
         }
       }
