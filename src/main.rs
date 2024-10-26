@@ -10,7 +10,7 @@ use {
     packages::Packages,
     visit_packages::visit_packages,
   },
-  log::error,
+  log::{debug, error},
   std::env::current_dir,
 };
 
@@ -43,7 +43,15 @@ fn main() {
 
   let cwd = current_dir().unwrap();
   let config = Config::from_cli(cwd, cli);
+
+  debug!("CWD: {:?}", config.cwd);
+  debug!("Chosen command: {:?}", config.cli.command_name);
+  debug!("{:#?}", config.cli.options);
+  debug!("{:#?}", config.rcfile);
+
   let packages = Packages::from_config(&config);
+
+  debug!("Found {} package.json files", packages.all.len());
 
   if packages.all.is_empty() {
     error!("No package.json files were found");

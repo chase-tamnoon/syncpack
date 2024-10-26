@@ -1,7 +1,7 @@
 use {
   crate::{context::Context, effects::ui::Ui, version_group::VersionGroupVariant},
   itertools::Itertools,
-  log::warn,
+  log::{info, warn},
 };
 
 /// Run the lint command side effects
@@ -20,15 +20,16 @@ pub fn run(ctx: Context) -> Context {
   if ctx.config.cli.options.versions {
     ui.print_command_header("SEMVER RANGES AND VERSION MISMATCHES");
     ctx.version_groups.iter().for_each(|group| {
+      ui.print_group_header(group);
       if group.dependencies.borrow().len() == 0 {
         let label = &group.selector.label;
-        warn!("Version Group with label '{label}' did not match anything");
+        warn!("Version Group is empty");
         return;
       }
       if !ui.show_ignored && matches!(group.variant, VersionGroupVariant::Ignored) {
+        info!("Version Group is ignored");
         return;
       }
-      ui.print_group_header(group);
       group.dependencies.borrow().values().for_each(|dependency| {
         ui.print_dependency(dependency, &group.variant);
         ui.for_each_instance(dependency, |instance| {
