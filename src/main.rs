@@ -2,7 +2,7 @@
 #![allow(unused_variables)]
 #![allow(unreachable_code)]
 
-use std::{env::current_dir, process};
+use std::env::current_dir;
 
 use crate::{
   cli::{Cli, Subcommand},
@@ -47,12 +47,12 @@ fn main() {
     Subcommand::Fix => {
       let ctx = visit_packages(config, packages);
       let ctx = fix::run(ctx);
-      process::exit(ctx.exit_code);
+      ctx.exit_program();
     }
     Subcommand::Lint => {
       let ctx = visit_packages(config, packages);
       let ctx = lint::run(ctx);
-      process::exit(ctx.exit_code);
+      ctx.exit_program();
     }
   };
 }

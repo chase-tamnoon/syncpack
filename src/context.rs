@@ -3,6 +3,7 @@ use std::{cell::RefCell, collections::HashMap, rc::Rc};
 use crate::{
   config::Config,
   instance::Instance,
+  instance_state::InstanceState,
   package_json::{FormatMismatch, FormatMismatchVariant},
   packages::Packages,
   semver_group::SemverGroup,
@@ -13,8 +14,6 @@ use crate::{
 pub struct Context {
   /// All default configuration with user config applied
   pub config: Config,
-  /// The exit code of the program
-  pub exit_code: i32,
   /// All formatting issues in package.json files
   pub formatting_mismatches_by_variant: RefCell<HashMap<FormatMismatchVariant, Vec<Rc<FormatMismatch>>>>,
   /// Every instance in the project
@@ -49,12 +48,31 @@ impl Context {
 
     Self {
       config,
-      exit_code: 0,
       formatting_mismatches_by_variant: RefCell::new(HashMap::new()),
       instances,
       packages,
       semver_groups,
       version_groups,
     }
+  }
+
+  /// Quit with the correct exit code based on the validity of each instance
+  pub fn exit_program(&self) -> ! {
+    if self.config.cli.options.versions {
+      for instance in self.instances.iter() {
+        match *instance.state.borrow() {
+          InstanceState::Valid(_) => continue,
+          _ => std::process::exit(1),
+        }
+      }
+    }
+    if self.config.cli.options.format {
+      for package in self.packages.by_name.values() {
+        if !package.borrow().formatting_mismatches.borrow().is_empty() {
+          std::process::exit(1);
+        }
+      }
+    }
+    std::process::exit(0);
   }
 }
