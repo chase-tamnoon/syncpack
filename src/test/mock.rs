@@ -1,12 +1,12 @@
-use std::{cell::RefCell, path::PathBuf};
-
-use serde_json::Value;
-
-use crate::{
-  cli::{Cli, CliOptions, Subcommand},
-  config::{Config, Rcfile},
-  package_json::PackageJson,
-  packages::Packages,
+use {
+  crate::{
+    cli::{Cli, CliOptions, Subcommand},
+    config::{Config, Rcfile},
+    package_json::PackageJson,
+    packages::Packages,
+  },
+  serde_json::Value,
+  std::{cell::RefCell, path::PathBuf},
 };
 
 pub fn cli() -> Cli {

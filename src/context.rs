@@ -1,13 +1,14 @@
-use std::{cell::RefCell, collections::HashMap, rc::Rc};
-
-use crate::{
-  config::Config,
-  instance::Instance,
-  instance_state::InstanceState,
-  package_json::{FormatMismatch, FormatMismatchVariant},
-  packages::Packages,
-  semver_group::SemverGroup,
-  version_group::VersionGroup,
+use {
+  crate::{
+    config::Config,
+    instance::Instance,
+    instance_state::InstanceState,
+    package_json::{FormatMismatch, FormatMismatchVariant},
+    packages::Packages,
+    semver_group::SemverGroup,
+    version_group::VersionGroup,
+  },
+  std::{cell::RefCell, collections::HashMap, rc::Rc},
 };
 
 #[derive(Debug)]

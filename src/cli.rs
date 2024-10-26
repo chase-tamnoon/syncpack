@@ -1,6 +1,8 @@
-use clap::{builder::ValueParser, crate_description, crate_name, crate_version, Arg, ArgMatches, Command};
-use log::LevelFilter;
-use regex::Regex;
+use {
+  clap::{builder::ValueParser, crate_description, crate_name, crate_version, Arg, ArgMatches, Command},
+  log::LevelFilter,
+  regex::Regex,
+};
 
 #[derive(Debug)]
 pub enum Subcommand {

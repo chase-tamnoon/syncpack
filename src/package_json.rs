@@ -1,9 +1,10 @@
-use log::error;
-use serde::Serialize;
-use serde_json::{ser::PrettyFormatter, Serializer, Value};
-use std::{cell::RefCell, fs, path::PathBuf, rc::Rc};
-
-use crate::{config::Config, dependency_type::Strategy, instance::Instance};
+use {
+  crate::{config::Config, dependency_type::Strategy, instance::Instance},
+  log::error,
+  serde::Serialize,
+  serde_json::{ser::PrettyFormatter, Serializer, Value},
+  std::{cell::RefCell, fs, path::PathBuf, rc::Rc},
+};
 
 #[derive(Debug)]
 pub struct PackageJson {

@@ -1,15 +1,16 @@
-use log::debug;
-use serde_json::Value;
-use std::{cell::RefCell, path::PathBuf, rc::Rc};
-
-use crate::{
-  dependency_type::{DependencyType, Strategy},
-  instance_state::{
-    FixableInstance, InstanceState, InvalidInstance, SemverGroupAndVersionConflict, SuspectInstance, UnfixableInstance, ValidInstance,
+use {
+  crate::{
+    dependency_type::{DependencyType, Strategy},
+    instance_state::{
+      FixableInstance, InstanceState, InvalidInstance, SemverGroupAndVersionConflict, SuspectInstance, UnfixableInstance, ValidInstance,
+    },
+    package_json::PackageJson,
+    semver_group::SemverGroup,
+    specifier::{semver::Semver, semver_range::SemverRange, Specifier},
   },
-  package_json::PackageJson,
-  semver_group::SemverGroup,
-  specifier::{semver::Semver, semver_range::SemverRange, Specifier},
+  log::debug,
+  serde_json::Value,
+  std::{cell::RefCell, path::PathBuf, rc::Rc},
 };
 
 pub type InstanceId = String;

@@ -1,6 +1,7 @@
-use std::{cmp::Ordering, collections::HashMap};
-
-use super::*;
+use {
+  super::*,
+  std::{cmp::Ordering, collections::HashMap},
+};
 
 #[test]
 fn creates_a_semver_range_from_a_string() {

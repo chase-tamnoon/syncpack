@@ -1,6 +1,4 @@
-use std::cmp::Ordering;
-
-use super::*;
+use {super::*, std::cmp::Ordering};
 
 #[test]
 fn parses_node_specifier_strings() {

@@ -2,19 +2,19 @@
 #[path = "simple_semver_test.rs"]
 mod simple_semver_test;
 
-use log::warn;
-use node_semver::Version;
-
-use crate::specifier::regexes::matches_any;
-
-use super::{
-  orderable::{IsOrderable, Orderable},
-  parser,
-  regexes::{
-    CARET, CARET_MAJOR, CARET_MINOR, CARET_TAG, GT, GTE, GTE_MAJOR, GTE_MINOR, GTE_TAG, GT_MAJOR, GT_MINOR, GT_TAG, LT, LTE, LTE_MAJOR,
-    LTE_MINOR, LTE_TAG, LT_MAJOR, LT_MINOR, LT_TAG, RANGE_CHARS, TILDE, TILDE_MAJOR, TILDE_MINOR, TILDE_TAG,
+use {
+  super::{
+    orderable::{IsOrderable, Orderable},
+    parser,
+    regexes::{
+      CARET, CARET_MAJOR, CARET_MINOR, CARET_TAG, GT, GTE, GTE_MAJOR, GTE_MINOR, GTE_TAG, GT_MAJOR, GT_MINOR, GT_TAG, LT, LTE, LTE_MAJOR,
+      LTE_MINOR, LTE_TAG, LT_MAJOR, LT_MINOR, LT_TAG, RANGE_CHARS, TILDE, TILDE_MAJOR, TILDE_MINOR, TILDE_TAG,
+    },
+    semver_range::SemverRange,
   },
-  semver_range::SemverRange,
+  crate::specifier::regexes::matches_any,
+  log::warn,
+  node_semver::Version,
 };
 
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]

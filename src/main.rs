@@ -2,14 +2,15 @@
 #![allow(unused_variables)]
 #![allow(unreachable_code)]
 
-use std::env::current_dir;
-
-use crate::{
-  cli::{Cli, Subcommand},
-  config::Config,
-  effects::{fix, lint},
-  packages::Packages,
-  visit_packages::visit_packages,
+use {
+  crate::{
+    cli::{Cli, Subcommand},
+    config::Config,
+    effects::{fix, lint},
+    packages::Packages,
+    visit_packages::visit_packages,
+  },
+  std::env::current_dir,
 };
 
 #[cfg(test)]

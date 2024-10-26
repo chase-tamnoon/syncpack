@@ -2,19 +2,20 @@
 #[path = "visit_packages_test.rs"]
 mod visit_packages_test;
 
-use itertools::Itertools;
-use log::debug;
-use std::{cell::RefCell, cmp::Ordering, rc::Rc};
-
-use crate::{
-  config::Config,
-  context::Context,
-  format,
-  instance_state::{FixableInstance::*, SemverGroupAndVersionConflict::*, SuspectInstance::*, UnfixableInstance::*, ValidInstance::*},
-  package_json::{FormatMismatch, FormatMismatchVariant::*, PackageJson},
-  packages::Packages,
-  specifier::{semver_range::SemverRange, Specifier},
-  version_group::VersionGroupVariant,
+use {
+  crate::{
+    config::Config,
+    context::Context,
+    format,
+    instance_state::{FixableInstance::*, SemverGroupAndVersionConflict::*, SuspectInstance::*, UnfixableInstance::*, ValidInstance::*},
+    package_json::{FormatMismatch, FormatMismatchVariant::*, PackageJson},
+    packages::Packages,
+    specifier::{semver_range::SemverRange, Specifier},
+    version_group::VersionGroupVariant,
+  },
+  itertools::Itertools,
+  log::debug,
+  std::{cell::RefCell, cmp::Ordering, rc::Rc},
 };
 
 pub fn visit_packages(config: Config, packages: Packages) -> Context {

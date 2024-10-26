@@ -1,6 +1,7 @@
-use log::error;
-
-use crate::{context::Context, instance::Instance, instance_state::InstanceState};
+use {
+  crate::{context::Context, instance::Instance, instance_state::InstanceState},
+  log::error,
+};
 
 #[derive(Debug)]
 pub struct ExpectedInstance {

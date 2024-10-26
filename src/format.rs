@@ -2,15 +2,16 @@
 #[path = "format_test.rs"]
 mod format_test;
 
-use icu::{
-  collator::{Collator, CollatorOptions},
-  locid::{locale, Locale},
+use {
+  crate::{config::Rcfile, package_json::PackageJson},
+  icu::{
+    collator::{Collator, CollatorOptions},
+    locid::{locale, Locale},
+  },
+  regex::Regex,
+  serde_json::{self, Map, Value},
+  std::{cmp::Ordering, collections::HashSet},
 };
-use regex::Regex;
-use serde_json::{self, Map, Value};
-use std::{cmp::Ordering, collections::HashSet};
-
-use crate::{config::Rcfile, package_json::PackageJson};
 
 /// Use a shorthand format for the bugs URL when possible
 pub fn get_formatted_bugs(package: &PackageJson) -> Option<Value> {

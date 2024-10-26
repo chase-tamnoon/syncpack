@@ -1,8 +1,8 @@
-use serde_json::json;
-
-use crate::test::{self, mock};
-
-use super::*;
+use {
+  super::*,
+  crate::test::{self, mock},
+  serde_json::json,
+};
 
 #[test]
 fn formats_bugs_into_github_shorthand() {

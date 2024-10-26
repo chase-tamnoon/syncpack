@@ -1,14 +1,15 @@
-use glob::glob;
-use itertools::Itertools;
-use serde_json::Value;
-use std::{cell::RefCell, cmp::Ordering, path::PathBuf, rc::Rc, vec::IntoIter};
-
-use crate::{
-  cli::CliOptions,
-  config::{Config, Rcfile},
-  dependency_type::Strategy,
-  instance::Instance,
-  package_json::PackageJson,
+use {
+  crate::{
+    cli::CliOptions,
+    config::{Config, Rcfile},
+    dependency_type::Strategy,
+    instance::Instance,
+    package_json::PackageJson,
+  },
+  glob::glob,
+  itertools::Itertools,
+  serde_json::Value,
+  std::{cell::RefCell, cmp::Ordering, path::PathBuf, rc::Rc, vec::IntoIter},
 };
 
 #[derive(Debug)]

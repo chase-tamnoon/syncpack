@@ -1,14 +1,15 @@
-use colored::*;
-use log::info;
-use serde::Deserialize;
-use std::{collections::HashMap, fs, path::PathBuf};
-
-use crate::{
-  cli::Cli,
-  dependency_type::DependencyType,
-  packages::Packages,
-  semver_group::{AnySemverGroup, SemverGroup},
-  version_group::{AnyVersionGroup, VersionGroup},
+use {
+  crate::{
+    cli::Cli,
+    dependency_type::DependencyType,
+    packages::Packages,
+    semver_group::{AnySemverGroup, SemverGroup},
+    version_group::{AnyVersionGroup, VersionGroup},
+  },
+  colored::*,
+  log::info,
+  serde::Deserialize,
+  std::{collections::HashMap, fs, path::PathBuf},
 };
 
 fn empty_custom_types() -> HashMap<String, CustomType> {

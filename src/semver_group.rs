@@ -1,6 +1,7 @@
-use serde::Deserialize;
-
-use crate::{group_selector::GroupSelector, specifier::semver_range::SemverRange};
+use {
+  crate::{group_selector::GroupSelector, specifier::semver_range::SemverRange},
+  serde::Deserialize,
+};
 
 #[derive(Debug)]
 pub enum SemverGroupVariant {
@@ -25,11 +26,11 @@ impl SemverGroup {
     SemverGroup {
       variant: SemverGroupVariant::WithRange,
       selector: GroupSelector::new(
-        /*include_dependencies:*/ vec![],
-        /*include_dependency_types:*/ vec!["local".to_string()],
-        /*label:*/ "Local package versions must be exact".to_string(),
-        /*include_packages:*/ vec![],
-        /*include_specifier_types:*/ vec![],
+        /* include_dependencies: */ vec![],
+        /* include_dependency_types: */ vec!["local".to_string()],
+        /* label: */ "Local package versions must be exact".to_string(),
+        /* include_packages: */ vec![],
+        /* include_specifier_types: */ vec![],
       ),
       range: None,
     }
@@ -40,11 +41,11 @@ impl SemverGroup {
     SemverGroup {
       variant: SemverGroupVariant::Disabled,
       selector: GroupSelector::new(
-        /*include_dependencies:*/ vec![],
-        /*include_dependency_types:*/ vec![],
-        /*label:*/ "Default Semver Group".to_string(),
-        /*include_packages:*/ vec![],
-        /*include_specifier_types:*/ vec![],
+        /* include_dependencies: */ vec![],
+        /* include_dependency_types: */ vec![],
+        /* label: */ "Default Semver Group".to_string(),
+        /* include_packages: */ vec![],
+        /* include_specifier_types: */ vec![],
       ),
       range: None,
     }
@@ -53,11 +54,11 @@ impl SemverGroup {
   /// Create a single version group from a config item from the rcfile.
   pub fn from_config(group: &AnySemverGroup) -> SemverGroup {
     let selector = GroupSelector::new(
-      /*include_dependencies:*/ group.dependencies.clone(),
-      /*include_dependency_types:*/ group.dependency_types.clone(),
-      /*label:*/ group.label.clone(),
-      /*include_packages:*/ group.packages.clone(),
-      /*include_specifier_types:*/ group.specifier_types.clone(),
+      /* include_dependencies: */ group.dependencies.clone(),
+      /* include_dependency_types: */ group.dependency_types.clone(),
+      /* label: */ group.label.clone(),
+      /* include_packages: */ group.packages.clone(),
+      /* include_specifier_types: */ group.specifier_types.clone(),
     );
 
     if let Some(true) = group.is_disabled {

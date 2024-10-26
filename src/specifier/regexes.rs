@@ -1,5 +1,4 @@
-use lazy_static::lazy_static;
-use regex::Regex;
+use {lazy_static::lazy_static, regex::Regex};
 
 lazy_static! {
   /// Any character used in a semver range

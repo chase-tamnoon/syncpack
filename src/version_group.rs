@@ -1,10 +1,11 @@
-use log::warn;
-use serde::Deserialize;
-use std::{cell::RefCell, collections::BTreeMap, rc::Rc, vec};
-
-use crate::{
-  dependency::Dependency, group_selector::GroupSelector, instance::Instance, package_json::PackageJson, packages::Packages,
-  specifier::Specifier,
+use {
+  crate::{
+    dependency::Dependency, group_selector::GroupSelector, instance::Instance, package_json::PackageJson, packages::Packages,
+    specifier::Specifier,
+  },
+  log::warn,
+  serde::Deserialize,
+  std::{cell::RefCell, collections::BTreeMap, rc::Rc, vec},
 };
 
 /// What behaviour has this group been configured to exhibit?
@@ -27,7 +28,8 @@ pub struct VersionGroup {
   pub pin_version: Option<Specifier>,
   /// Data to determine which instances should be added to this group
   pub selector: GroupSelector,
-  /// package.json files whose names match the `snapTo` config when variant is `SnappedTo`
+  /// package.json files whose names match the `snapTo` config when variant is
+  /// `SnappedTo`
   pub snap_to: Option<Vec<Rc<RefCell<PackageJson>>>>,
   /// What behaviour has this group been configured to exhibit?
   pub variant: VersionGroupVariant,
@@ -40,11 +42,11 @@ impl VersionGroup {
       dependencies: RefCell::new(BTreeMap::new()),
       pin_version: None,
       selector: GroupSelector::new(
-        /*include_dependencies:*/ vec![],
-        /*include_dependency_types:*/ vec![],
-        /*label:*/ "Default Version Group".to_string(),
-        /*include_packages:*/ vec![],
-        /*include_specifier_types:*/ vec![],
+        /* include_dependencies: */ vec![],
+        /* include_dependency_types: */ vec![],
+        /* label: */ "Default Version Group".to_string(),
+        /* include_packages: */ vec![],
+        /* include_specifier_types: */ vec![],
       ),
       snap_to: None,
       variant: VersionGroupVariant::HighestSemver,
@@ -55,10 +57,10 @@ impl VersionGroup {
     let mut dependencies = self.dependencies.borrow_mut();
     let dependency = dependencies.entry(instance.name.clone()).or_insert_with(|| {
       Dependency::new(
-        /*name:*/ instance.name.clone(),
-        /*variant:*/ self.variant.clone(),
-        /*pin_version:*/ self.pin_version.clone(),
-        /*snap_to:*/ self.snap_to.clone(),
+        /* name: */ instance.name.clone(),
+        /* variant: */ self.variant.clone(),
+        /* pin_version: */ self.pin_version.clone(),
+        /* snap_to: */ self.snap_to.clone(),
       )
     });
     dependency.add_instance(Rc::clone(&instance));
@@ -68,12 +70,12 @@ impl VersionGroup {
   /// Create a single version group from a config item from the rcfile.
   pub fn from_config(group: &AnyVersionGroup, packages: &Packages) -> VersionGroup {
     let selector = GroupSelector::new(
-      /*include_dependencies:*/
+      /* include_dependencies: */
       with_resolved_keywords(&group.dependencies, packages),
-      /*include_dependency_types:*/ group.dependency_types.clone(),
-      /*label:*/ group.label.clone(),
-      /*include_packages:*/ group.packages.clone(),
-      /*include_specifier_types:*/ group.specifier_types.clone(),
+      /* include_dependency_types: */ group.dependency_types.clone(),
+      /* label: */ group.label.clone(),
+      /* include_packages: */ group.packages.clone(),
+      /* include_specifier_types: */ group.specifier_types.clone(),
     );
 
     if let Some(true) = group.is_banned {

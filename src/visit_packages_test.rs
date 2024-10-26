@@ -1,13 +1,14 @@
-use crate::{
-  instance_state::InstanceState,
-  test::{
-    self,
-    expect::{expect, ExpectedInstance},
+use {
+  super::*,
+  crate::{
+    instance_state::InstanceState,
+    test::{
+      self,
+      expect::{expect, ExpectedInstance},
+    },
   },
+  serde_json::json,
 };
-use serde_json::json;
-
-use super::*;
 
 #[cfg(test)]
 #[ctor::ctor]

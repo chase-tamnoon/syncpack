@@ -2,13 +2,14 @@
 #[path = "specifier_test.rs"]
 mod specifier_test;
 
-use semver_range::SemverRange;
-
-use crate::specifier::{
-  non_semver::NonSemver,
-  orderable::{IsOrderable, Orderable},
-  semver::Semver,
-  simple_semver::SimpleSemver,
+use {
+  crate::specifier::{
+    non_semver::NonSemver,
+    orderable::{IsOrderable, Orderable},
+    semver::Semver,
+    simple_semver::SimpleSemver,
+  },
+  semver_range::SemverRange,
 };
 
 pub mod non_semver;

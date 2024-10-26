@@ -24,7 +24,7 @@ install-system-dependencies:
 
 # Fix formatting, indentation etc of all files
 format:
-    cargo fmt --all -- --verbose
+    cargo +nightly fmt --all -- --verbose
     cargo clippy --fix --allow-dirty
 
 # Update dependencies in Cargo.toml and Cargo.lock

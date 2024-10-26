@@ -1,19 +1,19 @@
-use std::{cell::RefCell, cmp::Ordering, rc::Rc};
-
-use colored::*;
-use itertools::Itertools;
-use log::info;
-
-use crate::{
-  context::Context,
-  dependency::Dependency,
-  instance::Instance,
-  instance_state::{
-    FixableInstance, InstanceState, InvalidInstance, SemverGroupAndVersionConflict, SuspectInstance, UnfixableInstance, ValidInstance,
+use {
+  crate::{
+    context::Context,
+    dependency::Dependency,
+    instance::Instance,
+    instance_state::{
+      FixableInstance, InstanceState, InvalidInstance, SemverGroupAndVersionConflict, SuspectInstance, UnfixableInstance, ValidInstance,
+    },
+    package_json::{FormatMismatch, FormatMismatchVariant, PackageJson},
+    specifier::Specifier,
+    version_group::{VersionGroup, VersionGroupVariant},
   },
-  package_json::{FormatMismatch, FormatMismatchVariant, PackageJson},
-  specifier::Specifier,
-  version_group::{VersionGroup, VersionGroupVariant},
+  colored::*,
+  itertools::Itertools,
+  log::info,
+  std::{cell::RefCell, cmp::Ordering, rc::Rc},
 };
 
 #[derive(Debug)]

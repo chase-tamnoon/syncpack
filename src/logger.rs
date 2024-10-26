@@ -1,9 +1,10 @@
-use colored::Colorize;
-use env_logger::Builder;
-use log::{Level, LevelFilter};
-use std::io::Write;
-
-use crate::cli::CliOptions;
+use {
+  crate::cli::CliOptions,
+  colored::Colorize,
+  env_logger::Builder,
+  log::{Level, LevelFilter},
+  std::io::Write,
+};
 
 /// Initialize the logger with the given log level
 pub fn init(cli_options: &CliOptions) {

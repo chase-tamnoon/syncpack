@@ -1,6 +1,7 @@
-use node_semver::{Identifier, Version};
-
-use super::*;
+use {
+  super::*,
+  node_semver::{Identifier, Version},
+};
 
 #[test]
 fn returns_err_when_specifier_is_not_simple_semver() {

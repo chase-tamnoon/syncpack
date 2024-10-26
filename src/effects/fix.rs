@@ -1,7 +1,8 @@
-use colored::*;
-use log::info;
-
-use crate::{context::Context, version_group::VersionGroupVariant};
+use {
+  crate::{context::Context, version_group::VersionGroupVariant},
+  colored::*,
+  log::info,
+};
 
 /// Run the fix command side effects
 pub fn run(ctx: Context) -> Context {
@@ -77,7 +78,8 @@ pub fn run(ctx: Context) -> Context {
 //         // @TODO
 //       }
 //       Event::PackageFormatMismatch(event) => {
-//         let file_path = event.package.borrow().get_relative_file_path(&self.config.cwd);
+//         let file_path =
+// event.package.borrow().get_relative_file_path(&self.config.cwd);
 //         event.formatting_mismatches.iter().for_each(|mismatch| {
 //           let property_path = &mismatch.property_path;
 //           let expected = &mismatch.expected;
@@ -90,8 +92,8 @@ pub fn run(ctx: Context) -> Context {
 //               event
 //                 .package
 //                 .borrow_mut()
-//                 .set_prop(mismatch.property_path.as_str(), mismatch.expected.clone());
-//             }
+//                 .set_prop(mismatch.property_path.as_str(),
+// mismatch.expected.clone());             }
 //           }
 //         });
 //       }
@@ -169,25 +171,25 @@ pub fn run(ctx: Context) -> Context {
 //         self.is_valid = false;
 //       }
 //       InstanceState::SemverRangeMismatchConflictsWithPreferVersion => {
-//         debug!("@TODO: explain SemverRangeMismatchConflictsWithPreferVersion");
-//         self.is_valid = false;
-//       }
+//         debug!("@TODO: explain
+// SemverRangeMismatchConflictsWithPreferVersion");         self.is_valid =
+// false;       }
 //       InstanceState::SemverRangeMatchConflictsWithSnapToVersion => {
 //         debug!("@TODO: explain SemverRangeMatchConflictsWithSnapToVersion");
 //         self.is_valid = false;
 //       }
 //       InstanceState::SemverRangeMismatchConflictsWithSnapToVersion => {
-//         debug!("@TODO: explain SemverRangeMismatchConflictsWithSnapToVersion");
-//         self.is_valid = false;
-//       }
+//         debug!("@TODO: explain
+// SemverRangeMismatchConflictsWithSnapToVersion");         self.is_valid =
+// false;       }
 //       InstanceState::SemverRangeMatchConflictsWithLocalVersion => {
 //         debug!("@TODO: explain SemverRangeMatchConflictsWithLocalVersion");
 //         self.is_valid = false;
 //       }
 //       InstanceState::SemverRangeMismatchConflictsWithLocalVersion => {
-//         debug!("@TODO: explain SemverRangeMismatchConflictsWithLocalVersion");
-//         self.is_valid = false;
-//       }
+//         debug!("@TODO: explain
+// SemverRangeMismatchConflictsWithLocalVersion");         self.is_valid =
+// false;       }
 //       /* Unfixable Mismatches */
 //       InstanceState::MismatchesInvalidLocalVersion => {
 //         debug!("@TODO: explain MismatchesInvalidLocalVersion");

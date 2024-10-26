@@ -1,7 +1,8 @@
-use itertools::Itertools;
-use log::warn;
-
-use crate::{context::Context, effects::ui::Ui, version_group::VersionGroupVariant};
+use {
+  crate::{context::Context, effects::ui::Ui, version_group::VersionGroupVariant},
+  itertools::Itertools,
+  log::warn,
+};
 
 /// Run the lint command side effects
 pub fn run(ctx: Context) -> Context {

@@ -1,8 +1,4 @@
-use std::cmp::Ordering;
-
-use node_semver::Version;
-
-use super::semver_range::SemverRange;
+use {super::semver_range::SemverRange, node_semver::Version, std::cmp::Ordering};
 
 pub trait IsOrderable: std::fmt::Debug {
   fn get_orderable(&self) -> Orderable;

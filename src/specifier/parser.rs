@@ -1,6 +1,4 @@
-use log::debug;
-
-use super::regexes;
+use {super::regexes, log::debug};
 
 /// Convert non-semver specifiers to semver when behaviour is identical
 pub fn sanitise(specifier: &str) -> &str {

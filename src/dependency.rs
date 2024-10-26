@@ -1,17 +1,18 @@
-use std::{
-  cell::RefCell,
-  cmp::Ordering,
-  collections::{BTreeMap, HashSet},
-  rc::Rc,
-  vec,
-};
-
-use crate::{
-  instance::Instance,
-  instance_state::InstanceState,
-  package_json::PackageJson,
-  specifier::{orderable::IsOrderable, semver::Semver, simple_semver::SimpleSemver, Specifier},
-  version_group::VersionGroupVariant,
+use {
+  crate::{
+    instance::Instance,
+    instance_state::InstanceState,
+    package_json::PackageJson,
+    specifier::{orderable::IsOrderable, semver::Semver, simple_semver::SimpleSemver, Specifier},
+    version_group::VersionGroupVariant,
+  },
+  std::{
+    cell::RefCell,
+    cmp::Ordering,
+    collections::{BTreeMap, HashSet},
+    rc::Rc,
+    vec,
+  },
 };
 
 #[derive(Debug)]
@@ -121,7 +122,8 @@ impl Dependency {
       )
   }
 
-  /// Does every instance in this group have a specifier which is exactly the same?
+  /// Does every instance in this group have a specifier which is exactly the
+  /// same?
   pub fn every_specifier_is_already_identical(&self) -> bool {
     if let Some(first_actual) = self.instances.borrow().first().map(|instance| &instance.actual_specifier) {
       self
