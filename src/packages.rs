@@ -8,8 +8,16 @@ use {
   },
   glob::glob,
   itertools::Itertools,
+  serde::Deserialize,
   serde_json::Value,
-  std::{cell::RefCell, cmp::Ordering, path::PathBuf, rc::Rc, vec::IntoIter},
+  std::{
+    cell::RefCell,
+    cmp::Ordering,
+    fs,
+    path::{Path, PathBuf},
+    rc::Rc,
+    vec::IntoIter,
+  },
 };
 
 #[derive(Debug)]
@@ -184,14 +192,26 @@ fn get_file_paths(config: &Config) -> Vec<PathBuf> {
 fn get_source_patterns(config: &Config) -> Vec<String> {
   get_cli_patterns(&config.cli.options)
     .or_else(|| get_rcfile_patterns(&config.rcfile))
-    .or_else(get_npm_patterns)
-    .or_else(get_pnpm_patterns)
-    .or_else(get_yarn_patterns)
-    .or_else(get_lerna_patterns)
+    .or_else(|| get_npm_and_yarn_patterns(&config.cwd))
+    .or_else(|| get_pnpm_patterns(&config.cwd))
+    .or_else(|| get_lerna_patterns(&config.cwd))
+    .map(|patterns| {
+      patterns
+        .into_iter()
+        .map(|pattern| {
+          if pattern.contains("package.json") {
+            pattern
+          } else {
+            format!("{}/package.json", pattern)
+          }
+        })
+        .collect()
+    })
     .or_else(get_default_patterns)
     .unwrap()
 }
 
+/// Get source patterns provided via the `--source` CLI option
 fn get_cli_patterns(cli_options: &CliOptions) -> Option<Vec<String>> {
   if cli_options.source.is_empty() {
     None
@@ -200,6 +220,7 @@ fn get_cli_patterns(cli_options: &CliOptions) -> Option<Vec<String>> {
   }
 }
 
+/// Get source patterns from the syncpack config file
 fn get_rcfile_patterns(rcfile: &Rcfile) -> Option<Vec<String>> {
   if rcfile.source.is_empty() {
     None
@@ -208,22 +229,53 @@ fn get_rcfile_patterns(rcfile: &Rcfile) -> Option<Vec<String>> {
   }
 }
 
-fn get_npm_patterns() -> Option<Vec<String>> {
-  None
+/// Look for source patterns in the `pnpm-workspace.yaml` file
+fn get_pnpm_patterns(cwd: &Path) -> Option<Vec<String>> {
+  let file_path = cwd.join("pnpm-workspace.yaml");
+  let json = fs::read_to_string(&file_path).ok()?;
+  let pnpm_workspace: SourcesUnderPackages = serde_yaml::from_str(&json).ok()?;
+  pnpm_workspace.packages
 }
 
-fn get_pnpm_patterns() -> Option<Vec<String>> {
-  None
+#[derive(Debug, Deserialize)]
+struct SourcesUnderPackages {
+  packages: Option<Vec<String>>,
 }
 
-fn get_yarn_patterns() -> Option<Vec<String>> {
-  None
+#[derive(Debug, Deserialize)]
+struct SourcesUnderWorkspacesDotPackages {
+  workspaces: SourcesUnderPackages,
 }
 
-fn get_lerna_patterns() -> Option<Vec<String>> {
-  None
+#[derive(Debug, Deserialize)]
+struct SourcesUnderWorkspaces {
+  workspaces: Option<Vec<String>>,
 }
 
+/// Look for source patterns in the `package.json` file in the locations
+/// searched by `npm` and `yarn`
+fn get_npm_and_yarn_patterns(cwd: &Path) -> Option<Vec<String>> {
+  let file_path = cwd.join("package.json");
+  let json = fs::read_to_string(&file_path).ok()?;
+  serde_json::from_str::<SourcesUnderWorkspacesDotPackages>(&json)
+    .ok()
+    .and_then(|package_json| package_json.workspaces.packages)
+    .or_else(|| {
+      serde_json::from_str::<SourcesUnderWorkspaces>(&json)
+        .ok()
+        .and_then(|package_json| package_json.workspaces)
+    })
+}
+
+/// Look for source patterns in the `lerna.json` file
+fn get_lerna_patterns(cwd: &Path) -> Option<Vec<String>> {
+  let file_path = cwd.join("lerna.json");
+  let json = fs::read_to_string(&file_path).ok()?;
+  let lerna_json: SourcesUnderPackages = serde_json::from_str(&json).ok()?;
+  lerna_json.packages
+}
+
+/// Default source patterns to use if no other source patterns are found
 fn get_default_patterns() -> Option<Vec<String>> {
   Some(vec![String::from("package.json"), String::from("packages/*/package.json")])
 }
