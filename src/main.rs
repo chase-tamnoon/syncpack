@@ -10,6 +10,7 @@ use {
     packages::Packages,
     visit_packages::visit_packages,
   },
+  log::error,
   std::env::current_dir,
 };
 
@@ -43,6 +44,11 @@ fn main() {
   let cwd = current_dir().unwrap();
   let config = Config::from_cli(cwd, cli);
   let packages = Packages::from_config(&config);
+
+  if packages.all.is_empty() {
+    error!("No package.json files were found");
+    std::process::exit(1);
+  }
 
   match config.cli.command_name {
     Subcommand::Fix => {

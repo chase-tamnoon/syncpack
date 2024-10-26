@@ -60,7 +60,7 @@ impl PackageJson {
       .and_then(|json| {
         serde_json::from_str(&json)
           .inspect_err(|_| {
-            error!("file is not valid JSON at {}", &file_path.to_str().unwrap());
+            error!("Invalid JSON: {}", &file_path.to_str().unwrap());
           })
           .map(|contents: Value| Self {
             file_path: file_path.clone(),

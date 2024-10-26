@@ -6,8 +6,7 @@ use {
     semver_group::{AnySemverGroup, SemverGroup},
     version_group::{AnyVersionGroup, VersionGroup},
   },
-  colored::*,
-  log::info,
+  log::warn,
   serde::Deserialize,
   std::{collections::HashMap, fs, path::PathBuf},
 };
@@ -214,17 +213,23 @@ impl Config {
   /// defaults if one is not found
   pub fn from_cli(cwd: PathBuf, cli: Cli) -> Config {
     let file_path = cwd.join(".syncpackrc.json");
-    let rcfile = fs::read_to_string(&file_path)
-      .inspect_err(|_| {
-        info!(
-          "{}",
-          format!("? using default config: {} not found", &file_path.to_str().unwrap()).dimmed()
-        );
-      })
-      .or_else(|_| Ok("{}".to_string()))
-      .and_then(|json| serde_json::from_str::<Rcfile>(&json))
-      .unwrap();
-
-    Config { cli, cwd, rcfile }
+    Config {
+      cli,
+      cwd,
+      rcfile: fs::read_to_string(&file_path)
+        .or_else(|_| {
+          let file_path = &file_path.to_str().unwrap();
+          warn!("Using default config, could not find {file_path}");
+          Ok("{}".to_string())
+        })
+        .and_then(|json| serde_json::from_str::<Rcfile>(&json))
+        .or_else(|_| {
+          let file_path = &file_path.to_str().unwrap();
+          warn!("Using default config, could not parse {file_path}");
+          let empty_json = "{}".to_string();
+          serde_json::from_str::<Rcfile>(&empty_json)
+        })
+        .unwrap(),
+    }
   }
 }
