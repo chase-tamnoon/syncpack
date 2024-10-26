@@ -1,56 +1,78 @@
 use {
-  crate::{context::Context, version_group::VersionGroupVariant},
+  super::ui::Ui,
+  crate::{
+    context::Context,
+    instance_state::{FixableInstance, InstanceState, InvalidInstance, SuspectInstance},
+  },
   colored::*,
   log::info,
 };
 
 /// Run the fix command side effects
 pub fn run(ctx: Context) -> Context {
+  // @TODO: move values to config file
+  let ui = Ui {
+    ctx: &ctx,
+    show_ignored: false,
+    show_instances: true,
+    show_status_codes: true,
+    show_packages: false,
+    // @TODO: show_valid: false,
+    // @TODO: sort_by: "name" | "state" | "count",
+  };
+
   if ctx.config.cli.options.versions {
     info!("{}", "= SEMVER RANGES AND VERSION MISMATCHES".dimmed());
-    ctx.version_groups.iter().for_each(|group| {
-      group.dependencies.borrow().values().for_each(|dependency| {
-        match dependency.variant {
-          VersionGroupVariant::Banned => {
-            dependency.instances.borrow().iter().for_each(|instance| {
-              //
-            });
-          }
-          VersionGroupVariant::HighestSemver | VersionGroupVariant::LowestSemver => {
-            dependency.instances.borrow().iter().for_each(|instance| {
-              //
-            });
-          }
-          VersionGroupVariant::Ignored => {
-            dependency.instances.borrow().iter().for_each(|instance| {
-              //
-            });
-          }
-          VersionGroupVariant::Pinned => {
-            dependency.instances.borrow().iter().for_each(|instance| {
-              //
-            });
-          }
-          VersionGroupVariant::SameRange => {
-            dependency.instances.borrow().iter().for_each(|instance| {
-              //
-            });
-          }
-          VersionGroupVariant::SnappedTo => {
-            dependency.instances.borrow().iter().for_each(|instance| {
-              //
-            });
-          }
+    ctx.instances.iter().for_each(|instance| {
+      match &*instance.state.borrow() {
+        InstanceState::Invalid(variant) => match variant {
+          InvalidInstance::Fixable(variant) => match variant {
+            FixableInstance::IsBanned => {
+              instance.remove();
+            }
+            FixableInstance::DiffersToLocal
+            | FixableInstance::DiffersToHighestOrLowestSemver
+            | FixableInstance::DiffersToSnapTarget
+            | FixableInstance::DiffersToPin
+            | FixableInstance::SemverRangeMismatch
+            | FixableInstance::PinOverridesSemverRange
+            | FixableInstance::PinOverridesSemverRangeMismatch => {
+              let name = &instance.name;
+              let actual = instance.actual_specifier.unwrap().red();
+              let arrow = ui.dim_right_arrow();
+              let expected = instance.expected_specifier.borrow().as_ref().unwrap().unwrap().green();
+              let location = ui.instance_location(instance).dimmed();
+              info!("{name} {actual} {arrow} {expected} {location}");
+              instance.package.borrow().copy_expected_specifier(instance);
+            }
+          },
+          InvalidInstance::Unfixable(_) => {}
+          InvalidInstance::Conflict(_) => {}
+        },
+        InstanceState::Suspect(variant) => match variant {
+          SuspectInstance::RefuseToBanLocal => {}
+          SuspectInstance::RefuseToPinLocal => {}
+          SuspectInstance::RefuseToSnapLocal => {}
+          SuspectInstance::InvalidLocalVersion => {}
+        },
+        _ => {
+          //
         }
-      });
+      }
     });
   }
+
   if ctx.config.cli.options.format {
     info!("{}", "= FORMATTING".dimmed());
     ctx.packages.all.iter().for_each(|package| {
       //
     });
   }
+
+  ctx.packages.all.iter().for_each(|package| {
+    package.borrow().write_to_disk(&ctx.config);
+  });
+
   ctx
 }
 

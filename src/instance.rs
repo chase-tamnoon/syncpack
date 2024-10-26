@@ -186,8 +186,8 @@ impl Instance {
       .unwrap_or(false)
   }
 
-  /// Delete a version/dependency/instance from the package.json
-  pub fn remove_from(&self, package: &PackageJson) {
+  /// Delete from the package.json
+  pub fn remove(&self) {
     match self.dependency_type.strategy {
       Strategy::NameAndVersionProps => {
         debug!("@TODO: remove instance for NameAndVersionProps");
@@ -201,7 +201,7 @@ impl Instance {
       Strategy::VersionsByName => {
         let path_to_obj = &self.dependency_type.path;
         let name = &self.name;
-        if let Some(Value::Object(obj)) = package.contents.borrow_mut().pointer_mut(path_to_obj) {
+        if let Some(Value::Object(obj)) = self.package.borrow_mut().contents.borrow_mut().pointer_mut(path_to_obj) {
           obj.remove(name);
         }
       }

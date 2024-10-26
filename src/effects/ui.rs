@@ -423,7 +423,7 @@ impl<'a> Ui<'a> {
     "?".dimmed()
   }
 
-  fn dim_right_arrow(&self) -> ColoredString {
+  pub fn dim_right_arrow(&self) -> ColoredString {
     "→".dimmed()
   }
 
@@ -434,7 +434,7 @@ impl<'a> Ui<'a> {
   }
 
   /// Return a location hint for an instance
-  fn instance_location(&self, instance: &Instance) -> ColoredString {
+  pub fn instance_location(&self, instance: &Instance) -> ColoredString {
     let path_to_prop = instance.dependency_type.path.replace("/", ".");
     let file_link = self.package_json_link(&instance.package.borrow());
     format!("in {file_link} at {path_to_prop}").normal()
