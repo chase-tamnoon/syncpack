@@ -132,8 +132,11 @@ fn create() -> Command {
     )
 }
 
-fn validate_filter(value: &str) -> Result<Regex, String> {
-  Regex::new(value).map_err(|_| "not a valid Regex".to_string())
+fn validate_filter(value: &str) -> Result<String, String> {
+  Regex::new(value)
+    // keep the value if it is a valid regex, we will parse it again later
+    .map(|_| value.to_string())
+    .map_err(|_| "not a valid Regex".to_string())
 }
 
 fn validate_source(value: &str) -> Result<String, String> {
