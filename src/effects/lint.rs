@@ -1,7 +1,6 @@
 use {
   crate::{context::Context, effects::ui::Ui, version_group::VersionGroupVariant},
   itertools::Itertools,
-  log::{info, warn},
 };
 
 /// Run the lint command side effects
@@ -23,11 +22,11 @@ pub fn run(ctx: Context) -> Context {
       ui.print_group_header(group);
       if group.dependencies.borrow().len() == 0 {
         let label = &group.selector.label;
-        warn!("Version Group is empty");
+        ui.print_empty_group();
         return;
       }
       if !ui.show_ignored && matches!(group.variant, VersionGroupVariant::Ignored) {
-        info!("Version Group is ignored");
+        ui.print_ignored_group();
         return;
       }
       group.dependencies.borrow().values().for_each(|dependency| {
@@ -41,7 +40,7 @@ pub fn run(ctx: Context) -> Context {
     });
   }
   if ctx.config.cli.options.format {
-    ui.print_command_header("FORMATTING");
+    ui.print_command_header("PACKAGE FORMATTING");
     let formatted_packages = ctx
       .packages
       .all

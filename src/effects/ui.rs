@@ -12,7 +12,7 @@ use {
   },
   colored::*,
   itertools::Itertools,
-  log::info,
+  log::{info, warn},
   std::{cell::RefCell, cmp::Ordering, rc::Rc},
 };
 
@@ -407,15 +407,15 @@ impl<'a> Ui<'a> {
     }
   }
 
-  fn ok_icon(&self) -> ColoredString {
+  pub fn ok_icon(&self) -> ColoredString {
     "✓".green()
   }
 
-  fn err_icon(&self) -> ColoredString {
+  pub fn err_icon(&self) -> ColoredString {
     "✘".red()
   }
 
-  fn warn_icon(&self) -> ColoredString {
+  pub fn warn_icon(&self) -> ColoredString {
     "!".yellow()
   }
 
@@ -429,7 +429,7 @@ impl<'a> Ui<'a> {
 
   /// Return a right-aligned column of a count of instances
   /// Example "    38x"
-  fn count_column(&self, count: usize) -> ColoredString {
+  pub fn count_column(&self, count: usize) -> ColoredString {
     format!("{: >4}x", count).dimmed()
   }
 
@@ -453,6 +453,14 @@ impl<'a> Ui<'a> {
     } else {
       code.normal()
     }
+  }
+
+  pub fn print_empty_group(&self) {
+    warn!("Version Group is empty");
+  }
+
+  pub fn print_ignored_group(&self) {
+    info!("{}", "? Version Group is ignored".dimmed());
   }
 
   pub fn print_formatted_packages(&self, packages: Vec<&Rc<RefCell<PackageJson>>>) {
@@ -510,7 +518,7 @@ impl<'a> Ui<'a> {
     format!("{plain_link}").normal()
   }
 
-  fn status_code_link(&self, pascal_case: &str) -> ColoredString {
+  pub fn status_code_link(&self, pascal_case: &str) -> ColoredString {
     if !self.show_status_codes {
       return "".normal();
     }
@@ -534,284 +542,4 @@ impl<'a> Ui<'a> {
     let path = path.replace("/", ".");
     path.normal()
   }
-
-  /*
-  fn err(&self, msg: &str) -> ColoredString {
-    format!("{} {}", self.red_cross(), msg).red()
-  }
-
-  fn warn(&self, msg: &str) -> ColoredString {
-    format!("{} {}", self.yellow_warning(), msg).yellow()
-  }
-
-
-  fn print_dependency_header(&self, dependency: &Dependency) {
-    let state = dependency.get_state();
-    let count = self.count_column(dependency.instances.borrow().len());
-    let status_code = self.get_dependency_status_code(dependency);
-    if matches!(state, InstanceState::Valid(ValidInstance::IsIgnored)) {
-      let icon = "?".dimmed();
-      let name = &dependency.name;
-      return info!("{count} {icon} {name} {status_code}");
-    }
-    let name = if matches!(state, InstanceState::Invalid(_)) {
-      dependency.name.red()
-    } else {
-      dependency.name.normal()
-    };
-    let unique_specifiers = dependency.get_unique_specifiers();
-    let icon_will_be_shown_by_every_instance = self.show_instances;
-    let icon = if icon_will_be_shown_by_every_instance {
-      " ".normal()
-    } else {
-      let icon = self.state_icon(&state);
-      format!(" {icon} ").normal()
-    };
-    if unique_specifiers.len() == 1 {
-      let colon = ":".dimmed();
-      let specifier = self.get_dependency_specifier(dependency, &unique_specifiers);
-      info!("{count}{icon}{name}{specifier} {status_code}");
-    } else {
-      info!("{count}{icon}{name} {status_code}");
-    }
-  }
-
-  fn get_dependency_specifier(&self, dependency: &Dependency, unique_specifiers: &[Specifier]) -> ColoredString {
-    let will_be_shown_by_every_instance = self.show_instances;
-    if will_be_shown_by_every_instance {
-      return "".normal();
-    }
-    let state = dependency.get_state();
-    let colon = ":".dimmed();
-    let specifier = unique_specifiers.first().unwrap().unwrap();
-    let specifier = if matches!(state, InstanceState::Invalid(_)) {
-      specifier.red()
-    } else {
-      specifier.dimmed()
-    };
-    format!("{colon} {specifier}").normal()
-  }
-
-  fn get_dependency_status_code(&self, dependency: &Dependency) -> ColoredString {
-    let state = dependency.get_state();
-    let has_issue = matches!(
-      state,
-      InstanceState::Invalid(_) | InstanceState::Suspect(_) | InstanceState::Valid(ValidInstance::IsIgnored)
-    );
-    let will_be_shown_by_every_instance = self.show_instances;
-    if has_issue && !will_be_shown_by_every_instance {
-      self.instance_state_link2(&state)
-    } else {
-      "".normal()
-    }
-  }
-
-  fn dependency_state_link(&self, dependency: &Dependency) -> ColoredString {
-    self.status_code_link(&dependency.get_state().get_name())
-  }
-
-  fn instance_state_link(&self, instance: &Instance) -> ColoredString {
-    self.status_code_link(&instance.state.borrow().get_name())
-  }
-
-  fn instance_state_link2(&self, instance_state: &InstanceState) -> ColoredString {
-    self.status_code_link(&instance_state.get_name())
-  }
-
-
-  fn state_icon(&self, state: &InstanceState) -> ColoredString {
-    match state {
-      InstanceState::Valid(variant) => self.green_tick(),
-      InstanceState::Invalid(_) => self.red_cross(),
-      InstanceState::Suspect(_) => self.yellow_warning(),
-      InstanceState::Unknown => panic!("Unknown state"),
-    }
-  }
-
-
-  fn print_instances(&self, instances: &[Rc<Instance>]) {
-    if self.show_instances {
-      instances
-        .iter()
-        .sorted_unstable_by_key(|instance| (instance.actual_specifier.unwrap(), &instance.name, &instance.dependency_type.path))
-        .rev()
-        .for_each(|instance| self.print_instance(instance))
-    }
-  }
-
-  fn specifier_with_icon(&self, instance: &Instance) -> ColoredString {
-    let state = instance.state.borrow().clone();
-    let specifier = instance.actual_specifier.unwrap();
-    match &state {
-      InstanceState::Valid(variant) => {
-        let icon = self.green_tick();
-        format!("{icon} {specifier}").green()
-      }
-      InstanceState::Invalid(_) => {
-        let icon = self.red_cross();
-        format!("{icon} {specifier}").red()
-      }
-      InstanceState::Suspect(_) => {
-        let icon = self.yellow_warning();
-        format!("{icon} {specifier}").yellow()
-      }
-      InstanceState::Unknown => "".normal(),
-    }
-  }
-  */
-
-  /*
-  fn on_exit_command() {
-    if self.is_valid {
-      info!("\n{} {}", green_tick(), "valid");
-    } else {
-      info!("\n{} {}", red_cross(), "invalid");
-    }
-  }
-
-  fn on_instance(&mut self, event: InstanceEvent) {
-    let instance = &event.instance;
-    let dependency = &event.dependency;
-    match &event.variant {
-      InstanceState::Unknown => {
-        info!("@TODO: InstanceState::Unknown '{}'", instance.id);
-      }
-      /* Ignored */
-      InstanceState::Ignored => { /*NOOP*/ }
-      /* Matches */
-      InstanceState::ValidLocal
-      | InstanceState::EqualsLocal
-      | InstanceState::MatchesLocal
-      | InstanceState::EqualsPreferVersion
-      | InstanceState::EqualsSnapToVersion
-      | InstanceState::EqualsNonSemverPreferVersion
-      | InstanceState::EqualsPin
-      | InstanceState::MatchesSameRangeGroup => {
-        let icon = green_tick();
-        let actual = instance.actual_specifier.unwrap().green();
-        let location_hint = instance.location_hint.dimmed();
-        info!("      {icon} {actual} {location_hint}");
-      }
-      /* Warnings */
-      InstanceState::RefuseToBanLocal => {
-        info!("@TODO: explain RefuseToBanLocal");
-      }
-      InstanceState::RefuseToPinLocal => {
-        info!("@TODO: explain RefuseToPinLocal");
-      }
-      InstanceState::RefuseToSnapLocal => {
-        info!("@TODO: explain RefuseToSnapLocal");
-      }
-      InstanceState::InvalidLocalVersion => {
-        info!("@TODO: explain InvalidLocalVersion");
-      }
-      InstanceState::MatchesPreferVersion => {
-        // return /*SKIP*/;
-        let icon = red_cross();
-        let actual = instance.actual_specifier.unwrap().red();
-        let high_low = high_low_hint(&dependency.variant);
-        let opposite = if matches!(dependency.variant, Variant::HighestSemver) {
-          "lower"
-        } else {
-          "higher"
-        };
-        let hint =
-          format!("is {high_low} but mismatches its semver group, fixing its semver group would cause its version to be {opposite}").dimmed();
-        let location_hint = instance.location_hint.dimmed();
-        info!("      {icon} {actual} {hint} {location_hint}");
-        self.is_valid = false;
-      }
-      InstanceState::MatchesSnapToVersion => {
-        info!("@TODO: explain MatchesSnapToVersion");
-      }
-      /* Overrides */
-      InstanceState::PinMatchOverridesSemverRangeMatch => {
-        info!("@TODO: explain PinMatchOverridesSemverRangeMatch");
-      }
-      InstanceState::PinMatchOverridesSemverRangeMismatch => {
-        info!("@TODO: explain PinMatchOverridesSemverRangeMismatch");
-      }
-      /* Fixable Mismatches */
-      InstanceState::Banned => {
-        // return /*SKIP*/;
-        let icon = red_cross();
-        let hint = "banned".red();
-        let location_hint = instance.location_hint.dimmed();
-        info!("      {icon} {hint} {location_hint}");
-        self.is_valid = false;
-      }
-      InstanceState::MismatchesLocal => {
-        info!("@TODO: explain MismatchesLocal");
-      }
-      InstanceState::MismatchesPreferVersion => {
-        // return /*SKIP*/;
-        let icon = red_cross();
-        let actual = instance.actual_specifier.unwrap().red();
-        let location_hint = instance.location_hint.dimmed();
-        info!("      {icon} {actual} {location_hint}");
-        self.is_valid = false;
-      }
-      InstanceState::MismatchesSnapToVersion => {
-        info!("@TODO: explain MismatchesSnapToVersion");
-      }
-      InstanceState::MismatchesPin => {
-        // return /*SKIP*/;
-        let icon = red_cross();
-        let actual = instance.actual_specifier.unwrap().red();
-        let location_hint = instance.location_hint.dimmed();
-        info!("      {icon} {actual} {location_hint}");
-        self.is_valid = false;
-      }
-      InstanceState::SemverRangeMismatch => {
-        info!("@TODO: explain SemverRangeMismatch");
-      }
-      /* Conflicts */
-      InstanceState::SemverRangeMatchConflictsWithPreferVersion => {
-        info!("@TODO: explain SemverRangeMatchConflictsWithPreferVersion");
-      }
-      InstanceState::SemverRangeMismatchConflictsWithPreferVersion => {
-        info!("@TODO: explain SemverRangeMismatchConflictsWithPreferVersion");
-      }
-      InstanceState::SemverRangeMatchConflictsWithSnapToVersion => {
-        info!("@TODO: explain SemverRangeMatchConflictsWithSnapToVersion");
-      }
-      InstanceState::SemverRangeMismatchConflictsWithSnapToVersion => {
-        info!("@TODO: explain SemverRangeMismatchConflictsWithSnapToVersion");
-      }
-      InstanceState::SemverRangeMatchConflictsWithLocalVersion => {
-        info!("@TODO: explain SemverRangeMatchConflictsWithLocalVersion");
-      }
-      InstanceState::SemverRangeMismatchConflictsWithLocalVersion => {
-        info!("@TODO: explain SemverRangeMismatchConflictsWithLocalVersion");
-      }
-      /* Unfixable Mismatches */
-      InstanceState::MismatchesInvalidLocalVersion => {
-        info!("@TODO: explain MismatchesInvalidLocalVersion");
-      }
-      InstanceState::MismatchesNonSemverPreferVersion => {
-        // return /*SKIP*/;
-        let icon = red_cross();
-        let actual = instance.actual_specifier.unwrap().red();
-        let location_hint = instance.location_hint.dimmed();
-        info!("      {icon} {actual} {location_hint}");
-        self.is_valid = false;
-      }
-      InstanceState::MismatchesSameRangeGroup => {
-        info!("@TODO: explain MismatchesSameRangeGroup");
-      }
-      InstanceState::SnapToVersionNotFound => {
-        info!("@TODO: explain SnapToVersionNotFound");
-      }
-    }
-  }
-
-  fn high_low_hint(variant: &Variant) -> &str {
-    let is_highest = matches!(variant, Variant::HighestSemver);
-    if is_highest {
-      "highest semver"
-    } else {
-      "lowest semver"
-    }
-  }
-  */
 }
