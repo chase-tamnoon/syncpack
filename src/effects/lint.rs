@@ -8,9 +8,10 @@ pub fn run(ctx: Context) -> Context {
   // @TODO: move values to config file
   let ui = Ui {
     ctx: &ctx,
-    show_ignored: false,
+    show_ignored: true,
     show_instances: false,
-    show_status_codes: false,
+    show_local_hint: true,
+    show_status_codes: true,
     show_packages: false,
     // @TODO: show_valid: false,
     // @TODO: sort_by: "name" | "state" | "count",

@@ -22,9 +22,10 @@ pub struct Ui<'a> {
   /// Whether to output ignored dependencies regardless
   pub show_ignored: bool,
   /// Whether to list every affected instance of a dependency when listing
-  /// version or semver range
-  /// mismatches
+  /// version or semver range mismatches
   pub show_instances: bool,
+  /// Whether to indicate that a dependency is a package developed locally
+  pub show_local_hint: bool,
   /// Whether to show the name of the status code for each dependency and
   /// instance, such as `HighestSemverMismatch`
   pub show_status_codes: bool,
@@ -81,6 +82,12 @@ impl<'a> Ui<'a> {
     let instances_len = dependency.instances.borrow().len();
     let count = self.count_column(instances_len);
     let name = &dependency.name;
+    let name = if self.show_local_hint && dependency.local_instance.borrow().is_some() {
+      let local_hint = "(local)".blue();
+      format!("{name} {local_hint}").normal()
+    } else {
+      name.normal()
+    };
     let expected = dependency
       .expected
       .borrow()
