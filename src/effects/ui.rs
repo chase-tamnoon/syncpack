@@ -295,37 +295,37 @@ impl<'a> Ui<'a> {
         match variant {
           ValidInstance::IsIgnored => {
             let icon = self.unknown_icon();
-            info!("      {icon} {actual} {location} {state_link}");
+            info!("          {icon} {actual} {location} {state_link}");
           }
           ValidInstance::IsLocalAndValid => {
-            info!("      {icon} {actual} {location} {state_link}");
+            info!("          {icon} {actual} {location} {state_link}");
           }
           ValidInstance::IsIdenticalToLocal => {
-            info!("      {icon} {actual} {location} {state_link}");
+            info!("          {icon} {actual} {location} {state_link}");
           }
           ValidInstance::SatisfiesLocal => {
-            info!("      {icon} {actual} {location} {state_link}");
+            info!("          {icon} {actual} {location} {state_link}");
           }
           ValidInstance::IsHighestOrLowestSemver => {
-            info!("      {icon} {actual} {location} {state_link}");
+            info!("          {icon} {actual} {location} {state_link}");
           }
           ValidInstance::SatisfiesHighestOrLowestSemver => {
-            info!("      {icon} {actual} {location} {state_link}");
+            info!("          {icon} {actual} {location} {state_link}");
           }
           ValidInstance::IsNonSemverButIdentical => {
-            info!("      {icon} {actual} {location} {state_link}");
+            info!("          {icon} {actual} {location} {state_link}");
           }
           ValidInstance::IsIdenticalToPin => {
-            info!("      {icon} {actual} {location} {state_link}");
+            info!("          {icon} {actual} {location} {state_link}");
           }
           ValidInstance::SatisfiesSameRangeGroup => {
-            info!("      {icon} {actual} {location} {state_link}");
+            info!("          {icon} {actual} {location} {state_link}");
           }
           ValidInstance::IsIdenticalToSnapTarget => {
-            info!("      {icon} {actual} {location} {state_link}");
+            info!("          {icon} {actual} {location} {state_link}");
           }
           ValidInstance::SatisfiesSnapTarget => {
-            info!("      {icon} {actual} {location} {state_link}");
+            info!("          {icon} {actual} {location} {state_link}");
           }
         }
       }
@@ -335,66 +335,66 @@ impl<'a> Ui<'a> {
         match variant {
           InvalidInstance::Fixable(variant) => match variant {
             FixableInstance::IsBanned => {
-              info!("      {icon} {actual} {location} {state_link}");
+              info!("          {icon} {actual} {location} {state_link}");
             }
             FixableInstance::DiffersToLocal => {
-              info!("      {icon} {actual} {location} {state_link}");
+              info!("          {icon} {actual} {location} {state_link}");
             }
             FixableInstance::DiffersToHighestOrLowestSemver => {
-              info!("      {icon} {actual} {location} {state_link}");
+              info!("          {icon} {actual} {location} {state_link}");
             }
             FixableInstance::DiffersToSnapTarget => {
-              info!("      {icon} {actual} {location} {state_link}");
+              info!("          {icon} {actual} {location} {state_link}");
             }
             FixableInstance::DiffersToPin => {
-              info!("      {icon} {actual} {location} {state_link}");
+              info!("          {icon} {actual} {location} {state_link}");
             }
             FixableInstance::SemverRangeMismatch => {
               let arrow = self.dim_right_arrow();
               let expected = instance.get_specifier_with_preferred_semver_range();
               let expected = expected.unwrap().unwrap();
               let expected = expected.green();
-              info!("      {icon} {actual} {arrow} {expected} {location} {state_link}");
+              info!("          {icon} {actual} {arrow} {expected} {location} {state_link}");
             }
             FixableInstance::PinOverridesSemverRange => {
-              info!("      {icon} {actual} {location} {state_link}");
+              info!("          {icon} {actual} {location} {state_link}");
             }
             FixableInstance::PinOverridesSemverRangeMismatch => {
-              info!("      {icon} {actual} {location} {state_link}");
+              info!("          {icon} {actual} {location} {state_link}");
             }
           },
           InvalidInstance::Unfixable(variant) => match variant {
             UnfixableInstance::DependsOnInvalidLocalPackage => {
-              info!("      {icon} {actual} {location} {state_link}");
+              info!("          {icon} {actual} {location} {state_link}");
             }
             UnfixableInstance::NonSemverMismatch => {
-              info!("      {icon} {actual} {location} {state_link}");
+              info!("          {icon} {actual} {location} {state_link}");
             }
             UnfixableInstance::SameRangeMismatch => {
-              info!("      {icon} {actual} {location} {state_link}");
+              info!("          {icon} {actual} {location} {state_link}");
             }
             UnfixableInstance::DependsOnMissingSnapTarget => {
-              info!("      {icon} {actual} {location} {state_link}");
+              info!("          {icon} {actual} {location} {state_link}");
             }
           },
           InvalidInstance::Conflict(variant) => match variant {
             SemverGroupAndVersionConflict::MatchConflictsWithHighestOrLowestSemver => {
-              info!("      {icon} {actual} {location} {state_link}");
+              info!("          {icon} {actual} {location} {state_link}");
             }
             SemverGroupAndVersionConflict::MismatchConflictsWithHighestOrLowestSemver => {
-              info!("      {icon} {actual} {location} {state_link}");
+              info!("          {icon} {actual} {location} {state_link}");
             }
             SemverGroupAndVersionConflict::MatchConflictsWithSnapTarget => {
-              info!("      {icon} {actual} {location} {state_link}");
+              info!("          {icon} {actual} {location} {state_link}");
             }
             SemverGroupAndVersionConflict::MismatchConflictsWithSnapTarget => {
-              info!("      {icon} {actual} {location} {state_link}");
+              info!("          {icon} {actual} {location} {state_link}");
             }
             SemverGroupAndVersionConflict::MatchConflictsWithLocal => {
-              info!("      {icon} {actual} {location} {state_link}");
+              info!("          {icon} {actual} {location} {state_link}");
             }
             SemverGroupAndVersionConflict::MismatchConflictsWithLocal => {
-              info!("      {icon} {actual} {location} {state_link}");
+              info!("          {icon} {actual} {location} {state_link}");
             }
           },
         }
@@ -403,16 +403,16 @@ impl<'a> Ui<'a> {
         let icon = self.warn_icon();
         match variant {
           SuspectInstance::RefuseToBanLocal => {
-            info!("      {icon} {actual} {location} {state_link}");
+            info!("          {icon} {actual} {location} {state_link}");
           }
           SuspectInstance::RefuseToPinLocal => {
-            info!("      {icon} {actual} {location} {state_link}");
+            info!("          {icon} {actual} {location} {state_link}");
           }
           SuspectInstance::RefuseToSnapLocal => {
-            info!("      {icon} {actual} {location} {state_link}");
+            info!("          {icon} {actual} {location} {state_link}");
           }
           SuspectInstance::InvalidLocalVersion => {
-            info!("      {icon} {actual} {location} {state_link}");
+            info!("          {icon} {actual} {location} {state_link}");
           }
         }
       }
@@ -445,7 +445,7 @@ impl<'a> Ui<'a> {
   /// Return a right-aligned column of a count of instances
   /// Example "    38x"
   pub fn count_column(&self, count: usize) -> ColoredString {
-    format!("{: >4}x", count).dimmed()
+    format!("{: >8}x", count).dimmed()
   }
 
   /// Return a location hint for an instance
@@ -485,9 +485,12 @@ impl<'a> Ui<'a> {
       let status = "Valid".green();
       info!("{count} {icon} {status}");
       if self.show_packages {
-        packages.iter().for_each(|package| {
-          self.print_formatted_package(&package.borrow());
-        });
+        packages
+          .iter()
+          .sorted_by_key(|package| package.borrow().get_name_unsafe())
+          .for_each(|package| {
+            self.print_formatted_package(&package.borrow());
+          });
       }
     }
   }
@@ -496,8 +499,8 @@ impl<'a> Ui<'a> {
   fn print_formatted_package(&self, package: &PackageJson) {
     if package.formatting_mismatches.borrow().is_empty() {
       let icon = "-".dimmed();
-      let file_link = self.package_json_link(package);
-      info!("      {icon} {file_link}");
+      let file_link = self.package_json_link(package).dimmed();
+      info!("          {icon} {file_link}");
     }
   }
 
@@ -511,15 +514,13 @@ impl<'a> Ui<'a> {
     if self.show_packages {
       mismatches
         .iter()
-        .sorted_by(|a, b| a.package.borrow().get_name_unsafe().cmp(&b.package.borrow().get_name_unsafe()))
+        .sorted_by_key(|mismatch| mismatch.package.borrow().get_name_unsafe())
         .for_each(|mismatch| {
           let icon = "-".dimmed();
           let package = mismatch.package.borrow();
-          let property_path = self.format_path(&mismatch.property_path).dimmed();
+          let property_path = self.format_path(&mismatch.property_path);
           let file_link = self.package_json_link(&package);
-          let in_ = "in".dimmed();
-          let at = "at".dimmed();
-          let msg = format!("      {icon} {in_} {file_link} {at} {property_path}");
+          let msg = format!("          {icon} {property_path} of {file_link}").red();
           info!("{msg}");
         });
     }
@@ -554,7 +555,10 @@ impl<'a> Ui<'a> {
 
   /// Convert eg. "/dependencies/react" to ".dependencies.react"
   fn format_path(&self, path: &str) -> ColoredString {
-    let path = path.replace("/", ".");
-    path.normal()
+    if path == "/" {
+      "root".normal()
+    } else {
+      path.replace("/", ".").normal()
+    }
   }
 }
