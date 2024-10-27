@@ -73,7 +73,11 @@ impl<'a> Ui<'a> {
       .unique()
       .map(|state_name| self.status_code_link(&state_name))
       .join(", ");
-    let state_links = format!("({state_links})").dimmed();
+    let state_links = if !state_links.is_empty() {
+      format!("({state_links})").dimmed()
+    } else {
+      state_links.normal()
+    };
     let instances_len = dependency.instances.borrow().len();
     let count = self.count_column(instances_len);
     let name = &dependency.name;
@@ -266,7 +270,11 @@ impl<'a> Ui<'a> {
       state_name.normal()
     };
     let state_link = self.status_code_link(&state_name);
-    let state_link = format!("({state_link})").dimmed();
+    let state_link = if !state_link.is_empty() {
+      format!("({state_link})").dimmed()
+    } else {
+      state_link
+    };
     let actual = instance.actual_specifier.unwrap();
     let location = self.instance_location(instance).dimmed();
     match &state {

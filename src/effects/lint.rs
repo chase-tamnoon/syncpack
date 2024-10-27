@@ -9,8 +9,8 @@ pub fn run(ctx: Context) -> Context {
   let ui = Ui {
     ctx: &ctx,
     show_ignored: false,
-    show_instances: true,
-    show_status_codes: true,
+    show_instances: false,
+    show_status_codes: false,
     show_packages: false,
     // @TODO: show_valid: false,
     // @TODO: sort_by: "name" | "state" | "count",
