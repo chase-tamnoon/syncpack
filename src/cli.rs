@@ -1,5 +1,6 @@
 use {
   clap::{builder::ValueParser, crate_description, crate_name, crate_version, Arg, ArgMatches, Command},
+  color_print::cformat,
   itertools::Itertools,
   log::LevelFilter,
   regex::Regex,
@@ -35,54 +36,125 @@ impl Cli {
   }
 }
 
-fn filter_option() -> Arg {
+fn filter_option(command: &str) -> Arg {
   Arg::new("filter")
     .long("filter")
-    .long_help("Only include dependencies whose name matches this regex")
+    .long_help(cformat!(
+      r#"Only include dependencies whose <bold><underline>name</underline></bold> matches this regex
+
+<bold><underline>Examples</underline></bold>
+<dim>An exact match for "react"</>
+<dim>$</dim> <yellow><bold>syncpack {command}</bold> --filter '^react$'</>
+<dim>Any name containing "react" anywhere within it</>
+<dim>$</dim> <yellow><bold>syncpack {command}</bold> --filter 'react'</>"#
+    ))
     .action(clap::ArgAction::Set)
     .value_parser(ValueParser::new(validate_filter))
 }
 
-fn log_levels_option() -> Arg {
+fn log_levels_option(command: &str) -> Arg {
   Arg::new("log-levels")
     .long("log-levels")
-    .long_help("Control how detailed log output should be")
+    .long_help(cformat!(
+      r#"Control how detailed the log output should be
+
+<bold><underline>Examples</underline></bold>
+<dim>Turn off logging completely</dim>
+<dim>$</dim> <yellow><bold>syncpack {command}</bold> --log-levels off</>
+<dim>Only show verbose debugging logs</dim>
+<dim>$</dim> <yellow><bold>syncpack {command}</bold> --log-levels debug</>
+<dim>Show everything</dim>
+<dim>$</dim> <yellow><bold>syncpack {command}</bold> --log-levels error,warn,info,debug</>"#
+    ))
     .value_delimiter(',')
     .value_parser(["off", "error", "warn", "info", "debug"])
     .default_value("error,warn,info")
 }
 
-fn no_color_option() -> Arg {
+fn no_color_option(command: &str) -> Arg {
   Arg::new("no-color")
     .long("no-color")
-    .long_help("Disable colored output")
+    .long_help(cformat!(
+      r#"Disable colored output
+
+<bold><underline>Examples</underline></bold>
+<dim>$</dim> <yellow><bold>syncpack {command}</bold> --no-color</>"#
+    ))
     .action(clap::ArgAction::SetTrue)
 }
 
-fn only_option() -> Arg {
+fn only_option(command: &str) -> Arg {
   Arg::new("only")
     .long("only")
-    .long_help("Only inspect version mismatches, or formatting issues")
+    .long_help(cformat!(
+      r#"Only inspect version mismatches, or formatting issues
+
+<bold><underline>Examples</underline></bold>
+<dim>Only inspect version mismatches</dim>
+<dim>$</dim> <yellow><bold>syncpack {command}</bold> --only mismatches</>
+<dim>Only inspect formatting of package.json files</dim>
+<dim>$</dim> <yellow><bold>syncpack {command}</bold> --only formatting</>"#
+    ))
     .value_delimiter(',')
     .value_parser(["formatting", "mismatches"])
     .default_value("formatting,mismatches")
 }
 
-fn show_option() -> Arg {
+fn show_option(command: &str) -> Arg {
+  // ignored, instances, local-hints, packages, status-codes
   Arg::new("show")
     .long("show")
-    .long_help("Control what information is displayed in lint output")
+    .long_help(cformat!(
+      r#"Control what information is displayed in lint output
+
+<bold><underline>Values</underline></bold>
+<yellow>ignored</>       Show instances and dependencies which syncpack is ignoring
+<yellow>instances</>     Show every instance of every dependency
+<yellow>local-hints</>   Show a hint alongside dependencies developed in this repo
+<yellow>packages</>      Show formatting status of each package.json file
+<yellow>status-codes</>  Show specifically how/why a dependency or instance is valid or invalid
+
+<bold><underline>Examples</underline></bold>
+<dim>Show highest level of detail</dim>
+<dim>$</dim> <yellow><bold>syncpack {command}</bold> --show ignored,instances,local-hints,packages,status-codes</>"#
+    ))
     .value_delimiter(',')
     .value_parser(["ignored", "instances", "local-hints", "packages", "status-codes"])
     .default_value("local-hints,status-codes")
 }
 
-fn source_option() -> Arg {
+fn source_option(command: &str) -> Arg {
   Arg::new("source")
     .long("source")
-    .long_help("A list of quoted glob patterns for package.json files to read from")
+    .long_help(cformat!(
+      r#"A list of quoted glob patterns for package.json files to read from
+
+<bold><underline>Examples</underline></bold>
+<dim>$</dim> <yellow><bold>syncpack {command}</bold> --source 'package.json' --source 'apps/*/package.json'</>
+
+<bold><underline>Resolving Packages</underline></bold>
+Patterns are discovered in the following order, first one wins:
+
+1. <yellow>--source</> CLI options
+2. <yellow>.source</> property of your syncpack config file
+3. <yellow>.workspaces.packages</> property of package.json (yarn)
+4. <yellow>.workspaces</> property of package.json (npm and yarn)
+5. <yellow>.packages</> property of pnpm-workspace.yaml
+6. <yellow>.packages</> property of lerna.json
+7. Default to <yellow>["package.json","packages/*/package.json"]</>"#
+    ))
     .action(clap::ArgAction::Append)
     .value_parser(ValueParser::new(validate_source))
+}
+
+fn additional_help() -> String {
+  cformat!(
+    r#"<bold><underline>References</underline></bold>
+globs            <blue>https://github.com/isaacs/node-glob#glob-primer</>
+lerna.json       <blue>https://github.com/lerna/lerna#lernajson</>
+Yarn Workspaces  <blue>https://yarnpkg.com/lang/en/docs/workspaces</>
+Pnpm Workspaces  <blue>https://pnpm.js.org/en/workspaces</>"#
+  )
 }
 
 fn create() -> Command {
@@ -92,22 +164,23 @@ fn create() -> Command {
     .subcommand(
       Command::new("lint")
         .about("Find and list all version mismatches and package.json formatting issues")
-        .arg(filter_option())
-        .arg(log_levels_option())
-        .arg(no_color_option())
-        .arg(only_option())
-        .arg(show_option())
-        .arg(source_option()),
+        .after_long_help(additional_help())
+        .arg(filter_option("lint"))
+        .arg(log_levels_option("lint"))
+        .arg(no_color_option("lint"))
+        .arg(only_option("lint"))
+        .arg(show_option("lint"))
+        .arg(source_option("lint")),
     )
     .subcommand(
       Command::new("fix")
         .about("Fix all autofixable issues in affected package.json files")
-        .arg(filter_option())
-        .arg(log_levels_option())
-        .arg(no_color_option())
-        .arg(only_option())
-        .arg(show_option())
-        .arg(source_option()),
+        .after_long_help(additional_help())
+        .arg(filter_option("fix"))
+        .arg(log_levels_option("fix"))
+        .arg(no_color_option("fix"))
+        .arg(only_option("fix"))
+        .arg(source_option("fix")),
     )
 }
 
