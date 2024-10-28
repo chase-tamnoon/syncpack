@@ -40,7 +40,7 @@ fn filter_option(command: &str) -> Arg {
   Arg::new("filter")
     .long("filter")
     .long_help(cformat!(
-      r#"Only include dependencies whose <bold><underline>name</underline></bold> matches this regex
+      r#"Only include dependencies whose <bold>name</bold> matches this <bold>RegEx</bold>
 
 <bold><underline>Examples</underline></bold>
 <dim>An exact match for "react"</>
@@ -71,7 +71,7 @@ fn log_levels_option(command: &str) -> Arg {
     .default_value("error,warn,info")
 }
 
-fn no_color_option(command: &str) -> Arg {
+fn no_ansi_option(command: &str) -> Arg {
   Arg::new("no-ansi")
     .long("no-ansi")
     .long_help(cformat!(
@@ -101,7 +101,6 @@ fn only_option(command: &str) -> Arg {
 }
 
 fn show_option(command: &str) -> Arg {
-  // ignored, instances, local-hints, packages, status-codes
   Arg::new("show")
     .long("show")
     .long_help(cformat!(
@@ -149,11 +148,12 @@ Patterns are discovered in the following order, first one wins:
 
 fn additional_help() -> String {
   cformat!(
-    r#"<bold><underline>References</underline></bold>
-globs            <blue>https://github.com/isaacs/node-glob#glob-primer</>
-lerna.json       <blue>https://github.com/lerna/lerna#lernajson</>
-Yarn Workspaces  <blue>https://yarnpkg.com/lang/en/docs/workspaces</>
-Pnpm Workspaces  <blue>https://pnpm.js.org/en/workspaces</>"#
+    r#"<bold><underline>References:</underline></bold>
+- Documentation: <blue><underline>https://jamiemason.github.io/syncpack</></>
+- Learn glob patterns: <blue><underline>https://github.com/isaacs/node-glob#glob-primer</></>
+- lerna.json: <blue><underline>https://github.com/lerna/lerna#lernajson</></>
+- Yarn Workspaces: <blue><underline>https://yarnpkg.com/lang/en/docs/workspaces</></>
+- Pnpm Workspaces: <blue><underline>https://pnpm.js.org/en/workspaces</></>"#
   )
 }
 
@@ -167,7 +167,7 @@ fn create() -> Command {
         .after_long_help(additional_help())
         .arg(filter_option("lint"))
         .arg(log_levels_option("lint"))
-        .arg(no_color_option("lint"))
+        .arg(no_ansi_option("lint"))
         .arg(only_option("lint"))
         .arg(show_option("lint"))
         .arg(source_option("lint")),
@@ -178,7 +178,7 @@ fn create() -> Command {
         .after_long_help(additional_help())
         .arg(filter_option("fix"))
         .arg(log_levels_option("fix"))
-        .arg(no_color_option("fix"))
+        .arg(no_ansi_option("fix"))
         .arg(only_option("fix"))
         .arg(source_option("fix")),
     )
