@@ -78,15 +78,6 @@ impl Packages {
   where
     F: FnMut(Instance),
   {
-    let matches_filter = |name: &str| -> bool {
-      config
-        .cli
-        .options
-        .dependency_name_regex
-        .as_ref()
-        .map_or(true, |regex| regex.is_match(name))
-    };
-
     for package in self.all.iter() {
       for dependency_type in &config.rcfile.get_all_dependency_types() {
         match dependency_type.strategy {
@@ -103,7 +94,17 @@ impl Packages {
                 }
               }),
             ) {
-              if matches_filter(&name) {
+              on_instance(Instance::new(
+                name.to_string(),
+                raw_specifier.to_string(),
+                dependency_type,
+                Rc::clone(package),
+              ));
+            }
+          }
+          Strategy::NamedVersionString => {
+            if let Some(Value::String(specifier)) = package.borrow().get_prop(&dependency_type.path) {
+              if let Some((name, raw_specifier)) = specifier.split_once('@') {
                 on_instance(Instance::new(
                   name.to_string(),
                   raw_specifier.to_string(),
@@ -113,44 +114,26 @@ impl Packages {
               }
             }
           }
-          Strategy::NamedVersionString => {
-            if let Some(Value::String(specifier)) = package.borrow().get_prop(&dependency_type.path) {
-              if let Some((name, raw_specifier)) = specifier.split_once('@') {
-                if matches_filter(name) {
-                  on_instance(Instance::new(
-                    name.to_string(),
-                    raw_specifier.to_string(),
-                    dependency_type,
-                    Rc::clone(package),
-                  ));
-                }
-              }
-            }
-          }
           Strategy::UnnamedVersionString => {
             if let Some(Value::String(raw_specifier)) = package.borrow().get_prop(&dependency_type.path) {
-              if matches_filter(&dependency_type.name) {
-                on_instance(Instance::new(
-                  dependency_type.name.clone(),
-                  raw_specifier.to_string(),
-                  dependency_type,
-                  Rc::clone(package),
-                ));
-              }
+              on_instance(Instance::new(
+                dependency_type.name.clone(),
+                raw_specifier.to_string(),
+                dependency_type,
+                Rc::clone(package),
+              ));
             }
           }
           Strategy::VersionsByName => {
             if let Some(Value::Object(versions_by_name)) = package.borrow().get_prop(&dependency_type.path) {
               for (name, raw_specifier) in versions_by_name {
-                if matches_filter(&name) {
-                  if let Value::String(version) = raw_specifier {
-                    on_instance(Instance::new(
-                      name.to_string(),
-                      version.to_string(),
-                      dependency_type,
-                      Rc::clone(package),
-                    ));
-                  }
+                if let Value::String(version) = raw_specifier {
+                  on_instance(Instance::new(
+                    name.to_string(),
+                    version.to_string(),
+                    dependency_type,
+                    Rc::clone(package),
+                  ));
                 }
               }
             }

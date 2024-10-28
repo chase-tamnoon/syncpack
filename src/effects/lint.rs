@@ -11,6 +11,8 @@ pub fn run(ctx: Context) -> Context {
     // @TODO: show_valid: false,
     // @TODO: sort_by: "name" | "state" | "count",
   };
+  let dependency_name_regex = ctx.config.cli.options.dependency_name_regex.as_ref();
+  let matches_filter = |name: &str| -> bool { dependency_name_regex.map_or(true, |regex| regex.is_match(name)) };
 
   if ctx.config.cli.options.inspect_mismatches {
     ui.print_command_header("SEMVER RANGES AND VERSION MISMATCHES");
@@ -26,12 +28,14 @@ pub fn run(ctx: Context) -> Context {
         return;
       }
       group.dependencies.borrow().values().for_each(|dependency| {
-        ui.print_dependency(dependency, &group.variant);
-        ui.for_each_instance(dependency, |instance| {
-          if ctx.config.cli.options.show_instances {
-            ui.print_instance(instance, &group.variant);
-          }
-        });
+        if matches_filter(&dependency.name) {
+          ui.print_dependency(dependency, &group.variant);
+          ui.for_each_instance(dependency, |instance| {
+            if ctx.config.cli.options.show_instances {
+              ui.print_instance(instance, &group.variant);
+            }
+          });
+        }
       });
     });
   }

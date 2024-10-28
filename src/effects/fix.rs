@@ -16,6 +16,8 @@ pub fn run(ctx: Context) -> Context {
     // @TODO: show_valid: false,
     // @TODO: sort_by: "name" | "state" | "count",
   };
+  let dependency_name_regex = ctx.config.cli.options.dependency_name_regex.as_ref();
+  let matches_filter = |name: &str| -> bool { dependency_name_regex.map_or(true, |regex| regex.is_match(name)) };
 
   if ctx.config.cli.options.inspect_mismatches {
     ui.print_command_header("SEMVER RANGES AND VERSION MISMATCHES");
@@ -26,6 +28,11 @@ pub fn run(ctx: Context) -> Context {
 
     ctx.instances.iter().for_each(|instance| {
       let name = &instance.name;
+
+      if !matches_filter(name) {
+        return;
+      }
+
       let location = ui.instance_location(instance).dimmed();
       let state = instance.state.borrow().clone();
       let state_name = state.get_name();
