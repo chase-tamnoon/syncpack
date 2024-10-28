@@ -1,5 +1,6 @@
 use {
   clap::{builder::ValueParser, crate_description, crate_name, crate_version, Arg, ArgMatches, Command},
+  itertools::Itertools,
   log::LevelFilter,
   regex::Regex,
 };
@@ -34,53 +35,47 @@ impl Cli {
   }
 }
 
-fn format_option() -> Arg {
-  Arg::new("format")
-    .short('f')
-    .long("format")
-    .action(clap::ArgAction::SetTrue)
-    .help("Enable to lint the formatting and order of package.json files")
+fn filter_option() -> Arg {
+  Arg::new("filter")
+    .long("filter")
+    .help("Only include dependencies whose name matches this regex")
+    .action(clap::ArgAction::Set)
+    .value_parser(ValueParser::new(validate_filter))
 }
 
-fn versions_option() -> Arg {
-  Arg::new("versions")
-    .short('v')
-    .long("versions")
+fn log_levels_option() -> Arg {
+  Arg::new("log-levels")
+    .long("log-levels")
+    .help("Control how detailed log output should be")
+    .value_delimiter(',')
+    .value_parser(["off", "error", "warn", "info", "debug"])
+    .default_values(["error", "warn", "info"])
+}
+
+fn no_color_option() -> Arg {
+  Arg::new("no-color")
+    .long("no-color")
+    .help("Disable colored output")
     .action(clap::ArgAction::SetTrue)
-    .help("Enable to lint version mismatches")
+}
+
+fn only_option() -> Arg {
+  Arg::new("only")
+    .short('o')
+    .long("only")
+    .help("Only inspect version mismatches, or formatting issues")
+    .value_delimiter(',')
+    .value_parser(["formatting", "mismatches"])
+    .default_values(["formatting", "mismatches"])
 }
 
 fn source_option() -> Arg {
   Arg::new("source")
     .short('s')
     .long("source")
+    .help("A list of quoted glob patterns for package.json files to read from")
     .action(clap::ArgAction::Append)
     .value_parser(ValueParser::new(validate_source))
-    .help("A list of quoted glob patterns for package.json files to read from")
-}
-
-fn filter_option() -> Arg {
-  Arg::new("filter")
-    .long("filter")
-    .action(clap::ArgAction::Set)
-    .value_parser(ValueParser::new(validate_filter))
-    .help("Only include dependencies whose name matches this regex")
-}
-
-fn log_levels_option() -> Arg {
-  Arg::new("log-levels")
-    .long("log-levels")
-    .value_delimiter(',')
-    .value_parser(["off", "error", "warn", "info", "debug"])
-    .default_values(["error", "warn", "info"])
-    .help("Control how detailed log output should be")
-}
-
-fn no_color_option() -> Arg {
-  Arg::new("no-color")
-    .long("no-color")
-    .action(clap::ArgAction::SetTrue)
-    .help("Disable colored output")
 }
 
 fn create() -> Command {
@@ -89,23 +84,21 @@ fn create() -> Command {
     .version(crate_version!())
     .subcommand(
       Command::new("lint")
-        .about("Lint command")
+        .about("Find and list all version mismatches and package.json formatting issues")
         .arg(filter_option())
-        .arg(format_option())
         .arg(log_levels_option())
         .arg(no_color_option())
-        .arg(source_option())
-        .arg(versions_option()),
+        .arg(only_option())
+        .arg(source_option()),
     )
     .subcommand(
       Command::new("fix")
-        .about("Fix command")
+        .about("Fix all autofixable issues in affected package.json files")
         .arg(filter_option())
-        .arg(format_option())
         .arg(log_levels_option())
         .arg(no_color_option())
-        .arg(source_option())
-        .arg(versions_option()),
+        .arg(only_option())
+        .arg(source_option()),
     )
 }
 
@@ -130,7 +123,7 @@ pub struct CliOptions {
   pub disable_color: bool,
   /// Optional regex to filter dependencies by name
   pub filter: Option<Regex>,
-  /// `true` when `--format` is passed or if none of `--format`, `--ranges`
+  /// `true` when `--format` is passed or if none of `--formatting`, `--ranges`
   /// or `--versions` are passed
   pub format: bool,
   /// How detailed the terminal output should be
@@ -145,16 +138,11 @@ pub struct CliOptions {
 impl CliOptions {
   /// Create a new `CliOptions` from CLI arguments provided by the user
   pub fn from_arg_matches(matches: &ArgMatches) -> CliOptions {
-    // 1. if no command is true, then all of them are true
-    // 2. if any commands are true, then only those are true
-    let use_format = matches.get_flag("format");
-    let use_versions = matches.get_flag("versions");
-    let use_all = !use_format && !use_versions;
-
+    let only = matches.get_many::<String>("only").unwrap().collect_vec();
     CliOptions {
       disable_color: matches.get_flag("no-color"),
       filter: matches.get_one::<String>("filter").map(|filter| Regex::new(filter).unwrap()),
-      format: use_all || use_format,
+      format: only.contains(&&"formatting".to_string()),
       log_levels: matches
         .get_many::<String>("log-levels")
         .unwrap()
@@ -172,7 +160,7 @@ impl CliOptions {
         .unwrap_or_default()
         .map(|source| source.to_owned())
         .collect::<Vec<_>>(),
-      versions: use_all || use_versions,
+      versions: only.contains(&&"mismatches".to_string()),
     }
   }
 }
