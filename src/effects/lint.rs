@@ -17,7 +17,7 @@ pub fn run(ctx: Context) -> Context {
     // @TODO: sort_by: "name" | "state" | "count",
   };
 
-  if ctx.config.cli.options.versions {
+  if ctx.config.cli.options.inspect_mismatches {
     ui.print_command_header("SEMVER RANGES AND VERSION MISMATCHES");
     ctx.version_groups.iter().for_each(|group| {
       ui.print_group_header(group);
@@ -40,7 +40,7 @@ pub fn run(ctx: Context) -> Context {
       });
     });
   }
-  if ctx.config.cli.options.format {
+  if ctx.config.cli.options.inspect_formatting {
     ui.print_command_header("PACKAGE FORMATTING");
     let formatted_packages = ctx
       .packages

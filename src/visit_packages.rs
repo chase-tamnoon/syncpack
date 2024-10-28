@@ -21,7 +21,7 @@ use {
 pub fn visit_packages(config: Config, packages: Packages) -> Context {
   let ctx = Context::create(config, packages);
 
-  if ctx.config.cli.options.versions {
+  if ctx.config.cli.options.inspect_mismatches {
     debug!("visit versions");
 
     ctx
@@ -380,7 +380,7 @@ pub fn visit_packages(config: Config, packages: Packages) -> Context {
       });
   }
 
-  if ctx.config.cli.options.format {
+  if ctx.config.cli.options.inspect_formatting {
     let add_mismatch = |package: &Rc<RefCell<PackageJson>>, mismatch: FormatMismatch| {
       let mismatch = Rc::new(mismatch);
       let mut mismatches_by_variant = ctx.formatting_mismatches_by_variant.borrow_mut();

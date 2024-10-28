@@ -22,7 +22,7 @@ pub fn run(ctx: Context) -> Context {
     // @TODO: sort_by: "name" | "state" | "count",
   };
 
-  if ctx.config.cli.options.versions {
+  if ctx.config.cli.options.inspect_mismatches {
     ui.print_command_header("SEMVER RANGES AND VERSION MISMATCHES");
     let mut valid = 0;
     let mut fixable = 0;
@@ -79,7 +79,7 @@ pub fn run(ctx: Context) -> Context {
     info!("{} {} Suspect", ui.count_column(suspect), ui.warn_icon());
   }
 
-  if ctx.config.cli.options.format {
+  if ctx.config.cli.options.inspect_formatting {
     ui.print_command_header("PACKAGE FORMATTING");
     let mut valid = 0;
     let mut fixable = 0;

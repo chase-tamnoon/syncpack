@@ -119,20 +119,12 @@ fn validate_source(value: &str) -> Result<String, String> {
 
 #[derive(Debug)]
 pub struct CliOptions {
-  /// Disable colored output
+  pub dependency_name_regex: Option<Regex>,
   pub disable_color: bool,
-  /// Optional regex to filter dependencies by name
-  pub filter: Option<Regex>,
-  /// `true` when `--format` is passed or if none of `--formatting`, `--ranges`
-  /// or `--versions` are passed
-  pub format: bool,
-  /// How detailed the terminal output should be
+  pub inspect_formatting: bool,
+  pub inspect_mismatches: bool,
   pub log_levels: Vec<LevelFilter>,
-  /// Optional glob patterns to package.json files
-  pub source: Vec<String>,
-  /// `true` when `--versions` is passed or if none of `--format`, `--ranges`
-  /// or `--versions` are passed
-  pub versions: bool,
+  pub source_patterns: Vec<String>,
 }
 
 impl CliOptions {
@@ -140,9 +132,10 @@ impl CliOptions {
   pub fn from_arg_matches(matches: &ArgMatches) -> CliOptions {
     let only = matches.get_many::<String>("only").unwrap().collect_vec();
     CliOptions {
+      dependency_name_regex: matches.get_one::<String>("filter").map(|filter| Regex::new(filter).unwrap()),
       disable_color: matches.get_flag("no-color"),
-      filter: matches.get_one::<String>("filter").map(|filter| Regex::new(filter).unwrap()),
-      format: only.contains(&&"formatting".to_string()),
+      inspect_formatting: only.contains(&&"formatting".to_string()),
+      inspect_mismatches: only.contains(&&"mismatches".to_string()),
       log_levels: matches
         .get_many::<String>("log-levels")
         .unwrap()
@@ -155,12 +148,11 @@ impl CliOptions {
           _ => unreachable!(),
         })
         .collect(),
-      source: matches
+      source_patterns: matches
         .get_many::<String>("source")
         .unwrap_or_default()
         .map(|source| source.to_owned())
         .collect::<Vec<_>>(),
-      versions: only.contains(&&"mismatches".to_string()),
     }
   }
 }

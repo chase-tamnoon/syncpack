@@ -78,18 +78,17 @@ impl Packages {
   where
     F: FnMut(Instance),
   {
-    let all_dependency_types = &config.rcfile.get_all_dependency_types();
-    let filter = &config.cli.options.filter;
     let matches_filter = |name: &str| -> bool {
-      if let Some(filter) = filter {
-        filter.is_match(name)
-      } else {
-        true
-      }
+      config
+        .cli
+        .options
+        .dependency_name_regex
+        .as_ref()
+        .map_or(true, |regex| regex.is_match(name))
     };
 
     for package in self.all.iter() {
-      for dependency_type in all_dependency_types {
+      for dependency_type in &config.rcfile.get_all_dependency_types() {
         match dependency_type.strategy {
           Strategy::NameAndVersionProps => {
             if let (Some(Value::String(name)), Some(Value::String(raw_specifier))) = (
@@ -213,10 +212,10 @@ fn get_source_patterns(config: &Config) -> Vec<String> {
 
 /// Get source patterns provided via the `--source` CLI option
 fn get_cli_patterns(cli_options: &CliOptions) -> Option<Vec<String>> {
-  if cli_options.source.is_empty() {
+  if cli_options.source_patterns.is_empty() {
     None
   } else {
-    Some(cli_options.source.clone())
+    Some(cli_options.source_patterns.clone())
   }
 }
 

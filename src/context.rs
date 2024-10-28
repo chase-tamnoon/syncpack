@@ -59,7 +59,7 @@ impl Context {
 
   /// Quit with the correct exit code based on the validity of each instance
   pub fn exit_program(&self) -> ! {
-    if self.config.cli.options.versions {
+    if self.config.cli.options.inspect_mismatches {
       for instance in self.instances.iter() {
         match *instance.state.borrow() {
           InstanceState::Valid(_) => continue,
@@ -67,7 +67,7 @@ impl Context {
         }
       }
     }
-    if self.config.cli.options.format {
+    if self.config.cli.options.inspect_formatting {
       for package in self.packages.all.iter() {
         if !package.borrow().formatting_mismatches.borrow().is_empty() {
           std::process::exit(1);

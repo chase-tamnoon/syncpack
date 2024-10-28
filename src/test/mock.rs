@@ -13,12 +13,12 @@ pub fn cli() -> Cli {
   Cli {
     command_name: Subcommand::Lint,
     options: CliOptions {
+      dependency_name_regex: None,
       disable_color: true,
-      filter: None,
-      format: false,
+      inspect_formatting: false,
+      inspect_mismatches: true,
       log_levels: vec![],
-      source: vec![],
-      versions: true,
+      source_patterns: vec![],
     },
   }
 }
