@@ -61,7 +61,6 @@ fn no_color_option() -> Arg {
 
 fn only_option() -> Arg {
   Arg::new("only")
-    .short('o')
     .long("only")
     .help("Only inspect version mismatches, or formatting issues")
     .value_delimiter(',')
@@ -71,7 +70,6 @@ fn only_option() -> Arg {
 
 fn source_option() -> Arg {
   Arg::new("source")
-    .short('s')
     .long("source")
     .help("A list of quoted glob patterns for package.json files to read from")
     .action(clap::ArgAction::Append)
