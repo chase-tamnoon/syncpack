@@ -119,7 +119,7 @@ fn show_option(command: &str) -> Arg {
     ))
     .value_delimiter(',')
     .value_parser(["ignored", "instances", "local-hints", "packages", "status-codes"])
-    .default_value("local-hints,status-codes")
+    .default_value("instances,local-hints,packages,status-codes")
 }
 
 fn source_option(command: &str) -> Arg {
