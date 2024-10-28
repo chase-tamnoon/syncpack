@@ -38,7 +38,7 @@ impl Cli {
 fn filter_option() -> Arg {
   Arg::new("filter")
     .long("filter")
-    .help("Only include dependencies whose name matches this regex")
+    .long_help("Only include dependencies whose name matches this regex")
     .action(clap::ArgAction::Set)
     .value_parser(ValueParser::new(validate_filter))
 }
@@ -46,41 +46,41 @@ fn filter_option() -> Arg {
 fn log_levels_option() -> Arg {
   Arg::new("log-levels")
     .long("log-levels")
-    .help("Control how detailed log output should be")
+    .long_help("Control how detailed log output should be")
     .value_delimiter(',')
     .value_parser(["off", "error", "warn", "info", "debug"])
-    .default_values(["error", "warn", "info"])
+    .default_value("error,warn,info")
 }
 
 fn no_color_option() -> Arg {
   Arg::new("no-color")
     .long("no-color")
-    .help("Disable colored output")
+    .long_help("Disable colored output")
     .action(clap::ArgAction::SetTrue)
 }
 
 fn only_option() -> Arg {
   Arg::new("only")
     .long("only")
-    .help("Only inspect version mismatches, or formatting issues")
+    .long_help("Only inspect version mismatches, or formatting issues")
     .value_delimiter(',')
     .value_parser(["formatting", "mismatches"])
-    .default_values(["formatting", "mismatches"])
+    .default_value("formatting,mismatches")
 }
 
 fn show_option() -> Arg {
   Arg::new("show")
     .long("show")
-    .help("Control what information is displayed in lint output")
+    .long_help("Control what information is displayed in lint output")
     .value_delimiter(',')
     .value_parser(["ignored", "instances", "local-hints", "packages", "status-codes"])
-    .default_values(["local-hints", "status-codes"])
+    .default_value("local-hints,status-codes")
 }
 
 fn source_option() -> Arg {
   Arg::new("source")
     .long("source")
-    .help("A list of quoted glob patterns for package.json files to read from")
+    .long_help("A list of quoted glob patterns for package.json files to read from")
     .action(clap::ArgAction::Append)
     .value_parser(ValueParser::new(validate_source))
 }
