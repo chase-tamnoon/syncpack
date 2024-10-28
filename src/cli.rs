@@ -34,6 +34,55 @@ impl Cli {
   }
 }
 
+fn format_option() -> Arg {
+  Arg::new("format")
+    .short('f')
+    .long("format")
+    .action(clap::ArgAction::SetTrue)
+    .help("Enable to lint the formatting and order of package.json files")
+}
+
+fn versions_option() -> Arg {
+  Arg::new("versions")
+    .short('v')
+    .long("versions")
+    .action(clap::ArgAction::SetTrue)
+    .help("Enable to lint version mismatches")
+}
+
+fn source_option() -> Arg {
+  Arg::new("source")
+    .short('s')
+    .long("source")
+    .action(clap::ArgAction::Append)
+    .value_parser(ValueParser::new(validate_source))
+    .help("A list of quoted glob patterns for package.json files to read from")
+}
+
+fn filter_option() -> Arg {
+  Arg::new("filter")
+    .long("filter")
+    .action(clap::ArgAction::Set)
+    .value_parser(ValueParser::new(validate_filter))
+    .help("Only include dependencies whose name matches this regex")
+}
+
+fn log_levels_option() -> Arg {
+  Arg::new("log-levels")
+    .long("log-levels")
+    .value_delimiter(',')
+    .value_parser(["off", "error", "warn", "info", "debug"])
+    .default_values(["error", "warn", "info"])
+    .help("Control how detailed log output should be")
+}
+
+fn no_color_option() -> Arg {
+  Arg::new("no-color")
+    .long("no-color")
+    .action(clap::ArgAction::SetTrue)
+    .help("Disable colored output")
+}
+
 fn create() -> Command {
   Command::new(crate_name!())
     .about(crate_description!())
@@ -41,96 +90,22 @@ fn create() -> Command {
     .subcommand(
       Command::new("lint")
         .about("Lint command")
-        .arg(
-          Arg::new("format")
-            .short('f')
-            .long("format")
-            .action(clap::ArgAction::SetTrue)
-            .help("enable to lint the formatting and order of package.json files"),
-        )
-        .arg(
-          Arg::new("versions")
-            .short('v')
-            .long("versions")
-            .action(clap::ArgAction::SetTrue)
-            .help("enable to lint version mismatches"),
-        )
-        .arg(
-          Arg::new("source")
-            .short('s')
-            .long("source")
-            .action(clap::ArgAction::Append)
-            .value_parser(ValueParser::new(validate_source))
-            .help("a list of quoted glob patterns for package.json files to read from"),
-        )
-        .arg(
-          Arg::new("filter")
-            .long("filter")
-            .action(clap::ArgAction::Set)
-            .value_parser(ValueParser::new(validate_filter))
-            .help("only include dependencies whose name matches this regex"),
-        )
-        .arg(
-          Arg::new("log-levels")
-            .long("log-levels")
-            .value_delimiter(',')
-            .value_parser(["off", "error", "warn", "info", "debug"])
-            .default_values(["error", "warn", "info"])
-            .help("control how detailed log output should be"),
-        )
-        .arg(
-          Arg::new("no-color")
-            .long("no-color")
-            .action(clap::ArgAction::SetTrue)
-            .help("disable colored output"),
-        ),
+        .arg(filter_option())
+        .arg(format_option())
+        .arg(log_levels_option())
+        .arg(no_color_option())
+        .arg(source_option())
+        .arg(versions_option()),
     )
     .subcommand(
       Command::new("fix")
         .about("Fix command")
-        .arg(
-          Arg::new("format")
-            .short('f')
-            .long("format")
-            .action(clap::ArgAction::SetTrue)
-            .help("enable to fix the formatting and order of package.json files"),
-        )
-        .arg(
-          Arg::new("versions")
-            .short('v')
-            .long("versions")
-            .action(clap::ArgAction::SetTrue)
-            .help("enable to fix version mismatches"),
-        )
-        .arg(
-          Arg::new("source")
-            .short('s')
-            .long("source")
-            .action(clap::ArgAction::Append)
-            .value_parser(ValueParser::new(validate_source))
-            .help("a list of quoted glob patterns for package.json files to read from"),
-        )
-        .arg(
-          Arg::new("filter")
-            .long("filter")
-            .action(clap::ArgAction::Set)
-            .value_parser(ValueParser::new(validate_filter))
-            .help("only include dependencies whose name matches this regex"),
-        )
-        .arg(
-          Arg::new("log-levels")
-            .long("log-levels")
-            .value_delimiter(',')
-            .value_parser(["off", "error", "warn", "info", "debug"])
-            .default_values(["error", "warn", "info"])
-            .help("control how detailed log output should be"),
-        )
-        .arg(
-          Arg::new("no-color")
-            .long("no-color")
-            .action(clap::ArgAction::SetTrue)
-            .help("disable colored output"),
-        ),
+        .arg(filter_option())
+        .arg(format_option())
+        .arg(log_levels_option())
+        .arg(no_color_option())
+        .arg(source_option())
+        .arg(versions_option()),
     )
 }
 
