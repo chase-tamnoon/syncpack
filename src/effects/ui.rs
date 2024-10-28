@@ -59,7 +59,7 @@ impl<'a> Ui<'a> {
       })
       .sorted()
       .unique()
-      .map(|state_name| self.status_code_link(&state_name))
+      .map(|state_name| self.instance_status_code_link(&state_name))
       .join(", ");
     let state_links = if !state_links.is_empty() {
       format!("({state_links})").dimmed()
@@ -263,7 +263,7 @@ impl<'a> Ui<'a> {
     } else {
       state_name.normal()
     };
-    let state_link = self.status_code_link(&state_name);
+    let state_link = self.instance_status_code_link(&state_name);
     let state_link = if !state_link.is_empty() {
       format!("({state_link})").dimmed()
     } else {
@@ -521,10 +521,17 @@ impl<'a> Ui<'a> {
     format!("{plain_link}").normal()
   }
 
-  pub fn status_code_link(&self, pascal_case: &str) -> ColoredString {
-    if !self.ctx.config.cli.options.show_status_codes {
-      return "".normal();
+  /// If enabled, render the reason code as a clickable link
+  pub fn instance_status_code_link(&self, pascal_case: &str) -> ColoredString {
+    if self.ctx.config.cli.options.show_status_codes {
+      self.status_code_link(pascal_case)
+    } else {
+      "".normal()
     }
+  }
+
+  /// Render the reason code as a clickable link
+  fn status_code_link(&self, pascal_case: &str) -> ColoredString {
     let base_url = "https://jamiemason.github.io/syncpack/guide/status-codes/";
     let lower_case = pascal_case.to_lowercase();
     let plain_link = self.link(format!("{base_url}#{lower_case}"), pascal_case);

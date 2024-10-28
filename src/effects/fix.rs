@@ -29,7 +29,7 @@ pub fn run(ctx: Context) -> Context {
       let location = ui.instance_location(instance).dimmed();
       let state = instance.state.borrow().clone();
       let state_name = state.get_name();
-      let state_link = ui.status_code_link(&state_name);
+      let state_link = ui.instance_status_code_link(&state_name);
       let state_link = format!("({state_link})").dimmed();
 
       match state {
