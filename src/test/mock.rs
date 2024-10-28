@@ -18,6 +18,11 @@ pub fn cli() -> Cli {
       inspect_formatting: false,
       inspect_mismatches: true,
       log_levels: vec![],
+      show_ignored: false,
+      show_instances: false,
+      show_local_hints: false,
+      show_packages: false,
+      show_status_codes: false,
       source_patterns: vec![],
     },
   }

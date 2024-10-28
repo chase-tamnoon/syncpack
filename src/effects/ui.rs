@@ -19,19 +19,6 @@ use {
 #[derive(Debug)]
 pub struct Ui<'a> {
   pub ctx: &'a Context,
-  /// Whether to output ignored dependencies regardless
-  pub show_ignored: bool,
-  /// Whether to list every affected instance of a dependency when listing
-  /// version or semver range mismatches
-  pub show_instances: bool,
-  /// Whether to indicate that a dependency is a package developed locally
-  pub show_local_hint: bool,
-  /// Whether to show the name of the status code for each dependency and
-  /// instance, such as `HighestSemverMismatch`
-  pub show_status_codes: bool,
-  /// Whether to list every affected package.json file when listing formatting
-  /// mismatches
-  pub show_packages: bool,
 }
 
 impl<'a> Ui<'a> {
@@ -82,7 +69,7 @@ impl<'a> Ui<'a> {
     let instances_len = dependency.instances.borrow().len();
     let count = self.count_column(instances_len);
     let name = &dependency.name;
-    let name = if self.show_local_hint && dependency.local_instance.borrow().is_some() {
+    let name = if self.ctx.config.cli.options.show_local_hints && dependency.local_instance.borrow().is_some() {
       let local_hint = "(local)".blue();
       format!("{name} {local_hint}").normal()
     } else {
@@ -484,7 +471,7 @@ impl<'a> Ui<'a> {
       let count = self.count_column(packages.len());
       let status = "Valid".green();
       info!("{count} {icon} {status}");
-      if self.show_packages {
+      if self.ctx.config.cli.options.show_packages {
         packages
           .iter()
           .sorted_by_key(|package| package.borrow().get_name_unsafe())
@@ -511,7 +498,7 @@ impl<'a> Ui<'a> {
     let status_code = format!("{:?}", variant);
     let link = self.status_code_link(&status_code).red();
     info!("{count} {icon} {link}");
-    if self.show_packages {
+    if self.ctx.config.cli.options.show_packages {
       mismatches
         .iter()
         .sorted_by_key(|mismatch| mismatch.package.borrow().get_name_unsafe())
@@ -535,7 +522,7 @@ impl<'a> Ui<'a> {
   }
 
   pub fn status_code_link(&self, pascal_case: &str) -> ColoredString {
-    if !self.show_status_codes {
+    if !self.ctx.config.cli.options.show_status_codes {
       return "".normal();
     }
     let base_url = "https://jamiemason.github.io/syncpack/guide/status-codes/";

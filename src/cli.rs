@@ -68,6 +68,15 @@ fn only_option() -> Arg {
     .default_values(["formatting", "mismatches"])
 }
 
+fn show_option() -> Arg {
+  Arg::new("show")
+    .long("show")
+    .help("Control what information is displayed in lint output")
+    .value_delimiter(',')
+    .value_parser(["ignored", "instances", "local-hints", "packages", "status-codes"])
+    .default_values(["local-hints", "status-codes"])
+}
+
 fn source_option() -> Arg {
   Arg::new("source")
     .long("source")
@@ -87,6 +96,7 @@ fn create() -> Command {
         .arg(log_levels_option())
         .arg(no_color_option())
         .arg(only_option())
+        .arg(show_option())
         .arg(source_option()),
     )
     .subcommand(
@@ -96,6 +106,7 @@ fn create() -> Command {
         .arg(log_levels_option())
         .arg(no_color_option())
         .arg(only_option())
+        .arg(show_option())
         .arg(source_option()),
     )
 }
@@ -122,12 +133,26 @@ pub struct CliOptions {
   pub inspect_formatting: bool,
   pub inspect_mismatches: bool,
   pub log_levels: Vec<LevelFilter>,
+  /// Whether to output ignored dependencies regardless
+  pub show_ignored: bool,
+  /// Whether to list every affected instance of a dependency when listing
+  /// version or semver range mismatches
+  pub show_instances: bool,
+  /// Whether to indicate that a dependency is a package developed locally
+  pub show_local_hints: bool,
+  /// Whether to list every affected package.json file when listing formatting
+  /// mismatches
+  pub show_packages: bool,
+  /// Whether to show the name of the status code for each dependency and
+  /// instance, such as `HighestSemverMismatch`
+  pub show_status_codes: bool,
   pub source_patterns: Vec<String>,
 }
 
 impl CliOptions {
   /// Create a new `CliOptions` from CLI arguments provided by the user
   pub fn from_arg_matches(matches: &ArgMatches) -> CliOptions {
+    let show = matches.get_many::<String>("show").unwrap().collect_vec();
     let only = matches.get_many::<String>("only").unwrap().collect_vec();
     CliOptions {
       dependency_name_regex: matches.get_one::<String>("filter").map(|filter| Regex::new(filter).unwrap()),
@@ -146,6 +171,11 @@ impl CliOptions {
           _ => unreachable!(),
         })
         .collect(),
+      show_ignored: show.contains(&&"ignored".to_string()),
+      show_instances: show.contains(&&"instances".to_string()),
+      show_local_hints: show.contains(&&"local-hints".to_string()),
+      show_packages: show.contains(&&"packages".to_string()),
+      show_status_codes: show.contains(&&"status-codes".to_string()),
       source_patterns: matches
         .get_many::<String>("source")
         .unwrap_or_default()

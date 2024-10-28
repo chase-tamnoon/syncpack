@@ -8,11 +8,6 @@ pub fn run(ctx: Context) -> Context {
   // @TODO: move values to config file
   let ui = Ui {
     ctx: &ctx,
-    show_ignored: true,
-    show_instances: true,
-    show_local_hint: true,
-    show_status_codes: true,
-    show_packages: true,
     // @TODO: show_valid: false,
     // @TODO: sort_by: "name" | "state" | "count",
   };
@@ -26,14 +21,14 @@ pub fn run(ctx: Context) -> Context {
         ui.print_empty_group();
         return;
       }
-      if !ui.show_ignored && matches!(group.variant, VersionGroupVariant::Ignored) {
+      if !ctx.config.cli.options.show_ignored && matches!(group.variant, VersionGroupVariant::Ignored) {
         ui.print_ignored_group();
         return;
       }
       group.dependencies.borrow().values().for_each(|dependency| {
         ui.print_dependency(dependency, &group.variant);
         ui.for_each_instance(dependency, |instance| {
-          if ui.show_instances {
+          if ctx.config.cli.options.show_instances {
             ui.print_instance(instance, &group.variant);
           }
         });
