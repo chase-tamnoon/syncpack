@@ -8,7 +8,7 @@ use {
 
 /// Initialize the logger with the given log level
 pub fn init(cli_options: &CliOptions) {
-  if cli_options.disable_color {
+  if cli_options.disable_ansi {
     colored::control::set_override(false);
   }
   if !cli_options.log_levels.contains(&LevelFilter::Off) {

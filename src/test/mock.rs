@@ -14,7 +14,7 @@ pub fn cli() -> Cli {
     command_name: Subcommand::Lint,
     options: CliOptions {
       dependency_name_regex: None,
-      disable_color: true,
+      disable_ansi: true,
       inspect_formatting: false,
       inspect_mismatches: true,
       log_levels: vec![],

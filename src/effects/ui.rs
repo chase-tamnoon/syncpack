@@ -540,7 +540,7 @@ impl<'a> Ui<'a> {
 
   /// Render a clickable link
   fn link(&self, url: impl Into<String>, text: impl Into<ColoredString>) -> ColoredString {
-    if self.ctx.config.cli.options.disable_color {
+    if self.ctx.config.cli.options.disable_ansi {
       text.into().normal()
     } else {
       format!("\x1b]8;;{}\x1b\\{}\x1b]8;;\x1b\\", url.into(), text.into()).normal()

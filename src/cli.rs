@@ -72,13 +72,13 @@ fn log_levels_option(command: &str) -> Arg {
 }
 
 fn no_color_option(command: &str) -> Arg {
-  Arg::new("no-color")
-    .long("no-color")
+  Arg::new("no-ansi")
+    .long("no-ansi")
     .long_help(cformat!(
-      r#"Disable colored output
+      r#"Disable ANSI colored output and terminal hyperlinks
 
 <bold><underline>Examples</underline></bold>
-<dim>$</dim> <yellow><bold>syncpack {command}</bold> --no-color</>"#
+<dim>$</dim> <yellow><bold>syncpack {command}</bold> --no-ansi</>"#
     ))
     .action(clap::ArgAction::SetTrue)
 }
@@ -202,7 +202,7 @@ fn validate_source(value: &str) -> Result<String, String> {
 #[derive(Debug)]
 pub struct CliOptions {
   pub dependency_name_regex: Option<Regex>,
-  pub disable_color: bool,
+  pub disable_ansi: bool,
   pub inspect_formatting: bool,
   pub inspect_mismatches: bool,
   pub log_levels: Vec<LevelFilter>,
@@ -229,7 +229,7 @@ impl CliOptions {
     let only = matches.get_many::<String>("only").unwrap().collect_vec();
     CliOptions {
       dependency_name_regex: matches.get_one::<String>("filter").map(|filter| Regex::new(filter).unwrap()),
-      disable_color: matches.get_flag("no-color"),
+      disable_ansi: matches.get_flag("no-ansi"),
       inspect_formatting: only.contains(&&"formatting".to_string()),
       inspect_mismatches: only.contains(&&"mismatches".to_string()),
       log_levels: matches
