@@ -1,6 +1,7 @@
-node_modules
-/target
 **/*.rs.bk
+.DS_Store
+/target
+node_modules
 
 # Generated packages published to npm
 npm/packages
