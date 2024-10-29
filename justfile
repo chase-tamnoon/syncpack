@@ -110,7 +110,7 @@ run-fluid:
     set -euxo pipefail
 
     cd fixtures/fluid-framework
-    RUST_BACKTRACE=1 cargo run -- lint --format --versions
+    RUST_BACKTRACE=1 cat .syncpackrc.json | jq -cM | cargo run -- lint
 
 # Run the release rust binary against a clone of microsoft/FluidFramework
 run-fluid-prod:
@@ -118,16 +118,46 @@ run-fluid-prod:
     set -euxo pipefail
 
     cd fixtures/fluid-framework
-    ../../target/release/syncpack lint --versions --source 'package.json' --source 'packages/**/package.json'
+    ../../target/release/syncpack lint
 
 # Watch lint output during dev
 watch-fluid:
     #!/usr/bin/env bash
-    tput rmam && cargo watch --clear --shell 'cd fixtures/fluid-framework && RUST_BACKTRACE=1 cargo run -- lint --versions --format'
+    tput rmam && cargo watch --clear --shell 'cd fixtures/fluid-framework && RUST_BACKTRACE=1 cargo run -- lint'
 
 # ==============================================================================
 # Build
 # ==============================================================================
+
+# Build the npm package and rust binary package for mac
+build-local:
+    #!/usr/bin/env bash
+    set -euxo pipefail
+
+    rm -rf npm/packages
+    cargo build --release --locked --target x86_64-apple-darwin
+    just --dotenv-filename .env.darwin-x64 create-npm-binary-package
+    just --dotenv-filename .env.darwin-x64 create-npm-root-package
+    just patch-local
+    cd npm/packages/syncpack
+    npm install
+
+# Modify the local package.json file to only have a mac optionalDependency
+patch-local:
+    #!/usr/bin/env node
+    const fs = require("fs");
+    const path = require("path");
+    const srcPath = path.resolve("npm/packages/syncpack/package.json");
+    const pkg = require(srcPath);
+    const nextPkg = {
+        ...pkg,
+        optionalDependencies: {
+            "syncpack-darwin-x64": "file:../syncpack-darwin-x64"
+        }
+    };
+    const json = JSON.stringify(nextPkg, null, 2);
+    console.log(json);
+    fs.writeFileSync(srcPath, json);
 
 # Build a rust binary and corresponding npm package for a specific target
 build-binary-package:
@@ -164,6 +194,7 @@ create-npm-binary-package-json:
         ...pkg,
         name: process.env.NODE_PKG_NAME,
         bin: undefined,
+        dependencies: undefined,
         optionalDependencies: undefined,
         os: [process.env.NODE_OS],
         cpu: [process.env.NODE_ARCH],
