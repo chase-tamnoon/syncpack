@@ -23,6 +23,7 @@ readme = "./README.md"
 publish = false
 
 [dependencies]
+atty = "0.2.14"
 clap = { version = "4.5.20", features = ["cargo"] }
 color-print = "0.3.6"
 colored = "2.1.0"

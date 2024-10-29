@@ -3,7 +3,7 @@
 mod format_test;
 
 use {
-  crate::{config::Rcfile, package_json::PackageJson},
+  crate::{package_json::PackageJson, rcfile::Rcfile},
   icu::{
     collator::{Collator, CollatorOptions},
     locid::{locale, Locale},

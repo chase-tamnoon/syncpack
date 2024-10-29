@@ -1,9 +1,10 @@
 use {
   crate::{
     cli::{Cli, CliOptions, Subcommand},
-    config::{Config, Rcfile},
+    config::Config,
     package_json::PackageJson,
     packages::Packages,
+    rcfile::Rcfile,
   },
   serde_json::Value,
   std::{cell::RefCell, path::PathBuf},

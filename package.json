@@ -32,6 +32,10 @@
     "Stuart Knightley (https://github.com/Stuk)",
     "Tom Fletcher (https://github.com/tom-fletcher)"
   ],
+  "dependencies": {
+    "cosmiconfig": "9.0.0",
+    "typescript": "5.6.3"
+  },
   "homepage": "https://github.com/JamieMason/syncpack#readme",
   "keywords": [
     "dependencies",

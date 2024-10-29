@@ -1,4 +1,4 @@
-use crate::config;
+use crate::rcfile::CustomType;
 
 #[derive(Clone, Debug)]
 pub enum Strategy {
@@ -39,7 +39,7 @@ pub struct DependencyType {
 }
 
 impl DependencyType {
-  pub fn new(name: &str, config: &config::CustomType) -> DependencyType {
+  pub fn new(name: &str, config: &CustomType) -> DependencyType {
     DependencyType {
       name_path: config.name_path.clone().map(normalize_path),
       name: name.to_string(),

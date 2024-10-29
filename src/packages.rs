@@ -1,11 +1,5 @@
 use {
-  crate::{
-    cli::CliOptions,
-    config::{Config, Rcfile},
-    dependency_type::Strategy,
-    instance::Instance,
-    package_json::PackageJson,
-  },
+  crate::{cli::CliOptions, config::Config, dependency_type::Strategy, instance::Instance, package_json::PackageJson, rcfile::Rcfile},
   glob::glob,
   itertools::Itertools,
   serde::Deserialize,
