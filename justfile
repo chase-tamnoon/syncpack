@@ -178,7 +178,7 @@ create-npm-binary-package:
 
     rm -rf "$NODE_PKG_DIR_PATH"
     mkdir -p "$NODE_PKG_DIR_PATH/bin"
-    mv "$RUST_BINARY_PATH" "$NODE_PKG_RUST_BINARY_PATH"
+    cp "$RUST_BINARY_PATH" "$NODE_PKG_RUST_BINARY_PATH"
     cp README.md "$NODE_PKG_DIR_PATH/README.md"
     just create-npm-binary-package-json
 
