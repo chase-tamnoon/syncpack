@@ -6,6 +6,7 @@ use {
     version_group::{AnyVersionGroup, VersionGroup},
   },
   atty::Stream,
+  log::debug,
   serde::Deserialize,
   std::{collections::HashMap, io},
 };
@@ -120,10 +121,16 @@ impl Rcfile {
   /// Create a new rcfile from a single line of JSON piped into stdin
   pub fn from_stdin() -> Rcfile {
     if atty::is(Stream::Stdin) {
+      debug!("No Rcfile piped into stdin, reverting to defaults");
       return Rcfile::new();
     }
     let mut buffer = String::new();
     let json = io::stdin().read_line(&mut buffer).map_or_else(|_| "{}".to_string(), |_| buffer);
+    if json == "{}" {
+      debug!("Empty Rcfile piped into stdin, reverting to defaults");
+      return Rcfile::new();
+    }
+    debug!("Parsing Rcfile piped into stdin");
     Rcfile::from_json(json)
   }
 

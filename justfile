@@ -110,7 +110,7 @@ run-fluid:
     set -euxo pipefail
 
     cd fixtures/fluid-framework
-    RUST_BACKTRACE=1 cat .syncpackrc.json | jq -cM | cargo run -- lint
+    RUST_BACKTRACE=1 cat .syncpackrc.json | jq -cM | cargo run -- lint --log-levels info,error,warn,debug
 
 # Run the release rust binary against a clone of microsoft/FluidFramework
 run-fluid-prod:
