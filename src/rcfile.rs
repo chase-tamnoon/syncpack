@@ -130,7 +130,7 @@ impl Rcfile {
       debug!("Empty Rcfile piped into stdin, reverting to defaults");
       return Rcfile::new();
     }
-    debug!("Parsing Rcfile piped into stdin");
+    debug!("A non-empty Rcfile was piped into stdin");
     Rcfile::from_json(json)
   }
 

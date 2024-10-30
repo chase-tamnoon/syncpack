@@ -2,6 +2,7 @@ use {
   crate::{cli::CliOptions, config::Config, dependency_type::Strategy, instance::Instance, package_json::PackageJson, rcfile::Rcfile},
   glob::glob,
   itertools::Itertools,
+  log::debug,
   serde::Deserialize,
   serde_json::Value,
   std::{
@@ -167,10 +168,30 @@ fn get_file_paths(config: &Config) -> Vec<PathBuf> {
 /// the source glob patterns which should be used to resolve package.json files
 fn get_source_patterns(config: &Config) -> Vec<String> {
   get_cli_patterns(&config.cli.options)
+    .or_else(|| {
+      debug!("No --source patterns provided");
+      None
+    })
     .or_else(|| get_rcfile_patterns(&config.rcfile))
+    .or_else(|| {
+      debug!("No .source patterns in Rcfile");
+      None
+    })
     .or_else(|| get_npm_and_yarn_patterns(&config.cli.options.cwd))
+    .or_else(|| {
+      debug!("No .workspaces.packages or workspaces patterns in package.json");
+      None
+    })
     .or_else(|| get_pnpm_patterns(&config.cli.options.cwd))
+    .or_else(|| {
+      debug!("No .packages patterns in pnpm-workspace.yaml");
+      None
+    })
     .or_else(|| get_lerna_patterns(&config.cli.options.cwd))
+    .or_else(|| {
+      debug!("No .packages patterns in lerna.json");
+      None
+    })
     .map(|patterns| {
       patterns
         .into_iter()
@@ -253,5 +274,6 @@ fn get_lerna_patterns(cwd: &Path) -> Option<Vec<String>> {
 
 /// Default source patterns to use if no other source patterns are found
 fn get_default_patterns() -> Option<Vec<String>> {
+  debug!("Using default source patterns");
   Some(vec![String::from("package.json"), String::from("packages/*/package.json")])
 }
