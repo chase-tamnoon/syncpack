@@ -11,14 +11,12 @@ pub struct Config {
 }
 
 impl Config {
-  /// Try to read the rcfile from the current working directory and fall back to
-  /// defaults if one is not found
-  pub fn from_cli(cwd: PathBuf, cli: Cli, rcfile_json: String) -> Config {
-    let file_path = cwd.join(".syncpackrc.json");
+  /// Read the rcfile from stdin and fall back to defaults if none was sent
+  pub fn from_cli(cwd: PathBuf, cli: Cli) -> Config {
     Config {
       cli,
       cwd,
-      rcfile: Rcfile::from_json(rcfile_json),
+      rcfile: Rcfile::from_stdin(),
     }
   }
 }

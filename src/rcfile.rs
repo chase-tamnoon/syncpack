@@ -5,8 +5,9 @@ use {
     semver_group::{AnySemverGroup, SemverGroup},
     version_group::{AnyVersionGroup, VersionGroup},
   },
+  atty::Stream,
   serde::Deserialize,
-  std::collections::HashMap,
+  std::{collections::HashMap, io},
 };
 
 fn empty_custom_types() -> HashMap<String, CustomType> {
@@ -114,6 +115,16 @@ impl Rcfile {
       source: default_source(),
       version_groups: vec![],
     }
+  }
+
+  /// Create a new rcfile from a single line of JSON piped into stdin
+  pub fn from_stdin() -> Rcfile {
+    if atty::is(Stream::Stdin) {
+      return Rcfile::new();
+    }
+    let mut buffer = String::new();
+    let json = io::stdin().read_line(&mut buffer).map_or_else(|_| "{}".to_string(), |_| buffer);
+    Rcfile::from_json(json)
   }
 
   /// Create a new rcfile from a JSON string or revert to defaults

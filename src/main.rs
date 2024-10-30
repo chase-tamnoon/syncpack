@@ -10,9 +10,8 @@ use {
     packages::Packages,
     visit_packages::visit_packages,
   },
-  atty::Stream,
   log::{debug, error},
-  std::{env::current_dir, io},
+  std::env::current_dir,
 };
 
 #[cfg(test)]
@@ -43,9 +42,8 @@ fn main() {
 
   logger::init(&cli.options);
 
-  let rcfile_json = read_rcfile_from_stdin();
   let cwd = current_dir().unwrap();
-  let config = Config::from_cli(cwd, cli, rcfile_json);
+  let config = Config::from_cli(cwd, cli);
 
   debug!("CWD: {:?}", config.cwd);
   debug!("Chosen command: {:?}", config.cli.command_name);
@@ -73,12 +71,4 @@ fn main() {
       ctx.exit_program();
     }
   };
-}
-
-fn read_rcfile_from_stdin() -> String {
-  if atty::is(Stream::Stdin) {
-    return "{}".to_string();
-  }
-  let mut buffer = String::new();
-  io::stdin().read_line(&mut buffer).map_or_else(|_| "{}".to_string(), |_| buffer)
 }
