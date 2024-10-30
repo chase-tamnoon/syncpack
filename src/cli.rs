@@ -4,6 +4,7 @@ use {
   itertools::Itertools,
   log::LevelFilter,
   regex::Regex,
+  std::{env, path::PathBuf},
 };
 
 #[derive(Debug)]
@@ -206,6 +207,7 @@ fn validate_source(value: &str) -> Result<String, String> {
 
 #[derive(Debug)]
 pub struct CliOptions {
+  pub cwd: PathBuf,
   pub dependency_name_regex: Option<Regex>,
   pub disable_ansi: bool,
   pub inspect_formatting: bool,
@@ -233,6 +235,7 @@ impl CliOptions {
     let show = matches.get_many::<String>("show").unwrap().collect_vec();
     let only = matches.get_many::<String>("only").unwrap().collect_vec();
     CliOptions {
+      cwd: env::current_dir().unwrap(),
       dependency_name_regex: matches.get_one::<String>("filter").map(|filter| Regex::new(filter).unwrap()),
       disable_ansi: matches.get_flag("no-ansi"),
       inspect_formatting: only.contains(&&"formatting".to_string()),

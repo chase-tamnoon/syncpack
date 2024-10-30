@@ -7,13 +7,14 @@ use {
     rcfile::Rcfile,
   },
   serde_json::Value,
-  std::{cell::RefCell, path::PathBuf},
+  std::{cell::RefCell, env, path::PathBuf},
 };
 
 pub fn cli() -> Cli {
   Cli {
     command_name: Subcommand::Lint,
     options: CliOptions {
+      cwd: env::current_dir().unwrap(),
       dependency_name_regex: None,
       disable_ansi: true,
       inspect_formatting: false,
@@ -33,7 +34,6 @@ pub fn cli() -> Cli {
 pub fn config() -> Config {
   Config {
     cli: cli(),
-    cwd: std::env::current_dir().unwrap(),
     rcfile: rcfile(),
   }
 }
@@ -42,7 +42,6 @@ pub fn config() -> Config {
 pub fn config_from_mock(value: serde_json::Value) -> Config {
   Config {
     cli: cli(),
-    cwd: std::env::current_dir().unwrap(),
     rcfile: rcfile_from_mock(value),
   }
 }

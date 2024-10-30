@@ -11,7 +11,6 @@ use {
     visit_packages::visit_packages,
   },
   log::{debug, error},
-  std::env::current_dir,
 };
 
 #[cfg(test)]
@@ -42,11 +41,9 @@ fn main() {
 
   logger::init(&cli.options);
 
-  let cwd = current_dir().unwrap();
-  let config = Config::from_cli(cwd, cli);
+  let config = Config::from_cli(cli);
 
-  debug!("CWD: {:?}", config.cwd);
-  debug!("Chosen command: {:?}", config.cli.command_name);
+  debug!("Command: {:?}", config.cli.command_name);
   debug!("{:#?}", config.cli.options);
   debug!("{:#?}", config.rcfile);
 

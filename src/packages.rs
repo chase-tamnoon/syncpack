@@ -150,7 +150,7 @@ fn get_file_paths(config: &Config) -> Vec<PathBuf> {
       if PathBuf::from(pattern).is_absolute() {
         pattern.clone()
       } else {
-        config.cwd.join(pattern).to_str().unwrap().to_string()
+        config.cli.options.cwd.join(pattern).to_str().unwrap().to_string()
       }
     })
     .flat_map(|pattern| glob(&pattern).ok())
@@ -168,9 +168,9 @@ fn get_file_paths(config: &Config) -> Vec<PathBuf> {
 fn get_source_patterns(config: &Config) -> Vec<String> {
   get_cli_patterns(&config.cli.options)
     .or_else(|| get_rcfile_patterns(&config.rcfile))
-    .or_else(|| get_npm_and_yarn_patterns(&config.cwd))
-    .or_else(|| get_pnpm_patterns(&config.cwd))
-    .or_else(|| get_lerna_patterns(&config.cwd))
+    .or_else(|| get_npm_and_yarn_patterns(&config.cli.options.cwd))
+    .or_else(|| get_pnpm_patterns(&config.cli.options.cwd))
+    .or_else(|| get_lerna_patterns(&config.cli.options.cwd))
     .map(|patterns| {
       patterns
         .into_iter()
