@@ -484,6 +484,278 @@ fn instance_has_same_version_number_as_local_package_but_mismatches_a_different_
   ]);
 }
 
+// = Standard Version Group: Workspace Protocol ====================================
+
+#[test]
+fn workspace_protocol_has_higher_version_than_local_package_and_has_no_semver_group() {
+  let config = test::mock::config();
+  let packages = test::mock::packages_from_mocks(vec![
+    json!({
+      "name": "package-a",
+      "version": "1.0.0"
+    }),
+    json!({
+      "name": "package-b",
+      "dependencies": {
+        "package-a": "workspace:1.1.0"
+      }
+    }),
+  ]);
+  let ctx = Context::create(config, packages);
+  let ctx = visit_packages(ctx);
+  expect(&ctx).to_have_instances(vec![
+    ExpectedInstance {
+      state: InstanceState::suspect(InvalidLocalVersion),
+      dependency_name: "package-b",
+      id: "package-b in /version of package-b",
+      actual: "VERSION_IS_MISSING",
+      expected: Some("VERSION_IS_MISSING"),
+      overridden: None,
+    },
+    ExpectedInstance {
+      state: InstanceState::valid(IsLocalAndValid),
+      dependency_name: "package-a",
+      id: "package-a in /version of package-a",
+      actual: "1.0.0",
+      expected: Some("1.0.0"),
+      overridden: None,
+    },
+    ExpectedInstance {
+      state: InstanceState::fixable(DiffersToLocal),
+      dependency_name: "package-a",
+      id: "package-a in /dependencies of package-b",
+      actual: "workspace:1.1.0",
+      expected: Some("workspace:1.0.0"),
+      overridden: None,
+    },
+  ]);
+}
+
+#[test]
+fn workspace_protocol_has_identical_version_to_local_package_and_has_no_semver_group() {
+  let config = test::mock::config();
+  let packages = test::mock::packages_from_mocks(vec![
+    json!({
+      "name": "package-a",
+      "version": "1.0.0"
+    }),
+    json!({
+      "name": "package-b",
+      "dependencies": {
+        "package-a": "workspace:1.0.0"
+      }
+    }),
+  ]);
+  let ctx = Context::create(config, packages);
+  let ctx = visit_packages(ctx);
+  expect(&ctx).to_have_instances(vec![
+    ExpectedInstance {
+      state: InstanceState::suspect(InvalidLocalVersion),
+      dependency_name: "package-b",
+      id: "package-b in /version of package-b",
+      actual: "VERSION_IS_MISSING",
+      expected: Some("VERSION_IS_MISSING"),
+      overridden: None,
+    },
+    ExpectedInstance {
+      state: InstanceState::valid(IsLocalAndValid),
+      dependency_name: "package-a",
+      id: "package-a in /version of package-a",
+      actual: "1.0.0",
+      expected: Some("1.0.0"),
+      overridden: None,
+    },
+    ExpectedInstance {
+      state: InstanceState::valid(SatisfiesLocal),
+      dependency_name: "package-a",
+      id: "package-a in /dependencies of package-b",
+      actual: "workspace:1.0.0",
+      expected: Some("workspace:1.0.0"),
+      overridden: None,
+    },
+  ]);
+}
+
+#[test]
+fn workspace_protocol_has_wildcard_range() {
+  let config = test::mock::config();
+  let packages = test::mock::packages_from_mocks(vec![
+    json!({
+      "name": "package-a",
+      "version": "1.0.0"
+    }),
+    json!({
+      "name": "package-b",
+      "dependencies": {
+        "package-a": "workspace:*"
+      }
+    }),
+  ]);
+  let ctx = Context::create(config, packages);
+  let ctx = visit_packages(ctx);
+  expect(&ctx).to_have_instances(vec![
+    ExpectedInstance {
+      state: InstanceState::suspect(InvalidLocalVersion),
+      dependency_name: "package-b",
+      id: "package-b in /version of package-b",
+      actual: "VERSION_IS_MISSING",
+      expected: Some("VERSION_IS_MISSING"),
+      overridden: None,
+    },
+    ExpectedInstance {
+      state: InstanceState::valid(IsLocalAndValid),
+      dependency_name: "package-a",
+      id: "package-a in /version of package-a",
+      actual: "1.0.0",
+      expected: Some("1.0.0"),
+      overridden: None,
+    },
+    ExpectedInstance {
+      state: InstanceState::valid(SatisfiesLocal),
+      dependency_name: "package-a",
+      id: "package-a in /dependencies of package-b",
+      actual: "workspace:*",
+      expected: Some("workspace:*"),
+      overridden: None,
+    },
+  ]);
+}
+
+#[test]
+fn workspace_protocol_has_caret_range() {
+  let config = test::mock::config();
+  let packages = test::mock::packages_from_mocks(vec![
+    json!({
+      "name": "package-a",
+      "version": "1.0.0"
+    }),
+    json!({
+      "name": "package-b",
+      "dependencies": {
+        "package-a": "workspace:^"
+      }
+    }),
+  ]);
+  let ctx = Context::create(config, packages);
+  let ctx = visit_packages(ctx);
+  expect(&ctx).to_have_instances(vec![
+    ExpectedInstance {
+      state: InstanceState::suspect(InvalidLocalVersion),
+      dependency_name: "package-b",
+      id: "package-b in /version of package-b",
+      actual: "VERSION_IS_MISSING",
+      expected: Some("VERSION_IS_MISSING"),
+      overridden: None,
+    },
+    ExpectedInstance {
+      state: InstanceState::valid(IsLocalAndValid),
+      dependency_name: "package-a",
+      id: "package-a in /version of package-a",
+      actual: "1.0.0",
+      expected: Some("1.0.0"),
+      overridden: None,
+    },
+    ExpectedInstance {
+      state: InstanceState::valid(SatisfiesLocal),
+      dependency_name: "package-a",
+      id: "package-a in /dependencies of package-b",
+      actual: "workspace:^",
+      expected: Some("workspace:^"),
+      overridden: None,
+    },
+  ]);
+}
+
+#[test]
+fn workspace_protocol_has_different_version_to_local_package_and_has_no_semver_group() {
+  let config = test::mock::config();
+  let packages = test::mock::packages_from_mocks(vec![
+    json!({
+      "name": "package-a",
+      "version": "1.0.0"
+    }),
+    json!({
+      "name": "package-b",
+      "dependencies": {
+        "package-a": "workspace:1.1.0"
+      }
+    }),
+  ]);
+  let ctx = Context::create(config, packages);
+  let ctx = visit_packages(ctx);
+  expect(&ctx).to_have_instances(vec![
+    ExpectedInstance {
+      state: InstanceState::suspect(InvalidLocalVersion),
+      dependency_name: "package-b",
+      id: "package-b in /version of package-b",
+      actual: "VERSION_IS_MISSING",
+      expected: Some("VERSION_IS_MISSING"),
+      overridden: None,
+    },
+    ExpectedInstance {
+      state: InstanceState::valid(IsLocalAndValid),
+      dependency_name: "package-a",
+      id: "package-a in /version of package-a",
+      actual: "1.0.0",
+      expected: Some("1.0.0"),
+      overridden: None,
+    },
+    ExpectedInstance {
+      state: InstanceState::fixable(DiffersToLocal),
+      dependency_name: "package-a",
+      id: "package-a in /dependencies of package-b",
+      actual: "workspace:1.1.0",
+      expected: Some("workspace:1.0.0"),
+      overridden: None,
+    },
+  ]);
+}
+
+#[test]
+fn workspace_protocol_has_same_version_number_as_local_package_but_a_different_range_and_has_no_semver_group() {
+  let config = test::mock::config();
+  let packages = test::mock::packages_from_mocks(vec![
+    json!({
+      "name": "package-a",
+      "version": "1.0.0"
+    }),
+    json!({
+      "name": "package-b",
+      "devDependencies": {
+        "package-a": "workspace:~1.0.0"
+      }
+    }),
+  ]);
+  let ctx = Context::create(config, packages);
+  let ctx = visit_packages(ctx);
+  expect(&ctx).to_have_instances(vec![
+    ExpectedInstance {
+      state: InstanceState::suspect(InvalidLocalVersion),
+      dependency_name: "package-b",
+      id: "package-b in /version of package-b",
+      actual: "VERSION_IS_MISSING",
+      expected: Some("VERSION_IS_MISSING"),
+      overridden: None,
+    },
+    ExpectedInstance {
+      state: InstanceState::valid(IsLocalAndValid),
+      dependency_name: "package-a",
+      id: "package-a in /version of package-a",
+      actual: "1.0.0",
+      expected: Some("1.0.0"),
+      overridden: None,
+    },
+    ExpectedInstance {
+      state: InstanceState::valid(SatisfiesLocal),
+      dependency_name: "package-a",
+      id: "package-a in /devDependencies of package-b",
+      actual: "workspace:~1.0.0",
+      expected: Some("workspace:~1.0.0"),
+      overridden: None,
+    },
+  ]);
+}
+
 // = Standard Version Group: Highest/Lowest ====================================
 
 #[test]

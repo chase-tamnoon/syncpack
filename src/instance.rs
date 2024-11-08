@@ -1,9 +1,7 @@
 use {
   crate::{
     dependency_type::{DependencyType, Strategy},
-    instance_state::{
-      FixableInstance, InstanceState, InvalidInstance, SemverGroupAndVersionConflict, SuspectInstance, UnfixableInstance, ValidInstance,
-    },
+    instance_state::{FixableInstance, InstanceState, InvalidInstance, SemverGroupAndVersionConflict, SuspectInstance, UnfixableInstance, ValidInstance},
     package_json::PackageJson,
     semver_group::SemverGroup,
     specifier::{semver::Semver, semver_range::SemverRange, Specifier},
@@ -30,8 +28,13 @@ pub struct Instance {
   pub file_path: PathBuf,
   /// A unique identifier for this instance
   pub id: InstanceId,
-  /// Whether this is a package developed in this repo
+  /// Whether this instance is the package.json version of a package developed
+  /// in this repo
   pub is_local: bool,
+  /// If this is dependency is a package developed in this repo, this is the
+  /// specifier from the local package.json file, it may or may not have
+  /// originated from this Instance
+  pub local_specifier: RefCell<Option<Specifier>>,
   /// Does this instance match the filter options provided via the CLI?
   pub matches_cli_filter: RefCell<bool>,
   /// The dependency name eg. "react", "react-dom"
@@ -64,6 +67,7 @@ impl Instance {
       file_path: package.borrow().file_path.clone(),
       id: format!("{} in {} of {}", name, &dependency_type.path, package_name),
       is_local: dependency_type.path == "/version",
+      local_specifier: RefCell::new(None),
       matches_cli_filter: RefCell::new(false),
       name,
       package: Rc::clone(&package),
@@ -109,6 +113,13 @@ impl Instance {
     self.set_state(InstanceState::Invalid(InvalidInstance::Unfixable(state)), &self.actual_specifier)
   }
 
+  /// If this or another instance of this dependency are a package developed in
+  /// this repo, store the specifier from the local package.json file
+  pub fn set_local_specifier(&self, local_specifier: &Specifier) -> &Self {
+    *self.local_specifier.borrow_mut() = Some(local_specifier.clone());
+    self
+  }
+
   /// If this instance should use a preferred semver range, store it
   pub fn set_semver_group(&self, group: &SemverGroup) {
     if let Some(range) = &group.range {
@@ -122,26 +133,8 @@ impl Instance {
   }
 
   /// Does this instance belong to a `WithRange` semver group?
-  pub fn must_match_preferred_semver_range(&self) -> bool {
+  pub fn has_preferred_semver_range(&self) -> bool {
     self.preferred_semver_range.borrow().is_some()
-  }
-
-  /// Does this instance belong to a `WithRange` semver group and which prefers
-  /// a semver range other than the given range?
-  ///
-  /// This is a convenience method for the common case where a preferred semver
-  /// range only matters if what is preferred is not the same as the expected
-  /// version of a dependency which you are trying to synchronise to
-  pub fn must_match_preferred_semver_range_which_is_not(&self, needed_range: &SemverRange) -> bool {
-    self.must_match_preferred_semver_range() && !self.preferred_semver_range_is(needed_range)
-  }
-
-  /// Does this instance belong to a `WithRange` semver group and which prefers
-  /// a semver range other than that used by the given specifier?
-  pub fn must_match_preferred_semver_range_which_differs_to(&self, other_specifier: &Specifier) -> bool {
-    other_specifier.get_semver_range().map_or(false, |range_of_other_specifier| {
-      self.must_match_preferred_semver_range_which_is_not(&range_of_other_specifier)
-    })
   }
 
   /// Is the given semver range the preferred semver range for this instance?
@@ -151,42 +144,30 @@ impl Instance {
 
   /// Does this instance belong to a `WithRange` semver group and also have a
   /// specifier which matches its preferred semver range?
-  pub fn matches_preferred_semver_range(&self) -> bool {
-    self
-      .preferred_semver_range
-      .borrow()
-      .as_ref()
-      .map(|preferred_semver_range| self.actual_specifier.has_semver_range_of(preferred_semver_range))
-      .unwrap_or(false)
+  pub fn already_matches_preferred_semver_range(&self) -> bool {
+    self.preferred_semver_range.borrow().as_ref().map(|r| self.actual_specifier.has_semver_range_of(r)).unwrap_or(false)
   }
 
   /// Get the expected version specifier for this instance with the semver
   /// group's preferred range applied
   pub fn get_specifier_with_preferred_semver_range(&self) -> Option<Specifier> {
-    self.preferred_semver_range.borrow().as_ref().and_then(|preferred_semver_range| {
-      self
-        .actual_specifier
-        .get_simple_semver()
-        .map(|actual| Specifier::Semver(Semver::Simple(actual.with_range(preferred_semver_range))))
-    })
+    self
+      .preferred_semver_range
+      .borrow()
+      .as_ref()
+      .and_then(|preferred_semver_range| self.actual_specifier.get_simple_semver().map(|actual| Specifier::Semver(Semver::Simple(actual.with_range(preferred_semver_range)))))
   }
 
   /// Does this instance's specifier match the specifier of every one of the
   /// given instances?
   pub fn already_satisfies_all(&self, instances: &[Rc<Instance>]) -> bool {
-    !matches!(self.actual_specifier, Specifier::None)
-      && self
-        .actual_specifier
-        .satisfies_all(instances.iter().map(|i| &i.actual_specifier).collect())
+    !matches!(self.actual_specifier, Specifier::None) && self.actual_specifier.satisfies_all(instances.iter().map(|i| &i.actual_specifier).collect())
   }
 
   /// Will this instance's specifier, once fixed to match its semver group,
   /// satisfy the given specifier?
   pub fn specifier_with_preferred_semver_range_will_satisfy(&self, other: &Specifier) -> bool {
-    self
-      .get_specifier_with_preferred_semver_range()
-      .map(|specifier| specifier.satisfies(other))
-      .unwrap_or(false)
+    self.get_specifier_with_preferred_semver_range().map(|specifier| specifier.satisfies(other)).unwrap_or(false)
   }
 
   /// Delete from the package.json

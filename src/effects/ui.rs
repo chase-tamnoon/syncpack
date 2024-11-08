@@ -3,9 +3,7 @@ use {
     context::Context,
     dependency::Dependency,
     instance::Instance,
-    instance_state::{
-      FixableInstance, InstanceState, InvalidInstance, SemverGroupAndVersionConflict, SuspectInstance, UnfixableInstance, ValidInstance,
-    },
+    instance_state::{FixableInstance, InstanceState, InvalidInstance, SemverGroupAndVersionConflict, SuspectInstance, UnfixableInstance, ValidInstance},
     package_json::{FormatMismatch, FormatMismatchVariant, PackageJson},
     version_group::{VersionGroup, VersionGroupVariant},
   },
@@ -29,11 +27,7 @@ impl<'a> Ui<'a> {
     let print_width = 80;
     let label = &group.selector.label;
     let header = format!("= {label} ");
-    let divider = if header.len() < print_width {
-      "=".repeat(print_width - header.len())
-    } else {
-      "".to_string()
-    };
+    let divider = if header.len() < print_width { "=".repeat(print_width - header.len()) } else { "".to_string() };
     let full_header = format!("{header}{divider}");
     info!("{}", full_header.blue());
   }
@@ -61,11 +55,7 @@ impl<'a> Ui<'a> {
       .map(|state_name| self.instance_status_code_link(&state_name))
       .filter(|state_link| !state_link.is_empty())
       .join(", ");
-    let state_links = if !state_links.is_empty() {
-      format!("({state_links})").dimmed()
-    } else {
-      state_links.normal()
-    };
+    let state_links = if !state_links.is_empty() { format!("({state_links})").dimmed() } else { state_links.normal() };
     let instances_len = dependency.instances.borrow().len();
     let count = self.count_column(instances_len);
     let name = &dependency.name;
@@ -75,13 +65,7 @@ impl<'a> Ui<'a> {
     } else {
       name.normal()
     };
-    let expected = dependency
-      .expected
-      .borrow()
-      .clone()
-      .map(|expected| expected.unwrap())
-      .unwrap_or("".to_string())
-      .dimmed();
+    let expected = dependency.expected.borrow().clone().map(|expected| expected.get_raw()).unwrap_or("".to_string()).dimmed();
 
     match &dependency.get_state() {
       InstanceState::Valid(variant) => {
@@ -236,21 +220,13 @@ impl<'a> Ui<'a> {
       state_name.normal()
     };
     let state_link = self.instance_status_code_link(&state_name);
-    let state_link = if !state_link.is_empty() {
-      format!("({state_link})").dimmed()
-    } else {
-      state_link
-    };
-    let actual = instance.actual_specifier.unwrap();
+    let state_link = if !state_link.is_empty() { format!("({state_link})").dimmed() } else { state_link };
+    let actual = instance.actual_specifier.get_raw();
     let location = self.instance_location(instance).dimmed();
     match &state {
       InstanceState::Valid(variant) => {
         let icon = self.ok_icon();
-        let actual = if matches!(variant, ValidInstance::IsIgnored) {
-          actual.dimmed()
-        } else {
-          actual.green()
-        };
+        let actual = if matches!(variant, ValidInstance::IsIgnored) { actual.dimmed() } else { actual.green() };
         match variant {
           ValidInstance::IsIgnored => {
             let icon = self.unknown_icon();
@@ -311,7 +287,7 @@ impl<'a> Ui<'a> {
             FixableInstance::SemverRangeMismatch => {
               let arrow = self.dim_right_arrow();
               let expected = instance.get_specifier_with_preferred_semver_range();
-              let expected = expected.unwrap().unwrap();
+              let expected = expected.unwrap().get_raw();
               let expected = expected.green();
               info!("          {icon} {actual} {arrow} {expected} {location} {state_link}");
             }
@@ -439,11 +415,7 @@ impl<'a> Ui<'a> {
     let icon = self.unknown_icon();
     let message = "Ignored Dependencies".dimmed();
     info!("{count} {icon} {message}");
-    let instances_count = group
-      .dependencies
-      .borrow()
-      .values()
-      .fold(0, |acc, dep| acc + dep.instances.borrow().len());
+    let instances_count = group.dependencies.borrow().values().fold(0, |acc, dep| acc + dep.instances.borrow().len());
     let count = self.count_column(instances_count);
     let message = "Ignored Instances".dimmed();
     info!("{count} {icon} {message}");
@@ -457,12 +429,9 @@ impl<'a> Ui<'a> {
       let status = "Valid".green();
       info!("{count} {icon} {status}");
       if self.ctx.config.cli.show_packages {
-        packages
-          .iter()
-          .sorted_by_key(|package| package.borrow().get_name_unsafe())
-          .for_each(|package| {
-            self.print_formatted_package(&package.borrow());
-          });
+        packages.iter().sorted_by_key(|package| package.borrow().get_name_unsafe()).for_each(|package| {
+          self.print_formatted_package(&package.borrow());
+        });
       }
     }
   }
@@ -484,17 +453,14 @@ impl<'a> Ui<'a> {
     let link = self.status_code_link(&status_code).red();
     info!("{count} {icon} {link}");
     if self.ctx.config.cli.show_packages {
-      mismatches
-        .iter()
-        .sorted_by_key(|mismatch| mismatch.package.borrow().get_name_unsafe())
-        .for_each(|mismatch| {
-          let icon = "-".dimmed();
-          let package = mismatch.package.borrow();
-          let property_path = self.format_path(&mismatch.property_path);
-          let file_link = self.package_json_link(&package);
-          let msg = format!("          {icon} {property_path} of {file_link}").red();
-          info!("{msg}");
-        });
+      mismatches.iter().sorted_by_key(|mismatch| mismatch.package.borrow().get_name_unsafe()).for_each(|mismatch| {
+        let icon = "-".dimmed();
+        let package = mismatch.package.borrow();
+        let property_path = self.format_path(&mismatch.property_path);
+        let file_link = self.package_json_link(&package);
+        let msg = format!("          {icon} {property_path} of {file_link}").red();
+        info!("{msg}");
+      });
     }
   }
 

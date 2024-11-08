@@ -38,12 +38,7 @@ pub struct Dependency {
 }
 
 impl Dependency {
-  pub fn new(
-    name: String,
-    variant: VersionGroupVariant,
-    pinned_specifier: Option<Specifier>,
-    snapped_to_packages: Option<Vec<Rc<RefCell<PackageJson>>>>,
-  ) -> Dependency {
+  pub fn new(name: String, variant: VersionGroupVariant, pinned_specifier: Option<Specifier>, snapped_to_packages: Option<Vec<Rc<RefCell<PackageJson>>>>) -> Dependency {
     Dependency {
       expected: RefCell::new(None),
       instances: RefCell::new(vec![]),
@@ -64,38 +59,24 @@ impl Dependency {
   }
 
   pub fn get_unique_specifiers(&self) -> Vec<Specifier> {
-    let set: HashSet<Specifier> = self
-      .instances
-      .borrow()
-      .iter()
-      .map(|instance| instance.actual_specifier.clone())
-      .collect();
+    let set: HashSet<Specifier> = self.instances.borrow().iter().map(|instance| instance.actual_specifier.clone()).collect();
     set.into_iter().collect()
   }
 
   /// Return the most severe state of all instances in this group
   pub fn get_state(&self) -> InstanceState {
-    self
-      .instances
-      .borrow()
-      .iter()
-      .fold(InstanceState::Unknown, |acc, instance| acc.max(instance.state.borrow().clone()))
+    self.instances.borrow().iter().fold(InstanceState::Unknown, |acc, instance| acc.max(instance.state.borrow().clone()))
   }
 
   /// Return every unique instance state which applies to this group
   pub fn get_states(&self) -> Vec<InstanceState> {
-    self
-      .instances
-      .borrow()
-      .iter()
-      .map(|instance| instance.state.borrow().clone())
-      .collect::<Vec<_>>()
+    self.instances.borrow().iter().map(|instance| instance.state.borrow().clone()).collect::<Vec<_>>()
   }
 
   pub fn get_instances_by_specifier(&self) -> BTreeMap<String, Vec<Rc<Instance>>> {
     let mut map = BTreeMap::new();
     for instance in self.instances.borrow().iter() {
-      let specifier = instance.actual_specifier.unwrap();
+      let specifier = instance.actual_specifier.get_raw();
       map.entry(specifier).or_insert_with(Vec::new).push(Rc::clone(instance));
     }
     map
@@ -107,11 +88,7 @@ impl Dependency {
   }
 
   pub fn get_local_specifier(&self) -> Option<Specifier> {
-    self
-      .local_instance
-      .borrow()
-      .as_ref()
-      .map(|instance| instance.actual_specifier.clone())
+    self.local_instance.borrow().as_ref().map(|instance| instance.actual_specifier.clone())
   }
 
   pub fn has_local_instance(&self) -> bool {
@@ -119,22 +96,14 @@ impl Dependency {
   }
 
   pub fn has_local_instance_with_invalid_specifier(&self) -> bool {
-    self.has_local_instance()
-      && !matches!(
-        self.get_local_specifier().unwrap(),
-        Specifier::Semver(Semver::Simple(SimpleSemver::Exact(_)))
-      )
+    self.has_local_instance() && !matches!(self.get_local_specifier().unwrap(), Specifier::Semver(Semver::Simple(SimpleSemver::Exact(_))))
   }
 
   /// Does every instance in this group have a specifier which is exactly the
   /// same?
   pub fn every_specifier_is_already_identical(&self) -> bool {
     if let Some(first_actual) = self.instances.borrow().first().map(|instance| &instance.actual_specifier) {
-      self
-        .instances
-        .borrow()
-        .iter()
-        .all(|instance| instance.actual_specifier == *first_actual)
+      self.instances.borrow().iter().all(|instance| instance.actual_specifier == *first_actual)
     } else {
       false
     }
@@ -153,8 +122,8 @@ impl Dependency {
       .fold(None, |preferred, specifier| match preferred {
         None => Some(specifier),
         Some(preferred) => {
-          let a = specifier.get_orderable();
-          let b = preferred.get_orderable();
+          let a = specifier.get_orderable(None);
+          let b = preferred.get_orderable(None);
           if a.cmp(&b) == preferred_order {
             Some(specifier.clone())
           } else {
@@ -209,7 +178,7 @@ impl Dependency {
         if matches!(&b.actual_specifier, Specifier::None) {
           return Ordering::Less;
         }
-        let specifier_order = b.actual_specifier.unwrap().cmp(&a.actual_specifier.unwrap());
+        let specifier_order = b.actual_specifier.get_raw().cmp(&a.actual_specifier.get_raw());
         if matches!(specifier_order, Ordering::Equal) {
           a.package.borrow().get_name_unsafe().cmp(&b.package.borrow().get_name_unsafe())
         } else {

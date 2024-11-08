@@ -6,6 +6,7 @@ use {
     packages::Packages,
     rcfile::Rcfile,
   },
+  log::LevelFilter,
   serde_json::Value,
   std::{cell::RefCell, env, path::PathBuf},
 };
@@ -15,10 +16,10 @@ pub fn cli() -> Cli {
     check: true,
     cwd: env::current_dir().unwrap(),
     filter: None,
-    disable_ansi: true,
+    disable_ansi: false,
     inspect_formatting: false,
     inspect_mismatches: true,
-    log_levels: vec![],
+    log_levels: vec![LevelFilter::Error, LevelFilter::Warn, LevelFilter::Info, LevelFilter::Debug],
     show_ignored: false,
     show_instances: false,
     show_hints: false,
@@ -32,18 +33,12 @@ pub fn cli() -> Cli {
 
 /// Create an empty Config struct
 pub fn config() -> Config {
-  Config {
-    cli: cli(),
-    rcfile: rcfile(),
-  }
+  Config { cli: cli(), rcfile: rcfile() }
 }
 
 /// Create a Config struct from a mocked .syncpackrc
 pub fn config_from_mock(value: serde_json::Value) -> Config {
-  Config {
-    cli: cli(),
-    rcfile: rcfile_from_mock(value),
-  }
+  Config { cli: cli(), rcfile: rcfile_from_mock(value) }
 }
 
 /// Create an empty Rcfile struct

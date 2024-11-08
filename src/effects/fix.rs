@@ -47,9 +47,9 @@ pub fn run(ctx: Context) -> Context {
             match variant {
               FixableInstance::IsBanned => instance.remove(),
               _ => {
-                let actual = instance.actual_specifier.unwrap().red();
+                let actual = instance.actual_specifier.get_raw().red();
                 let arrow = ui.dim_right_arrow();
-                let expected = instance.expected_specifier.borrow().as_ref().unwrap().unwrap().green();
+                let expected = instance.expected_specifier.borrow().as_ref().unwrap().get_raw().green();
                 info!("{name} {actual} {arrow} {expected} {location} {state_link}");
                 instance.package.borrow().copy_expected_specifier(instance);
               }
@@ -61,10 +61,7 @@ pub fn run(ctx: Context) -> Context {
           }
         },
         InstanceState::Suspect(variant) => match variant {
-          SuspectInstance::RefuseToBanLocal
-          | SuspectInstance::RefuseToPinLocal
-          | SuspectInstance::RefuseToSnapLocal
-          | SuspectInstance::InvalidLocalVersion => {
+          SuspectInstance::RefuseToBanLocal | SuspectInstance::RefuseToPinLocal | SuspectInstance::RefuseToSnapLocal | SuspectInstance::InvalidLocalVersion => {
             suspect += 1;
             warn!("Suspect: {name} {location} {state_link}");
           }

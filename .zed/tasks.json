@@ -1,0 +1,13 @@
+[
+  {
+    "label": "Watch test under cursor",
+    "command": "just watch $ZED_SYMBOL",
+    "env": {
+      "RUST_BACKTRACE": "1"
+    },
+    "use_new_terminal": true,
+    "allow_concurrent_runs": true,
+    "reveal": "always",
+    "hide": "on_success"
+  }
+]

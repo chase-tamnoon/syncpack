@@ -51,6 +51,7 @@ impl Specifier {
           SimpleSemver::Range(_) => "range",
           SimpleSemver::RangeMajor(_) => "range-major",
           SimpleSemver::RangeMinor(_) => "range-minor",
+          SimpleSemver::RangeOnly(_) => "range-only",
         },
         Semver::Complex(_) => "range-complex",
       },
@@ -68,34 +69,24 @@ impl Specifier {
     .to_string()
   }
 
-  /// Try to parse this specifier into one from the `node_semver` crate
-  pub fn parse_with_node_semver(&self) -> Result<node_semver::Range, node_semver::SemverError> {
-    self.unwrap().parse::<node_semver::Range>()
-  }
-
   /// Get the raw string value of the specifier, eg "^1.4.1"
-  pub fn unwrap(&self) -> String {
+  pub fn get_raw(&self) -> String {
     match self {
       Self::Semver(simple_semver) => match simple_semver {
         Semver::Simple(variant) => match variant {
-          SimpleSemver::Exact(string) => string.clone(),
-          SimpleSemver::Latest(string) => string.clone(),
-          SimpleSemver::Major(string) => string.clone(),
-          SimpleSemver::Minor(string) => string.clone(),
-          SimpleSemver::Range(string) => string.clone(),
-          SimpleSemver::RangeMajor(string) => string.clone(),
-          SimpleSemver::RangeMinor(string) => string.clone(),
+          SimpleSemver::Exact(string)
+          | SimpleSemver::Latest(string)
+          | SimpleSemver::Major(string)
+          | SimpleSemver::Minor(string)
+          | SimpleSemver::Range(string)
+          | SimpleSemver::RangeMajor(string)
+          | SimpleSemver::RangeMinor(string)
+          | SimpleSemver::RangeOnly(string) => string.clone(),
         },
         Semver::Complex(string) => string.clone(),
       },
       Self::NonSemver(non_semver) => match non_semver {
-        NonSemver::Alias(string) => string.clone(),
-        NonSemver::File(string) => string.clone(),
-        NonSemver::Git(string) => string.clone(),
-        NonSemver::Tag(string) => string.clone(),
-        NonSemver::Url(string) => string.clone(),
-        NonSemver::WorkspaceProtocol(string) => string.clone(),
-        NonSemver::Unsupported(string) => string.clone(),
+        NonSemver::Alias(string) | NonSemver::File(string) | NonSemver::Git(string) | NonSemver::Tag(string) | NonSemver::Url(string) | NonSemver::WorkspaceProtocol(string) | NonSemver::Unsupported(string) => string.clone(),
       },
       Self::None => "VERSION_IS_MISSING".to_string(),
     }
@@ -106,12 +97,16 @@ impl Specifier {
     matches!(self, Specifier::Semver(Semver::Simple(_)))
   }
 
-  /// If this specifier is a simple semver, return it
+  pub fn is_workspace_protocol(&self) -> bool {
+    matches!(self, Specifier::NonSemver(NonSemver::WorkspaceProtocol(_)))
+  }
+
+  /// If this specifier contains simple semver, return it
   pub fn get_simple_semver(&self) -> Option<SimpleSemver> {
-    if let Specifier::Semver(Semver::Simple(simple_semver)) = self {
-      Some(simple_semver.clone())
-    } else {
-      None
+    match self {
+      Self::Semver(Semver::Simple(simple_semver)) => Some(simple_semver.clone()),
+      Self::NonSemver(NonSemver::WorkspaceProtocol(raw)) => SimpleSemver::new(&raw.replace("workspace:", "")).ok(),
+      _ => None,
     }
   }
 
@@ -126,55 +121,47 @@ impl Specifier {
 
   /// Does this specifier have the given semver range?
   pub fn has_semver_range_of(&self, range: &SemverRange) -> bool {
-    match self {
-      Self::Semver(Semver::Simple(simple_semver)) => simple_semver.has_semver_range_of(range),
-      _ => false,
-    }
+    self.get_simple_semver().map_or(false, |s| s.has_semver_range_of(range))
   }
 
   /// Regardless of the range, does this specifier and the other both have eg.
   /// "1.4.1" as their version?
   pub fn has_same_version_number_as(&self, other: &Self) -> bool {
-    match (self, other) {
-      (Self::Semver(Semver::Simple(simple_semver)), Self::Semver(Semver::Simple(other_simple_semver))) => {
-        simple_semver.has_same_version_number_as(other_simple_semver)
-      }
+    match (self.get_simple_semver(), other.get_simple_semver()) {
+      (Some(a), Some(b)) => a.has_same_version_number_as(&b),
       _ => false,
     }
   }
 
+  /// Try to parse this specifier into one from the `node_semver` crate
+  fn parse_with_node_semver(&self) -> Result<node_semver::Range, node_semver::SemverError> {
+    match self {
+      Self::NonSemver(NonSemver::WorkspaceProtocol(raw)) => self.get_raw().replace("workspace:", ""),
+      _ => self.get_raw(),
+    }
+    .parse::<node_semver::Range>()
+  }
+
   /// Does this specifier match every one of the given specifiers?
   pub fn satisfies_all(&self, others: Vec<&Self>) -> bool {
-    if !matches!(self, Specifier::None) {
-      if let Ok(node_range) = self.parse_with_node_semver() {
-        return others
-          .iter()
-          .flat_map(|other| other.parse_with_node_semver())
-          .all(|other_range| node_range.allows_any(&other_range));
-      }
+    match self.parse_with_node_semver() {
+      Ok(a) => others.iter().flat_map(|other| other.parse_with_node_semver()).all(|b| a.allows_any(&b)),
+      _ => false,
     }
-    false
   }
 
   /// Does this specifier match the given specifier?
   pub fn satisfies(&self, other: &Self) -> bool {
-    if !matches!(self, Specifier::None) {
-      if let Ok(node_range) = self.parse_with_node_semver() {
-        if let Ok(other_node_range) = other.parse_with_node_semver() {
-          return node_range.allows_any(&other_node_range);
-        }
-      }
-    }
-    false
+    self.satisfies_all(vec![other])
   }
 }
 
 impl IsOrderable for Specifier {
   /// Return a struct which can be used to check equality or sort specifiers
-  fn get_orderable(&self) -> Orderable {
+  fn get_orderable(&self, canonical_specifier: Option<&SimpleSemver>) -> Orderable {
     match self {
-      Self::Semver(semver) => semver.get_orderable(),
-      Self::NonSemver(non_semver) => non_semver.get_orderable(),
+      Self::Semver(semver) => semver.get_orderable(canonical_specifier),
+      Self::NonSemver(non_semver) => non_semver.get_orderable(canonical_specifier),
       Self::None => Orderable::new(),
     }
   }

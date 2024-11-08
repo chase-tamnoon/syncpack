@@ -18,7 +18,7 @@ fn creates_a_semver_range_from_a_string() {
   for (input, expected) in cases {
     let parsed = SemverRange::new(input).unwrap();
     assert_eq!(parsed, expected, "'{input}' should be '{expected:?}'");
-    assert_eq!(parsed.unwrap(), input, "'{parsed:?}' should unwrap to '{input}'");
+    assert_eq!(parsed.get_raw(), input, "'{parsed:?}' should unwrap to '{input}'");
   }
 }
 

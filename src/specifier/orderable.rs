@@ -1,7 +1,11 @@
-use {super::semver_range::SemverRange, node_semver::Version, std::cmp::Ordering};
+use {
+  super::{semver_range::SemverRange, simple_semver::SimpleSemver},
+  node_semver::Version,
+  std::cmp::Ordering,
+};
 
 pub trait IsOrderable: std::fmt::Debug {
-  fn get_orderable(&self) -> Orderable;
+  fn get_orderable(&self, canonical_specifier: Option<&SimpleSemver>) -> Orderable;
 }
 
 #[derive(Clone, Debug, Hash, PartialEq)]

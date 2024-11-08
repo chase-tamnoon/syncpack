@@ -57,7 +57,7 @@ fn returns_struct_for_comparison_and_sorting() {
   for (str, expected) in cases {
     let raw = str.to_string();
     let semver = SimpleSemver::new(&raw).unwrap();
-    let orderable = semver.get_orderable();
+    let orderable = semver.get_orderable(None);
     assert_eq!(orderable.range, expected.range, "range");
     assert_eq!(orderable.version.major, expected.version.major, "version.major");
     assert_eq!(orderable.version.minor, expected.version.minor, "version.minor");

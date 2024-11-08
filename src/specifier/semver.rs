@@ -27,9 +27,9 @@ impl Semver {
 }
 
 impl IsOrderable for Semver {
-  fn get_orderable(&self) -> Orderable {
+  fn get_orderable(&self, canonical_specifier: Option<&SimpleSemver>) -> Orderable {
     match self {
-      Self::Simple(simple_semver) => simple_semver.get_orderable(),
+      Self::Simple(simple_semver) => simple_semver.get_orderable(canonical_specifier),
       Self::Complex(_) => Orderable::new(),
     }
   }

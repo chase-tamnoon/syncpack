@@ -38,14 +38,11 @@ pub struct ActualInstance {
 impl ActualInstance {
   pub fn new(instance: &Instance) -> Self {
     Self {
-      actual: instance.actual_specifier.unwrap(),
+      actual: instance.actual_specifier.get_raw(),
       dependency_name: instance.name.clone(),
-      expected: instance.expected_specifier.borrow().clone().map(|expected| expected.unwrap()),
+      expected: instance.expected_specifier.borrow().clone().map(|expected| expected.get_raw()),
       id: instance.id.clone(),
-      overridden: instance
-        .get_specifier_with_preferred_semver_range()
-        .clone()
-        .map(|expected| expected.unwrap()),
+      overridden: instance.get_specifier_with_preferred_semver_range().clone().map(|expected| expected.get_raw()),
       state: instance.state.borrow().clone(),
     }
   }
@@ -65,12 +62,7 @@ impl<'a> Expects<'a> {
   }
 
   pub fn to_have_instances(&self, expected_instances: Vec<ExpectedInstance>) -> &Self {
-    let actual_instances = &self
-      .ctx
-      .instances
-      .iter()
-      .map(|instance| ActualInstance::new(instance))
-      .collect::<Vec<ActualInstance>>();
+    let actual_instances = &self.ctx.instances.iter().map(|instance| ActualInstance::new(instance)).collect::<Vec<ActualInstance>>();
     let actual_len = actual_instances.len();
     let expected_len = expected_instances.len();
     if actual_len != expected_len {

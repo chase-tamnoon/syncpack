@@ -43,7 +43,7 @@ impl SemverRange {
   }
 
   /// Get the string representation of the range
-  pub fn unwrap(&self) -> String {
+  pub fn get_raw(&self) -> String {
     match self {
       SemverRange::Any => "*",
       SemverRange::Minor => "^",
