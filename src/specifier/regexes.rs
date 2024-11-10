@@ -73,9 +73,45 @@ lazy_static! {
   pub static ref TAG: Regex = Regex::new(r"^[a-zA-Z0-9-]+$").unwrap();
   /// a logical OR in a semver range
   pub static ref OR_OPERATOR:Regex = Regex::new(r" ?\|\| ?").unwrap();
+  /// a string starting with "*", "~", "^", ">=", ">", "<=", or "<"
+  pub static ref SEMVER_RANGE: Regex = Regex::new(r"^([*~^]|[><]=?)").unwrap();
 }
 
 /// Check if a string matches any of the regexes
 pub fn matches_any(regexes: Vec<&Regex>, string: &str) -> bool {
   regexes.iter().any(|re| re.is_match(string))
+}
+
+#[cfg(test)]
+mod tests {
+  use super::*;
+
+  #[test]
+  fn test_semver_range() {
+    assert!(SEMVER_RANGE.is_match("*"));
+    assert!(SEMVER_RANGE.is_match("~"));
+    assert!(SEMVER_RANGE.is_match("^"));
+    assert!(SEMVER_RANGE.is_match(">="));
+    assert!(SEMVER_RANGE.is_match(">"));
+    assert!(SEMVER_RANGE.is_match("<="));
+    assert!(SEMVER_RANGE.is_match("<"));
+    assert!(SEMVER_RANGE.is_match("~1.2.3"));
+    assert!(SEMVER_RANGE.is_match("^1.2.3"));
+    assert!(SEMVER_RANGE.is_match(">=1.2.3"));
+    assert!(SEMVER_RANGE.is_match(">1.2.3"));
+    assert!(SEMVER_RANGE.is_match("<=1.2.3"));
+    assert!(SEMVER_RANGE.is_match("<1.2.3"));
+    assert!(SEMVER_RANGE.is_match("~1.2"));
+    assert!(SEMVER_RANGE.is_match("^1.2"));
+    assert!(SEMVER_RANGE.is_match(">=1.2"));
+    assert!(SEMVER_RANGE.is_match(">1.2"));
+    assert!(SEMVER_RANGE.is_match("<=1.2"));
+    assert!(SEMVER_RANGE.is_match("<1.2"));
+    assert!(SEMVER_RANGE.is_match("~1"));
+    assert!(SEMVER_RANGE.is_match("^1"));
+    assert!(SEMVER_RANGE.is_match(">=1"));
+    assert!(SEMVER_RANGE.is_match(">1"));
+    assert!(SEMVER_RANGE.is_match("<=1"));
+    assert!(SEMVER_RANGE.is_match("<1"));
+  }
 }

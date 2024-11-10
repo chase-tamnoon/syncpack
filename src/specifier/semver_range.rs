@@ -42,8 +42,21 @@ impl SemverRange {
     }
   }
 
+  /// eg "^1.2.3" -> (SemverRange::Minor, "1.2.3")
+  pub fn split(raw: &str) -> Option<(SemverRange, &str)> {
+    raw
+      .strip_prefix("*")
+      .map(|tail| (SemverRange::Any, tail))
+      .or_else(|| raw.strip_prefix("^").map(|tail| (SemverRange::Minor, tail)))
+      .or_else(|| raw.strip_prefix(">=").map(|tail| (SemverRange::Gte, tail)))
+      .or_else(|| raw.strip_prefix(">").map(|tail| (SemverRange::Gt, tail)))
+      .or_else(|| raw.strip_prefix("<=").map(|tail| (SemverRange::Lte, tail)))
+      .or_else(|| raw.strip_prefix("<").map(|tail| (SemverRange::Lt, tail)))
+      .or_else(|| raw.strip_prefix("~").map(|tail| (SemverRange::Patch, tail)))
+  }
+
   /// Get the string representation of the range
-  pub fn get_raw(&self) -> String {
+  pub fn get_raw(&self) -> &str {
     match self {
       SemverRange::Any => "*",
       SemverRange::Minor => "^",
@@ -54,7 +67,6 @@ impl SemverRange {
       SemverRange::Lte => "<=",
       SemverRange::Patch => "~",
     }
-    .to_string()
   }
 
   /// Get a numeric rank according to its greediness, for use in sorting

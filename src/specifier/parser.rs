@@ -11,14 +11,7 @@ pub fn sanitise(specifier: &str) -> &str {
 }
 
 pub fn is_simple_semver(str: &str) -> bool {
-  is_exact(str)
-    || is_latest(str)
-    || is_major(str)
-    || is_minor(str)
-    || is_range(str)
-    || is_range_major(str)
-    || is_range_minor(str)
-    || is_range_only(str)
+  is_exact(str) || is_latest(str) || is_major(str) || is_minor(str) || is_range(str) || is_range_major(str) || is_range_minor(str) || is_range_only(str)
 }
 
 pub fn is_exact(str: &str) -> bool {
@@ -35,6 +28,10 @@ pub fn is_major(str: &str) -> bool {
 
 pub fn is_minor(str: &str) -> bool {
   regexes::MINOR.is_match(str)
+}
+
+pub fn has_semver_range(specifier: &str) -> bool {
+  regexes::SEMVER_RANGE.is_match(specifier)
 }
 
 pub fn is_range(specifier: &str) -> bool {
@@ -83,13 +80,7 @@ pub fn is_complex_range(specifier: &str) -> bool {
     .split(specifier)
     .map(|str| str.trim())
     .filter(|str| !str.is_empty())
-    .all(|or_condition| {
-      or_condition
-        .split(' ')
-        .map(|str| str.trim())
-        .filter(|str| !str.is_empty())
-        .all(is_simple_semver)
-    })
+    .all(|or_condition| or_condition.split(' ').map(|str| str.trim()).filter(|str| !str.is_empty()).all(is_simple_semver))
 }
 
 pub fn is_tag(str: &str) -> bool {
